@@ -63,7 +63,7 @@ Pages.recruitment = function (el) {
           
           sbClient.from('recruitment_jobs').insert([newJob]).select().then(function(res) {
             if (res.error) {
-              alert('Error posting job: ' + res.error.message + ' (Make sure the table "recruitment_jobs" exists in Supabase!)');
+              alert('Error posting job: ' + res.error.message);
             } else {
               jobs.unshift(res.data[0]);
               App.closeModal();
@@ -156,7 +156,7 @@ Pages.documents = function (el) {
           
           sbClient.from('employee_documents').insert([newDoc]).select().then(function(res) {
             if (res.error) {
-              alert('Error uploading document: ' + res.error.message + ' (Make sure the table "employee_documents" exists in Supabase!)');
+              alert('Error uploading document: ' + res.error.message);
             } else {
               documents.unshift(res.data[0]);
               App.closeModal();
@@ -241,7 +241,7 @@ Pages.performance = function (el) {
           
           sbClient.from('performance_reviews').insert([newReview]).select().then(function(res) {
             if (res.error) {
-              alert('Error saving review: ' + res.error.message + ' (Make sure the table "performance_reviews" exists in Supabase!)');
+              alert('Error saving review: ' + res.error.message);
             } else {
               reviews.unshift(res.data[0]);
               App.closeModal();
