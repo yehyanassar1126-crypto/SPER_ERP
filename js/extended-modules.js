@@ -30,6 +30,50 @@ Pages.recruitment = function (el) {
     
     html += '</tbody></table></div></div></div>';
     el.innerHTML = html;
+
+    var addBtn = document.getElementById('add-job-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', function() {
+        var modalBody = '<div class="form-group"><label class="form-label">Job Title *</label><input type="text" id="job-title" class="form-input" placeholder="e.g. Senior Accountant"></div>' +
+          '<div class="form-group"><label class="form-label">Department *</label><select id="job-dept" class="form-input">';
+        if (typeof DEPARTMENTS !== 'undefined') {
+          DEPARTMENTS.forEach(function(d) { modalBody += '<option value="' + d + '">' + d + '</option>'; });
+        } else {
+          modalBody += '<option value="IT">IT</option><option value="HR">HR</option><option value="Production">Production</option><option value="Engineering">Engineering</option>';
+        }
+        modalBody += '</select></div>' +
+          '<div class="form-group"><label class="form-label">Status</label><select id="job-status" class="form-input"><option value="open">Open (Accepting Applications)</option><option value="closed">Closed</option></select></div>';
+        
+        var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-job-btn">Post Job</button>';
+        
+        App.showModal('Post New Job', modalBody, modalFooter);
+        
+        document.getElementById('save-job-btn').addEventListener('click', function() {
+          var title = document.getElementById('job-title').value.trim();
+          var dept = document.getElementById('job-dept').value;
+          var status = document.getElementById('job-status').value;
+          
+          if (!title) { alert('Please enter the job title.'); return; }
+          
+          var newJob = {
+            id: 'mock_' + Date.now(), // Fallback ID
+            title: title,
+            department: dept,
+            status: status
+          };
+          
+          sbClient.from('recruitment_jobs').insert([newJob]).then(function(res) {
+            if (res.error && res.error.code !== '42P01') {
+              alert('Error posting job: ' + res.error.message);
+            } else {
+              jobs.unshift(newJob);
+              App.closeModal();
+              render();
+            }
+          });
+        });
+      });
+    }
   }
 
   // Fetch from DB or mock if table missing
