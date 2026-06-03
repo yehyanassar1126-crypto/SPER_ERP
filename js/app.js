@@ -486,7 +486,7 @@ Pages.hrDashboard = function (el) {
     el.innerHTML = html;
 
     setTimeout(function () {
-      var lateToday = attendance.filter(function (a) { return a.delay_seconds > 0 && a.date === tds; }).length;
+      var lateToday = attendance.filter(function (a) { return a.delay_minutes > 0 && a.date === tds; }).length;
       new Chart(document.getElementById('chart-attendance'), {
         type: 'doughnut', data: { labels: ['Present', 'Absent', 'Late'], datasets: [{ data: [presentToday, absentToday, lateToday], backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'], borderWidth: 0 }] },
         options: { cutout: '65%', plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 16, font: { size: 12 } } } }, maintainAspectRatio: false }
@@ -554,7 +554,7 @@ Pages.empDashboard = function (el) {
       html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-tertiary);font-size:0.82rem">Check In</span><span style="font-weight:600">' + formatTime(todayAtt.check_in) + '</span></div>';
       html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-tertiary);font-size:0.82rem">Check Out</span><span style="font-weight:600">' + (todayAtt.check_out ? formatTime(todayAtt.check_out) : '—') + '</span></div>';
       html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-tertiary);font-size:0.82rem">Working Hours</span><span style="font-weight:600">' + (todayAtt.working_hours || 0) + 'h</span></div>';
-      if (todayAtt.delay_seconds > 0) html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--accent-warning);font-size:0.82rem">⚠️ Late by</span><span style="font-weight:600;color:var(--accent-warning)">' + formatDelay(todayAtt.delay_seconds) + '</span></div>';
+      if (todayAtt.delay_minutes > 0) html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--accent-warning);font-size:0.82rem">⚠️ Late by</span><span style="font-weight:600;color:var(--accent-warning)">' + formatDelay(todayAtt.delay_minutes) + '</span></div>';
       html += '</div>';
     } else {
       html += '<div class="empty-state" style="padding:30px">' + icon('alertTriangle', 32) + '<p>You haven\'t checked in today</p><button class="btn btn-primary btn-sm" onclick="App.navigate(\'qr-checkin\')">Go to QR Check-In</button></div>';
@@ -907,7 +907,7 @@ Pages.attendance = function (el) {
       html += '<td>' + formatDate(r.date) + '</td><td>' + formatTime(r.check_in) + '</td><td>' + formatTime(r.check_out) + '</td>';
       html += '<td><span class="shift-badge shift-' + r.shift + '">' + icon('clock', 11) + ' ' + r.shift + '</span></td>';
       html += '<td>' + (r.working_hours ? r.working_hours + 'h' : '—') + '</td>';
-      html += '<td>' + (r.delay_seconds > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + icon('alertTriangle') + ' ' + formatDelay(r.delay_seconds) + '</span>' : '<span style="color:var(--accent-success)">On time</span>') + '</td>';
+      html += '<td>' + (r.delay_minutes > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + icon('alertTriangle') + ' ' + formatDelay(r.delay_minutes) + '</span>' : '<span style="color:var(--accent-success)">On time</span>') + '</td>';
       var badge = r.status === 'present' ? 'badge-success' : r.status === 'checked_in' ? 'badge-info' : 'badge-danger';
       html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + r.status.replace('_', ' ') + '</span></td></tr>';
     });
@@ -1032,11 +1032,11 @@ Pages.qrCheckin = function (el) {
               }
               var diffMs = timeNow - shiftStart;
               if (diffMs > 0) {
-                delayMin = Math.floor(diffMs / 1000);
+                delayMin = Math.floor(diffMs / 60000);
               }
             }
             {
-              sbClient.from('attendance').insert({ employee_id: user.id, employee_name: user.full_name, department: user.department, date: todayStr(), check_in: timeNow.toISOString(), shift: user.shift, delay_seconds: delayMin, status: 'present' }).select().single().then(function (r) {
+              sbClient.from('attendance').insert({ employee_id: user.id, employee_name: user.full_name, department: user.department, date: todayStr(), check_in: timeNow.toISOString(), shift: user.shift, delay_minutes: delayMin, status: 'present' }).select().single().then(function (r) {
                 if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
                 if (r.data) currentRecordId = r.data.id;
               });
@@ -1759,7 +1759,7 @@ Pages.reports = function (el) {
       var chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 16, font: { size: 11 } } } }, scales: { x: { ticks: { color: '#64748b' }, grid: { display: false }, border: { display: false } }, y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(148,163,184,0.06)' }, border: { display: false } } } };
       if (activeReport === 'attendance') {
         var attData = {};
-        DEPARTMENTS.forEach(function (d) { var recs = attendance.filter(function (a) { return a.department === d; }); attData[d] = { present: recs.filter(function (a) { return a.status === 'present' || a.status === 'checked_in'; }).length, absent: recs.filter(function (a) { return a.status === 'absent'; }).length, late: recs.filter(function (a) { return a.delay_seconds > 0; }).length }; });
+        DEPARTMENTS.forEach(function (d) { var recs = attendance.filter(function (a) { return a.department === d; }); attData[d] = { present: recs.filter(function (a) { return a.status === 'present' || a.status === 'checked_in'; }).length, absent: recs.filter(function (a) { return a.status === 'absent'; }).length, late: recs.filter(function (a) { return a.delay_minutes > 0; }).length }; });
         new Chart(ctx, { type: 'bar', data: { labels: DEPARTMENTS, datasets: [{ label: 'Present', data: DEPARTMENTS.map(function (d) { return attData[d].present; }), backgroundColor: '#22c55e', borderRadius: 4 }, { label: 'Absent', data: DEPARTMENTS.map(function (d) { return attData[d].absent; }), backgroundColor: '#ef4444', borderRadius: 4 }, { label: 'Late', data: DEPARTMENTS.map(function (d) { return attData[d].late; }), backgroundColor: '#f59e0b', borderRadius: 4 }] }, options: chartOpts });
       } else if (activeReport === 'absenteeism') {
         var empAbsent = {};

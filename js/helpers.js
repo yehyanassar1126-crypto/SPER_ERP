@@ -76,15 +76,13 @@ function showToast(message, type) {
   }, 3500);
 }
 
-function formatDelay(totalSeconds) {
-  if (!totalSeconds || totalSeconds <= 0) return 'On time';
-  var h = Math.floor(totalSeconds / 3600);
-  var m = Math.floor((totalSeconds % 3600) / 60);
-  var s = Math.floor(totalSeconds % 60);
+function formatDelay(totalMinutes) {
+  if (!totalMinutes || totalMinutes <= 0) return 'On time';
+  var h = Math.floor(totalMinutes / 60);
+  var m = Math.floor(totalMinutes % 60);
   var parts = [];
   if (h > 0) parts.push(h + 'h');
   if (m > 0) parts.push(m + 'm');
-  if (s > 0) parts.push(s + 's');
   if (parts.length === 0) return 'On time';
   return parts.join(' ');
 }

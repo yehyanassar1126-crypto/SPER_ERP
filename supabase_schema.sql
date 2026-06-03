@@ -43,7 +43,7 @@ CREATE TABLE attendance (
   check_in TIMESTAMPTZ,
   check_out TIMESTAMPTZ,
   shift TEXT,
-  delay_seconds INTEGER DEFAULT 0,
+  delay_minutes INTEGER DEFAULT 0,
   working_hours NUMERIC(5, 2) DEFAULT 0,
   status TEXT DEFAULT 'absent' CHECK (status IN ('present', 'checked_in', 'absent')),
   created_at TIMESTAMPTZ DEFAULT NOW()
