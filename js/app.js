@@ -1745,7 +1745,13 @@ Pages.reports = function (el) {
     el.innerHTML = html;
 
     document.querySelectorAll('[data-report]').forEach(function (btn) { btn.addEventListener('click', function () { activeReport = this.getAttribute('data-report'); render(); }); });
-    document.getElementById('rpt-export').addEventListener('click', function () { exportToCSV(activeReport === 'attendance' ? attendance : leaves, activeReport + '_report'); });
+    document.getElementById('rpt-export').addEventListener('click', function () { 
+      var dataToExport = attendance;
+      if (activeReport === 'performance') dataToExport = payroll;
+      else if (activeReport === 'leaves') dataToExport = leaves;
+      else if (activeReport === 'absenteeism') dataToExport = attendance.filter(function(a) { return a.status === 'absent'; });
+      exportToCSV(dataToExport, activeReport + '_report'); 
+    });
 
     setTimeout(function () {
       var ctx = document.getElementById('report-chart');
@@ -1770,7 +1776,24 @@ Pages.reports = function (el) {
       }
     }, 50);
   }
-  render();
+
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading report data...</div>';
+
+  Promise.all([
+    sbClient.from('users').select('*').eq('status', 'active'),
+    sbClient.from('attendance').select('*'),
+    sbClient.from('leave_requests').select('*'),
+    sbClient.from('payroll').select('*')
+  ]).then(function (results) {
+    employees = results[0].data || [];
+    attendance = results[1].data || [];
+    leaves = results[2].data || [];
+    payroll = results[3].data || [];
+    render();
+  }).catch(function (err) {
+    console.error('Reports Data Load Error:', err);
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)">Error loading report data.</div>';
+  });
 };
 
 // ----- AUDIT LOG -----
