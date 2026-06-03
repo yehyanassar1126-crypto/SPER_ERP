@@ -243,7 +243,6 @@ var App = {
         ] },
         {
           section: 'Workplace', items: [
-            { id: 'org-directory', label: 'Company Directory', icon: 'users' },
             { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
           ]
         },
@@ -265,7 +264,6 @@ var App = {
         { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
         {
           section: 'Workplace', items: [
-            { id: 'org-directory', label: 'Company Directory', icon: 'users' },
             { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
           ]
         },
