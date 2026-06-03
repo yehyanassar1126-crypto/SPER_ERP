@@ -56,17 +56,16 @@ Pages.recruitment = function (el) {
           if (!title) { alert('Please enter the job title.'); return; }
           
           var newJob = {
-            id: 'mock_' + Date.now(), // Fallback ID
             title: title,
             department: dept,
             status: status
           };
           
-          sbClient.from('recruitment_jobs').insert([newJob]).then(function(res) {
-            if (res.error && res.error.code !== '42P01') {
-              alert('Error posting job: ' + res.error.message);
+          sbClient.from('recruitment_jobs').insert([newJob]).select().then(function(res) {
+            if (res.error) {
+              alert('Error posting job: ' + res.error.message + ' (Make sure the table "recruitment_jobs" exists in Supabase!)');
             } else {
-              jobs.unshift(newJob);
+              jobs.unshift(res.data[0]);
               App.closeModal();
               render();
             }
@@ -155,11 +154,11 @@ Pages.documents = function (el) {
             expiry_date: expiry
           };
           
-          sbClient.from('employee_documents').insert([newDoc]).then(function(res) {
-            if (res.error && res.error.code !== '42P01') {
-              alert('Error uploading document: ' + res.error.message);
+          sbClient.from('employee_documents').insert([newDoc]).select().then(function(res) {
+            if (res.error) {
+              alert('Error uploading document: ' + res.error.message + ' (Make sure the table "employee_documents" exists in Supabase!)');
             } else {
-              documents.unshift(newDoc);
+              documents.unshift(res.data[0]);
               App.closeModal();
               render();
             }
@@ -240,12 +239,11 @@ Pages.performance = function (el) {
             goals_met: goals
           };
           
-          // Fallback if table does not exist
-          sbClient.from('performance_reviews').insert([newReview]).then(function(res) {
-            if (res.error && res.error.code !== '42P01') {
-              alert('Error saving review: ' + res.error.message);
+          sbClient.from('performance_reviews').insert([newReview]).select().then(function(res) {
+            if (res.error) {
+              alert('Error saving review: ' + res.error.message + ' (Make sure the table "performance_reviews" exists in Supabase!)');
             } else {
-              reviews.unshift(newReview);
+              reviews.unshift(res.data[0]);
               App.closeModal();
               render();
             }
