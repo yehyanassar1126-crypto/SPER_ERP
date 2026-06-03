@@ -187,6 +187,12 @@ var App = {
         },
         { section: 'Communication', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
         {
+          section: 'Workplace', items: [
+            { id: 'org-directory', label: 'Company Directory', icon: 'users' },
+            { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
+          ]
+        },
+        {
           section: 'Analytics', items: [
             { id: 'reports', label: 'Reports', icon: 'barChart' },
             { id: 'audit-log', label: 'Audit Log', icon: 'fileText' },
@@ -216,6 +222,12 @@ var App = {
             { id: 'announcements', label: 'Announcements', icon: 'megaphone' },
             { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
         ] },
+        {
+          section: 'Workplace', items: [
+            { id: 'org-directory', label: 'Company Directory', icon: 'users' },
+            { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
+          ]
+        },
       ];
     } else {
       menu = [
@@ -230,6 +242,12 @@ var App = {
           ]
         },
         { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
+        {
+          section: 'Workplace', items: [
+            { id: 'org-directory', label: 'Company Directory', icon: 'users' },
+            { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
+          ]
+        },
       ];
     }
 
@@ -283,6 +301,8 @@ var App = {
       'performance': { title: 'Performance', sub: 'Employee appraisals and goals' },
       'uniforms': { title: 'Uniforms', sub: 'Track issued uniforms and sizes' },
       'ai-mind': { title: 'AI Mind', sub: 'Neural-powered workforce intelligence' },
+      'org-directory': { title: 'Company Directory', sub: 'Interactive Org Chart & Skills Finder' },
+      'shift-swap': { title: 'Shift Marketplace', sub: 'Request and accept shift swaps intelligently' },
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -346,6 +366,8 @@ var App = {
       case 'performance': (App.isHR() || App.isManager()) ? Pages.performance(el) : Pages.empDashboard(el); break;
       case 'uniforms': App.isHR() ? Pages.uniforms(el) : Pages.empDashboard(el); break;
       case 'ai-mind': (App.isHR() || App.isManager()) ? Pages.aiMind(el) : Pages.empDashboard(el); break;
+      case 'org-directory': Pages.orgDirectory(el); break;
+      case 'shift-swap': Pages.shiftSwap(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },
