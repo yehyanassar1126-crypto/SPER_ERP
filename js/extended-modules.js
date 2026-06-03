@@ -102,7 +102,7 @@ Pages.documents = function (el) {
   
   function render() {
     var html = '<div class="toolbar">';
-    html += '<button class="btn btn-primary">' + icon('plus') + ' Upload Document</button>';
+    html += '<button class="btn btn-primary" id="upload-doc-btn">' + icon('plus') + ' Upload Document</button>';
     html += '</div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>📄 Document Management</h3><p>Track employee IDs, contracts, and expiries</p></div></div>';
@@ -124,6 +124,49 @@ Pages.documents = function (el) {
     
     html += '</tbody></table></div></div></div>';
     el.innerHTML = html;
+
+    var uploadBtn = document.getElementById('upload-doc-btn');
+    if (uploadBtn) {
+      uploadBtn.addEventListener('click', function() {
+        var modalBody = '<div class="form-group"><label class="form-label">Employee *</label><select id="doc-emp" class="form-input">';
+        if (employees.length === 0) {
+          modalBody += '<option value="">No employees found</option>';
+        } else {
+          employees.forEach(function(e) { modalBody += '<option value="' + e.id + '">' + e.full_name + '</option>'; });
+        }
+        modalBody += '</select></div>' +
+          '<div class="form-group"><label class="form-label">Document Type *</label><select id="doc-type" class="form-input"><option value="National ID">National ID</option><option value="Contract">Contract</option><option value="Health Certificate">Health Certificate</option><option value="Military Certificate">Military Certificate</option></select></div>' +
+          '<div class="form-group"><label class="form-label">Expiry Date *</label><input type="date" id="doc-expiry" class="form-input" required></div>';
+        
+        var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-doc-btn">Save Document Info</button>';
+        
+        App.showModal('Upload Document', modalBody, modalFooter);
+        
+        document.getElementById('save-doc-btn').addEventListener('click', function() {
+          var empId = document.getElementById('doc-emp').value;
+          var type = document.getElementById('doc-type').value;
+          var expiry = document.getElementById('doc-expiry').value;
+          
+          if (!empId || !type || !expiry) { alert('Please fill in all fields.'); return; }
+          
+          var newDoc = {
+            employee_id: empId,
+            doc_type: type,
+            expiry_date: expiry
+          };
+          
+          sbClient.from('employee_documents').insert([newDoc]).then(function(res) {
+            if (res.error && res.error.code !== '42P01') {
+              alert('Error uploading document: ' + res.error.message);
+            } else {
+              documents.unshift(newDoc);
+              App.closeModal();
+              render();
+            }
+          });
+        });
+      });
+    }
   }
 
   Promise.all([

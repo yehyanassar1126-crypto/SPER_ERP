@@ -81,7 +81,7 @@ Pages.orgDirectory = function (el) {
           });
           html += '</div>';
 
-          html += '<button class="btn btn-outline btn-sm" style="width:100%; margin-top:16px;" onclick="window.location.href=\'mailto:' + (emp.email || '#') + '\'">' + icon('mail', 14) + ' Contact</button>';
+          html += '<button class="btn btn-outline btn-sm" style="width:100%; margin-top:16px;" onclick="window.open(\'https://mail.google.com/mail/?view=cm&fs=1&to=' + (emp.email || '') + '\', \'_blank\')">' + icon('mail', 14) + ' Contact</button>';
           html += '</div></div>';
         });
         html += '</div>';
