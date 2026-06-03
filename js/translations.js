@@ -265,7 +265,41 @@ const ARABIC_DICT = {
   "Size": "المقاس",
   "Issued Date": "تاريخ التسليم",
   "Issue Uniform": "تسليم عهدة",
-  "Return / Replace": "استرجاع / استبدال"
+  "Return / Replace": "استرجاع / استبدال",
+
+  // Loans & Advances
+  "Loans & Advances": "السلف والقروض",
+  "Manage employee loans": "إدارة سلف الموظفين",
+  "My Loans": "سلفي",
+  "Your loan requests and remaining balance": "طلبات السلف والرصيد المتبقي",
+  "All Loans": "جميع السلف",
+  "New Loan Record": "تسجيل سلفة جديد",
+  "Remaining": "المتبقي",
+  "Installments": "الأقساط",
+  "Monthly": "الخصم الشهري",
+  "Defer": "تأجيل",
+  "Defer Deduction for This Month": "تأجيل الخصم لهذا الشهر",
+  "Request Loan": "طلب سلفة",
+  "Track your active and past loans": "تتبع سلفك الحالية والسابقة",
+
+  // Medical Requests
+  "Medical Requests": "الطلبات الطبية",
+  "Manage medical needs and disbursements": "إدارة الاحتياجات الطبية والمبالغ المنصرفة",
+  "Medical Needs": "الاحتياجات الطبية",
+  "My Medical Needs": "احتياجاتي الطبية",
+  "Upload medical needs and receipts": "رفع الاحتياجات الطبية والإيصالات",
+  "Manage employee medical requests": "إدارة طلبات الموظفين الطبية",
+  "Document": "المستند",
+  "Submit Medical Receipt": "تقديم إيصال طبي",
+  "Track your medical requests and reimbursements": "تتبع طلباتك الطبية والمبالغ المستردة",
+  "Under Review": "قيد المراجعة",
+  "Approved - Pending Payment": "مقبول - في انتظار الصرف",
+  "Disbursed to Salary": "تم الصرف مع الراتب",
+  "Awaiting Owner Approval": "بانتظار موافقة المالك",
+  "Awaiting HR Disbursement": "بانتظار صرف الـ HR",
+  "Disbursed": "تم الصرف",
+  "Add Amount": "إضافة مبلغ",
+  "Upload Document / Receipt": "رفع مستند / إيصال"
 };
 
 // Set Arabic as default language
