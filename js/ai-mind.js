@@ -28,8 +28,8 @@ var AIMind = {
     Object.keys(byEmployee).forEach(function (name) {
       var records = byEmployee[name];
       var recentRecords = records.filter(function (r) { return new Date(r.date) >= thirtyDaysAgo; });
-      var lateCount = recentRecords.filter(function (r) { return r.delay_minutes > 0; }).length;
-      var totalDelay = recentRecords.reduce(function (s, r) { return s + (r.delay_minutes || 0); }, 0);
+      var lateCount = recentRecords.filter(function (r) { return r.delay_seconds > 0; }).length;
+      var totalDelay = recentRecords.reduce(function (s, r) { return s + (r.delay_seconds || 0); }, 0);
       var avgDelay = recentRecords.length ? Math.round(totalDelay / recentRecords.length) : 0;
 
       if (lateCount >= 5) {
@@ -38,7 +38,7 @@ var AIMind = {
           category: 'attendance',
           icon: '⏰',
           title: 'Chronic Lateness Detected',
-          message: name + ' has been late ' + lateCount + ' times in the last 30 days (avg ' + avgDelay + ' min). Consider a private conversation.',
+          message: name + ' has been late ' + lateCount + ' times in the last 30 days (avg ' + formatDelay(avgDelay) + '). Consider a private conversation.',
           severity: lateCount >= 10 ? 'critical' : 'high',
           employee: name,
           metric: lateCount
@@ -65,9 +65,9 @@ var AIMind = {
     attendance.filter(function (a) { return new Date(a.date) >= thirtyDaysAgo; }).forEach(function (a) {
       if (!deptStats[a.department]) deptStats[a.department] = { total: 0, late: 0, totalDelay: 0 };
       deptStats[a.department].total++;
-      if (a.delay_minutes > 0) {
+      if (a.delay_seconds > 0) {
         deptStats[a.department].late++;
-        deptStats[a.department].totalDelay += a.delay_minutes;
+        deptStats[a.department].totalDelay += a.delay_seconds;
       }
     });
 
@@ -80,7 +80,7 @@ var AIMind = {
           category: 'department',
           icon: '🏢',
           title: 'Department Lateness Alert',
-          message: dept + ' department has a ' + lateRate + '% lateness rate this month. Average delay: ' + Math.round(stats.totalDelay / stats.late) + ' min. Consider reviewing shift timings.',
+          message: dept + ' department has a ' + lateRate + '% lateness rate this month. Average delay: ' + formatDelay(Math.round(stats.totalDelay / stats.late)) + '. Consider reviewing shift timings.',
           severity: 'high',
           metric: lateRate
         });
@@ -234,7 +234,7 @@ var AIMind = {
 
       // Attendance risk
       var empAttendance = attendance.filter(function (a) { return a.employee_name === emp.full_name && new Date(a.date) >= thirtyDaysAgo; });
-      var lateCount = empAttendance.filter(function (a) { return a.delay_minutes > 0; }).length;
+      var lateCount = empAttendance.filter(function (a) { return a.delay_seconds > 0; }).length;
       if (lateCount >= 5) { riskScore += 25; factors.push('Frequent lateness (' + lateCount + 'x)'); }
       if (empAttendance.length < 15) { riskScore += 20; factors.push('Low attendance (' + empAttendance.length + ' days)'); }
 
@@ -279,14 +279,14 @@ var AIMind = {
     // Attendance queries
     if (q.match(/(attendance|حضور|late|تأخير|absent|غياب)/)) {
       var totalRecords = data.attendance.length;
-      var lateRecords = data.attendance.filter(function (a) { return a.delay_minutes > 0; });
+      var lateRecords = data.attendance.filter(function (a) { return a.delay_seconds > 0; });
       var lateRate = totalRecords ? Math.round((lateRecords.length / totalRecords) * 100) : 0;
-      var avgDelay = lateRecords.length ? Math.round(lateRecords.reduce(function (s, a) { return s + a.delay_minutes; }, 0) / lateRecords.length) : 0;
+      var avgDelay = lateRecords.length ? Math.round(lateRecords.reduce(function (s, a) { return s + a.delay_seconds; }, 0) / lateRecords.length) : 0;
 
       response.text = "📊 **Attendance Analysis**\n\n";
       response.text += "• Total records analyzed: **" + totalRecords + "**\n";
       response.text += "• Lateness rate: **" + lateRate + "%**\n";
-      response.text += "• Average delay: **" + avgDelay + " minutes**\n";
+      response.text += "• Average delay: **" + formatDelay(avgDelay) + "**\n";
       response.text += "• Late instances: **" + lateRecords.length + "** records\n\n";
 
       if (lateRate > 20) {
@@ -380,7 +380,7 @@ var AIMind = {
       response.text = "💡 **AI Recommendations**\n\n";
       var recommendations = [];
 
-      var lateCount = data.attendance.filter(function (a) { return a.delay_minutes > 0; }).length;
+      var lateCount = data.attendance.filter(function (a) { return a.delay_seconds > 0; }).length;
       var totalAtt = data.attendance.length;
       if (totalAtt && (lateCount / totalAtt) > 0.15) {
         recommendations.push("🕐 Implement a flexible check-in window (e.g., 15-min grace period) to reduce recorded lateness while maintaining accountability.");
