@@ -117,7 +117,8 @@ Pages.documents = function (el) {
         html += '<td>' + d.doc_type + '</td>';
         html += '<td>' + d.expiry_date + '</td>';
         html += '<td><span class="badge ' + (isExpired ? 'badge-danger' : 'badge-success') + '">' + (isExpired ? 'Expired' : 'Valid') + '</span></td>';
-        html += '<td><button class="btn btn-xs btn-outline">View File</button></td></tr>';
+        var fileBtn = d.file_url ? '<button class="btn btn-xs btn-outline" onclick="window.open(\'' + d.file_url + '\', \'_blank\')">View File</button>' : '<button class="btn btn-xs btn-outline" disabled title="No file uploaded">No File</button>';
+        html += '<td>' + fileBtn + '</td></tr>';
       });
     }
     
@@ -135,7 +136,8 @@ Pages.documents = function (el) {
         }
         modalBody += '</select></div>' +
           '<div class="form-group"><label class="form-label">Document Type *</label><select id="doc-type" class="form-input"><option value="National ID">National ID</option><option value="Contract">Contract</option><option value="Health Certificate">Health Certificate</option><option value="Military Certificate">Military Certificate</option></select></div>' +
-          '<div class="form-group"><label class="form-label">Expiry Date *</label><input type="date" id="doc-expiry" class="form-input" required></div>';
+          '<div class="form-group"><label class="form-label">Expiry Date *</label><input type="date" id="doc-expiry" class="form-input" required></div>' +
+          '<div class="form-group"><label class="form-label">Document File (Image/PDF)</label><input type="file" id="doc-file" class="form-input" accept="image/*,.pdf"></div>';
         
         var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-doc-btn">Save Document Info</button>';
         
@@ -145,24 +147,53 @@ Pages.documents = function (el) {
           var empId = document.getElementById('doc-emp').value;
           var type = document.getElementById('doc-type').value;
           var expiry = document.getElementById('doc-expiry').value;
+          var fileInput = document.getElementById('doc-file');
+          var file = fileInput.files[0];
           
           if (!empId || !type || !expiry) { alert('Please fill in all fields.'); return; }
           
-          var newDoc = {
-            employee_id: empId,
-            doc_type: type,
-            expiry_date: expiry
-          };
-          
-          sbClient.from('employee_documents').insert([newDoc]).select().then(function(res) {
-            if (res.error) {
-              alert('Error uploading document: ' + res.error.message);
-            } else {
-              documents.unshift(res.data[0]);
-              App.closeModal();
-              render();
-            }
-          });
+          var saveBtn = this;
+          var originalText = saveBtn.innerHTML;
+          saveBtn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:6px;display:inline-block;vertical-align:middle;"></span> Uploading...';
+          saveBtn.disabled = true;
+
+          function insertRecord(fileUrl) {
+            var newDoc = {
+              employee_id: empId,
+              doc_type: type,
+              expiry_date: expiry,
+              file_url: fileUrl || null
+            };
+            
+            sbClient.from('employee_documents').insert([newDoc]).select().then(function(res) {
+              saveBtn.innerHTML = originalText;
+              saveBtn.disabled = false;
+              if (res.error) {
+                alert('Error saving document record: ' + res.error.message);
+              } else {
+                documents.unshift(res.data[0]);
+                App.closeModal();
+                render();
+              }
+            });
+          }
+
+          if (file) {
+            var fileExt = file.name.split('.').pop();
+            var fileName = 'doc_' + Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + fileExt;
+            sbClient.storage.from('documents').upload(fileName, file).then(function(uploadRes) {
+              if (uploadRes.error) {
+                alert('Error uploading file: ' + uploadRes.error.message + ' (Did you create the "documents" storage bucket and set it to public?)');
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+              } else {
+                var urlRes = sbClient.storage.from('documents').getPublicUrl(fileName);
+                insertRecord(urlRes.data.publicUrl);
+              }
+            });
+          } else {
+            insertRecord(null);
+          }
         });
       });
     }
