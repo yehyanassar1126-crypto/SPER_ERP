@@ -105,7 +105,7 @@ Pages.performance = function (el) {
   
   function render() {
     var html = '<div class="toolbar">';
-    html += '<button class="btn btn-primary">' + icon('plus') + ' New Review</button>';
+    html += '<button class="btn btn-primary" id="add-review-btn">' + icon('plus') + ' New Review</button>';
     html += '</div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>📈 Performance & OKRs</h3><p>Manage employee goals and appraisals</p></div></div>';
@@ -125,6 +125,47 @@ Pages.performance = function (el) {
     
     html += '</tbody></table></div></div></div>';
     el.innerHTML = html;
+
+    var addBtn = document.getElementById('add-review-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', function() {
+        var modalBody = '<div class="form-group"><label class="form-label">Employee Name *</label><input type="text" id="rev-emp" class="form-input" placeholder="e.g. Ahmed Ali"></div>' +
+          '<div class="form-group"><label class="form-label">Review Period *</label><input type="text" id="rev-period" class="form-input" placeholder="e.g. Q1 2026"></div>' +
+          '<div class="form-group"><label class="form-label">Rating</label><select id="rev-rating" class="form-input"><option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3" selected>3 - Average</option><option value="2">2 - Needs Improvement</option><option value="1">1 - Poor</option></select></div>' +
+          '<div class="form-group" style="margin-top:10px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="rev-goals" style="width:16px;height:16px;" checked> <span>Employee met their goals for this period</span></label></div>';
+        
+        var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-rev-btn">Save Review</button>';
+        
+        App.showModal('Add Performance Review', modalBody, modalFooter);
+        
+        document.getElementById('save-rev-btn').addEventListener('click', function() {
+          var emp = document.getElementById('rev-emp').value.trim();
+          var period = document.getElementById('rev-period').value.trim();
+          var rating = parseInt(document.getElementById('rev-rating').value);
+          var goals = document.getElementById('rev-goals').checked;
+          
+          if (!emp || !period) { alert('Please enter the employee name and period.'); return; }
+          
+          var newReview = {
+            employee_name: emp,
+            period: period,
+            rating: rating,
+            goals_met: goals
+          };
+          
+          // Fallback if table does not exist
+          sbClient.from('performance_reviews').insert([newReview]).then(function(res) {
+            if (res.error && res.error.code !== '42P01') {
+              alert('Error saving review: ' + res.error.message);
+            } else {
+              reviews.unshift(newReview);
+              App.closeModal();
+              render();
+            }
+          });
+        });
+      });
+    }
   }
 
   sbClient.from('performance_reviews').select('*').then(function (r) {
