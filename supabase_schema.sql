@@ -231,3 +231,51 @@ ALTER PUBLICATION supabase_realtime ADD TABLE attendance;
 
 -- Initial Admin Account
 INSERT INTO users (employee_id, full_name, email, username, password_hash, role, department, position, base_salary, shift, insurance_active, status, avatar_color) VALUES ('HR-001', 'Admin HR', 'hr@factory.com', 'hr', 'hr123', 'hr', 'Administration', 'HR Manager', 15000, 'morning', true, 'active', '#6366f1') ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- 12. LOANS & ADVANCES TABLE
+-- ============================================================
+CREATE TABLE loans (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  employee_name TEXT,
+  amount NUMERIC(10,2) NOT NULL,
+  installments INTEGER NOT NULL,
+  monthly_deduction NUMERIC(10,2) NOT NULL,
+  remaining_amount NUMERIC(10,2) NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed', 'rejected')),
+  reason TEXT,
+  deferred_months TEXT[] DEFAULT '{}', -- Format: YYYY-MM to pause deduction
+  approved_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for Loans
+ALTER TABLE loans ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Loans view policy" ON loans FOR SELECT USING (true);
+CREATE POLICY "Loans insert policy" ON loans FOR INSERT WITH CHECK (true);
+CREATE POLICY "Loans update policy" ON loans FOR UPDATE USING (true);
+
+-- ============================================================
+-- 13. MEDICAL REQUESTS TABLE
+-- ============================================================
+CREATE TABLE medical_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  employee_name TEXT,
+  description TEXT NOT NULL,
+  document_url TEXT,
+  amount NUMERIC(10,2) DEFAULT 0,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved_by_owner', 'rejected', 'disbursed')),
+  owner_comments TEXT,
+  hr_comments TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for Medical Requests
+ALTER TABLE medical_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Medical view policy" ON medical_requests FOR SELECT USING (true);
+CREATE POLICY "Medical insert policy" ON medical_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Medical update policy" ON medical_requests FOR UPDATE USING (true);

@@ -198,6 +198,8 @@ var App = {
             { id: 'documents', label: 'Documents', icon: 'fileText' },
             { id: 'performance', label: 'Performance', icon: 'trendingUp' },
             { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
+            { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
+            { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
           ]
         },
         { section: 'Communication', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
@@ -231,6 +233,8 @@ var App = {
             { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
             { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
             { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
+            { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
+            { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
           ]
         },
         { section: 'Other', items: [
@@ -254,6 +258,8 @@ var App = {
             { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
             { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
             { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
+            { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
+            { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
           ]
         },
         { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
@@ -315,6 +321,10 @@ var App = {
       'documents': { title: 'Documents', sub: 'Track employee documents and expiries' },
       'performance': { title: 'Performance', sub: 'Employee appraisals and goals' },
       'uniforms': { title: 'Uniforms', sub: 'Track issued uniforms and sizes' },
+      'loans': { title: 'Loans & Advances', sub: 'Manage employee loans' },
+      'my-loans': { title: 'My Loans', sub: 'Your loan requests and remaining balance' },
+      'medical-requests': { title: 'Medical Requests', sub: 'Manage medical needs and disbursements' },
+      'my-medical': { title: 'My Medical Needs', sub: 'Upload medical needs and receipts' },
       'ai-mind': { title: 'AI Mind', sub: 'Neural-powered workforce intelligence' },
       'org-directory': { title: 'Company Directory', sub: 'Interactive Org Chart & Skills Finder' },
       'shift-swap': { title: 'Shift Marketplace', sub: 'Request and accept shift swaps intelligently' },
@@ -380,6 +390,10 @@ var App = {
       case 'documents': App.isHR() ? Pages.documents(el) : Pages.empDashboard(el); break;
       case 'performance': (App.isHR() || App.isManager()) ? Pages.performance(el) : Pages.empDashboard(el); break;
       case 'uniforms': App.isHR() ? Pages.uniforms(el) : Pages.empDashboard(el); break;
+      case 'loans': App.isHR() ? Pages.loans(el) : Pages.empDashboard(el); break;
+      case 'my-loans': Pages.myLoans(el); break;
+      case 'medical-requests': App.isHR() ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
+      case 'my-medical': Pages.myMedical(el); break;
       case 'ai-mind': (App.isHR() || App.isManager()) ? Pages.aiMind(el) : Pages.empDashboard(el); break;
       case 'org-directory': Pages.orgDirectory(el); break;
       case 'shift-swap': Pages.shiftSwap(el); break;
