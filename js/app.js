@@ -70,6 +70,18 @@ var App = {
       if (res.data) App.notifications = res.data;
       App.updateNotifBadge();
     });
+    
+    // Enable Realtime Notifications
+    sbClient.channel('public:notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + App.user.id }, function(payload) {
+        var newNotif = payload.new;
+        App.notifications.unshift(newNotif);
+        App.updateNotifBadge();
+        if (typeof showToast === 'function') {
+          showToast('🔔 ' + newNotif.title, 'info');
+        }
+      })
+      .subscribe();
   },
 
   addNotification: function (notif) {
@@ -77,9 +89,12 @@ var App = {
     if (notif.user_id === App.user.id) {
       App.notifications.unshift(newNotif);
     }
-    {
-      sbClient.from('notifications').insert(notif).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
-    }
+    sbClient.from('notifications').insert(newNotif).then(function (r) { 
+      if (r && r.error) { 
+        console.error("Supabase Error:", r.error); 
+        // Don't alert on UI for background notifications, just log it
+      } 
+    });
     App.updateNotifBadge();
   },
 
