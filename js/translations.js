@@ -208,7 +208,64 @@ const ARABIC_DICT = {
   "Log Overtime Hours": "تسجيل ساعات إضافية",
   "Submit for Approval": "تقديم للاعتماد",
   "Rate Multiplier": "معامل الزيادة",
-  "Hours": "عدد الساعات"
+  "Hours": "عدد الساعات",
+
+  // AI Mind
+  "AI Mind": "العقل الذكي",
+  "Neural-powered workforce intelligence": "ذكاء القوى العاملة بالشبكات العصبية",
+  "AI Intelligence Engine": "محرك الذكاء الاصطناعي",
+  "Neural Network Active": "الشبكة العصبية نشطة",
+  "Insights Found": "رؤى مكتشفة",
+  "Critical Alerts": "تنبيهات حرجة",
+  "At-Risk Employees": "موظفون معرضون للخطر",
+  "Analyzed Profiles": "ملفات محللة",
+  "Talk to AI Mind": "تحدث مع العقل الذكي",
+  "Ask questions about your workforce": "اسأل عن القوى العاملة",
+  "Live Insights": "رؤى مباشرة",
+  "Employee Risk Assessment": "تقييم مخاطر الموظفين",
+  "Rescan": "إعادة الفحص",
+  "Show attendance insights": "عرض رؤى الحضور",
+  "Who is at risk?": "من معرّض للخطر؟",
+  "Department performance": "أداء الأقسام",
+  "Recommend improvements": "اقتراح تحسينات",
+  "Payroll overview": "نظرة عامة على الرواتب",
+
+  // Extended Modules
+  "Recruitment": "التوظيف",
+  "Manage job postings and applicants": "إدارة الوظائف والمتقدمين",
+  "Smart Recruitment & ATS": "نظام التوظيف الذكي",
+  "Job Title": "المسمى الوظيفي",
+  "Applicants": "المتقدمين",
+  "Post New Job": "نشر وظيفة جديدة",
+  "View Candidates": "عرض المرشحين",
+
+  "Documents": "المستندات",
+  "Track employee documents and expiries": "متابعة مستندات الموظفين وتاريخ الانتهاء",
+  "Document Management": "إدارة المستندات",
+  "Document Type": "نوع المستند",
+  "Expiry Date": "تاريخ الانتهاء",
+  "Upload Document": "رفع مستند",
+  "View File": "عرض الملف",
+  "Expired": "منتهي",
+  "Valid": "ساري",
+
+  "Performance": "الأداء",
+  "Employee appraisals and goals": "تقييمات وأهداف الموظفين",
+  "Performance & OKRs": "تقييم الأداء والأهداف",
+  "Period": "الفترة",
+  "Rating": "التقييم",
+  "Goals Met": "تحقيق الأهداف",
+  "New Review": "تقييم جديد",
+  "Details": "التفاصيل",
+
+  "Uniforms": "العهد (اليونيفورم)",
+  "Track issued uniforms and sizes": "متابعة اليونيفورم والمقاسات",
+  "Uniform Management": "إدارة العهد والملابس",
+  "Uniform Type": "نوع اليونيفورم",
+  "Size": "المقاس",
+  "Issued Date": "تاريخ التسليم",
+  "Issue Uniform": "تسليم عهدة",
+  "Return / Replace": "استرجاع / استبدال"
 };
 
 // Set Arabic as default language
