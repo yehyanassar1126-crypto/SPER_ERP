@@ -2520,7 +2520,7 @@ Pages.missions = function(el) {
           status: 'pending'
         }]).then(function(r) {
           if (r.error) {
-            alert('خطأ في التسجيل: تأكد من إنشاء جدول missions.');
+            alert('خطأ في التسجيل: ' + r.error.message + ' | code: ' + r.error.code + ' | details: ' + r.error.details);
             console.error(r.error);
           } else {
             showToast('تم إرسال الطلب للـ HR في انتظار الموافقة!', 'success');
