@@ -2406,45 +2406,39 @@ Pages.allDelays = function (el) {
 
   el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل من قاعدة البيانات...</div>';
   Promise.all([
-    sbClient.from('attendance').select('*').gt('delay_minutes', 0).order('date', { ascending: false }),
-    sbClient.from('users').select('id, base_salary')
+    sbClient.from('late_deductions').select('*').order('created_at', { ascending: false }),
+    sbClient.from('users').select('id, full_name, department')
   ]).then(function (results) {
     var r1 = results[0];
     var r2 = results[1];
     if (r1.error) { alert('DB Error: ' + r1.error.message); return; }
-    if (r2.error) { alert('DB Error: ' + r2.error.message); return; }
     
     var usersMap = {};
     if (r2.data) {
-      r2.data.forEach(function(u) { usersMap[u.id] = u.base_salary || 0; });
+      r2.data.forEach(function(u) { 
+        usersMap[u.id] = { name: u.full_name, dept: u.department }; 
+      });
     }
     
     if (r1.data) {
       delays = r1.data.map(function(d) {
-        var baseSalary = usersMap[d.employee_id] || 0;
-        var dailyRate26 = Math.round(baseSalary / 26);
-        var delayMin = d.delay_minutes || 0;
+        var u = usersMap[d.employee_id] || { name: 'غير معروف', dept: '-' };
         
-        var deductionFraction = 0;
         var deductionLabel = '';
-        if (delayMin > 360) { deductionFraction = 1; deductionLabel = 'خصم يوم كامل'; }
-        else if (delayMin > 120) { deductionFraction = 0.5; deductionLabel = 'خصم نصف يوم'; }
-        else if (delayMin > 15) { deductionFraction = 0.25; deductionLabel = 'خصم ربع يوم'; }
-        else { deductionLabel = 'تأخير مسموح (أقل من 15 دقيقة)'; }
-        
-        var deductionAmount = Math.round(dailyRate26 * deductionFraction);
+        if (d.deduction_fraction === 1) deductionLabel = 'خصم يوم كامل';
+        else if (d.deduction_fraction === 0.5) deductionLabel = 'خصم نصف يوم';
+        else if (d.deduction_fraction === 0.25) deductionLabel = 'خصم ربع يوم';
+        else deductionLabel = 'خصم تأخير';
         
         return {
-          employee_name: d.employee_name,
-          department: d.department,
-          delay_date: d.date,
-          delay_minutes: delayMin,
+          employee_name: u.name,
+          department: u.dept,
+          delay_date: d.delay_date,
+          delay_minutes: d.delay_minutes,
           deduction_type: deductionLabel,
-          deduction_amount: deductionAmount,
-          fraction: deductionFraction
+          deduction_amount: d.deduction_amount
         };
-      }).filter(function(d) { return d.fraction > 0; });
-      
+      });
       render();
     }
   });
