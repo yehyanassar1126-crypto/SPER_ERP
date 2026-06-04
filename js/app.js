@@ -754,7 +754,7 @@ Pages.employees = function (el) {
       if (!perms.can_edit_salary) canEditSalary = false;
     }
     body += '<div style="margin-bottom:12px"><label style="display:inline-flex;align-items:center;gap:8px;font-weight:600;cursor:pointer"><input type="checkbox" id="ef-is-daily" ' + (isDaily ? 'checked' : '') + ' ' + (canEditSalary ? '' : 'disabled') + '> عامل يومية (Daily Worker - Paid per attended day)</label></div>';
-    body += '<div class="form-row"><div class="form-field"><label id="ef-salary-label">' + (isDaily ? 'Daily Wage (EGP) *' : 'Monthly Base Salary (EGP)') + '</label><input type="number" id="ef-salary" value="' + baseVal + '" placeholder="0" ' + (canEditSalary ? '' : 'disabled title="Restricted"') + '>' + (!canEditSalary ? '<div style="font-size:0.7rem;color:var(--accent-danger);margin-top:4px">Access Restricted</div>' : '') + '</div><div class="form-field"><label>Shift System *</label><select id="ef-shift-system">';
+    body += '<div class="form-row"><div class="form-field"><label id="ef-salary-label">' + (isDaily ? 'Daily Wage (EGP) *' : 'Monthly Base Salary (EGP) *') + '</label><input type="number" id="ef-salary" value="' + baseVal + '" placeholder="0" ' + (canEditSalary ? '' : 'disabled title="Restricted"') + '>' + (!canEditSalary ? '<div style="font-size:0.7rem;color:var(--accent-danger);margin-top:4px">Access Restricted</div>' : '') + '</div><div class="form-field"><label>Shift System *</label><select id="ef-shift-system">';
     body += '<option value="2-shift"' + (currentSystem === '2-shift' ? ' selected' : '') + '>2-Shift (12h each)</option>';
     body += '<option value="3-shift"' + (currentSystem === '3-shift' ? ' selected' : '') + '>3-Shift (8h each)</option>';
     body += '</select></div></div>';
@@ -778,7 +778,7 @@ Pages.employees = function (el) {
 
     if (document.getElementById('ef-is-daily')) {
       document.getElementById('ef-is-daily').addEventListener('change', function () {
-        document.getElementById('ef-salary-label').textContent = this.checked ? 'Daily Wage (EGP) *' : 'Monthly Base Salary (EGP)';
+        document.getElementById('ef-salary-label').textContent = this.checked ? 'Daily Wage (EGP) *' : 'Monthly Base Salary (EGP) *';
       });
     }
 
@@ -846,6 +846,8 @@ Pages.employees = function (el) {
       }
 
       if (!form.full_name) { alert('Full name is required'); return; }
+      if (!emp && !rawSalary) { alert('الراتب مطلوب - يجب كتابة الراتب الأساسي قبل إضافة الموظف'); return; }
+      if (!form.username) { alert('Username is required'); return; }
       if (emp) {
         Object.assign(emp, form);
         sbClient.from('users').update(form).eq('id', emp.id).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
