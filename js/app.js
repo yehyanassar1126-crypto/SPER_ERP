@@ -1085,16 +1085,10 @@ Pages.qrCheckin = function (el) {
               // Also save in dedicated late_deductions table
               sbClient.from('late_deductions').insert([{
                 employee_id: user.id,
-                employee_name: user.full_name,
-                department: user.department,
                 delay_date: todayStr(),
                 delay_minutes: delayMin,
-                deduction_type: deductionLabel,
                 deduction_fraction: deductionFraction,
-                deduction_amount: deductionAmount,
-                base_salary: baseSalary,
-                daily_rate: dailyRate26,
-                month: currentMonth
+                deduction_amount: deductionAmount
               }]).then(function (r) {
                 if (r.error) { 
                   console.error('late_deductions table error:', r.error);
