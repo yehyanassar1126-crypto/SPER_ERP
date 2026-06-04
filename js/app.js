@@ -1821,6 +1821,7 @@ Pages.payroll = function (el) {
     });
   }
   render(payroll);
+};
 
 // ----- ANNOUNCEMENTS -----
 Pages.announcements = function (el) {
