@@ -202,6 +202,9 @@ var App = {
             { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
             { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
             { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
+            { id: 'expenses', label: 'Expenses', icon: 'receipt' },
+            { id: 'complaints', label: 'Disciplinary & Grievances', icon: 'gavel' },
+            { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
           ]
         },
         { section: 'Communication', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
@@ -239,6 +242,8 @@ var App = {
             { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
             { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
             { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
+            { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
+            { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
           ]
         },
         { section: 'Other', items: [
@@ -265,6 +270,8 @@ var App = {
             { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
             { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
             { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
+            { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
+            { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
           ]
         },
         { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
@@ -332,6 +339,10 @@ var App = {
       'ai-mind': { title: 'AI Mind', sub: 'Neural-powered workforce intelligence' },
       'org-directory': { title: 'Company Directory', sub: 'Interactive Org Chart & Skills Finder' },
       'shift-swap': { title: 'Shift Marketplace', sub: 'Request and accept shift swaps intelligently' },
+      'expenses': { title: 'Expenses', sub: 'Manage and approve expense claims' },
+      'my-expenses': { title: 'My Expenses', sub: 'Your expense claims' },
+      'complaints': { title: 'Grievances & Disciplinary', sub: 'Complaints and disciplinary actions' },
+      'offboarding': { title: 'Offboarding', sub: 'Manage employee exit process' },
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -405,6 +416,9 @@ var App = {
       case 'org-directory': Pages.orgDirectory(el); break;
       case 'shift-swap': Pages.shiftSwap(el); break;
       case 'my-delays': Pages['my-delays'](el); break;
+      case 'expenses': case 'my-expenses': Pages.expenses(el); break;
+      case 'complaints': Pages.complaints(el); break;
+      case 'offboarding': App.isHR() ? Pages.offboarding(el) : Pages.empDashboard(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },

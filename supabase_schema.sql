@@ -279,3 +279,26 @@ ALTER TABLE medical_requests ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Medical view policy" ON medical_requests FOR SELECT USING (true);
 CREATE POLICY "Medical insert policy" ON medical_requests FOR INSERT WITH CHECK (true);
 CREATE POLICY "Medical update policy" ON medical_requests FOR UPDATE USING (true);
+
+-- ============================================================
+-- 14. MISSIONS (ERRANDS) TABLE
+-- ============================================================
+CREATE TABLE missions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  employee_name TEXT,
+  mission_date DATE NOT NULL,
+  reason TEXT NOT NULL,
+  time_out TIME,
+  time_in TIME,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for Missions
+ALTER TABLE missions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Missions view policy" ON missions FOR SELECT USING (true);
+CREATE POLICY "Missions insert policy" ON missions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Missions update policy" ON missions FOR UPDATE USING (true);
+

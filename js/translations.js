@@ -310,7 +310,18 @@ const ARABIC_DICT = {
 
   // Missions
   "Missions": "المأموريات",
-  "My Missions": "المأموريات"
+  "My Missions": "المأموريات",
+
+  // Enterprise Modules
+  "Expenses": "المصروفات",
+  "My Expenses": "مصروفاتي",
+  "Disciplinary & Grievances": "الجزاءات والشكاوى",
+  "My Complaints": "الشكاوى الخاصة بي",
+  "Offboarding": "نهاية الخدمة وإخلاء الطرف",
+  "Manage and approve expense claims": "إدارة واعتماد طلبات المصروفات",
+  "Your expense claims": "طلبات المصروفات الخاصة بك",
+  "Complaints and disciplinary actions": "الشكاوى والجزاءات",
+  "Manage employee exit process": "إدارة سير عمل نهاية خدمة الموظف"
 };
 
 // Set Arabic as default language
