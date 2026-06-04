@@ -189,6 +189,7 @@ var App = {
           section: 'Management', items: [
             { id: 'employees', label: 'Employees', icon: 'users' },
             { id: 'attendance', label: 'Attendance', icon: 'calendarCheck' },
+            { id: 'all-delays', label: 'Delays Log', icon: 'alertTriangle' },
             { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
             { id: 'shifts', label: 'Shift Management', icon: 'clock' },
             { id: 'overtime', label: 'Overtime', icon: 'timer' },
@@ -376,6 +377,7 @@ var App = {
       case 'dashboard': App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el); break;
       case 'employees': (App.isHR() || App.isManager()) ? Pages.employees(el) : Pages.empDashboard(el); break;
       case 'attendance': case 'my-attendance': Pages.attendance(el); break;
+      case 'all-delays': App.isHR() ? Pages.allDelays(el) : Pages.empDashboard(el); break;
       case 'qr-checkin': Pages.qrCheckin(el); break;
       case 'leaves': case 'my-leaves': Pages.leaves(el); break;
       case 'shifts': App.isHR() ? Pages.shifts(el) : Pages.empDashboard(el); break;
@@ -2351,6 +2353,63 @@ Pages['my-delays'] = function (el) {
     if (r.error) { alert('DB Error: ' + r.error.message); return; }
     if (r.data) {
       attendanceWithDelay = r.data;
+      render();
+    }
+  });
+};
+
+// ----- ALL DELAYS (HR VIEW) -----
+Pages.allDelays = function (el) {
+  if (!App.isHR()) return;
+  var delays = [];
+
+  function render() {
+    var html = '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-danger-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-danger)">' + icon('alertTriangle', 22) + '</div>';
+    html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">سجل تأخيرات وخصومات جميع الموظفين</h3>';
+    html += '</div>';
+    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">هذا الجدول يعرض تأخيرات الموظفين (المحفوظة في قاعدة البيانات) ويوضح عدد ساعات التأخير والمبلغ المخصوم.</p>';
+    html += '</div>';
+
+    html += '<div class="card"><div class="card-header"><div><h3>سجل التأخيرات العام</h3><p>' + delays.length + ' سجل</p></div><button class="btn btn-outline" id="export-delays">' + icon('download') + ' Export CSV</button></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
+    html += '<th>الموظف</th><th>القسم</th><th>التاريخ</th><th>مدة التأخير</th><th>الخصم (EGP)</th><th>الإجراء</th></tr></thead><tbody>';
+    
+    if (delays.length === 0) {
+      html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد تأخيرات مسجلة</td></tr>';
+    } else {
+      delays.forEach(function (d) {
+        var hoursStr = (d.delay_minutes / 60).toFixed(1) + ' ساعة (' + d.delay_minutes + ' دقيقة)';
+        html += '<tr>';
+        html += '<td><div style="font-weight:bold;color:var(--text-primary)">' + (d.employee_name || 'غير معروف') + '</div></td>';
+        html += '<td>' + (d.department || '-') + '</td>';
+        html += '<td>' + formatDate(d.delay_date || d.created_at) + '</td>';
+        html += '<td style="color:var(--accent-warning);font-weight:600">' + hoursStr + '</td>';
+        html += '<td style="font-weight:bold;color:var(--accent-danger)">- ' + d.deduction_amount + ' ج.م</td>';
+        html += '<td><span class="badge badge-danger">' + d.deduction_type + '</span></td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    el.innerHTML = html;
+
+    var exportBtn = document.getElementById('export-delays');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function() {
+        var csv = 'Employee,Department,Date,Delay Minutes,Deduction Amount,Type\n';
+        delays.forEach(function(d) {
+          csv += '"' + (d.employee_name || '') + '","' + (d.department || '') + '","' + (d.delay_date || '') + '",' + d.delay_minutes + ',' + d.deduction_amount + ',"' + d.deduction_type + '"\n';
+        });
+        App.downloadCSV(csv, 'Employees_Delays.csv');
+      });
+    }
+  }
+
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل...</div>';
+  sbClient.from('late_deductions').select('*').order('created_at', { ascending: false }).then(function (r) {
+    if (r.error) { alert('DB Error: ' + r.error.message); return; }
+    if (r.data) {
+      delays = r.data;
       render();
     }
   });

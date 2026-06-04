@@ -303,6 +303,7 @@ const ARABIC_DICT = {
 
   // My Delays
   "My Delays": "تأخيراتي",
+  "Delays Log": "سجل التأخيرات",
   "Your delay and deduction records": "سجل التأخيرات والخصومات الخاصة بك",
   "Delay Records": "سجل التأخيرات",
   "delay records": "سجلات تأخير"
