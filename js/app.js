@@ -1594,6 +1594,23 @@ Pages.payroll = function (el) {
     html += '<input type="month" class="filter-select" id="pay-month" value="' + monthFilter + '"><select class="filter-select" id="pay-status"><option value=""' + (statusFilter === '' ? ' selected' : '') + '>All Status</option><option value="paid"' + (statusFilter === 'paid' ? ' selected' : '') + '>Paid</option><option value="processing"' + (statusFilter === 'processing' ? ' selected' : '') + '>Processing</option></select>';
     html += '' + (isHR ? '<button class="btn btn-primary" id="add-payroll" style="margin-right:8px">' + icon('plus') + ' Process Salary</button><button class="btn btn-outline" id="add-adj-direct-btn" style="margin-right:8px">' + icon('plus') + ' Add Manual Amount</button>' : '') + '<button class="btn btn-outline" id="pay-export">' + icon('download') + ' Export</button></div>';
 
+    if (!isHR && salaryAdjustments && salaryAdjustments.length > 0) {
+      html += '<div class="card" style="margin-bottom:24px"><div class="card-header"><div><h3 style="color:var(--text-primary)">📋 سجل الخصومات والمكافآت التفصيلي</h3><p>' + salaryAdjustments.length + ' سجلات محفوظة في الداتا بيز</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
+      html += '<th>التاريخ</th><th>الشهر</th><th>النوع</th><th>المبلغ</th><th>السبب</th></tr></thead><tbody>';
+      var sortedAdjs = salaryAdjustments.slice().sort(function(a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); });
+      sortedAdjs.forEach(function(adj) {
+        var isBonus = adj.type === 'bonus';
+        html += '<tr>';
+        html += '<td style="direction:ltr;text-align:right">' + (adj.created_at ? formatDate(adj.created_at) : '-') + '</td>';
+        html += '<td>' + adj.month + '</td>';
+        html += '<td><span class="badge ' + (isBonus ? 'badge-success' : 'badge-danger') + '">' + (isBonus ? 'مكافأة' : 'خصم') + '</span></td>';
+        html += '<td style="font-weight:bold;color:' + (isBonus ? 'var(--accent-success)' : 'var(--accent-danger)') + '">' + (isBonus ? '+' : '-') + 'EGP ' + adj.amount + '</td>';
+        html += '<td>' + adj.reason + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div></div></div>';
+    }
+
     html += '<div class="card"><div class="card-header"><div><h3>' + (isHR ? 'Payroll Records' : 'My Salary History') + '</h3><p>' + data.length + ' records</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
     if (isHR) html += '<th>Employee</th><th>Department</th>';
     html += '<th>Month</th><th>Base</th><th>Overtime</th><th>Bonuses</th><th>Deductions</th><th>Net Salary</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
