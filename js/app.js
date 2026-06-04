@@ -1401,6 +1401,19 @@ Pages.overtime = function (el) {
     render(overtime);
     showToast('Overtime ' + action + '!', action === 'approved' ? 'success' : 'error');
   }
+
+  {
+    var q = sbClient.from('overtime').select('*').order('date', { ascending: false });
+    if (!isHR) q = q.eq('employee_id', App.user.id);
+    q.then(function (r) {
+      if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
+      if (r.data) { overtime = r.data; render(overtime); }
+    });
+  }
+  render(overtime);
+};
+
+// ----- PAYROLL -----
 Pages.payroll = function (el) {
   var isHR = App.isHR();
   var payroll = isHR ? [] : [].filter(function (p) { return p.employee_id === App.user.id; });
