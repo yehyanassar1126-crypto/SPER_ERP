@@ -1043,8 +1043,32 @@ Pages.qrCheckin = function (el) {
                 if (r.data) currentRecordId = r.data.id;
               });
             }
-            if (delayMin > 0) {
-              showToast('⚠️ Checked in! You are ' + formatDelay(delayMin) + ' late.', 'warning');
+            // Auto late deduction notification
+            if (delayMin > 15) {
+              var baseSalary = user.base_salary || 0;
+              var dailyRate26 = Math.round(baseSalary / 26);
+              var deductionFraction = 0;
+              var deductionLabel = '';
+              if (delayMin > 360) { // > 6 hours
+                deductionFraction = 1;
+                deductionLabel = 'يوم كامل (تأخير أكثر من 6 ساعات)';
+              } else if (delayMin > 120) { // > 2 hours
+                deductionFraction = 0.5;
+                deductionLabel = 'نص يوم (تأخير أكثر من ساعتين)';
+              } else { // > 15 min
+                deductionFraction = 0.25;
+                deductionLabel = 'ربع يوم (تأخير أكثر من ربع ساعة)';
+              }
+              var deductionAmount = Math.round(dailyRate26 * deductionFraction);
+              App.addNotification({
+                user_id: user.id,
+                type: 'late_deduction',
+                title: '⚠️ تم خصم ' + deductionLabel,
+                message: 'تأخرت ' + formatDelay(delayMin) + ' عن موعد الوردية. تم خصم ' + deductionAmount + ' ج.م (' + deductionLabel + ') من راتبك. (المرتب ÷ 26 يوم = ' + dailyRate26 + ' ج.م/يوم)'
+              });
+              showToast('⚠️ تأخير ' + formatDelay(delayMin) + ' — تم خصم ' + deductionLabel + ' = ' + deductionAmount + ' ج.م', 'warning');
+            } else if (delayMin > 0) {
+              showToast('⚠️ Checked in! You are ' + formatDelay(delayMin) + ' late (under 15 min, no deduction).', 'warning');
             } else {
               showToast('✅ Successfully checked in! On time!', 'success');
             }
@@ -1602,23 +1626,25 @@ Pages.payroll = function (el) {
             resultDiv.style.display = 'block';
             resultDiv.innerHTML = '<p style="text-align:center;color:var(--text-muted)">⏳ Calculating...</p>';
 
-            // Fetch overtime, adjustments, and attendance for the month
+            // Fetch overtime, adjustments, attendance (with delay), and approved leaves for the month
             var monthStart = month + '-01';
             var monthEnd = month + '-31';
             Promise.all([
               sbClient.from('overtime').select('hours, rate').eq('employee_id', empId).eq('status', 'approved').gte('date', monthStart).lte('date', monthEnd),
               sbClient.from('salary_adjustments').select('type, amount').eq('employee_id', empId).eq('status', 'approved').eq('month', month),
-              sbClient.from('attendance').select('id, date').eq('employee_id', empId).gte('date', monthStart).lte('date', monthEnd)
+              sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', empId).gte('date', monthStart).lte('date', monthEnd),
+              sbClient.from('leaves').select('start_date, end_date').eq('employee_id', empId).eq('status', 'approved').gte('start_date', monthStart).lte('end_date', monthEnd)
             ]).then(function (results) {
               var otRecords = results[0].data || [];
               var adjRecords = results[1].data || [];
               var attRecords = results[2].data || [];
+              var leaveRecords = results[3].data || [];
 
-              // Working days: 26 with insurance, 30 without
-              var workingDays = isInsured ? 26 : 30;
+              // Working days always 26
+              var workingDays = 26;
               var dailyRate = base / workingDays;
 
-              // Calculate overtime pay: (base/workingDays/8) * hours * rate
+              // Calculate overtime pay: (base/26/8) * hours * rate
               var hourlyRate = dailyRate / 8;
               var totalOTPay = 0;
               otRecords.forEach(function (ot) { totalOTPay += hourlyRate * (ot.hours || 0) * (ot.rate || 1.5); });
@@ -1631,6 +1657,26 @@ Pages.payroll = function (el) {
                 else totalPenalties += (adj.amount || 0);
               });
 
+              // Calculate late deductions from attendance delay_minutes
+              // >15min = 0.25 day, >2hr = 0.5 day, >6hr = 1 day
+              var totalLateDeduction = 0;
+              var lateDays = 0;
+              attRecords.forEach(function (att) {
+                var dm = att.delay_minutes || 0;
+                if (dm > 360) { totalLateDeduction += dailyRate * 1; lateDays += 1; }
+                else if (dm > 120) { totalLateDeduction += dailyRate * 0.5; lateDays += 0.5; }
+                else if (dm > 15) { totalLateDeduction += dailyRate * 0.25; lateDays += 0.25; }
+              });
+              totalLateDeduction = Math.round(totalLateDeduction);
+
+              // Calculate approved leave days in this month
+              var approvedLeaveDays = 0;
+              leaveRecords.forEach(function (lv) {
+                var s = new Date(lv.start_date > monthStart ? lv.start_date : monthStart);
+                var e = new Date(lv.end_date < monthEnd ? lv.end_date : monthEnd);
+                approvedLeaveDays += Math.max(0, Math.round((e - s) / 86400000) + 1);
+              });
+
               var attendedDays = attRecords.length;
               var extraB = Number(document.getElementById('pf-extra-b').value) || 0;
               var extraP = Number(document.getElementById('pf-extra-p').value) || 0;
@@ -1639,17 +1685,23 @@ Pages.payroll = function (el) {
               var absenceDeduction = 0;
               var totalEarnings = 0;
               var absentDays = 0;
+              var unexcusedAbsentDays = 0;
+              var absenceWithoutLeavePenalty = 0;
 
               if (isDailyWorker) {
                 totalEarnings = Math.round(dailyRate * attendedDays) + totalOTPay + totalBonuses + extraB;
-                base = Math.round(dailyRate * attendedDays); // Display base explicitly as what was realistically earned via attendance
+                base = Math.round(dailyRate * attendedDays);
               } else {
                 absentDays = Math.max(0, workingDays - attendedDays);
+                // Subtract approved leave from absent days
+                unexcusedAbsentDays = Math.max(0, absentDays - approvedLeaveDays);
                 absenceDeduction = Math.round(absentDays * dailyRate);
+                // Absence without approved leave = 2 days deduction per unexcused day
+                absenceWithoutLeavePenalty = Math.round(unexcusedAbsentDays * dailyRate * 2);
                 totalEarnings = base + totalOTPay + totalBonuses + extraB;
               }
 
-              var totalDeductions = totalPenalties + absenceDeduction + extraP;
+              var totalDeductions = totalPenalties + absenceDeduction + absenceWithoutLeavePenalty + totalLateDeduction + extraP;
               var net = totalEarnings - totalDeductions;
 
               calcData = {
@@ -1657,8 +1709,8 @@ Pages.payroll = function (el) {
                 month: month, base_salary: base,
                 overtime_pay: totalOTPay, bonuses: totalBonuses + extraB,
                 performance_bonus: 0,
-                penalties: totalPenalties + extraP,
-                late_deductions: 0, absence_deductions: absenceDeduction,
+                penalties: totalPenalties + extraP + absenceWithoutLeavePenalty,
+                late_deductions: totalLateDeduction, absence_deductions: absenceDeduction,
                 net_salary: net, status: 'processing'
               };
 
@@ -1672,15 +1724,18 @@ Pages.payroll = function (el) {
               }
               cumulativeHtml += '</div></div>';
 
-              resultDiv.innerHTML = '<h4 style="font-weight:700;margin-bottom:12px;font-size:0.9rem">📊 Salary Breakdown - ' + empName + (isInsured ? '' : ' 🚫 No Insurance') + '</h4>' +
+              resultDiv.innerHTML = '<h4 style="font-weight:700;margin-bottom:12px;font-size:0.9rem">📊 Salary Breakdown - ' + empName + '</h4>' +
                 '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">' +
                 '<div style="color:var(--text-secondary)">Base Salary:</div><div style="font-weight:600">EGP ' + base.toLocaleString() + '</div>' +
-                '<div style="color:var(--text-secondary)">Salary Division:</div><div style="font-weight:600">÷ ' + workingDays + ' days = EGP ' + Math.round(dailyRate).toLocaleString() + '/day</div>' +
+                '<div style="color:var(--text-secondary)">Salary Division:</div><div style="font-weight:600">÷ 26 days = EGP ' + Math.round(dailyRate).toLocaleString() + '/day</div>' +
                 '<div style="color:var(--accent-success)">Overtime (' + otRecords.length + ' records):</div><div style="font-weight:600;color:var(--accent-success)">+EGP ' + totalOTPay.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-info)">Bonuses (' + adjRecords.filter(function (a) { return a.type === "bonus" }).length + ' approved):</div><div style="font-weight:600;color:var(--accent-info)">+EGP ' + (totalBonuses + extraB).toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-danger)">Penalties:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + (totalPenalties + extraP).toLocaleString() + '</div>' +
+                '<div style="color:var(--accent-warning)">⏰ Late Deductions (' + lateDays + ' days):</div><div style="font-weight:600;color:var(--accent-warning)">-EGP ' + totalLateDeduction.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-danger)">Absence (' + absentDays + ' days):</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + absenceDeduction.toLocaleString() + '</div>' +
+                (unexcusedAbsentDays > 0 ? '<div style="color:var(--accent-danger)">🚫 Unexcused Absence (' + unexcusedAbsentDays + ' days × 2):</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + absenceWithoutLeavePenalty.toLocaleString() + '</div>' : '') +
                 '<div style="color:var(--text-secondary)">Attended Days:</div><div style="font-weight:600">' + attendedDays + ' / ' + workingDays + '</div>' +
+                '<div style="color:var(--text-secondary)">Approved Leaves:</div><div style="font-weight:600">' + approvedLeaveDays + ' days</div>' +
                 '</div>' +
                 '<div style="border-top:2px solid var(--accent-primary);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;font-size:1rem">NET SALARY</span><span style="font-weight:900;font-size:1.3rem;color:var(--accent-primary-hover)">EGP ' + net.toLocaleString() + '</span></div>' +
                 cumulativeHtml;
