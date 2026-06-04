@@ -306,7 +306,11 @@ const ARABIC_DICT = {
   "Delays Log": "سجل التأخيرات",
   "Your delay and deduction records": "سجل التأخيرات والخصومات الخاصة بك",
   "Delay Records": "سجل التأخيرات",
-  "delay records": "سجلات تأخير"
+  "delay records": "سجلات تأخير",
+
+  // Missions
+  "Missions": "المأموريات",
+  "My Missions": "المأموريات"
 };
 
 // Set Arabic as default language

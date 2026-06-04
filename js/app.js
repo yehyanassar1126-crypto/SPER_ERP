@@ -190,6 +190,7 @@ var App = {
             { id: 'employees', label: 'Employees', icon: 'users' },
             { id: 'attendance', label: 'Attendance', icon: 'calendarCheck' },
             { id: 'all-delays', label: 'Delays Log', icon: 'alertTriangle' },
+            { id: 'all-missions', label: 'Missions', icon: 'briefcase' },
             { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
             { id: 'shifts', label: 'Shift Management', icon: 'clock' },
             { id: 'overtime', label: 'Overtime', icon: 'timer' },
@@ -237,6 +238,7 @@ var App = {
             { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
             { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
             { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
+            { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
           ]
         },
         { section: 'Other', items: [
@@ -262,6 +264,7 @@ var App = {
             { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
             { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
             { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
+            { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
           ]
         },
         { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
@@ -379,6 +382,8 @@ var App = {
       case 'attendance': case 'my-attendance': Pages.attendance(el); break;
       case 'all-delays': App.isHR() ? Pages.allDelays(el) : Pages.empDashboard(el); break;
       case 'qr-checkin': Pages.qrCheckin(el); break;
+      case 'my-missions': Pages.missions(el); break;
+      case 'all-missions': App.isHR() ? Pages.allMissions(el) : Pages.empDashboard(el); break;
       case 'leaves': case 'my-leaves': Pages.leaves(el); break;
       case 'shifts': App.isHR() ? Pages.shifts(el) : Pages.empDashboard(el); break;
       case 'overtime': case 'my-overtime': Pages.overtime(el); break;
@@ -2443,6 +2448,202 @@ Pages.allDelays = function (el) {
       render();
     }
   });
+};
+
+// ----- MISSIONS (Employee View) -----
+Pages.missions = function(el) {
+  var missions = [];
+
+  function render() {
+    var html = '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-primary-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-primary)">' + icon('briefcase', 22) + '</div>';
+    html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">طلب وتسجيل المأموريات (Missions)</h3>';
+    html += '</div>';
+    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">قم بتقديم طلب مأمورية عمل للـ HR. بعد الموافقة، يمكنك تسجيل بصمة الخروج والعودة من هنا.</p>';
+    
+    html += '<div style="margin-top:20px;padding:20px;background:var(--bg-secondary);border-radius:8px;text-align:center;">';
+    html += '<input type="date" id="mission-date" class="input-field" value="' + todayStr() + '" style="margin-bottom:15px;width:100%">';
+    html += '<input type="text" id="mission-reason" class="input-field" placeholder="سبب المأمورية والوجهة (مطلوب)" style="margin-bottom:15px;width:100%">';
+    html += '<button class="btn btn-primary" style="width:100%" id="req-mission-btn">إرسال طلب المأمورية</button>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="card"><div class="card-header"><h3>سجل مأمورياتك</h3></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
+    html += '<th>التاريخ</th><th>الوجهة/السبب</th><th>الحالة</th><th>وقت الخروج</th><th>وقت العودة</th><th>إجراء البصمة</th></tr></thead><tbody>';
+    
+    if (missions.length === 0) {
+      html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد مأموريات مسجلة</td></tr>';
+    } else {
+      missions.forEach(function (m) {
+        var statusBadge = m.status === 'approved' ? '<span class="badge badge-success">مقبول</span>' : 
+                          (m.status === 'rejected' ? '<span class="badge badge-danger">مرفوض</span>' : '<span class="badge badge-warning">قيد الانتظار</span>');
+        
+        var actionHtml = '-';
+        if (m.status === 'approved') {
+          if (!m.time_out && m.mission_date === todayStr()) {
+             actionHtml = '<button class="btn btn-warning btn-xs" data-start-mission="' + m.id + '">تسجيل الخروج</button>';
+          } else if (m.time_out && !m.time_in) {
+             actionHtml = '<button class="btn btn-success btn-xs" data-end-mission="' + m.id + '">تسجيل العودة</button>';
+          } else if (m.time_in) {
+             actionHtml = '<span style="color:var(--text-muted)">مكتملة</span>';
+          } else if (m.mission_date !== todayStr() && !m.time_out) {
+             actionHtml = '<span style="color:var(--text-muted)">غير متاحة اليوم</span>';
+          }
+        }
+        
+        html += '<tr>';
+        html += '<td>' + formatDate(m.mission_date) + '</td>';
+        html += '<td>' + (m.reason || 'بدون سبب') + '</td>';
+        html += '<td>' + statusBadge + '</td>';
+        html += '<td style="color:var(--accent-warning);font-weight:bold">' + (m.time_out ? m.time_out.substring(0,5) : '-') + '</td>';
+        html += '<td style="color:var(--accent-success);font-weight:bold">' + (m.time_in ? m.time_in.substring(0,5) : '-') + '</td>';
+        html += '<td>' + actionHtml + '</td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    el.innerHTML = html;
+
+    var reqBtn = document.getElementById('req-mission-btn');
+    if (reqBtn) {
+      reqBtn.addEventListener('click', function() {
+        var reason = document.getElementById('mission-reason').value;
+        var date = document.getElementById('mission-date').value;
+        if (!reason || !date) { alert('يرجى كتابة سبب المأمورية وتاريخها.'); return; }
+        
+        sbClient.from('missions').insert([{
+          employee_id: App.user.id,
+          employee_name: App.user.full_name,
+          mission_date: date,
+          reason: reason,
+          status: 'pending'
+        }]).then(function(r) {
+          if (r.error) {
+            alert('خطأ في التسجيل: تأكد من إنشاء جدول missions.');
+            console.error(r.error);
+          } else {
+            showToast('تم إرسال الطلب للـ HR في انتظار الموافقة!', 'success');
+            loadData();
+          }
+        });
+      });
+    }
+
+    el.querySelectorAll('[data-start-mission]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = this.getAttribute('data-start-mission');
+        var now = new Date();
+        var timeStr = now.toTimeString().split(' ')[0];
+        sbClient.from('missions').update({ time_out: timeStr }).eq('id', id).then(function(r) {
+          if (!r.error) { showToast('تم تسجيل الخروج بنجاح!', 'success'); loadData(); }
+        });
+      });
+    });
+
+    el.querySelectorAll('[data-end-mission]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = this.getAttribute('data-end-mission');
+        var now = new Date();
+        var timeStr = now.toTimeString().split(' ')[0];
+        sbClient.from('missions').update({ time_in: timeStr }).eq('id', id).then(function(r) {
+          if (!r.error) { showToast('تم تسجيل العودة بنجاح!', 'success'); loadData(); }
+        });
+      });
+    });
+  }
+
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل...</div>';
+    sbClient.from('missions').select('*').eq('employee_id', App.user.id).order('created_at', { ascending: false }).then(function(r) {
+      if (r.error) { 
+        el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)">لا يمكن عرض المأموريات. يرجى التأكد من إنشاء جدول missions في Supabase.<br><code>' + r.error.message + '</code></div>';
+        return; 
+      }
+      missions = r.data || [];
+      render();
+    });
+  }
+  
+  loadData();
+};
+
+// ----- ALL MISSIONS (HR View) -----
+Pages.allMissions = function(el) {
+  if (!App.isHR()) return;
+  var missions = [];
+
+  function render() {
+    var html = '<div class="card"><div class="card-header"><div><h3>سجل طلبات مأموريات الموظفين</h3><p>' + missions.length + ' طلب مسجل</p></div><button class="btn btn-outline" id="export-missions">' + icon('download') + ' Export CSV</button></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
+    html += '<th>الموظف</th><th>التاريخ</th><th>السبب/الوجهة</th><th>الخروج</th><th>العودة</th><th>الإجراء / الحالة</th></tr></thead><tbody>';
+    
+    if (missions.length === 0) {
+      html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد مأموريات مسجلة</td></tr>';
+    } else {
+      missions.forEach(function (m) {
+        var actionHtml = '-';
+        if (m.status === 'pending') {
+          actionHtml = '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-approve-mission="' + m.id + '">قبول</button><button class="btn btn-xs" style="background:var(--accent-danger);color:#fff" data-reject-mission="' + m.id + '">رفض</button></div>';
+        } else {
+          actionHtml = m.status === 'approved' ? '<span class="badge badge-success">مقبول</span>' : '<span class="badge badge-danger">مرفوض</span>';
+        }
+        
+        html += '<tr>';
+        html += '<td><div style="font-weight:bold;color:var(--text-primary)">' + (m.employee_name || 'غير معروف') + '</div></td>';
+        html += '<td>' + formatDate(m.mission_date) + '</td>';
+        html += '<td>' + (m.reason || 'بدون سبب') + '</td>';
+        html += '<td style="color:var(--accent-warning);font-weight:bold">' + (m.time_out ? m.time_out.substring(0,5) : '-') + '</td>';
+        html += '<td style="color:var(--accent-success);font-weight:bold">' + (m.time_in ? m.time_in.substring(0,5) : '-') + '</td>';
+        html += '<td>' + actionHtml + '</td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    el.innerHTML = html;
+
+    el.querySelectorAll('[data-approve-mission]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = this.getAttribute('data-approve-mission');
+        sbClient.from('missions').update({ status: 'approved' }).eq('id', id).then(function(r) {
+          if (!r.error) { showToast('تم قبول المأمورية', 'success'); loadData(); }
+        });
+      });
+    });
+
+    el.querySelectorAll('[data-reject-mission]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = this.getAttribute('data-reject-mission');
+        sbClient.from('missions').update({ status: 'rejected' }).eq('id', id).then(function(r) {
+          if (!r.error) { showToast('تم رفض المأمورية', 'warning'); loadData(); }
+        });
+      });
+    });
+
+    var exportBtn = document.getElementById('export-missions');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', function() {
+        var csv = 'Employee,Date,Reason,Time Out,Time In,Status\n';
+        missions.forEach(function(m) {
+          csv += '"' + (m.employee_name || '') + '","' + (m.mission_date || '') + '","' + (m.reason || '') + '",' + (m.time_out || '') + ',' + (m.time_in || '') + ',"' + m.status + '"\n';
+        });
+        App.downloadCSV(csv, 'Employees_Missions.csv');
+      });
+    }
+  }
+
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل...</div>';
+    sbClient.from('missions').select('*').order('created_at', { ascending: false }).then(function(r) {
+      if (r.error) { 
+        el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)">لا يمكن عرض المأموريات. يرجى التأكد من إنشاء جدول missions في Supabase.</div>';
+        return; 
+      }
+      missions = r.data || [];
+      render();
+    });
+  }
+
+  loadData();
 };
 
 // ========== STAT CARD HELPER ==========
