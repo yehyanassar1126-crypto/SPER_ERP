@@ -235,6 +235,7 @@ var App = {
             { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
             { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
             { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
+            { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
           ]
         },
         { section: 'Other', items: [
@@ -259,6 +260,7 @@ var App = {
             { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
             { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
             { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
+            { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
           ]
         },
         { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
@@ -2272,6 +2274,67 @@ Pages.hrAdjustments = function (el) {
     if (r.data) { adjustments = r.data; render(); }
   });
   el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading adjustments...</div>';
+};
+
+// ----- MY DELAYS & DEDUCTIONS -----
+Pages['my-delays'] = function (el) {
+  var isHR = App.isHR();
+  if (isHR) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">This page is for employee view. HR can use reports.</div>';
+    return;
+  }
+  
+  var attendanceWithDelay = [];
+  var baseSalary = App.user.base_salary || 0;
+  var dailyRate26 = Math.round(baseSalary / 26);
+
+  function render() {
+    var html = '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-danger-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-danger)">' + icon('alertTriangle', 22) + '</div>';
+    html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">سجل تأخيراتي وخصوماتي (من البصمة)</h3>';
+    html += '</div>';
+    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right;line-height:1.6">هذا الجدول يعرض أيام التأخير التي سجلتها بناءً على حضورك الفعلي. يتم حساب عدد الساعات وربطها بالخصم المادي فوراً ويتم حفظ هذه البيانات تلقائياً في قاعدة البيانات.</p>';
+    html += '</div>';
+
+    html += '<div class="card"><div class="card-header"><div><h3>سجل التأخيرات</h3><p>' + attendanceWithDelay.length + ' مرات تأخير</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
+    html += '<th>التاريخ (يوم كام)</th><th>مدة التأخير (متأخر كام ساعة)</th><th>الإجراء المطبق</th><th>تم خصم كام بالأرقام (EGP)</th></tr></thead><tbody>';
+    
+    if (attendanceWithDelay.length === 0) {
+      html += '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--accent-success)">🎉 لا يوجد لديك أي تأخيرات! ممتاز جداً.</td></tr>';
+    } else {
+      attendanceWithDelay.forEach(function (att) {
+        var delayMin = att.delay_minutes || 0;
+        var deductionFraction = 0;
+        var deductionLabel = '';
+        if (delayMin > 360) { deductionFraction = 1; deductionLabel = 'خصم يوم كامل'; }
+        else if (delayMin > 120) { deductionFraction = 0.5; deductionLabel = 'خصم نصف يوم'; }
+        else if (delayMin > 15) { deductionFraction = 0.25; deductionLabel = 'خصم ربع يوم'; }
+        else { deductionLabel = 'تأخير مسموح (أقل من 15 دقيقة)'; }
+        
+        var deductionAmount = Math.round(dailyRate26 * deductionFraction);
+        var hoursStr = (delayMin / 60).toFixed(1) + ' ساعة (' + delayMin + ' دقيقة)';
+        
+        html += '<tr>';
+        html += '<td>' + formatDate(att.date) + '</td>';
+        html += '<td style="color:var(--accent-warning);font-weight:600">' + hoursStr + '</td>';
+        html += '<td><span class="badge ' + (deductionFraction > 0 ? 'badge-danger' : 'badge-success') + '">' + deductionLabel + '</span></td>';
+        html += '<td style="font-weight:bold;color:' + (deductionFraction > 0 ? 'var(--accent-danger)' : 'var(--text-primary)') + '">' + (deductionFraction > 0 ? '- ' + deductionAmount + ' ج.م' : '0 ج.م') + '</td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    el.innerHTML = html;
+  }
+
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل من قاعدة البيانات...</div>';
+  sbClient.from('attendance').select('*').eq('employee_id', App.user.id).gt('delay_minutes', 0).order('date', { ascending: false }).then(function (r) {
+    if (r.error) { alert('DB Error: ' + r.error.message); return; }
+    if (r.data) {
+      attendanceWithDelay = r.data;
+      render();
+    }
+  });
 };
 
 // ========== STAT CARD HELPER ==========
