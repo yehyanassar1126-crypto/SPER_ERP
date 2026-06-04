@@ -321,7 +321,19 @@ const ARABIC_DICT = {
   "Manage and approve expense claims": "إدارة واعتماد طلبات المصروفات",
   "Your expense claims": "طلبات المصروفات الخاصة بك",
   "Complaints and disciplinary actions": "الشكاوى والجزاءات",
-  "Manage employee exit process": "إدارة سير عمل نهاية خدمة الموظف"
+  "Manage employee exit process": "إدارة سير عمل نهاية خدمة الموظف",
+
+  // Workplace Features
+  "Company Directory": "دليل موظفي الشركة",
+  "Interactive Org Chart & Skills Finder": "الهيكل التنظيمي التفاعلي ومكتشف المهارات",
+  "Org Chart": "الهيكل التنظيمي",
+  "Skills Finder": "مكتشف المهارات",
+  "Shift Marketplace": "تبديل الورديات",
+  "Request and accept shift swaps intelligently": "طلب وقبول تبديل الورديات بذكاء",
+  "Available Shifts": "الورديات المتاحة",
+  "My Offers": "عروضي",
+  "Offer Shift": "عرض وردية",
+  "Accept & Swap": "قبول التبديل"
 };
 
 // Set Arabic as default language
