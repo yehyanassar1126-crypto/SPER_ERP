@@ -1060,13 +1060,28 @@ Pages.qrCheckin = function (el) {
                 deductionLabel = 'ربع يوم (تأخير أكثر من ربع ساعة)';
               }
               var deductionAmount = Math.round(dailyRate26 * deductionFraction);
+              // Save late deduction as a permanent salary_adjustments record in the DB
+              var currentMonth = new Date().toISOString().substring(0, 7);
+              sbClient.from('salary_adjustments').insert([{
+                employee_id: user.id,
+                employee_name: user.full_name,
+                department: user.department,
+                type: 'penalty',
+                amount: deductionAmount,
+                reason: 'خصم تأخير تلقائي: ' + deductionLabel + ' — تأخير ' + formatDelay(delayMin) + ' يوم ' + todayStr(),
+                month: currentMonth,
+                requested_by: 'النظام (تلقائي)',
+                status: 'approved'
+              }]).then(function (r) {
+                if (r.error) { console.error('Late deduction DB error:', r.error); }
+              });
               App.addNotification({
                 user_id: user.id,
                 type: 'late_deduction',
                 title: '⚠️ تم خصم ' + deductionLabel,
-                message: 'تأخرت ' + formatDelay(delayMin) + ' عن موعد الوردية. تم خصم ' + deductionAmount + ' ج.م (' + deductionLabel + ') من راتبك. (المرتب ÷ 26 يوم = ' + dailyRate26 + ' ج.م/يوم)'
+                message: 'تأخرت ' + formatDelay(delayMin) + ' عن موعد الوردية. تم خصم ' + deductionAmount + ' ج.م (' + deductionLabel + ') من راتبك. (المرتب ÷ 26 يوم = ' + dailyRate26 + ' ج.م/يوم). تم تسجيل الخصم في سجل المرتبات.'
               });
-              showToast('⚠️ تأخير ' + formatDelay(delayMin) + ' — تم خصم ' + deductionLabel + ' = ' + deductionAmount + ' ج.م', 'warning');
+              showToast('⚠️ تأخير ' + formatDelay(delayMin) + ' — تم خصم ' + deductionLabel + ' = ' + deductionAmount + ' ج.م (محفوظ في الداتا بيز)', 'warning');
             } else if (delayMin > 0) {
               showToast('⚠️ Checked in! You are ' + formatDelay(delayMin) + ' late (under 15 min, no deduction).', 'warning');
             } else {
@@ -1444,6 +1459,7 @@ Pages.payroll = function (el) {
   var isHR = App.isHR();
   var payroll = isHR ? [] : [].filter(function (p) { return p.employee_id === App.user.id; });
   var medicalClaims = [];
+  var salaryAdjustments = [];
 
   var search = '';
   var monthFilter = '';
@@ -1467,6 +1483,22 @@ Pages.payroll = function (el) {
       if (latestP.late_deductions > 0) deductionReasons.push("تأخيرات دقائق الحضور");
       if (latestP.penalties > 0) deductionReasons.push("جزاءات وخصومات إدارية");
       var deductionReasonsStr = deductionReasons.length > 0 ? deductionReasons.join(" و ") : "لا يوجد خصومات";
+
+      var monthlyAdjustments = salaryAdjustments.filter(function(adj) {
+        return adj.month === latestP.month;
+      });
+      var bonusesHtml = '';
+      var penaltiesHtml = '';
+      monthlyAdjustments.forEach(function(adj) {
+        if (adj.type === 'bonus') {
+          bonusesHtml += '<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;display:flex;justify-content:space-between"><span>🎁 ' + adj.reason + '</span><span style="color:var(--accent-success);font-weight:600">+' + adj.amount + ' EGP</span></div>';
+        } else {
+          penaltiesHtml += '<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;display:flex;justify-content:space-between"><span>⚠️ ' + adj.reason + '</span><span style="color:var(--accent-danger);font-weight:600">-' + adj.amount + ' EGP</span></div>';
+        }
+      });
+      if (latestP.absence_deductions > 0) {
+        penaltiesHtml += '<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;display:flex;justify-content:space-between"><span>🚫 غياب وأيام انقطاع</span><span style="color:var(--accent-danger);font-weight:600">-' + latestP.absence_deductions + ' EGP</span></div>';
+      }
 
       var monthlyMedicalClaims = medicalClaims.filter(function(m) {
         return m.created_at && m.created_at.substring(0, 7) === latestP.month;
@@ -1506,14 +1538,24 @@ Pages.payroll = function (el) {
       html += '</div>';
 
       html += '<div style="background:var(--bg-secondary);padding:14px;border-radius:var(--radius-md);border-right:4px solid var(--accent-success)">';
-      html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">العمل الإضافي (Overtime)</div>';
-      html += '<div style="font-size:1.1rem;font-weight:700;color:var(--accent-success)">+EGP ' + (latestP.overtime_pay || 0).toLocaleString() + '</div>';
+      html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">العمل الإضافي والحوافز</div>';
+      var totalOTandBonus = (latestP.overtime_pay || 0) + (latestP.bonuses || 0);
+      html += '<div style="font-size:1.1rem;font-weight:700;color:var(--accent-success)">+EGP ' + totalOTandBonus.toLocaleString() + '</div>';
+      if (bonusesHtml) {
+        html += '<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.05);padding-top:6px">' + bonusesHtml + '</div>';
+      } else {
+        html += '<div style="font-size:0.72rem;color:var(--text-tertiary);margin-top:2px">الإضافي: EGP ' + (latestP.overtime_pay || 0).toLocaleString() + '</div>';
+      }
       html += '</div>';
 
       html += '<div style="background:var(--bg-secondary);padding:14px;border-radius:var(--radius-md);border-right:4px solid var(--accent-danger)">';
       html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">إجمالي الخصومات</div>';
       html += '<div style="font-size:1.1rem;font-weight:700;color:var(--accent-danger)">-EGP ' + (totalDed || 0).toLocaleString() + '</div>';
-      html += '<div style="font-size:0.72rem;color:var(--text-tertiary);margin-top:2px">السبب: ' + deductionReasonsStr + '</div>';
+      if (penaltiesHtml) {
+        html += '<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.05);padding-top:6px">' + penaltiesHtml + '</div>';
+      } else {
+        html += '<div style="font-size:0.72rem;color:var(--text-tertiary);margin-top:2px">السبب: ' + deductionReasonsStr + '</div>';
+      }
       html += '</div>';
 
       if (totalMedicalDisbursed > 0) {
@@ -1865,10 +1907,15 @@ Pages.payroll = function (el) {
       if (r.data) {
         payroll = r.data;
         if (!isHR) {
-          sbClient.from('medical_requests').select('*').eq('employee_id', App.user.id).eq('status', 'disbursed').then(function(mRes) {
-            if (mRes.data) {
-              medicalClaims = mRes.data;
-            }
+          Promise.all([
+            sbClient.from('medical_requests').select('*').eq('employee_id', App.user.id).eq('status', 'disbursed'),
+            sbClient.from('salary_adjustments').select('*').eq('employee_id', App.user.id).eq('status', 'approved')
+          ]).then(function(results) {
+            medicalClaims = results[0].data || [];
+            salaryAdjustments = results[1].data || [];
+            render(payroll);
+          }).catch(function(err) {
+            console.error('Error fetching additional payroll details:', err);
             render(payroll);
           });
         } else {
