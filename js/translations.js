@@ -299,7 +299,13 @@ const ARABIC_DICT = {
   "Awaiting HR Disbursement": "بانتظار صرف الـ HR",
   "Disbursed": "تم الصرف",
   "Add Amount": "إضافة مبلغ",
-  "Upload Document / Receipt": "رفع مستند / إيصال"
+  "Upload Document / Receipt": "رفع مستند / إيصال",
+
+  // My Delays
+  "My Delays": "تأخيراتي",
+  "Your delay and deduction records": "سجل التأخيرات والخصومات الخاصة بك",
+  "Delay Records": "سجل التأخيرات",
+  "delay records": "سجلات تأخير"
 };
 
 // Set Arabic as default language

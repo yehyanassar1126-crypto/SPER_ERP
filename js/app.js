@@ -397,6 +397,7 @@ var App = {
       case 'ai-mind': (App.isHR() || App.isManager()) ? Pages.aiMind(el) : Pages.empDashboard(el); break;
       case 'org-directory': Pages.orgDirectory(el); break;
       case 'shift-swap': Pages.shiftSwap(el); break;
+      case 'my-delays': Pages['my-delays'](el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },
@@ -1076,10 +1077,28 @@ Pages.qrCheckin = function (el) {
                 status: 'approved'
               }]).then(function (r) {
                 if (r.error) { 
-                  console.error('Late deduction DB error:', r.error); 
-                  alert('حدث خطأ أثناء تسجيل الخصم في قاعدة البيانات: ' + r.error.message);
+                  console.error('Late deduction salary_adjustments error:', r.error); 
+                }
+              });
+              // Also save in dedicated late_deductions table
+              sbClient.from('late_deductions').insert([{
+                employee_id: user.id,
+                employee_name: user.full_name,
+                department: user.department,
+                delay_date: todayStr(),
+                delay_minutes: delayMin,
+                deduction_type: deductionLabel,
+                deduction_fraction: deductionFraction,
+                deduction_amount: deductionAmount,
+                base_salary: baseSalary,
+                daily_rate: dailyRate26,
+                month: currentMonth
+              }]).then(function (r) {
+                if (r.error) { 
+                  console.error('late_deductions table error:', r.error);
+                  alert('خطأ في تسجيل التأخير في جدول late_deductions: ' + r.error.message + '\nتأكد إنك عملت الجدول في Supabase.');
                 } else {
-                  console.log('Late deduction saved successfully in DB.', r.data);
+                  console.log('Late deduction saved to late_deductions table.', r.data);
                 }
               });
               App.addNotification({
