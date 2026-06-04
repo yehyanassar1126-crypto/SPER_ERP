@@ -9,17 +9,24 @@ window.Pages = window.Pages || {};
 Pages.complaints = function (el) {
   var user = App.user;
   var isHR = App.isHR();
+  var complaints = [];
+  var disciplinary = [];
 
-  function getRecords(type) {
-    try { return JSON.parse(localStorage.getItem('hr_' + type)) || []; }
-    catch(e) { return []; }
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading...</div>';
+    var cQuery = isHR ? sbClient.from('complaints').select('*').order('created_at', {ascending: false}) : sbClient.from('complaints').select('*').eq('employee_id', user.id).order('created_at', {ascending: false});
+    cQuery.then(function(cRes) {
+      complaints = cRes.data || [];
+      if (isHR) {
+        sbClient.from('disciplinary_actions').select('*').order('created_at', {ascending: false}).then(function(dRes) {
+          disciplinary = dRes.data || [];
+          render();
+        });
+      } else {
+        render();
+      }
+    });
   }
-  function saveRecords(type, data) {
-    localStorage.setItem('hr_' + type, JSON.stringify(data));
-  }
-
-  var complaints = getRecords('complaints');
-  var disciplinary = getRecords('disciplinary');
 
   function render() {
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
@@ -38,13 +45,11 @@ Pages.complaints = function (el) {
     // Complaints View
     html += '<div id="view-complaints">';
     html += '<div class="card"><div class="card-header"><div><h3>Grievances & Complaints</h3><p>Secure & confidential reporting</p></div></div><div class="card-body">';
-    var visibleComplaints = isHR ? complaints : complaints.filter(function(c) { return c.employee_id === user.id; });
-    
-    if (visibleComplaints.length === 0) {
+    if (complaints.length === 0) {
       html += '<div class="empty-state" style="padding:40px; text-align:center; color:var(--text-muted)">' + icon('messageSquare', 40) + '<p>No complaints found.</p></div>';
     } else {
       html += '<div style="display:flex;flex-direction:column;gap:12px">';
-      visibleComplaints.forEach(function(c) {
+      complaints.forEach(function(c) {
         html += '<div style="border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; background:var(--bg-tertiary)">';
         html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px;">';
         html += '<h4 style="margin:0; color:var(--text-primary)">' + c.subject + '</h4>';
@@ -52,7 +57,7 @@ Pages.complaints = function (el) {
         html += '</div>';
         html += '<p style="margin:0 0 12px 0; font-size:0.9rem; color:var(--text-secondary)">' + c.description + '</p>';
         html += '<div style="font-size:0.8rem; color:var(--text-muted); display:flex; justify-content:space-between">';
-        html += '<span>' + formatDate(c.date) + '</span>';
+        html += '<span>' + formatDate(c.created_at) + '</span>';
         if (isHR) {
           html += '<span>From: ' + (c.is_anonymous ? 'Anonymous' : c.employee_name) + '</span>';
         } else {
@@ -66,10 +71,10 @@ Pages.complaints = function (el) {
       });
       html += '</div>';
     }
-    html += '</div></div></div>'; // end complaints view
+    html += '</div></div></div>';
 
     if (isHR) {
-      // Disciplinary View (Hidden by default)
+      // Disciplinary View
       html += '<div id="view-disciplinary" style="display:none">';
       html += '<div class="card"><div class="card-header"><div><h3>Disciplinary Actions</h3><p>Warnings and Deductions log</p></div></div><div class="card-body no-pad">';
       if (disciplinary.length === 0) {
@@ -78,7 +83,7 @@ Pages.complaints = function (el) {
         html += '<table class="data-table"><thead><tr><th>Date</th><th>Employee</th><th>Type</th><th>Reason</th><th>Issued By</th></tr></thead><tbody>';
         disciplinary.forEach(function(d) {
           html += '<tr>';
-          html += '<td>' + formatDate(d.date) + '</td>';
+          html += '<td>' + formatDate(d.created_at) + '</td>';
           html += '<td style="font-weight:600">' + d.employee_name + '</td>';
           html += '<td><span class="badge badge-danger">' + d.type + '</span></td>';
           html += '<td>' + d.reason + '</td>';
@@ -92,7 +97,6 @@ Pages.complaints = function (el) {
 
     el.innerHTML = html;
 
-    // Tabs logic
     var tabComp = document.getElementById('tab-comp');
     var tabDisc = document.getElementById('tab-disc');
     var viewComp = document.getElementById('view-complaints');
@@ -135,36 +139,33 @@ Pages.complaints = function (el) {
       var anon = document.getElementById('comp-anon').checked;
       if (!sub || !desc) { alert('Please fill all fields'); return; }
       
-      complaints.unshift({
-        id: 'comp_' + Date.now(),
+      sbClient.from('complaints').insert([{
         employee_id: user.id,
         employee_name: user.full_name,
         subject: sub,
         description: desc,
         is_anonymous: anon,
-        date: new Date().toISOString(),
         status: 'open'
+      }]).then(function(res) {
+        if (res.error) { alert('Error: ' + res.error.message); return; }
+        App.closeModal();
+        loadData();
+        showToast('Complaint submitted successfully', 'success');
       });
-      saveRecords('complaints', complaints);
-      App.closeModal();
-      render();
-      showToast('Complaint submitted successfully', 'success');
     });
   };
 
   window.resolveComplaint = function(id) {
     if (confirm('Mark this complaint as resolved?')) {
-      var c = complaints.find(function(x) { return x.id === id; });
-      if (c) {
-        c.status = 'resolved';
-        saveRecords('complaints', complaints);
-        render();
-      }
+      sbClient.from('complaints').update({status: 'resolved'}).eq('id', id).then(function(res) {
+        if (res.error) { alert('Error: ' + res.error.message); return; }
+        loadData();
+      });
     }
   };
 
   window.newDisciplinaryModal = function() {
-    sbClient.from('users').select('id, full_name').then(function(res) {
+    sbClient.from('users').select('id, full_name').eq('status', 'active').then(function(res) {
       var emps = res.data || [];
       var body = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="disc-emp" class="form-input">';
       emps.forEach(function(e) { body += '<option value="' + e.id + '|' + e.full_name + '">' + e.full_name + '</option>'; });
@@ -179,25 +180,24 @@ Pages.complaints = function (el) {
         var reason = document.getElementById('disc-reason').value;
         if (!reason) { alert('Please provide a reason'); return; }
 
-        disciplinary.unshift({
-          id: 'disc_' + Date.now(),
+        sbClient.from('disciplinary_actions').insert([{
           employee_id: empVal[0],
           employee_name: empVal[1],
           type: type,
           reason: reason,
           issued_by: user.id,
-          issued_by_name: user.full_name,
-          date: new Date().toISOString()
+          issued_by_name: user.full_name
+        }]).then(function(res) {
+          if (res.error) { alert('Error: ' + res.error.message); return; }
+          App.closeModal();
+          loadData();
+          showToast('Disciplinary action recorded', 'warning');
         });
-        saveRecords('disciplinary', disciplinary);
-        App.closeModal();
-        render();
-        showToast('Disciplinary action recorded', 'warning');
       });
     });
   };
 
-  render();
+  loadData();
 };
 
 // ==========================================
@@ -206,15 +206,15 @@ Pages.complaints = function (el) {
 Pages.offboarding = function (el) {
   var user = App.user;
   var isHR = App.isHR();
+  var offboardingList = [];
 
-  function getOffboarding() {
-    try { return JSON.parse(localStorage.getItem('hr_offboarding')) || []; }
-    catch(e) { return []; }
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading...</div>';
+    sbClient.from('offboarding').select('*').order('created_at', {ascending: false}).then(function(res) {
+      offboardingList = res.data || [];
+      render();
+    });
   }
-  function saveOffboarding(data) {
-    localStorage.setItem('hr_offboarding', JSON.stringify(data));
-  }
-  var offboardingList = getOffboarding();
 
   function render() {
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
@@ -239,7 +239,7 @@ Pages.offboarding = function (el) {
         
         html += '<div style="border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; background:var(--bg-tertiary)">';
         html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">';
-        html += '<div><h4 style="margin:0; color:var(--text-primary)">' + o.employee_name + '</h4><span style="font-size:0.8rem; color:var(--text-muted)">ID: ' + o.employee_id + ' | Separation Date: ' + formatDate(o.separation_date) + '</span></div>';
+        html += '<div><h4 style="margin:0; color:var(--text-primary)">' + o.employee_name + '</h4><span style="font-size:0.8rem; color:var(--text-muted)">ID: ' + o.employee_code + ' | Separation Date: ' + formatDate(o.separation_date) + '</span></div>';
         html += '<span class="badge badge-' + (pct === 100 ? 'success' : 'warning') + '">' + pct + '% Complete</span>';
         html += '</div>';
         
@@ -250,7 +250,7 @@ Pages.offboarding = function (el) {
         html += '</div>';
 
         if (pct === 100 && o.status !== 'completed' && isHR) {
-          html += '<button class="btn btn-sm btn-primary" onclick="finalizeOffboarding(\'' + o.id + '\', \'' + o.user_id + '\')">Finalize & Deactivate Employee</button>';
+          html += '<button class="btn btn-sm btn-primary" onclick="finalizeOffboarding(\'' + o.id + '\', \'' + o.employee_id + '\')">Finalize & Deactivate Employee</button>';
         } else if (o.status === 'completed') {
           html += '<span style="color:var(--accent-success); font-weight:600; font-size:0.9rem">' + icon('checkCheck', 14) + ' Offboarding Completed</span>';
         }
@@ -268,7 +268,6 @@ Pages.offboarding = function (el) {
     var text = isCleared ? 'Cleared' : 'Pending';
     var iconName = isCleared ? 'checkCheck' : 'clock';
     var cursor = (isHR && !isCleared) ? 'cursor:pointer; text-decoration:underline' : '';
-    return '<div style="background:var(--bg-card); border:1px solid var(--border-color); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.8rem; display:flex; flex-direction:column; gap:4px; flex:1">';
     return '<div style="background:var(--bg-card); border:1px solid var(--border-color); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.8rem; display:flex; flex-direction:column; gap:4px; flex:1">' + 
            '<span style="color:var(--text-secondary); font-weight:600">' + label + '</span>' + 
            '<span style="color:var(--accent-' + color + '); display:flex; align-items:center; gap:4px; ' + cursor + '" ' + (cursor ? 'onclick="markCleared(\'' + id + '\',\'' + type + '\')"' : '') + '>' + icon(iconName, 12) + ' ' + text + '</span>' + 
@@ -277,30 +276,29 @@ Pages.offboarding = function (el) {
 
   window.markCleared = function(id, type) {
     if (confirm('Mark ' + type.toUpperCase() + ' as cleared?')) {
-      var o = offboardingList.find(function(x) { return x.id === id; });
-      if (o) {
-        if (type === 'it') o.it_cleared = true;
-        if (type === 'hr') o.hr_cleared = true;
-        if (type === 'finance') o.finance_cleared = true;
-        saveOffboarding(offboardingList);
-        render();
-      }
+      var updateObj = {};
+      if (type === 'it') updateObj.it_cleared = true;
+      if (type === 'hr') updateObj.hr_cleared = true;
+      if (type === 'finance') updateObj.finance_cleared = true;
+      
+      sbClient.from('offboarding').update(updateObj).eq('id', id).then(function(res) {
+        if (res.error) { alert('Error: ' + res.error.message); return; }
+        loadData();
+      });
     }
   };
 
   window.finalizeOffboarding = function(id, userId) {
     if (confirm('Are you sure? This will mark the employee as Inactive in the system.')) {
-      var o = offboardingList.find(function(x) { return x.id === id; });
-      if (o) {
-        o.status = 'completed';
-        saveOffboarding(offboardingList);
+      sbClient.from('offboarding').update({status: 'completed'}).eq('id', id).then(function(res) {
+        if (res.error) { alert('Error: ' + res.error.message); return; }
         // Deactivate user in DB
         sbClient.from('users').update({ status: 'inactive' }).eq('id', userId).then(function(r) {
           if (r && r.error) alert('Error updating user status: ' + r.error.message);
-          render();
+          loadData();
           showToast('Employee offboarded and deactivated', 'success');
         });
-      }
+      });
     }
   };
 
@@ -320,33 +318,29 @@ Pages.offboarding = function (el) {
         var reason = document.getElementById('off-reason').value;
         if (!date) { alert('Please select separation date'); return; }
 
-        // check if already offboarding
-        if (offboardingList.find(function(x) { return x.user_id === empVal[0] && x.status !== 'completed'; })) {
+        if (offboardingList.find(function(x) { return x.employee_id === empVal[0] && x.status !== 'completed'; })) {
           alert('This employee is already in an active offboarding process.');
           return;
         }
 
-        offboardingList.unshift({
-          id: 'off_' + Date.now(),
-          user_id: empVal[0],
+        sbClient.from('offboarding').insert([{
+          employee_id: empVal[0],
           employee_name: empVal[1],
-          employee_id: empVal[2],
+          employee_code: empVal[2],
           separation_date: date,
           reason: reason,
-          it_cleared: false,
-          hr_cleared: false,
-          finance_cleared: false,
-          status: 'pending',
-          created_at: new Date().toISOString()
+          status: 'pending'
+        }]).then(function(res) {
+          if (res.error) { alert('Error: ' + res.error.message); return; }
+          App.closeModal();
+          loadData();
+          showToast('Offboarding process started', 'success');
         });
-        saveOffboarding(offboardingList);
-        App.closeModal();
-        render();
       });
     });
   };
 
-  render();
+  loadData();
 };
 
 // ==========================================
@@ -355,15 +349,16 @@ Pages.offboarding = function (el) {
 Pages.expenses = function (el) {
   var user = App.user;
   var isHR = App.isHR();
+  var expenses = [];
 
-  function getExpenses() {
-    try { return JSON.parse(localStorage.getItem('hr_expenses')) || []; }
-    catch(e) { return []; }
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading...</div>';
+    var eQuery = isHR ? sbClient.from('expenses').select('*').order('created_at', {ascending: false}) : sbClient.from('expenses').select('*').eq('employee_id', user.id).order('created_at', {ascending: false});
+    eQuery.then(function(res) {
+      expenses = res.data || [];
+      render();
+    });
   }
-  function saveExpenses(data) {
-    localStorage.setItem('hr_expenses', JSON.stringify(data));
-  }
-  var expenses = getExpenses();
 
   function render() {
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
@@ -372,15 +367,13 @@ Pages.expenses = function (el) {
       html += '<button class="btn btn-primary" onclick="newExpenseModal()">' + icon('plus') + ' Submit Expense Claim</button>';
     }
     html += '</div>';
-
-    var visible = isHR ? expenses : expenses.filter(function(x) { return x.employee_id === user.id; });
     
     html += '<div class="card"><div class="card-header"><div><h3>Expense Requests</h3><p>Travel, supplies, and miscellaneous reimbursements</p></div></div><div class="card-body no-pad">';
-    if (visible.length === 0) {
+    if (expenses.length === 0) {
       html += '<div class="empty-state" style="padding:40px; text-align:center; color:var(--text-muted)">' + icon('receipt', 40) + '<p>No expense claims found.</p></div>';
     } else {
       html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Employee</th><th>Type</th><th>Amount (EGP)</th><th>Description</th><th>Status</th>' + (isHR ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
-      visible.forEach(function(e) {
+      expenses.forEach(function(e) {
         html += '<tr>';
         html += '<td>' + formatDate(e.date) + '</td>';
         html += '<td style="font-weight:600">' + e.employee_name + '</td>';
@@ -388,7 +381,7 @@ Pages.expenses = function (el) {
         html += '<td style="font-weight:700; color:var(--text-primary)">' + parseFloat(e.amount).toLocaleString() + '</td>';
         html += '<td>' + e.description + '</td>';
         var bClass = e.status === 'pending' ? 'warning' : (e.status === 'approved' ? 'success' : 'danger');
-        html += '<td><span class="badge badge-' + bClass + '">' + e.status + '</span></td>';
+        html += '<td><span class="badge badge-' + bClass + '">' + (e.status.charAt(0).toUpperCase() + e.status.slice(1)) + '</span></td>';
         if (isHR) {
           html += '<td>';
           if (e.status === 'pending') {
@@ -421,40 +414,41 @@ Pages.expenses = function (el) {
       var desc = document.getElementById('exp-desc').value;
       if (!amt || !date || !desc) { alert('Please fill all fields'); return; }
 
-      expenses.unshift({
-        id: 'exp_' + Date.now(),
+      sbClient.from('expenses').insert([{
         employee_id: user.id,
         employee_name: user.full_name,
         type: type,
         amount: parseFloat(amt),
         date: date,
         description: desc,
-        status: 'pending',
-        created_at: new Date().toISOString()
+        status: 'pending'
+      }]).then(function(res) {
+        if (res.error) { alert('Error: ' + res.error.message); return; }
+        App.closeModal();
+        loadData();
+        showToast('Expense claim submitted', 'success');
       });
-      saveExpenses(expenses);
-      App.closeModal();
-      render();
-      showToast('Expense claim submitted', 'success');
     });
   };
 
   window.updateExpense = function(id, status) {
     if (confirm('Mark this expense claim as ' + status + '?')) {
-      var e = expenses.find(function(x) { return x.id === id; });
-      if (e) {
-        e.status = status;
-        saveExpenses(expenses);
-        render();
-        App.addNotification({
-          user_id: e.employee_id,
-          title: 'Expense Claim ' + (status === 'approved' ? 'Approved' : 'Rejected'),
-          message: 'Your expense claim for EGP ' + e.amount + ' (' + e.description + ') has been ' + status + '.',
-          type: status === 'approved' ? 'success' : 'danger'
-        });
-      }
+      sbClient.from('expenses').update({status: status}).eq('id', id).then(function(res) {
+        if (res.error) { alert('Error: ' + res.error.message); return; }
+        
+        var e = expenses.find(function(x) { return x.id === id; });
+        if (e) {
+          App.addNotification({
+            user_id: e.employee_id,
+            title: 'Expense Claim ' + (status === 'approved' ? 'Approved' : 'Rejected'),
+            message: 'Your expense claim for EGP ' + e.amount + ' (' + e.description + ') has been ' + status + '.',
+            type: status === 'approved' ? 'success' : 'danger'
+          });
+        }
+        loadData();
+      });
     }
   };
 
-  render();
+  loadData();
 };

@@ -302,3 +302,84 @@ CREATE POLICY "Missions view policy" ON missions FOR SELECT USING (true);
 CREATE POLICY "Missions insert policy" ON missions FOR INSERT WITH CHECK (true);
 CREATE POLICY "Missions update policy" ON missions FOR UPDATE USING (true);
 
+-- ============================================================
+-- 15. COMPLAINTS & GRIEVANCES TABLE
+-- ============================================================
+CREATE TABLE complaints (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  employee_name TEXT,
+  subject TEXT NOT NULL,
+  description TEXT NOT NULL,
+  is_anonymous BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Complaints view policy" ON complaints FOR SELECT USING (true);
+CREATE POLICY "Complaints insert policy" ON complaints FOR INSERT WITH CHECK (true);
+CREATE POLICY "Complaints update policy" ON complaints FOR UPDATE USING (true);
+
+-- ============================================================
+-- 16. DISCIPLINARY ACTIONS TABLE
+-- ============================================================
+CREATE TABLE disciplinary_actions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  employee_name TEXT,
+  type TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  issued_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  issued_by_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE disciplinary_actions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Disciplinary view policy" ON disciplinary_actions FOR SELECT USING (true);
+CREATE POLICY "Disciplinary insert policy" ON disciplinary_actions FOR INSERT WITH CHECK (true);
+
+-- ============================================================
+-- 17. OFFBOARDING TABLE
+-- ============================================================
+CREATE TABLE offboarding (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  employee_name TEXT,
+  employee_code TEXT,
+  separation_date DATE NOT NULL,
+  reason TEXT,
+  it_cleared BOOLEAN DEFAULT false,
+  hr_cleared BOOLEAN DEFAULT false,
+  finance_cleared BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE offboarding ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Offboarding view policy" ON offboarding FOR SELECT USING (true);
+CREATE POLICY "Offboarding insert policy" ON offboarding FOR INSERT WITH CHECK (true);
+CREATE POLICY "Offboarding update policy" ON offboarding FOR UPDATE USING (true);
+
+-- ============================================================
+-- 18. EXPENSES TABLE
+-- ============================================================
+CREATE TABLE expenses (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  employee_name TEXT,
+  type TEXT NOT NULL,
+  amount NUMERIC(10,2) NOT NULL,
+  date DATE NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Expenses view policy" ON expenses FOR SELECT USING (true);
+CREATE POLICY "Expenses insert policy" ON expenses FOR INSERT WITH CHECK (true);
+CREATE POLICY "Expenses update policy" ON expenses FOR UPDATE USING (true);
