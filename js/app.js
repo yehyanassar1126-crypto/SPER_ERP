@@ -1401,26 +1401,10 @@ Pages.overtime = function (el) {
     render(overtime);
     showToast('Overtime ' + action + '!', action === 'approved' ? 'success' : 'error');
   }
-
-  {
-    var q = sbClient.from('overtime').select('*').order('date', { ascending: false });
-    if (!isHR) q = q.eq('employee_id', App.user.id);
-    q.then(function (r) {
-      if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
-      if (r.data) { overtime = r.data; render(overtime); }
-    });
-  }
-  render(overtime);
-};
-
-// ----- PAYROLL -----
 Pages.payroll = function (el) {
   var isHR = App.isHR();
   var payroll = isHR ? [] : [].filter(function (p) { return p.employee_id === App.user.id; });
-
-  var search = '';
-  var monthFilter = '';
-  var statusFilter = '';
+  var medicalClaims = [];
 
   var search = '';
   var monthFilter = '';
@@ -1431,15 +1415,103 @@ Pages.payroll = function (el) {
     var paidCount = data.filter(function (p) { return p.status === 'paid'; }).length;
     var processingCount = data.filter(function (p) { return p.status === 'processing'; }).length;
 
-    var html = '<div class="stats-grid" style="margin-bottom:24px">';
-    html += _statCard('#6366f1', 'dollarSign', 'EGP ' + totalPayroll.toLocaleString(), isHR ? 'Total Payroll' : 'Total Earnings');
-    if (isHR) { html += _statCard('#22c55e', 'trendingUp', paidCount, 'Paid'); html += _statCard('#f59e0b', 'fileText', processingCount, 'Processing'); }
-    html += '</div>';
+    var html = '';
+
+    // Employee Current Month Salary Card
+    if (!isHR && data.length > 0) {
+      var latestP = data[0];
+      var isFirstDay = new Date().getDate() === 1;
+      var totalDed = (latestP.penalties || 0) + (latestP.late_deductions || 0) + (latestP.absence_deductions || 0);
+
+      var deductionReasons = [];
+      if (latestP.absence_deductions > 0) deductionReasons.push("غياب وأيام انقطاع");
+      if (latestP.late_deductions > 0) deductionReasons.push("تأخيرات دقائق الحضور");
+      if (latestP.penalties > 0) deductionReasons.push("جزاءات وخصومات إدارية");
+      var deductionReasonsStr = deductionReasons.length > 0 ? deductionReasons.join(" و ") : "لا يوجد خصومات";
+
+      var monthlyMedicalClaims = medicalClaims.filter(function(m) {
+        return m.created_at && m.created_at.substring(0, 7) === latestP.month;
+      });
+      var totalMedicalDisbursed = monthlyMedicalClaims.reduce(function(sum, m) { return sum + (m.amount || 0); }, 0);
+
+      var titleText = isFirstDay ? "💰 القبض نزل! تفاصيل راتبك لشهر " + latestP.month : "💵 تفاصيل راتبك لشهر " + latestP.month;
+      var alertClass = isFirstDay ? "alert-success-pulse" : "alert-normal-salary";
+
+      html += '<style>' +
+        '@keyframes pulse-green {' +
+        '  0% { transform: scale(1); }' +
+        '  50% { transform: scale(1.005); box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); }' +
+        '  100% { transform: scale(1); }' +
+        '}' +
+        '.alert-success-pulse {' +
+        '  border: 2px solid var(--accent-success) !important;' +
+        '  animation: pulse-green 2s infinite;' +
+        '}' +
+        '</style>';
+
+      html += '<div class="card ' + alertClass + '" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
+      html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
+      html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-success-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-success)">' + icon('dollarSign', 22) + '</div>';
+      html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">' + titleText + '</h3>';
+      html += '</div>';
+
+      html += '<div style="font-size:0.95rem;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;text-align:right;direction:rtl">';
+      html += 'أهلاً بك <strong>' + App.user.full_name + '</strong>، إليك تفصيل راتبك لشهر ' + latestP.month + ':';
+      html += '</div>';
+
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;margin-bottom:20px;direction:rtl;text-align:right">';
+
+      html += '<div style="background:var(--bg-secondary);padding:14px;border-radius:var(--radius-md);border-right:4px solid var(--accent-primary)">';
+      html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">الراتب الأساسي</div>';
+      html += '<div style="font-size:1.1rem;font-weight:700;color:var(--text-primary)">EGP ' + (latestP.base_salary || 0).toLocaleString() + '</div>';
+      html += '</div>';
+
+      html += '<div style="background:var(--bg-secondary);padding:14px;border-radius:var(--radius-md);border-right:4px solid var(--accent-success)">';
+      html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">العمل الإضافي (Overtime)</div>';
+      html += '<div style="font-size:1.1rem;font-weight:700;color:var(--accent-success)">+EGP ' + (latestP.overtime_pay || 0).toLocaleString() + '</div>';
+      html += '</div>';
+
+      html += '<div style="background:var(--bg-secondary);padding:14px;border-radius:var(--radius-md);border-right:4px solid var(--accent-danger)">';
+      html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">إجمالي الخصومات</div>';
+      html += '<div style="font-size:1.1rem;font-weight:700;color:var(--accent-danger)">-EGP ' + (totalDed || 0).toLocaleString() + '</div>';
+      html += '<div style="font-size:0.72rem;color:var(--text-tertiary);margin-top:2px">السبب: ' + deductionReasonsStr + '</div>';
+      html += '</div>';
+
+      if (totalMedicalDisbursed > 0) {
+        html += '<div style="background:var(--bg-secondary);padding:14px;border-radius:var(--radius-md);border-right:4px solid var(--accent-info)">';
+        html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">صرف روشتة / بدل علاج وعمليات</div>';
+        html += '<div style="font-size:1.1rem;font-weight:700;color:var(--accent-info)">+EGP ' + totalMedicalDisbursed.toLocaleString() + '</div>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+
+      var displayNet = latestP.net_salary + totalMedicalDisbursed;
+      html += '<div style="border-top:1px solid var(--border-color);padding-top:16px;display:flex;justify-content:space-between;align-items:center;direction:rtl">';
+      html += '<span style="font-size:1.05rem;font-weight:800;color:var(--text-primary)">صافي القبض المستلم (الإجمالي)</span>';
+      html += '<span style="font-size:1.5rem;font-weight:900;color:var(--accent-primary-hover)">EGP ' + displayNet.toLocaleString() + '</span>';
+      html += '</div>';
+
+      html += '</div>';
+    } else if (!isHR && data.length === 0) {
+      html += '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg); text-align:center">';
+      html += '<div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:8px">💵 تفاصيل راتبك التعاقدي</div>';
+      html += '<p style="color:var(--text-secondary)">مرتبك الأساسي المسجل في النظام هو: <strong style="color:var(--accent-primary)">EGP ' + (App.user.base_salary || 0).toLocaleString() + '</strong> شهرياً.</p>';
+      html += '<p style="font-size:0.8rem;color:var(--text-muted);margin-top:8px">سيتم عرض تفاصيل القبض هنا فور اعتماده من الحسابات.</p>';
+      html += '</div>';
+    }
+
+    var htmlStats = '<div class="stats-grid" style="margin-bottom:24px">';
+    htmlStats += _statCard('#6366f1', 'dollarSign', 'EGP ' + totalPayroll.toLocaleString(), isHR ? 'Total Payroll' : 'Total Earnings');
+    if (isHR) { htmlStats += _statCard('#22c55e', 'trendingUp', paidCount, 'Paid'); htmlStats += _statCard('#f59e0b', 'fileText', processingCount, 'Processing'); }
+    htmlStats += '</div>';
+    
+    html += htmlStats;
 
     html += '<div class="toolbar">';
     if (isHR) html += '<div class="search-wrapper"><span class="search-icon">' + icon('search') + '</span><input type="text" class="search-input" placeholder="Search employee..." id="pay-search" value="' + (search || '').replace(/"/g, '&quot;') + '"></div>';
     html += '<input type="month" class="filter-select" id="pay-month" value="' + monthFilter + '"><select class="filter-select" id="pay-status"><option value=""' + (statusFilter === '' ? ' selected' : '') + '>All Status</option><option value="paid"' + (statusFilter === 'paid' ? ' selected' : '') + '>Paid</option><option value="processing"' + (statusFilter === 'processing' ? ' selected' : '') + '>Processing</option></select>';
-    html += '' + (isHR ? '<button class="btn btn-primary" id="add-payroll" style="margin-right:8px">' + icon('plus') + ' Process Salary</button>' : '') + '<button class="btn btn-outline" id="pay-export">' + icon('download') + ' Export</button></div>';
+    html += '' + (isHR ? '<button class="btn btn-primary" id="add-payroll" style="margin-right:8px">' + icon('plus') + ' Process Salary</button><button class="btn btn-outline" id="add-adj-direct-btn" style="margin-right:8px">' + icon('plus') + ' Add Manual Amount</button>' : '') + '<button class="btn btn-outline" id="pay-export">' + icon('download') + ' Export</button></div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>' + (isHR ? 'Payroll Records' : 'My Salary History') + '</h3><p>' + data.length + ' records</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
     if (isHR) html += '<th>Employee</th><th>Department</th>';
@@ -1619,6 +1691,63 @@ Pages.payroll = function (el) {
       });
     }
 
+    if (document.getElementById('add-adj-direct-btn')) {
+      document.getElementById('add-adj-direct-btn').addEventListener('click', function () {
+        sbClient.from('users').select('id, full_name, department').eq('status', 'active').then(function (res) {
+          var allUsers = res.data || [];
+          var monthVal = new Date().toISOString().substring(0, 7);
+          var b = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="direct-adj-emp"><option value="">-- Select --</option>';
+          allUsers.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-dept="' + u.department + '">' + u.full_name + ' - ' + u.department + '</option>'; });
+          b += '</select></div><div class="form-field"><label>Type *</label><select id="direct-adj-type"><option value="bonus">🎁 Bonus (Add Money / مكافأة)</option><option value="penalty">⚠️ Penalty (Deduct Money / خصم أو جزاء)</option></select></div></div>';
+          b += '<div class="form-row"><div class="form-field"><label>Amount (EGP) *</label><input type="number" id="direct-adj-amount" min="1" placeholder="e.g. 500"></div><div class="form-field"><label>Month *</label><input type="month" id="direct-adj-month" value="' + monthVal + '"></div></div>';
+          b += '<div class="form-field"><label>Reason / Details *</label><textarea id="direct-adj-reason" placeholder="Explain the reason for this manual adjustment..."></textarea></div>';
+          
+          App.showModal('Add Direct Manual Amount', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="direct-adj-save">Save Adjustment</button>', true);
+          
+          document.getElementById('direct-adj-save').addEventListener('click', function () {
+            var sel = document.getElementById('direct-adj-emp');
+            var type = document.getElementById('direct-adj-type').value;
+            var amount = Number(document.getElementById('direct-adj-amount').value);
+            var month = document.getElementById('direct-adj-month').value;
+            var reason = document.getElementById('direct-adj-reason').value;
+            
+            if (!sel.value || !amount || !reason || !month) {
+              alert('Please fill all required fields');
+              return;
+            }
+            
+            var opt = sel.options[sel.selectedIndex];
+            var rec = {
+              employee_id: sel.value,
+              employee_name: opt.getAttribute('data-name'),
+              department: opt.getAttribute('data-dept'),
+              type: type,
+              amount: amount,
+              reason: reason,
+              month: month,
+              requested_by: App.user.full_name,
+              status: 'approved'
+            };
+            
+            sbClient.from('salary_adjustments').insert([rec]).then(function (r) {
+              if (r.error) { alert('DB Error: ' + r.error.message); return; }
+              App.closeModal();
+              showToast('Manual amount added & approved successfully!', 'success');
+              
+              var textAr = type === 'bonus' ? 'تمت إضافة مكافأة يدوية لك بقيمة ' + amount + ' ج.م لشهر ' + month : 'تم خصم مبلغ يدوي بقيمة ' + amount + ' ج.م لشهر ' + month;
+              var titleAr = type === 'bonus' ? '🎁 إضافة مكافأة يدوية' : '⚠️ خصم يدوي';
+              App.addNotification({
+                user_id: rec.employee_id,
+                type: type === 'bonus' ? 'bonus_added' : 'penalty_added',
+                title: titleAr,
+                message: textAr + ' (السبب: ' + reason + ')'
+              });
+            });
+          });
+        });
+      });
+    }
+
     document.querySelectorAll('[data-view-slip]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var p = payroll.find(function (x) { return x.id === this.getAttribute('data-view-slip'); }.bind(this));
@@ -1663,11 +1792,22 @@ Pages.payroll = function (el) {
     if (!isHR) q = q.eq('employee_id', App.user.id);
     q.then(function (r) {
       if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
-      if (r.data) { payroll = r.data; render(payroll); }
+      if (r.data) {
+        payroll = r.data;
+        if (!isHR) {
+          sbClient.from('medical_requests').select('*').eq('employee_id', App.user.id).eq('status', 'disbursed').then(function(mRes) {
+            if (mRes.data) {
+              medicalClaims = mRes.data;
+            }
+            render(payroll);
+          });
+        } else {
+          render(payroll);
+        }
+      }
     });
   }
   render(payroll);
-};
 
 // ----- ANNOUNCEMENTS -----
 Pages.announcements = function (el) {
