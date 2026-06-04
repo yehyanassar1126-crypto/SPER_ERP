@@ -1073,7 +1073,12 @@ Pages.qrCheckin = function (el) {
                 requested_by: 'النظام (تلقائي)',
                 status: 'approved'
               }]).then(function (r) {
-                if (r.error) { console.error('Late deduction DB error:', r.error); }
+                if (r.error) { 
+                  console.error('Late deduction DB error:', r.error); 
+                  alert('حدث خطأ أثناء تسجيل الخصم في قاعدة البيانات: ' + r.error.message);
+                } else {
+                  console.log('Late deduction saved successfully in DB.', r.data);
+                }
               });
               App.addNotification({
                 user_id: user.id,
