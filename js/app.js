@@ -2405,11 +2405,47 @@ Pages.allDelays = function (el) {
     }
   }
 
-  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل...</div>';
-  sbClient.from('late_deductions').select('*').order('created_at', { ascending: false }).then(function (r) {
-    if (r.error) { alert('DB Error: ' + r.error.message); return; }
-    if (r.data) {
-      delays = r.data;
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل من قاعدة البيانات...</div>';
+  Promise.all([
+    sbClient.from('attendance').select('*').gt('delay_minutes', 0).order('date', { ascending: false }),
+    sbClient.from('users').select('id, base_salary')
+  ]).then(function (results) {
+    var r1 = results[0];
+    var r2 = results[1];
+    if (r1.error) { alert('DB Error: ' + r1.error.message); return; }
+    if (r2.error) { alert('DB Error: ' + r2.error.message); return; }
+    
+    var usersMap = {};
+    if (r2.data) {
+      r2.data.forEach(function(u) { usersMap[u.id] = u.base_salary || 0; });
+    }
+    
+    if (r1.data) {
+      delays = r1.data.map(function(d) {
+        var baseSalary = usersMap[d.employee_id] || 0;
+        var dailyRate26 = Math.round(baseSalary / 26);
+        var delayMin = d.delay_minutes || 0;
+        
+        var deductionFraction = 0;
+        var deductionLabel = '';
+        if (delayMin > 360) { deductionFraction = 1; deductionLabel = 'خصم يوم كامل'; }
+        else if (delayMin > 120) { deductionFraction = 0.5; deductionLabel = 'خصم نصف يوم'; }
+        else if (delayMin > 15) { deductionFraction = 0.25; deductionLabel = 'خصم ربع يوم'; }
+        else { deductionLabel = 'تأخير مسموح (أقل من 15 دقيقة)'; }
+        
+        var deductionAmount = Math.round(dailyRate26 * deductionFraction);
+        
+        return {
+          employee_name: d.employee_name,
+          department: d.department,
+          delay_date: d.date,
+          delay_minutes: delayMin,
+          deduction_type: deductionLabel,
+          deduction_amount: deductionAmount,
+          fraction: deductionFraction
+        };
+      }).filter(function(d) { return d.fraction > 0; });
+      
       render();
     }
   });
