@@ -2411,7 +2411,8 @@ Pages.allDelays = function (el) {
   ]).then(function (results) {
     var r1 = results[0];
     var r2 = results[1];
-    if (r1.error) { alert('DB Error: ' + r1.error.message); return; }
+    if (r1.error) { alert('late_deductions Error: ' + r1.error.message); return; }
+    if (r2.error) { alert('users Error: ' + r2.error.message); return; }
     
     var usersMap = {};
     if (r2.data) {
