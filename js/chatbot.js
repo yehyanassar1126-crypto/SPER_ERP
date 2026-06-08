@@ -137,7 +137,7 @@ var EmployeeChatbot = {
         response = "عشان أقدر أساعدك بالخطوات، ياريت تحددلي إنت عايز تعمل إيه بالظبط؟ (مثلاً: ازاي اقدم على اجازة، ازاي اطلب سلفة، ازاي اسجل حضور).";
       }
     }
-    else if (q.match(/(إجازات|اجازة|leave|vacation|رصيد)/)) {
+    else if (q.match(/(إجازات|اجازة|اجازات|إجازاتي|اجازاتي|leave|vacation|رصيد)/)) {
       var remaining = App.user.annual_leave_balance !== undefined && App.user.annual_leave_balance !== null ? App.user.annual_leave_balance : 24;
       var taken = 24 - remaining;
       response = "إجمالي رصيد إجازاتك السنوي الأساسي هو 24 يوم.\nأنت أخذت **" + taken + " يوم**.\nمتبقي لك في الرصيد **" + remaining + " أيام** تقدر تاخدهم.";
