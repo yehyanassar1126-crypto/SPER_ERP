@@ -2016,15 +2016,24 @@ Pages.payroll = function (el) {
 
           document.getElementById('pf-save').addEventListener('click', function () {
             if (!calcData) { alert('Click Calculate first'); return; }
-            // Recalculate with latest extra values
+            
             var extraB = Number(document.getElementById('pf-extra-b').value) || 0;
             var extraP = Number(document.getElementById('pf-extra-p').value) || 0;
-            calcData.bonuses = (calcData.bonuses || 0);
-            calcData.penalties = (calcData.penalties || 0);
+            
+            var promises = [];
+            if (extraB > 0) {
+              promises.push(sbClient.from('salary_adjustments').insert({ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'bonus', amount: extraB, month: calcData.month, reason: 'HR Manual Extra Bonus during Payroll', status: 'approved' }));
+            }
+            if (extraP > 0) {
+              promises.push(sbClient.from('salary_adjustments').insert({ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'penalty', amount: extraP, month: calcData.month, reason: 'HR Manual Extra Penalty during Payroll', status: 'approved' }));
+            }
+            
+            promises.push(sbClient.from('payroll').insert([calcData]).select().single().then(function (s) { return s; }));
 
-            sbClient.from('payroll').insert([calcData]).select().single().then(function (s) {
+            Promise.all(promises).then(function (results) {
+              var s = results[results.length - 1]; // payroll result
               if (s.error) { alert('Error: ' + s.error.message); return; }
-              if (s.data) { payroll.unshift(s.data); render(payroll); App.closeModal(); showToast('Salary calculated & saved!', 'success'); }
+              if (s.data) { payroll.unshift(s.data); render(payroll); App.closeModal(); showToast('Salary calculated & saved securely in database!', 'success'); }
             });
           });
         });
