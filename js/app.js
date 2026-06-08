@@ -461,7 +461,11 @@ Pages.hrDashboard = function (el) {
     sbClient.from('leave_requests').select('*'),
     sbClient.from('overtime').select('*'),
     sbClient.from('payroll').select('*'),
-    sbClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(5)
+    sbClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(5),
+    sbClient.from('missions').select('*').eq('status', 'pending'),
+    sbClient.from('loans').select('*').eq('status', 'pending'),
+    sbClient.from('medical_requests').select('*').eq('status', 'pending'),
+    sbClient.from('expenses').select('*').eq('status', 'pending')
   ]).then(function (results) {
     var employees = results[0].data || [];
     var attendance = results[1].data || [];
@@ -469,6 +473,10 @@ Pages.hrDashboard = function (el) {
     var overtime = results[3].data || [];
     var payroll = results[4].data || [];
     var announcements = results[5].data || [];
+    var pendingMissions = results[6].data || [];
+    var pendingLoans = results[7].data || [];
+    var pendingMedical = results[8].data || [];
+    var pendingExpenses = results[9].data || [];
 
     var totalEmployees = employees.length;
     var presentToday = attendance.filter(function (a) { return a.status === 'present' || a.status === 'checked_in'; }).length;
@@ -477,7 +485,39 @@ Pages.hrDashboard = function (el) {
     var pendingOvertime = overtime.filter(function (o) { return o.status === 'pending'; }).length;
     var totalPayroll = payroll.reduce(function (s, p) { return s + p.net_salary; }, 0);
 
-    var html = '<div class="stats-grid">';
+    var html = '';
+
+    // ===== PENDING REQUESTS ALERT BANNER =====
+    var alertItems = [];
+    if (pendingLeaves > 0) alertItems.push({ count: pendingLeaves, label: 'طلب إجازة', labelEn: 'Leave Requests', icon: 'calendarDays', color: '#f59e0b', page: 'leaves' });
+    if (pendingOvertime > 0) alertItems.push({ count: pendingOvertime, label: 'طلب عمل إضافي', labelEn: 'Overtime', icon: 'timer', color: '#06b6d4', page: 'overtime' });
+    if (pendingMissions.length > 0) alertItems.push({ count: pendingMissions.length, label: 'طلب مأمورية', labelEn: 'Missions', icon: 'briefcase', color: '#8b5cf6', page: 'all-missions' });
+    if (pendingLoans.length > 0) alertItems.push({ count: pendingLoans.length, label: 'طلب سلفة', labelEn: 'Loans', icon: 'creditCard', color: '#ec4899', page: 'loans' });
+    if (pendingMedical.length > 0) alertItems.push({ count: pendingMedical.length, label: 'طلب طبي', labelEn: 'Medical', icon: 'heart', color: '#ef4444', page: 'medical-requests' });
+    if (pendingExpenses.length > 0) alertItems.push({ count: pendingExpenses.length, label: 'طلب مصروفات', labelEn: 'Expenses', icon: 'receipt', color: '#14b8a6', page: 'expenses' });
+
+    if (alertItems.length > 0) {
+      var totalPending = alertItems.reduce(function(s, i) { return s + i.count; }, 0);
+      html += '<style>';
+      html += '@keyframes alert-pulse { 0%,100%{ box-shadow:0 0 0 0 rgba(245,158,11,0.25); } 50%{ box-shadow:0 0 20px 4px rgba(245,158,11,0.15); } }';
+      html += '.pending-alert-banner { animation: alert-pulse 2.5s infinite; }';
+      html += '</style>';
+      html += '<div class="pending-alert-banner" style="margin-bottom:24px;padding:20px 24px;border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(239,68,68,0.06));border:1.5px solid rgba(245,158,11,0.3);direction:rtl;text-align:right">';
+      html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">';
+      html += '<div style="width:44px;height:44px;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;color:#f59e0b;font-size:1.3rem;flex-shrink:0">⚠️</div>';
+      html += '<div style="flex:1"><h3 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--text-primary)">🔔 يوجد ' + totalPending + ' طلب معلق يحتاج مراجعتك</h3>';
+      html += '<p style="margin:4px 0 0;font-size:0.82rem;color:var(--text-secondary)">Pending requests need your attention</p></div></div>';
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">';
+      alertItems.forEach(function(item) {
+        html += '<div onclick="App.navigate(\'' + item.page + '\')" style="cursor:pointer;padding:14px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border-color);display:flex;align-items:center;gap:10px;transition:all 0.2s" onmouseover="this.style.borderColor=\'' + item.color + '\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\'var(--border-color)\';this.style.transform=\'none\'">';
+        html += '<div style="width:36px;height:36px;border-radius:8px;background:' + item.color + '18;display:flex;align-items:center;justify-content:center;color:' + item.color + '">' + icon(item.icon, 18) + '</div>';
+        html += '<div><div style="font-size:1.15rem;font-weight:800;color:' + item.color + '">' + item.count + '</div>';
+        html += '<div style="font-size:0.72rem;color:var(--text-muted)">' + item.label + '</div></div></div>';
+      });
+      html += '</div></div>';
+    }
+
+    html += '<div class="stats-grid">';
     html += _statCard('#6366f1', 'users', totalEmployees, 'Total Employees');
     html += _statCard('#22c55e', 'userCheck', presentToday, 'Present Today');
     html += _statCard('#ef4444', 'userX', absentToday, 'Absent Today');
@@ -530,18 +570,26 @@ Pages.empDashboard = function (el) {
   var user = App.user;
   el.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner" style="margin-bottom:16px;"></span><p>Loading Your Dashboard...</p></div>';
 
+  var currentMonth = new Date().toISOString().substring(0, 7);
+  var monthStart = currentMonth + '-01';
+  var monthEnd = currentMonth + '-31';
+
   Promise.all([
     sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).limit(1).single(),
     sbClient.from('leave_requests').select('*').eq('employee_id', user.id),
     sbClient.from('payroll').select('*').eq('employee_id', user.id).order('month', { ascending: false }).limit(1).single(),
     sbClient.from('overtime').select('hours').eq('employee_id', user.id),
-    sbClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(5)
+    sbClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(5),
+    sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', user.id).gte('date', monthStart).lte('date', monthEnd),
+    sbClient.from('salary_adjustments').select('*').eq('employee_id', user.id).eq('status', 'approved').eq('month', currentMonth)
   ]).then(function (results) {
     var todayAtt = results[0].data || null;
     var myLeaves = results[1].data || [];
     var latestPay = results[2].data || null;
     var myOvertime = results[3].data || [];
     var announcements = results[4].data || [];
+    var monthAttendance = results[5].data || [];
+    var monthAdjustments = results[6].data || [];
 
     var pendingL = myLeaves.filter(function (l) { return l.status === 'pending'; }).length;
     var insurance = calculateInsuranceDuration(user.insurance_start);
@@ -550,10 +598,72 @@ Pages.empDashboard = function (el) {
     var totalOT = myOvertime.reduce(function (s, o) { return s + o.hours; }, 0);
     var hasInsurance = user.insurance_start && user.insurance_active;
 
+    // ===== DAILY SALARY TRACKER CALCULATION =====
+    var baseSalary = user.base_salary || 0;
+    var dailyRate = Math.round(baseSalary / 26);
+    var daysWorked = monthAttendance.length;
+    var earnedSoFar = dailyRate * daysWorked;
+
+    // Calculate deductions from delays this month
+    var totalLateDeduction = 0;
+    monthAttendance.forEach(function(att) {
+      var dm = att.delay_minutes || 0;
+      if (dm > 360) totalLateDeduction += dailyRate * 1;
+      else if (dm > 120) totalLateDeduction += dailyRate * 0.5;
+      else if (dm > 15) totalLateDeduction += dailyRate * 0.25;
+    });
+    totalLateDeduction = Math.round(totalLateDeduction);
+
+    // Calculate bonuses and penalties from salary_adjustments
+    var totalBonuses = 0;
+    var totalPenalties = 0;
+    monthAdjustments.forEach(function(adj) {
+      if (adj.type === 'bonus') totalBonuses += (adj.amount || 0);
+      else totalPenalties += (adj.amount || 0);
+    });
+
+    var netAccumulated = earnedSoFar + totalBonuses - totalLateDeduction - totalPenalties;
+    var salaryProgress = baseSalary > 0 ? Math.round((earnedSoFar / baseSalary) * 100) : 0;
+    var todayDate = new Date();
+    var dayOfMonth = todayDate.getDate();
+    var monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    var currentMonthName = monthNames[todayDate.getMonth()];
+
     var html = '<div class="profile-header"><div class="profile-avatar" style="background:' + (user.avatar_color || '#6366f1') + '">' + getInitials(user.full_name) + '</div>' +
       '<div class="profile-info"><h2>Welcome back, ' + user.full_name.split(' ')[0] + '! 👋</h2><div class="profile-meta">' +
       '<span>🏢 ' + user.department + '</span><span>💼 ' + user.position + '</span><span>🆔 ' + user.employee_id + '</span>' +
       '<span class="shift-badge shift-' + user.shift + '">' + icon('clock', 12) + ' ' + (shift ? shift.label + ' (' + shift.start + '-' + shift.end + ')' : '') + '</span></div></div></div>';
+
+    // ===== DAILY SALARY TRACKER CARD =====
+    html += '<div style="margin-bottom:24px;padding:24px;border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(6,182,212,0.04));border:1.5px solid rgba(99,102,241,0.2);direction:rtl;text-align:right">';
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">';
+    html += '<div style="width:44px;height:44px;border-radius:50%;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;font-size:1.3rem">💰</div>';
+    html += '<div style="flex:1"><h3 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--text-primary)">مرتبك التراكمي لشهر ' + currentMonthName + ' (يوم ' + dayOfMonth + ')</h3>';
+    html += '<p style="margin:4px 0 0;font-size:0.78rem;color:var(--text-secondary)">يبدأ من 0 يوم 1 في الشهر ويزيد كل يوم حضور بمقدار ' + dailyRate.toLocaleString() + ' ج.م</p></div></div>';
+
+    // Big Net Amount
+    html += '<div style="text-align:center;margin-bottom:18px">';
+    html += '<div style="font-size:2.2rem;font-weight:900;color:var(--accent-primary);letter-spacing:-1px">EGP ' + netAccumulated.toLocaleString() + '</div>';
+    html += '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">صافي المتبقي لحد دلوقتي</div>';
+    html += '</div>';
+
+    // Progress bar
+    html += '<div style="margin-bottom:18px">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px"><span>0 ج.م</span><span>' + baseSalary.toLocaleString() + ' ج.م (المرتب الكامل)</span></div>';
+    html += '<div style="width:100%;height:12px;background:var(--bg-secondary);border-radius:6px;overflow:hidden">';
+    html += '<div style="width:' + Math.min(salaryProgress, 100) + '%;height:100%;background:linear-gradient(90deg,#6366f1,#06b6d4);border-radius:6px;transition:width 0.6s ease"></div>';
+    html += '</div>';
+    html += '<div style="text-align:center;font-size:0.75rem;color:var(--accent-primary);margin-top:4px;font-weight:700">' + salaryProgress + '% من المرتب</div>';
+    html += '</div>';
+
+    // Breakdown grid
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">';
+    html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #6366f1"><div style="font-size:0.7rem;color:var(--text-muted)">المكتسب (' + daysWorked + ' يوم)</div><div style="font-size:1rem;font-weight:800;color:var(--text-primary)">+' + earnedSoFar.toLocaleString() + '</div></div>';
+    if (totalBonuses > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #22c55e"><div style="font-size:0.7rem;color:var(--text-muted)">مكافآت</div><div style="font-size:1rem;font-weight:800;color:#22c55e">+' + totalBonuses.toLocaleString() + '</div></div>';
+    if (totalLateDeduction > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #f59e0b"><div style="font-size:0.7rem;color:var(--text-muted)">خصم تأخيرات</div><div style="font-size:1rem;font-weight:800;color:#f59e0b">-' + totalLateDeduction.toLocaleString() + '</div></div>';
+    if (totalPenalties > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #ef4444"><div style="font-size:0.7rem;color:var(--text-muted)">جزاءات/خصومات</div><div style="font-size:1rem;font-weight:800;color:#ef4444">-' + totalPenalties.toLocaleString() + '</div></div>';
+    html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #06b6d4"><div style="font-size:0.7rem;color:var(--text-muted)">اليومية</div><div style="font-size:1rem;font-weight:800;color:#06b6d4">' + dailyRate.toLocaleString() + ' ج.م</div></div>';
+    html += '</div></div>';
 
     html += '<div class="stats-grid">';
     var attStatus = todayAtt ? (todayAtt.check_out ? 'Completed' : 'Checked In') : 'Not Checked In';
