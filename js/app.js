@@ -1501,7 +1501,6 @@ Pages.leaves = function (el) {
     leaves = leaves.map(function (l) {
       if (l.id === id) {
         App.addNotification({ user_id: l.employee_id, type: action === 'approved' ? 'leave_approved' : 'leave_rejected', title: 'Leave ' + (action === 'approved' ? 'Approved ✅' : 'Rejected ❌'), message: 'Your ' + l.type + ' leave (' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + ') has been ' + action + '.' });
-        EmailService.sendEmail({ userId: l.employee_id, toName: l.employee_name, subject: 'Leave Request ' + (action === 'approved' ? 'Approved' : 'Rejected'), htmlContent: '<h2>Leave Request Update</h2><p>Hello ' + l.employee_name + ',</p><p>Your ' + l.type + ' leave request for <strong>' + formatDate(l.start_date) + ' to ' + formatDate(l.end_date) + '</strong> has been <strong>' + action + '</strong> by HR.</p><p>Smart Factory HR</p>' });
         return Object.assign({}, l, { status: action, approved_by: App.user.full_name });
       }
       return l;
@@ -2175,7 +2174,6 @@ Pages.payroll = function (el) {
         payroll = payroll.map(function (p) {
           if (p.id === id) {
             App.addNotification({ user_id: p.employee_id, type: 'salary_ready', title: '💰 Salary Processed', message: 'Your ' + p.month + ' salary of EGP ' + (p.net_salary || 0).toLocaleString() + ' has been processed.' });
-            EmailService.sendEmail({ userId: p.employee_id, toName: p.employee_name, subject: 'Salary Processed - ' + p.month, htmlContent: '<h2>Salary Update</h2><p>Hello ' + p.employee_name + ',</p><p>Your salary for <strong>' + p.month + '</strong> has been processed.</p><p><strong>Net Salary:</strong> EGP ' + (p.net_salary || 0).toLocaleString() + '</p><p>Smart Factory HR</p>' });
             return Object.assign({}, p, { status: 'paid', paid_date: todayStr() });
           }
           return p;
@@ -2251,8 +2249,6 @@ Pages.announcements = function (el) {
         sbClient.from('announcements').insert([newAnn]).select().single().then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
         announcements.unshift(newAnn);
         visible = isHR ? announcements : announcements.filter(function (a) { return a.department === 'All' || a.department.indexOf(App.user.department) !== -1; });
-
-        EmailService.sendAnnouncementEmail({ department: dept, subject: 'New Announcement: ' + title, htmlContent: '<h2>New Announcement: ' + title + '</h2><p><strong>Priority:</strong> ' + priority.toUpperCase() + '</p><p><strong>From:</strong> ' + App.user.full_name + '</p><hr><p>' + msg.replace(/\n/g, '<br>') + '</p><hr><p><small>Broadcast to: ' + dept + '</small></p>' });
 
         App.closeModal();
         render();
