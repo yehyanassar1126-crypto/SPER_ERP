@@ -26,6 +26,7 @@ CREATE TABLE users (
   insurance_start DATE,
   insurance_active BOOLEAN DEFAULT false,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+  annual_leave_balance NUMERIC(4, 1) DEFAULT 24,
   avatar_color TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -60,7 +61,7 @@ CREATE TABLE leave_requests (
   type TEXT NOT NULL CHECK (type IN ('Annual', 'Sick', 'Emergency', 'Unpaid', 'Maternity/Paternity')),
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
-  days INTEGER NOT NULL,
+  days NUMERIC(4, 1) NOT NULL,
   reason TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   approved_by TEXT,

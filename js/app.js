@@ -688,6 +688,8 @@ Pages.empDashboard = function (el) {
     html += '<th style="padding:10px 12px;text-align:right;font-weight:700;color:var(--text-secondary)">الإجمالي التراكمي</th>';
     html += '</tr></thead><tbody>';
 
+    var monthLeaves = myLeaves.filter(function(l) { return l.status === 'approved' && l.start_date <= monthEnd && l.end_date >= monthStart; });
+
     var cumulative = 0;
     var dayNames = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
     for (var d = 1; d <= dayOfMonth; d++) {
@@ -696,6 +698,7 @@ Pages.empDashboard = function (el) {
       var dayName = dayNames[dateObj.getDay()];
       var isFriday = dateObj.getDay() === 5;
       var attInfo = attDatesMap[dateStr];
+      var leaveInfo = monthLeaves.find(function(l) { return dateStr >= l.start_date && dateStr <= l.end_date; });
       var dayEarned = 0;
       var statusBadge = '';
       var rowBg = '';
@@ -716,6 +719,12 @@ Pages.empDashboard = function (el) {
           rowBg = 'background:rgba(34,197,94,0.02);';
           earnLabel = '<span style="color:#22c55e">+' + dayEarned.toLocaleString() + '</span>';
         }
+      } else if (leaveInfo) {
+        dayEarned = Number(leaveInfo.days) === 0.5 ? dailyRate * 0.5 : dailyRate;
+        cumulative += dayEarned;
+        statusBadge = '<span style="background:rgba(59,130,246,0.1);color:#3b82f6;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">⛱️ إجازة معتمدة</span>';
+        rowBg = 'background:rgba(59,130,246,0.02);';
+        earnLabel = '<span style="color:#3b82f6">+' + dayEarned.toLocaleString() + '</span>';
       } else if (d < dayOfMonth) {
         statusBadge = '<span style="background:rgba(239,68,68,0.1);color:#ef4444;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">❌ غائب</span>';
         rowBg = 'background:rgba(239,68,68,0.02);';
@@ -1414,15 +1423,34 @@ Pages.leaves = function (el) {
     if (reqBtn) reqBtn.addEventListener('click', function () {
       var body = '<div class="form-row"><div class="form-field"><label>Leave Type</label><select id="lf-type">';
       LEAVE_TYPES.forEach(function (t) { body += '<option value="' + t + '">' + t + '</option>'; });
-      body += '</select></div></div><div class="form-row"><div class="form-field"><label>Start Date</label><input type="date" id="lf-start"></div><div class="form-field"><label>End Date</label><input type="date" id="lf-end"></div></div><div class="form-field" style="margin-bottom:0"><label>Reason</label><textarea id="lf-reason" placeholder="Explain the reason for your leave..."></textarea></div>';
+      body += '</select></div></div><div class="form-row"><div class="form-field"><label>Start Date</label><input type="date" id="lf-start"></div><div class="form-field"><label>End Date</label><input type="date" id="lf-end"></div></div>';
+      body += '<div class="form-field" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="lf-half" style="width:18px;height:18px"><label for="lf-half" style="margin:0;cursor:pointer">Half Day (نصف يوم)</label></div>';
+      body += '<div class="form-field" style="margin-bottom:0"><label>Reason</label><textarea id="lf-reason" placeholder="Explain the reason for your leave..."></textarea></div>';
       App.showModal('Request Leave', body, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="submit-leave">Submit Request</button>');
       document.getElementById('submit-leave').addEventListener('click', function () {
         var type = document.getElementById('lf-type').value;
         var start = document.getElementById('lf-start').value;
         var end = document.getElementById('lf-end').value;
         var reason = document.getElementById('lf-reason').value;
-        if (!start || !end || !reason) return;
-        var days = Math.ceil((new Date(end) - new Date(start)) / 86400000) + 1;
+        var isHalf = document.getElementById('lf-half').checked;
+        if (!start || !reason) return;
+        if (!end) end = start;
+
+        var sDate = new Date(start);
+        var eDate = new Date(end);
+        var duration = Math.ceil((eDate - sDate) / 86400000) + 1;
+        var days = 0;
+
+        if (isHalf) {
+          days = 0.5;
+        } else if (duration >= 7) {
+          days = duration; // Includes Fridays
+        } else {
+          for (var d = new Date(sDate); d <= eDate; d.setDate(d.getDate() + 1)) {
+            if (d.getDay() !== 5) days++; // 5 is Friday
+          }
+        }
+
         var newLeave = { employee_id: App.user.id, employee_name: App.user.full_name, department: App.user.department, type: type, start_date: start, end_date: end, days: days, reason: reason, status: 'pending', created_at: new Date().toISOString() };
         sbClient.from('leave_requests').insert([newLeave]).select().single().then(function (r) {
           if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
@@ -1450,10 +1478,26 @@ Pages.leaves = function (el) {
   }
 
   function handleLeaveAction(id, action) {
-    {
-      sbClient.from('leave_requests').update({ status: action, approved_by: App.user.full_name }).eq('id', id).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
-      sbClient.from('audit_log').insert({ action: action === 'approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED', user_name: App.user.full_name, user_id: App.user.id, details: (action === 'approved' ? 'Approved' : 'Rejected') + ' leave request ID: ' + id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
-    }
+    var l = leaves.find(function(x) { return x.id === id; });
+    if (!l) return;
+
+    sbClient.from('leave_requests').update({ status: action, approved_by: App.user.full_name }).eq('id', id).then(function (r) { 
+        if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); return; } 
+        
+        // If approved Annual leave, deduct from user's balance
+        if (action === 'approved' && l.type === 'Annual') {
+            sbClient.from('users').select('annual_leave_balance').eq('id', l.employee_id).single().then(function(res) {
+                if (res.data) {
+                    var currentBalance = res.data.annual_leave_balance !== null ? res.data.annual_leave_balance : 24;
+                    var newBalance = Math.max(0, currentBalance - l.days);
+                    sbClient.from('users').update({ annual_leave_balance: newBalance }).eq('id', l.employee_id).then(function(uRes) {});
+                }
+            });
+        }
+    });
+
+    sbClient.from('audit_log').insert({ action: action === 'approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED', user_name: App.user.full_name, user_id: App.user.id, details: (action === 'approved' ? 'Approved' : 'Rejected') + ' leave request ID: ' + id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); } });
+    
     leaves = leaves.map(function (l) {
       if (l.id === id) {
         App.addNotification({ user_id: l.employee_id, type: action === 'approved' ? 'leave_approved' : 'leave_rejected', title: 'Leave ' + (action === 'approved' ? 'Approved ✅' : 'Rejected ❌'), message: 'Your ' + l.type + ' leave (' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + ') has been ' + action + '.' });
@@ -1917,7 +1961,7 @@ Pages.payroll = function (el) {
               sbClient.from('overtime').select('hours, rate').eq('employee_id', empId).eq('status', 'approved').gte('date', monthStart).lte('date', monthEnd),
               sbClient.from('salary_adjustments').select('type, amount').eq('employee_id', empId).eq('status', 'approved').eq('month', month),
               sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', empId).gte('date', monthStart).lte('date', monthEnd),
-              sbClient.from('leave_requests').select('start_date, end_date').eq('employee_id', empId).eq('status', 'approved').gte('start_date', monthStart).lte('end_date', monthEnd)
+              sbClient.from('leave_requests').select('start_date, end_date, days').eq('employee_id', empId).eq('status', 'approved').gte('start_date', monthStart).lte('end_date', monthEnd)
             ]).then(function (results) {
               var otRecords = results[0].data || [];
               var adjRecords = results[1].data || [];
@@ -1959,7 +2003,13 @@ Pages.payroll = function (el) {
               leaveRecords.forEach(function (lv) {
                 var s = new Date(lv.start_date > monthStart ? lv.start_date : monthStart);
                 var e = new Date(lv.end_date < monthEnd ? lv.end_date : monthEnd);
-                approvedLeaveDays += Math.max(0, Math.round((e - s) / 86400000) + 1);
+                if (Number(lv.days) === 0.5) {
+                    approvedLeaveDays += 0.5;
+                } else {
+                    for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                        if (d.getDay() !== 5) approvedLeaveDays++; // exclude Fridays
+                    }
+                }
               });
 
               // If approved leaves exist, they are paid days (since earnedSoFar relies on attendance check-in)
@@ -2022,10 +2072,10 @@ Pages.payroll = function (el) {
             
             var promises = [];
             if (extraB > 0) {
-              promises.push(sbClient.from('salary_adjustments').insert({ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'bonus', amount: extraB, month: calcData.month, reason: 'HR Manual Extra Bonus during Payroll', status: 'approved' }));
+              promises.push(sbClient.from('salary_adjustments').insert([{ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'bonus', amount: extraB, month: calcData.month, reason: 'HR Manual Extra Bonus during Payroll', status: 'approved' }]));
             }
             if (extraP > 0) {
-              promises.push(sbClient.from('salary_adjustments').insert({ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'penalty', amount: extraP, month: calcData.month, reason: 'HR Manual Extra Penalty during Payroll', status: 'approved' }));
+              promises.push(sbClient.from('salary_adjustments').insert([{ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'penalty', amount: extraP, month: calcData.month, reason: 'HR Manual Extra Penalty during Payroll', status: 'approved' }]));
             }
             
             promises.push(sbClient.from('payroll').insert([calcData]).select().single().then(function (s) { return s; }));

@@ -300,6 +300,17 @@ var AIMind = {
       return response;
     }
 
+    // Leave balance queries
+    if (q.match(/(رصيد|اجاز|أجاز|فاضلي|متبقي|كم|how many|balance).*?(اجاز|أجاز|leave|days)/) && (q.indexOf('فاضل') > -1 || q.indexOf('متبقي') > -1 || q.indexOf('رصيد') > -1 || q.indexOf('how many') > -1 || q.indexOf('balance') > -1)) {
+      var balance = App.user.annual_leave_balance !== undefined && App.user.annual_leave_balance !== null ? App.user.annual_leave_balance : 24;
+      response.text = "📅 **رصيد الإجازات السنوية (Annual Leave Balance)**\n\n";
+      response.text += "أهلاً بك يا **" + App.user.full_name + "**، رصيد إجازاتك السنوية المتبقي هو: **" + balance + " يوم**.\n\n";
+      response.text += "يتم تحديث هذا الرصيد تلقائياً عند موافقة الـ HR على طلبات إجازاتك السنوية. (You have " + balance + " days left).";
+      response.type = 'success';
+      response.suggestions = ['Show my leaves', 'Attendance analysis'];
+      return response;
+    }
+
     // Risk queries
     if (q.match(/(risk|خطر|problem|مشكل|issue|concern)/)) {
       var risks = AIMind.generateRiskScores(data.employees, data.attendance, data.leaves, data.payroll);
