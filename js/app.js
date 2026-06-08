@@ -570,9 +570,11 @@ Pages.empDashboard = function (el) {
   var user = App.user;
   el.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner" style="margin-bottom:16px;"></span><p>Loading Your Dashboard...</p></div>';
 
-  var currentMonth = new Date().toISOString().substring(0, 7);
+  var d = new Date();
+  var currentMonth = d.toISOString().substring(0, 7);
   var monthStart = currentMonth + '-01';
-  var monthEnd = currentMonth + '-31';
+  var lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  var monthEnd = currentMonth + '-' + lastDay;
 
   Promise.all([
     sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).limit(1).single(),
