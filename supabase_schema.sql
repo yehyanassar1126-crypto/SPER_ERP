@@ -193,6 +193,11 @@ CREATE POLICY "Payroll view" ON payroll FOR SELECT USING (true);
 CREATE POLICY "Payroll insert" ON payroll FOR INSERT WITH CHECK (true);
 CREATE POLICY "Payroll update" ON payroll FOR UPDATE USING (true);
 
+-- Salary Adjustments
+CREATE POLICY "Salary Adjustments view" ON salary_adjustments FOR SELECT USING (true);
+CREATE POLICY "Salary Adjustments insert" ON salary_adjustments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Salary Adjustments update" ON salary_adjustments FOR UPDATE USING (true);
+
 -- Notifications: users see only their own
 CREATE POLICY "Notifications view own" ON notifications
   FOR SELECT USING (true);
@@ -217,6 +222,8 @@ CREATE INDEX idx_attendance_date ON attendance(date);
 CREATE INDEX idx_leave_employee ON leave_requests(employee_id);
 CREATE INDEX idx_leave_status ON leave_requests(status);
 CREATE INDEX idx_overtime_employee ON overtime(employee_id);
+CREATE INDEX idx_salary_adj_employee ON salary_adjustments(employee_id);
+CREATE INDEX idx_salary_adj_month ON salary_adjustments(month);
 CREATE INDEX idx_payroll_employee ON payroll(employee_id);
 CREATE INDEX idx_payroll_month ON payroll(month);
 CREATE INDEX idx_notifications_user ON notifications(user_id);
