@@ -659,7 +659,7 @@ Pages.empDashboard = function (el) {
 
     // Progress bar
     html += '<div style="margin-bottom:18px">';
-    html += '<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px"><span>0 ج.م</span><span>' + baseSalary.toLocaleString() + ' ج.م (المرتب الكامل)</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px"><span>' + earnedSoFar.toLocaleString() + ' ج.م (مكتسب)</span><span>' + baseSalary.toLocaleString() + ' ج.م (المرتب الكامل)</span></div>';
     html += '<div style="width:100%;height:12px;background:var(--bg-secondary);border-radius:6px;overflow:hidden">';
     html += '<div style="width:' + Math.min(salaryProgress, 100) + '%;height:100%;background:linear-gradient(90deg,#6366f1,#06b6d4);border-radius:6px;transition:width 0.6s ease"></div>';
     html += '</div>';
