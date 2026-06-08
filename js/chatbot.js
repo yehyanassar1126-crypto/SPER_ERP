@@ -138,10 +138,9 @@ var EmployeeChatbot = {
       }
     }
     else if (q.match(/(إجازات|اجازة|leave|vacation|رصيد)/)) {
-      var taken = App.user.leaves_taken || 0;
-      var total = App.user.annual_leave_balance || 21;
-      var remaining = total - taken;
-      response = "رصيد إجازاتك السنوي هو " + total + " يوم.\nأنت أخذت " + taken + " يوم.\nمتبقي لك **" + remaining + " أيام** تقدر تاخدهم.";
+      var remaining = App.user.annual_leave_balance !== undefined && App.user.annual_leave_balance !== null ? App.user.annual_leave_balance : 24;
+      var taken = 24 - remaining;
+      response = "إجمالي رصيد إجازاتك السنوي الأساسي هو 24 يوم.\nأنت أخذت **" + taken + " يوم**.\nمتبقي لك في الرصيد **" + remaining + " أيام** تقدر تاخدهم.";
     }
     else if (q.match(/(مرتب|راتب|salary|فلوس|pay)/)) {
       response = "مرتبك الأساسي المسجل هو **" + (App.user.base_salary ? App.user.base_salary.toLocaleString() + " جنيه" : "غير محدد") + "**.\nتقدر تشوف تفاصيل مفردات المرتب بالكامل من صفحة 'My Salary' في القائمة الجانبية.";
