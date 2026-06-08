@@ -602,17 +602,24 @@ Pages.empDashboard = function (el) {
     var baseSalary = user.base_salary || 0;
     var dailyRate = Math.round(baseSalary / 26);
     var daysWorked = monthAttendance.length;
-    var earnedSoFar = dailyRate * daysWorked;
 
-    // Calculate deductions from delays this month
+    // Build a map of attendance with late deduction per day
+    var attDatesMap = {};
+    var earnedSoFar = 0;
     var totalLateDeduction = 0;
     monthAttendance.forEach(function(att) {
       var dm = att.delay_minutes || 0;
-      if (dm > 360) totalLateDeduction += dailyRate * 1;
-      else if (dm > 120) totalLateDeduction += dailyRate * 0.5;
-      else if (dm > 15) totalLateDeduction += dailyRate * 0.25;
+      var lateDed = 0;
+      if (dm > 360) lateDed = dailyRate * 1;
+      else if (dm > 120) lateDed = dailyRate * 0.5;
+      else if (dm > 15) lateDed = dailyRate * 0.25;
+      lateDed = Math.round(lateDed);
+      // Net for this day: dailyRate - late deduction (never below 0)
+      var dayNet = Math.max(0, dailyRate - lateDed);
+      totalLateDeduction += lateDed;
+      earnedSoFar += dayNet;
+      attDatesMap[att.date] = { record: att, lateDed: lateDed, dayNet: dayNet };
     });
-    totalLateDeduction = Math.round(totalLateDeduction);
 
     // Calculate bonuses and penalties from salary_adjustments
     var totalBonuses = 0;
@@ -622,7 +629,8 @@ Pages.empDashboard = function (el) {
       else totalPenalties += (adj.amount || 0);
     });
 
-    var netAccumulated = earnedSoFar + totalBonuses - totalLateDeduction - totalPenalties;
+    // Net can only go negative from penalties (جزاءات)
+    var netAccumulated = earnedSoFar + totalBonuses - totalPenalties;
     var salaryProgress = baseSalary > 0 ? Math.round((earnedSoFar / baseSalary) * 100) : 0;
     var todayDate = new Date();
     var dayOfMonth = todayDate.getDate();
@@ -666,9 +674,6 @@ Pages.empDashboard = function (el) {
     html += '</div>';
 
     // ===== DAY-BY-DAY BREAKDOWN TABLE (from 1st of month) =====
-    var attDatesMap = {};
-    monthAttendance.forEach(function(att) { attDatesMap[att.date] = att; });
-
     html += '<div style="margin-top:18px;border-top:1px solid var(--border-color);padding-top:16px">';
     html += '<h4 style="font-weight:800;font-size:0.9rem;margin-bottom:12px;display:flex;align-items:center;gap:8px">' + icon('calendarCheck', 16) + ' تفصيل يومي من 1/' + (todayDate.getMonth() + 1) + '</h4>';
     html += '<div style="max-height:280px;overflow-y:auto;border-radius:var(--radius-md);border:1px solid var(--border-color)">';
@@ -688,31 +693,32 @@ Pages.empDashboard = function (el) {
       var dateObj = new Date(dateStr + 'T00:00:00');
       var dayName = dayNames[dateObj.getDay()];
       var isFriday = dateObj.getDay() === 5;
-      var attRecord = attDatesMap[dateStr];
-      var wasPresent = !!attRecord;
+      var attInfo = attDatesMap[dateStr];
       var dayEarned = 0;
       var statusBadge = '';
       var rowBg = '';
+      var earnLabel = '-';
 
       if (isFriday) {
         statusBadge = '<span style="background:rgba(99,102,241,0.1);color:#6366f1;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">إجازة رسمية</span>';
         rowBg = 'background:rgba(99,102,241,0.03);';
-      } else if (wasPresent) {
-        dayEarned = dailyRate;
+      } else if (attInfo) {
+        dayEarned = attInfo.dayNet;
         cumulative += dayEarned;
-        statusBadge = '<span style="background:rgba(34,197,94,0.1);color:#22c55e;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">✅ حاضر</span>';
-        rowBg = 'background:rgba(34,197,94,0.02);';
+        if (attInfo.lateDed > 0) {
+          statusBadge = '<span style="background:rgba(245,158,11,0.1);color:#f59e0b;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">⚠️ حاضر (خصم تأخير)</span>';
+          rowBg = 'background:rgba(245,158,11,0.02);';
+          earnLabel = '<span style="color:#22c55e">+' + dayEarned.toLocaleString() + '</span> <span style="font-size:0.65rem;color:#f59e0b">(خصم ' + attInfo.lateDed.toLocaleString() + ')</span>';
+        } else {
+          statusBadge = '<span style="background:rgba(34,197,94,0.1);color:#22c55e;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">✅ حاضر</span>';
+          rowBg = 'background:rgba(34,197,94,0.02);';
+          earnLabel = '<span style="color:#22c55e">+' + dayEarned.toLocaleString() + '</span>';
+        }
       } else if (d < dayOfMonth) {
         statusBadge = '<span style="background:rgba(239,68,68,0.1);color:#ef4444;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">❌ غائب</span>';
         rowBg = 'background:rgba(239,68,68,0.02);';
       } else {
         statusBadge = '<span style="background:rgba(245,158,11,0.1);color:#f59e0b;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">⏳ اليوم</span>';
-        if (wasPresent) {
-          dayEarned = dailyRate;
-          cumulative += dayEarned;
-          statusBadge = '<span style="background:rgba(34,197,94,0.1);color:#22c55e;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">✅ حاضر</span>';
-          rowBg = 'background:rgba(34,197,94,0.02);';
-        }
       }
 
       var barWidth = baseSalary > 0 ? Math.round((cumulative / baseSalary) * 100) : 0;
@@ -720,7 +726,7 @@ Pages.empDashboard = function (el) {
       html += '<td style="padding:8px 12px;font-weight:600;color:var(--text-primary)">' + dayName + '</td>';
       html += '<td style="padding:8px 12px;color:var(--text-secondary);direction:ltr;text-align:right">' + d + '/' + (todayDate.getMonth() + 1) + '</td>';
       html += '<td style="padding:8px 12px;text-align:center">' + statusBadge + '</td>';
-      html += '<td style="padding:8px 12px;font-weight:700;color:' + (dayEarned > 0 ? '#22c55e' : 'var(--text-muted)') + '">' + (dayEarned > 0 ? '+' + dayEarned.toLocaleString() : '-') + '</td>';
+      html += '<td style="padding:8px 12px;font-weight:700">' + earnLabel + '</td>';
       html += '<td style="padding:8px 12px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;min-width:50px"><div style="width:' + barWidth + '%;height:100%;background:linear-gradient(90deg,#6366f1,#06b6d4);border-radius:3px"></div></div><span style="font-weight:800;color:var(--text-primary);min-width:70px;text-align:left;font-size:0.78rem">' + cumulative.toLocaleString() + '</span></div></td>';
       html += '</tr>';
     }
