@@ -663,7 +663,70 @@ Pages.empDashboard = function (el) {
     if (totalLateDeduction > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #f59e0b"><div style="font-size:0.7rem;color:var(--text-muted)">خصم تأخيرات</div><div style="font-size:1rem;font-weight:800;color:#f59e0b">-' + totalLateDeduction.toLocaleString() + '</div></div>';
     if (totalPenalties > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #ef4444"><div style="font-size:0.7rem;color:var(--text-muted)">جزاءات/خصومات</div><div style="font-size:1rem;font-weight:800;color:#ef4444">-' + totalPenalties.toLocaleString() + '</div></div>';
     html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #06b6d4"><div style="font-size:0.7rem;color:var(--text-muted)">اليومية</div><div style="font-size:1rem;font-weight:800;color:#06b6d4">' + dailyRate.toLocaleString() + ' ج.م</div></div>';
-    html += '</div></div>';
+    html += '</div>';
+
+    // ===== DAY-BY-DAY BREAKDOWN TABLE (from 1st of month) =====
+    var attDatesMap = {};
+    monthAttendance.forEach(function(att) { attDatesMap[att.date] = att; });
+
+    html += '<div style="margin-top:18px;border-top:1px solid var(--border-color);padding-top:16px">';
+    html += '<h4 style="font-weight:800;font-size:0.9rem;margin-bottom:12px;display:flex;align-items:center;gap:8px">' + icon('calendarCheck', 16) + ' تفصيل يومي من 1/' + (todayDate.getMonth() + 1) + '</h4>';
+    html += '<div style="max-height:280px;overflow-y:auto;border-radius:var(--radius-md);border:1px solid var(--border-color)">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.8rem">';
+    html += '<thead><tr style="background:var(--bg-secondary);position:sticky;top:0">';
+    html += '<th style="padding:10px 12px;text-align:right;font-weight:700;color:var(--text-secondary)">اليوم</th>';
+    html += '<th style="padding:10px 12px;text-align:right;font-weight:700;color:var(--text-secondary)">التاريخ</th>';
+    html += '<th style="padding:10px 12px;text-align:center;font-weight:700;color:var(--text-secondary)">الحالة</th>';
+    html += '<th style="padding:10px 12px;text-align:right;font-weight:700;color:var(--text-secondary)">مكتسب اليوم</th>';
+    html += '<th style="padding:10px 12px;text-align:right;font-weight:700;color:var(--text-secondary)">الإجمالي التراكمي</th>';
+    html += '</tr></thead><tbody>';
+
+    var cumulative = 0;
+    var dayNames = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    for (var d = 1; d <= dayOfMonth; d++) {
+      var dateStr = currentMonth + '-' + (d < 10 ? '0' + d : d);
+      var dateObj = new Date(dateStr + 'T00:00:00');
+      var dayName = dayNames[dateObj.getDay()];
+      var isFriday = dateObj.getDay() === 5;
+      var attRecord = attDatesMap[dateStr];
+      var wasPresent = !!attRecord;
+      var dayEarned = 0;
+      var statusBadge = '';
+      var rowBg = '';
+
+      if (isFriday) {
+        statusBadge = '<span style="background:rgba(99,102,241,0.1);color:#6366f1;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">إجازة رسمية</span>';
+        rowBg = 'background:rgba(99,102,241,0.03);';
+      } else if (wasPresent) {
+        dayEarned = dailyRate;
+        cumulative += dayEarned;
+        statusBadge = '<span style="background:rgba(34,197,94,0.1);color:#22c55e;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">✅ حاضر</span>';
+        rowBg = 'background:rgba(34,197,94,0.02);';
+      } else if (d < dayOfMonth) {
+        statusBadge = '<span style="background:rgba(239,68,68,0.1);color:#ef4444;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">❌ غائب</span>';
+        rowBg = 'background:rgba(239,68,68,0.02);';
+      } else {
+        statusBadge = '<span style="background:rgba(245,158,11,0.1);color:#f59e0b;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">⏳ اليوم</span>';
+        if (wasPresent) {
+          dayEarned = dailyRate;
+          cumulative += dayEarned;
+          statusBadge = '<span style="background:rgba(34,197,94,0.1);color:#22c55e;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">✅ حاضر</span>';
+          rowBg = 'background:rgba(34,197,94,0.02);';
+        }
+      }
+
+      var barWidth = baseSalary > 0 ? Math.round((cumulative / baseSalary) * 100) : 0;
+      html += '<tr style="border-bottom:1px solid var(--border-color);' + rowBg + '">';
+      html += '<td style="padding:8px 12px;font-weight:600;color:var(--text-primary)">' + dayName + '</td>';
+      html += '<td style="padding:8px 12px;color:var(--text-secondary);direction:ltr;text-align:right">' + d + '/' + (todayDate.getMonth() + 1) + '</td>';
+      html += '<td style="padding:8px 12px;text-align:center">' + statusBadge + '</td>';
+      html += '<td style="padding:8px 12px;font-weight:700;color:' + (dayEarned > 0 ? '#22c55e' : 'var(--text-muted)') + '">' + (dayEarned > 0 ? '+' + dayEarned.toLocaleString() : '-') + '</td>';
+      html += '<td style="padding:8px 12px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;min-width:50px"><div style="width:' + barWidth + '%;height:100%;background:linear-gradient(90deg,#6366f1,#06b6d4);border-radius:3px"></div></div><span style="font-weight:800;color:var(--text-primary);min-width:70px;text-align:left;font-size:0.78rem">' + cumulative.toLocaleString() + '</span></div></td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table></div></div>';
+
+    html += '</div>';
 
     html += '<div class="stats-grid">';
     var attStatus = todayAtt ? (todayAtt.check_out ? 'Completed' : 'Checked In') : 'Not Checked In';
