@@ -184,7 +184,10 @@ var App = {
     var menu;
     if (isHR) {
       menu = [
-        { section: 'Overview', items: [{ id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' }] },
+        { section: 'Overview', items: [
+          { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' },
+          { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
+        ] },
         {
           section: 'Management', items: [
             { id: 'employees', label: 'Employees', icon: 'users' },
@@ -224,7 +227,10 @@ var App = {
       ];
     } else if (isManager) {
       menu = [
-        { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
+        { section: 'Overview', items: [
+          { id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' },
+          { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
+        ] },
         {
           section: 'Team Management', items: [
             { id: 'employees', label: 'Employees', icon: 'users' },
