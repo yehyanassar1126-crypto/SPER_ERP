@@ -1364,9 +1364,40 @@ Pages.qrCheckin = function (el) {
             checkedOut = true;
             checkOutTime = timeNow;
             var diff = ((timeNow - checkInTime) / 3600000).toFixed(2);
+            
             if (user.role === 'hr' || user.role === 'manager' || user.role === 'owner') {
-              diff = '8.00'; // HR and Managers get automatic 8 hours regardless of duration
+              var actualHours = parseFloat(diff);
+              if (actualHours < 8) {
+                var missingMinutes = Math.round((8 - actualHours) * 60);
+                var baseSal = Number(user.base_salary) || 0;
+                if (baseSal > 0 && missingMinutes > 0) {
+                  var minuteRate = (baseSal / 26 / 8 / 60);
+                  var penaltyAmount = (missingMinutes * minuteRate).toFixed(2);
+                  
+                  sbClient.from('salary_adjustments').insert({
+                    employee_id: user.id,
+                    amount: penaltyAmount,
+                    type: 'deduction',
+                    reason: 'خصم لعدم إكمال 8 ساعات (ناقص ' + missingMinutes + ' دقيقة)',
+                    month: new Date().toISOString().substring(0, 7),
+                    status: 'approved',
+                    created_at: new Date().toISOString()
+                  }).then(function(r) {
+                    if (r && r.error) console.error("Penalty insertion error:", r.error);
+                  });
+                  
+                  App.addNotification({
+                    user_id: user.id,
+                    type: 'late_deduction',
+                    title: '⚠️ خصم عدم إكمال 8 ساعات',
+                    message: 'تم خصم ' + penaltyAmount + ' ج.م لعدم إكمال 8 ساعات عمل اليوم (ناقص ' + missingMinutes + ' دقيقة).'
+                  });
+                  showToast('⚠️ تم خصم ' + penaltyAmount + ' ج.م (ناقص ' + missingMinutes + ' دقيقة من 8 ساعات)', 'warning');
+                }
+              }
+              diff = '8.00'; // HR and Managers get automatic 8 hours for attendance stats
             }
+            
             if (currentRecordId) {
               sbClient.from('attendance').update({ check_out: timeNow.toISOString(), working_hours: Number(diff) }).eq('id', currentRecordId).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
             }
