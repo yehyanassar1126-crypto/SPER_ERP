@@ -2607,11 +2607,11 @@ Pages.allDelays = function (el) {
     html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-danger-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-danger)">' + icon('alertTriangle', 22) + '</div>';
     html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">سجل تأخيرات وخصومات جميع الموظفين</h3>';
     html += '</div>';
-    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">هذا الجدول يعرض تأخيرات الموظفين (المحفوظة في قاعدة البيانات) ويوضح عدد ساعات التأخير والمبلغ المخصوم.</p>';
+    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">هذا الجدول يعرض تأخيرات الموظفين (المحفوظة في قاعدة البيانات) ويوضح عدد ساعات التأخير والمبلغ المخصوم بناءً على الشفتات.</p>';
     html += '</div>';
 
-    html += '<div class="card"><div class="card-header"><div><h3>سجل التأخيرات العام</h3><p>' + delays.length + ' سجل</p></div><button class="btn btn-outline" id="export-delays">' + icon('download') + ' Export CSV</button></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
-    html += '<th>الموظف</th><th>القسم</th><th>التاريخ</th><th>مدة التأخير</th><th>الخصم (EGP)</th><th>الإجراء</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header"><div><h3>سجل التأخيرات العام</h3><p>' + delays.length + ' سجل تأخير</p></div><button class="btn btn-outline" id="export-delays">' + icon('download') + ' Export CSV</button></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
+    html += '<th>الموظف</th><th>القسم</th><th>التاريخ</th><th>مدة التأخير</th><th>الخصم</th><th>الحالة</th></tr></thead><tbody>';
     
     if (delays.length === 0) {
       html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد تأخيرات مسجلة</td></tr>';
@@ -2621,9 +2621,9 @@ Pages.allDelays = function (el) {
         html += '<tr>';
         html += '<td><div style="font-weight:bold;color:var(--text-primary)">' + (d.employee_name || 'غير معروف') + '</div></td>';
         html += '<td>' + (d.department || '-') + '</td>';
-        html += '<td>' + formatDate(d.delay_date || d.created_at) + '</td>';
+        html += '<td>' + formatDate(d.delay_date) + '</td>';
         html += '<td style="color:var(--accent-warning);font-weight:600">' + hoursStr + '</td>';
-        html += '<td style="font-weight:bold;color:var(--accent-danger)">- ' + d.deduction_amount + ' ج.م</td>';
+        html += '<td style="font-weight:bold;color:var(--accent-danger)">' + d.deduction_amount + '</td>';
         html += '<td><span class="badge badge-danger">' + d.deduction_type + '</span></td>';
         html += '</tr>';
       });
@@ -2636,7 +2636,7 @@ Pages.allDelays = function (el) {
       exportBtn.addEventListener('click', function() {
         var csv = 'Employee,Department,Date,Delay Minutes,Deduction Amount,Type\n';
         delays.forEach(function(d) {
-          csv += '"' + (d.employee_name || '') + '","' + (d.department || '') + '","' + (d.delay_date || '') + '",' + d.delay_minutes + ',' + d.deduction_amount + ',"' + d.deduction_type + '"\n';
+          csv += '"' + (d.employee_name || '') + '","' + (d.department || '') + '","' + (d.delay_date || '') + '",' + d.delay_minutes + ',"' + d.deduction_amount + '","' + d.deduction_type + '"\n';
         });
         App.downloadCSV(csv, 'Employees_Delays.csv');
       });
@@ -2644,39 +2644,29 @@ Pages.allDelays = function (el) {
   }
 
   el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل من قاعدة البيانات...</div>';
-  Promise.all([
-    sbClient.from('late_deductions').select('*').order('created_at', { ascending: false }),
-    sbClient.from('users').select('id, full_name, department')
-  ]).then(function (results) {
-    var r1 = results[0];
-    var r2 = results[1];
-    if (r1.error) { alert('late_deductions Error: ' + r1.error.message); return; }
-    if (r2.error) { alert('users Error: ' + r2.error.message); return; }
+  
+  // We fetch directly from attendance where delay_minutes > 0.
+  // This bypasses the old late_deductions table completely.
+  sbClient.from('attendance').select('*').gt('delay_minutes', 0).order('date', { ascending: false }).then(function (r) {
+    if (r.error) { alert('DB Error: ' + r.error.message); return; }
     
-    var usersMap = {};
-    if (r2.data) {
-      r2.data.forEach(function(u) { 
-        usersMap[u.id] = { name: u.full_name, dept: u.department }; 
-      });
-    }
-    
-    if (r1.data) {
-      delays = r1.data.map(function(d) {
-        var u = usersMap[d.employee_id] || { name: 'غير معروف', dept: '-' };
-        
+    if (r.data) {
+      delays = r.data.map(function(d) {
         var deductionLabel = '';
-        if (d.deduction_fraction === 1) deductionLabel = 'خصم يوم كامل';
-        else if (d.deduction_fraction === 0.5) deductionLabel = 'خصم نصف يوم';
-        else if (d.deduction_fraction === 0.25) deductionLabel = 'خصم ربع يوم';
-        else deductionLabel = 'خصم تأخير';
+        var deductionFraction = 0;
+        
+        if (d.delay_minutes > 360) { deductionLabel = 'خصم يوم كامل'; deductionFraction = 1; }
+        else if (d.delay_minutes > 120) { deductionLabel = 'خصم نصف يوم'; deductionFraction = 0.5; }
+        else if (d.delay_minutes > 15) { deductionLabel = 'خصم ربع يوم'; deductionFraction = 0.25; }
+        else { deductionLabel = 'بدون خصم'; deductionFraction = 0; }
         
         return {
-          employee_name: u.name,
-          department: u.dept,
-          delay_date: d.delay_date,
+          employee_name: d.employee_name || 'غير معروف',
+          department: d.department || '-',
+          delay_date: d.date,
           delay_minutes: d.delay_minutes,
           deduction_type: deductionLabel,
-          deduction_amount: d.deduction_amount
+          deduction_amount: deductionFraction ? 'يُحسب في المرتب' : '-'
         };
       });
       render();

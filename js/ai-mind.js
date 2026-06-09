@@ -300,6 +300,45 @@ var AIMind = {
       return response;
     }
 
+    // Specific employee query (Check-in and Shift)
+    var mentionedEmployee = null;
+    if (data.employees && data.employees.length > 0) {
+      data.employees.forEach(function (e) {
+        var firstName = e.full_name.split(' ')[0];
+        if (q.indexOf(firstName.toLowerCase()) > -1 || q.indexOf(e.full_name.toLowerCase()) > -1) {
+          mentionedEmployee = e;
+        }
+      });
+    }
+
+    if (mentionedEmployee && q.match(/(حضور|حضر|بصم|شفت|تأخير|شيك|امتى|امتا|متى|امتي|متي|check|shift|time|مين|غاب|غياب)/)) {
+      var empAtt = (data.attendance || []).filter(function(a) { return a.employee_id === mentionedEmployee.id; });
+      empAtt.sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+      var latest = empAtt.length > 0 ? empAtt[0] : null;
+      var todayDate = new Date().toISOString().substring(0,10);
+      
+      response.text = "👤 **تفاصيل الموظف: " + mentionedEmployee.full_name + "**\n\n";
+      response.text += "• **الشفت الحالي:** " + (mentionedEmployee.shift || 'morning') + " (" + (mentionedEmployee.shift_system || '3-shift') + ")\n";
+      
+      if (latest && latest.date === todayDate) {
+        var checkInTime = new Date(latest.check_in).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'});
+        response.text += "• **حضور اليوم:** سجل حضور الساعة " + checkInTime + ".\n";
+        if (latest.delay_minutes > 0) {
+           response.text += "• **حالة التأخير:** متأخر " + latest.delay_minutes + " دقيقة ⚠️\n";
+        } else {
+           response.text += "• **حالة التأخير:** حضور في الموعد ✅\n";
+        }
+      } else {
+        response.text += "• **حضور اليوم:** لم يسجل حضور اليوم حتى الآن ❌.\n";
+        if (latest) {
+          response.text += "  (آخر حضور مسجل كان يوم " + latest.date + " الساعة " + new Date(latest.check_in).toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'}) + ")\n";
+        }
+      }
+      response.text += "\n💡 لمتابعة تقليب الشفتات الأسبوعية، تأكد من تحديث شفت الموظف من قائمة إدارة الموظفين بانتظام.";
+      response.type = (latest && latest.delay_minutes > 0) || (!latest) ? 'warning' : 'success';
+      return response;
+    }
+
     // Leave balance queries
     if (q.match(/(رصيد|اجاز|أجاز|فاضلي|متبقي|كم|how many|balance).*?(اجاز|أجاز|leave|days)/) && (q.indexOf('فاضل') > -1 || q.indexOf('متبقي') > -1 || q.indexOf('رصيد') > -1 || q.indexOf('how many') > -1 || q.indexOf('balance') > -1)) {
       var balance = App.user.annual_leave_balance !== undefined && App.user.annual_leave_balance !== null ? App.user.annual_leave_balance : 24;
