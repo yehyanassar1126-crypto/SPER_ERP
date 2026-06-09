@@ -1268,8 +1268,8 @@ Pages.qrCheckin = function (el) {
             });
 
             delayMin = 0;
-            if (user.role === 'hr') {
-              // HR has flexible schedule, no lateness penalties
+            if (user.role === 'hr' || user.role === 'manager' || user.role === 'owner') {
+              // HR and Management have flexible schedules, no lateness penalties
               detectedShiftKey = 'morning';
               delayMin = 0;
             } else if (bestShiftStart) {
@@ -1350,8 +1350,8 @@ Pages.qrCheckin = function (el) {
             checkedOut = true;
             checkOutTime = timeNow;
             var diff = ((timeNow - checkInTime) / 3600000).toFixed(2);
-            if (user.role === 'hr') {
-              diff = '8.00'; // HR gets automatic 8 hours regardless of duration
+            if (user.role === 'hr' || user.role === 'manager' || user.role === 'owner') {
+              diff = '8.00'; // HR and Managers get automatic 8 hours regardless of duration
             }
             if (currentRecordId) {
               sbClient.from('attendance').update({ check_out: timeNow.toISOString(), working_hours: Number(diff) }).eq('id', currentRecordId).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
