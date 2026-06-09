@@ -70,10 +70,10 @@ var App = {
       if (res.data) App.notifications = res.data;
       App.updateNotifBadge();
     });
-    
+
     // Enable Realtime Notifications
     sbClient.channel('public:notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + App.user.id }, function(payload) {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + App.user.id }, function (payload) {
         var newNotif = payload.new;
         App.notifications.unshift(newNotif);
         App.updateNotifBadge();
@@ -89,11 +89,11 @@ var App = {
     if (notif.user_id === App.user.id) {
       App.notifications.unshift(newNotif);
     }
-    sbClient.from('notifications').insert(newNotif).then(function (r) { 
-      if (r && r.error) { 
-        console.error("Supabase Error:", r.error); 
+    sbClient.from('notifications').insert(newNotif).then(function (r) {
+      if (r && r.error) {
+        console.error("Supabase Error:", r.error);
         // Don't alert on UI for background notifications, just log it
-      } 
+      }
     });
     App.updateNotifBadge();
   },
@@ -161,10 +161,10 @@ var App = {
     App.renderSidebar();
     App.renderHeader();
     App.navigate(App.activePage);
-    
+
     // Initialize Chatbot for employees
     if (typeof EmployeeChatbot !== 'undefined') {
-      setTimeout(function() {
+      setTimeout(function () {
         EmployeeChatbot.init();
       }, 500);
     }
@@ -184,10 +184,12 @@ var App = {
     var menu;
     if (isHR) {
       menu = [
-        { section: 'Overview', items: [
-          { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' },
-          { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
-        ] },
+        {
+          section: 'Overview', items: [
+            { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' },
+            { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
+          ]
+        },
         {
           section: 'Management', items: [
             { id: 'employees', label: 'Employees', icon: 'users' },
@@ -227,10 +229,12 @@ var App = {
       ];
     } else if (isManager) {
       menu = [
-        { section: 'Overview', items: [
-          { id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' },
-          { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
-        ] },
+        {
+          section: 'Overview', items: [
+            { id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' },
+            { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
+          ]
+        },
         {
           section: 'Team Management', items: [
             { id: 'employees', label: 'Employees', icon: 'users' },
@@ -252,10 +256,12 @@ var App = {
             { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
           ]
         },
-        { section: 'Other', items: [
+        {
+          section: 'Other', items: [
             { id: 'announcements', label: 'Announcements', icon: 'megaphone' },
             { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
-        ] },
+          ]
+        },
         {
           section: 'Workplace', items: [
             { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
@@ -509,7 +515,7 @@ Pages.hrDashboard = function (el) {
     if (pendingExpenses.length > 0) alertItems.push({ count: pendingExpenses.length, label: 'طلب مصروفات', labelEn: 'Expenses', icon: 'receipt', color: '#14b8a6', page: 'expenses' });
 
     if (alertItems.length > 0) {
-      var totalPending = alertItems.reduce(function(s, i) { return s + i.count; }, 0);
+      var totalPending = alertItems.reduce(function (s, i) { return s + i.count; }, 0);
       html += '<style>';
       html += '@keyframes alert-pulse { 0%,100%{ box-shadow:0 0 0 0 rgba(245,158,11,0.25); } 50%{ box-shadow:0 0 20px 4px rgba(245,158,11,0.15); } }';
       html += '.pending-alert-banner { animation: alert-pulse 2.5s infinite; }';
@@ -520,7 +526,7 @@ Pages.hrDashboard = function (el) {
       html += '<div style="flex:1"><h3 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--text-primary)">🔔 يوجد ' + totalPending + ' طلب معلق يحتاج مراجعتك</h3>';
       html += '<p style="margin:4px 0 0;font-size:0.82rem;color:var(--text-secondary)">Pending requests need your attention</p></div></div>';
       html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">';
-      alertItems.forEach(function(item) {
+      alertItems.forEach(function (item) {
         html += '<div onclick="App.navigate(\'' + item.page + '\')" style="cursor:pointer;padding:14px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border-color);display:flex;align-items:center;gap:10px;transition:all 0.2s" onmouseover="this.style.borderColor=\'' + item.color + '\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\'var(--border-color)\';this.style.transform=\'none\'">';
         html += '<div style="width:36px;height:36px;border-radius:8px;background:' + item.color + '18;display:flex;align-items:center;justify-content:center;color:' + item.color + '">' + icon(item.icon, 18) + '</div>';
         html += '<div><div style="font-size:1.15rem;font-weight:800;color:' + item.color + '">' + item.count + '</div>';
@@ -621,7 +627,7 @@ Pages.empDashboard = function (el) {
     var attDatesMap = {};
     var earnedSoFar = 0;
     var totalLateDeduction = 0;
-    monthAttendance.forEach(function(att) {
+    monthAttendance.forEach(function (att) {
       var dm = att.delay_minutes || 0;
       var lateDed = 0;
       if (dm > 360) lateDed = dailyRate * 1;
@@ -638,7 +644,7 @@ Pages.empDashboard = function (el) {
     // Calculate bonuses and penalties from salary_adjustments
     var totalBonuses = 0;
     var totalPenalties = 0;
-    monthAdjustments.forEach(function(adj) {
+    monthAdjustments.forEach(function (adj) {
       if (adj.type === 'bonus') totalBonuses += (adj.amount || 0);
       else totalPenalties += (adj.amount || 0);
     });
@@ -648,7 +654,7 @@ Pages.empDashboard = function (el) {
     var salaryProgress = baseSalary > 0 ? Math.round((earnedSoFar / baseSalary) * 100) : 0;
     var todayDate = new Date();
     var dayOfMonth = todayDate.getDate();
-    var monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    var monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
     var currentMonthName = monthNames[todayDate.getMonth()];
 
     var html = '<div class="profile-header"><div class="profile-avatar" style="background:' + (user.avatar_color || '#6366f1') + '">' + getInitials(user.full_name) + '</div>' +
@@ -700,17 +706,17 @@ Pages.empDashboard = function (el) {
     html += '<th style="padding:10px 12px;text-align:right;font-weight:700;color:var(--text-secondary)">الإجمالي التراكمي</th>';
     html += '</tr></thead><tbody>';
 
-    var monthLeaves = myLeaves.filter(function(l) { return l.status === 'approved' && l.start_date <= monthEnd && l.end_date >= monthStart; });
+    var monthLeaves = myLeaves.filter(function (l) { return l.status === 'approved' && l.start_date <= monthEnd && l.end_date >= monthStart; });
 
     var cumulative = 0;
-    var dayNames = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    var dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
     for (var d = 1; d <= dayOfMonth; d++) {
       var dateStr = currentMonth + '-' + (d < 10 ? '0' + d : d);
       var dateObj = new Date(dateStr + 'T00:00:00');
       var dayName = dayNames[dateObj.getDay()];
       var isFriday = dateObj.getDay() === 5;
       var attInfo = attDatesMap[dateStr];
-      var leaveInfo = monthLeaves.find(function(l) { return dateStr >= l.start_date && dateStr <= l.end_date; });
+      var leaveInfo = monthLeaves.find(function (l) { return dateStr >= l.start_date && dateStr <= l.end_date; });
       var dayEarned = 0;
       var statusBadge = '';
       var rowBg = '';
@@ -811,7 +817,9 @@ Pages.employees = function (el) {
     "شهاده الخدمه العسكريه",
     "6 صور 4*6",
     "فيش و تشبيه",
-    "برنت تأمينات (لو جاي من شركه تاني)"
+    "برنت تأمينات",
+    "كعب عمل",
+    "مزاوله مهنه"
   ];
 
   function render() {
@@ -1240,30 +1248,30 @@ Pages.qrCheckin = function (el) {
           if (!checkedIn) {
             checkedIn = true;
             checkInTime = timeNow;
-            
+
             // Auto-detect shift based on check-in time (handles weekly shift rotation automatically)
             var empShiftSystem = user.shift_system || '3-shift';
             var detectedShiftKey = user.shift || 'morning';
             var availableShifts = getShiftsForSystem(empShiftSystem);
             var bestDiff = Infinity;
             var bestShiftStart = null;
-            
-            availableShifts.forEach(function(s) {
+
+            availableShifts.forEach(function (s) {
               var sConf = getShiftConfig(s.key, empShiftSystem);
               var parts = sConf.start.split(':');
-              
+
               var candidate1 = new Date(timeNow);
               candidate1.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-              
+
               var candidate2 = new Date(timeNow);
               candidate2.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
               candidate2.setDate(candidate2.getDate() - 1);
-              
+
               var candidate3 = new Date(timeNow);
               candidate3.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
               candidate3.setDate(candidate3.getDate() + 1);
 
-              [candidate1, candidate2, candidate3].forEach(function(cand) {
+              [candidate1, candidate2, candidate3].forEach(function (cand) {
                 var diffAbs = Math.abs(timeNow - cand);
                 if (diffAbs < bestDiff) {
                   bestDiff = diffAbs;
@@ -1321,8 +1329,8 @@ Pages.qrCheckin = function (el) {
                 requested_by: 'النظام (تلقائي)',
                 status: 'approved'
               }]).then(function (r) {
-                if (r.error) { 
-                  console.error('Late deduction salary_adjustments error:', r.error); 
+                if (r.error) {
+                  console.error('Late deduction salary_adjustments error:', r.error);
                 }
               });
               // Also save in dedicated late_deductions table
@@ -1333,7 +1341,7 @@ Pages.qrCheckin = function (el) {
                 deduction_fraction: deductionFraction,
                 deduction_amount: deductionAmount
               }]).then(function (r) {
-                if (r.error) { 
+                if (r.error) {
                   console.error('late_deductions table error:', r.error);
                   alert('خطأ في تسجيل التأخير في جدول late_deductions: ' + r.error.message + '\nتأكد إنك عملت الجدول في Supabase.');
                 } else {
@@ -1515,26 +1523,26 @@ Pages.leaves = function (el) {
   }
 
   function handleLeaveAction(id, action) {
-    var l = leaves.find(function(x) { return x.id === id; });
+    var l = leaves.find(function (x) { return x.id === id; });
     if (!l) return;
 
-    sbClient.from('leave_requests').update({ status: action, approved_by: App.user.full_name }).eq('id', id).then(function (r) { 
-        if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); return; } 
-        
-        // If approved Annual leave, deduct from user's balance
-        if (action === 'approved' && l.type === 'Annual') {
-            sbClient.from('users').select('annual_leave_balance').eq('id', l.employee_id).single().then(function(res) {
-                if (res.data) {
-                    var currentBalance = res.data.annual_leave_balance !== null ? res.data.annual_leave_balance : 24;
-                    var newBalance = Math.max(0, currentBalance - l.days);
-                    sbClient.from('users').update({ annual_leave_balance: newBalance }).eq('id', l.employee_id).then(function(uRes) {});
-                }
-            });
-        }
+    sbClient.from('leave_requests').update({ status: action, approved_by: App.user.full_name }).eq('id', id).then(function (r) {
+      if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); return; }
+
+      // If approved Annual leave, deduct from user's balance
+      if (action === 'approved' && l.type === 'Annual') {
+        sbClient.from('users').select('annual_leave_balance').eq('id', l.employee_id).single().then(function (res) {
+          if (res.data) {
+            var currentBalance = res.data.annual_leave_balance !== null ? res.data.annual_leave_balance : 24;
+            var newBalance = Math.max(0, currentBalance - l.days);
+            sbClient.from('users').update({ annual_leave_balance: newBalance }).eq('id', l.employee_id).then(function (uRes) { });
+          }
+        });
+      }
     });
 
     sbClient.from('audit_log').insert({ action: action === 'approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED', user_name: App.user.full_name, user_id: App.user.id, details: (action === 'approved' ? 'Approved' : 'Rejected') + ' leave request ID: ' + id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); } });
-    
+
     leaves = leaves.map(function (l) {
       if (l.id === id) {
         App.addNotification({ user_id: l.employee_id, type: action === 'approved' ? 'leave_approved' : 'leave_rejected', title: 'Leave ' + (action === 'approved' ? 'Approved ✅' : 'Rejected ❌'), message: 'Your ' + l.type + ' leave (' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + ') has been ' + action + '.' });
@@ -1786,12 +1794,12 @@ Pages.payroll = function (el) {
       if (latestP.penalties > 0) deductionReasons.push("جزاءات وخصومات إدارية");
       var deductionReasonsStr = deductionReasons.length > 0 ? deductionReasons.join(" و ") : "لا يوجد خصومات";
 
-      var monthlyAdjustments = salaryAdjustments.filter(function(adj) {
+      var monthlyAdjustments = salaryAdjustments.filter(function (adj) {
         return adj.month === latestP.month;
       });
       var bonusesHtml = '';
       var penaltiesHtml = '';
-      monthlyAdjustments.forEach(function(adj) {
+      monthlyAdjustments.forEach(function (adj) {
         if (adj.type === 'bonus') {
           bonusesHtml += '<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;display:flex;justify-content:space-between"><span>🎁 ' + adj.reason + '</span><span style="color:var(--accent-success);font-weight:600">+' + adj.amount + ' EGP</span></div>';
         } else {
@@ -1802,10 +1810,10 @@ Pages.payroll = function (el) {
         penaltiesHtml += '<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;display:flex;justify-content:space-between"><span>🚫 غياب وأيام انقطاع</span><span style="color:var(--accent-danger);font-weight:600">-' + latestP.absence_deductions + ' EGP</span></div>';
       }
 
-      var monthlyMedicalClaims = medicalClaims.filter(function(m) {
+      var monthlyMedicalClaims = medicalClaims.filter(function (m) {
         return m.created_at && m.created_at.substring(0, 7) === latestP.month;
       });
-      var totalMedicalDisbursed = monthlyMedicalClaims.reduce(function(sum, m) { return sum + (m.amount || 0); }, 0);
+      var totalMedicalDisbursed = monthlyMedicalClaims.reduce(function (sum, m) { return sum + (m.amount || 0); }, 0);
 
       var titleText = isFirstDay ? "💰 القبض نزل! تفاصيل راتبك لشهر " + latestP.month : "💵 تفاصيل راتبك لشهر " + latestP.month;
       var alertClass = isFirstDay ? "alert-success-pulse" : "alert-normal-salary";
@@ -1888,7 +1896,7 @@ Pages.payroll = function (el) {
     htmlStats += _statCard('#6366f1', 'dollarSign', 'EGP ' + totalPayroll.toLocaleString(), isHR ? 'Total Payroll' : 'Total Earnings');
     if (isHR) { htmlStats += _statCard('#22c55e', 'trendingUp', paidCount, 'Paid'); htmlStats += _statCard('#f59e0b', 'fileText', processingCount, 'Processing'); }
     htmlStats += '</div>';
-    
+
     html += htmlStats;
 
     html += '<div class="toolbar">';
@@ -1899,8 +1907,8 @@ Pages.payroll = function (el) {
     if (!isHR && salaryAdjustments && salaryAdjustments.length > 0) {
       html += '<div class="card" style="margin-bottom:24px"><div class="card-header"><div><h3 style="color:var(--text-primary)">📋 سجل الخصومات والمكافآت التفصيلي</h3><p>' + salaryAdjustments.length + ' سجلات محفوظة في الداتا بيز</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
       html += '<th>التاريخ</th><th>الشهر</th><th>النوع</th><th>المبلغ</th><th>السبب</th></tr></thead><tbody>';
-      var sortedAdjs = salaryAdjustments.slice().sort(function(a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); });
-      sortedAdjs.forEach(function(adj) {
+      var sortedAdjs = salaryAdjustments.slice().sort(function (a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); });
+      sortedAdjs.forEach(function (adj) {
         var isBonus = adj.type === 'bonus';
         html += '<tr>';
         html += '<td style="direction:ltr;text-align:right">' + (adj.created_at ? formatDate(adj.created_at) : '-') + '</td>';
@@ -2040,11 +2048,11 @@ Pages.payroll = function (el) {
                 var s = new Date(lv.start_date > monthStart ? lv.start_date : monthStart);
                 var e = new Date(lv.end_date < monthEnd ? lv.end_date : monthEnd);
                 if (Number(lv.days) === 0.5) {
-                    approvedLeaveDays += 0.5;
+                  approvedLeaveDays += 0.5;
                 } else {
-                    for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-                        if (d.getDay() !== 5) approvedLeaveDays++; // exclude Fridays
-                    }
+                  for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                    if (d.getDay() !== 5) approvedLeaveDays++; // exclude Fridays
+                  }
                 }
               });
 
@@ -2102,10 +2110,10 @@ Pages.payroll = function (el) {
 
           document.getElementById('pf-save').addEventListener('click', function () {
             if (!calcData) { alert('Click Calculate first'); return; }
-            
+
             var extraB = Number(document.getElementById('pf-extra-b').value) || 0;
             var extraP = Number(document.getElementById('pf-extra-p').value) || 0;
-            
+
             var promises = [];
             if (extraB > 0) {
               promises.push(sbClient.from('salary_adjustments').insert([{ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'bonus', amount: extraB, month: calcData.month, reason: 'HR Manual Extra Bonus during Payroll', status: 'approved' }]));
@@ -2113,7 +2121,7 @@ Pages.payroll = function (el) {
             if (extraP > 0) {
               promises.push(sbClient.from('salary_adjustments').insert([{ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'penalty', amount: extraP, month: calcData.month, reason: 'HR Manual Extra Penalty during Payroll', status: 'approved' }]));
             }
-            
+
             promises.push(sbClient.from('payroll').insert([calcData]).select().single().then(function (s) { return s; }));
 
             Promise.all(promises).then(function (results) {
@@ -2136,21 +2144,21 @@ Pages.payroll = function (el) {
           b += '</select></div><div class="form-field"><label>Type *</label><select id="direct-adj-type"><option value="bonus">🎁 Bonus (Add Money / مكافأة)</option><option value="penalty">⚠️ Penalty (Deduct Money / خصم أو جزاء)</option></select></div></div>';
           b += '<div class="form-row"><div class="form-field"><label>Amount (EGP) *</label><input type="number" id="direct-adj-amount" min="1" placeholder="e.g. 500"></div><div class="form-field"><label>Month *</label><input type="month" id="direct-adj-month" value="' + monthVal + '"></div></div>';
           b += '<div class="form-field"><label>Reason / Details *</label><textarea id="direct-adj-reason" placeholder="Explain the reason for this manual adjustment..."></textarea></div>';
-          
+
           App.showModal('Add Direct Manual Amount', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="direct-adj-save">Save Adjustment</button>', true);
-          
+
           document.getElementById('direct-adj-save').addEventListener('click', function () {
             var sel = document.getElementById('direct-adj-emp');
             var type = document.getElementById('direct-adj-type').value;
             var amount = Number(document.getElementById('direct-adj-amount').value);
             var month = document.getElementById('direct-adj-month').value;
             var reason = document.getElementById('direct-adj-reason').value;
-            
+
             if (!sel.value || !amount || !reason || !month) {
               alert('Please fill all required fields');
               return;
             }
-            
+
             var opt = sel.options[sel.selectedIndex];
             var rec = {
               employee_id: sel.value,
@@ -2163,12 +2171,12 @@ Pages.payroll = function (el) {
               requested_by: App.user.full_name,
               status: 'approved'
             };
-            
+
             sbClient.from('salary_adjustments').insert([rec]).then(function (r) {
               if (r.error) { alert('DB Error: ' + r.error.message); return; }
               App.closeModal();
               showToast('Manual amount added & approved successfully!', 'success');
-              
+
               var textAr = type === 'bonus' ? 'تمت إضافة مكافأة يدوية لك بقيمة ' + amount + ' ج.م لشهر ' + month : 'تم خصم مبلغ يدوي بقيمة ' + amount + ' ج.م لشهر ' + month;
               var titleAr = type === 'bonus' ? '🎁 إضافة مكافأة يدوية' : '⚠️ خصم يدوي';
               App.addNotification({
@@ -2232,11 +2240,11 @@ Pages.payroll = function (el) {
           Promise.all([
             sbClient.from('medical_requests').select('*').eq('employee_id', App.user.id).eq('status', 'disbursed'),
             sbClient.from('salary_adjustments').select('*').eq('employee_id', App.user.id).eq('status', 'approved')
-          ]).then(function(results) {
+          ]).then(function (results) {
             medicalClaims = results[0].data || [];
             salaryAdjustments = results[1].data || [];
             render(payroll);
-          }).catch(function(err) {
+          }).catch(function (err) {
             console.error('Error fetching additional payroll details:', err);
             render(payroll);
           });
@@ -2323,12 +2331,12 @@ Pages.reports = function (el) {
     el.innerHTML = html;
 
     document.querySelectorAll('[data-report]').forEach(function (btn) { btn.addEventListener('click', function () { activeReport = this.getAttribute('data-report'); render(); }); });
-    document.getElementById('rpt-export').addEventListener('click', function () { 
+    document.getElementById('rpt-export').addEventListener('click', function () {
       var dataToExport = attendance;
       if (activeReport === 'performance') dataToExport = payroll;
       else if (activeReport === 'leaves') dataToExport = leaves;
-      else if (activeReport === 'absenteeism') dataToExport = attendance.filter(function(a) { return a.status === 'absent'; });
-      exportToCSV(dataToExport, activeReport + '_report'); 
+      else if (activeReport === 'absenteeism') dataToExport = attendance.filter(function (a) { return a.status === 'absent'; });
+      exportToCSV(dataToExport, activeReport + '_report');
     });
 
     setTimeout(function () {
@@ -2579,7 +2587,7 @@ Pages['my-delays'] = function (el) {
     el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">This page is for employee view. HR can use reports.</div>';
     return;
   }
-  
+
   var attendanceWithDelay = [];
   var baseSalary = App.user.base_salary || 0;
   var dailyRate26 = Math.round(baseSalary / 26);
@@ -2595,7 +2603,7 @@ Pages['my-delays'] = function (el) {
 
     html += '<div class="card"><div class="card-header"><div><h3>سجل التأخيرات</h3><p>' + attendanceWithDelay.length + ' مرات تأخير</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
     html += '<th>التاريخ (يوم كام)</th><th>مدة التأخير (متأخر كام ساعة)</th><th>الإجراء المطبق</th><th>تم خصم كام بالأرقام (EGP)</th></tr></thead><tbody>';
-    
+
     if (attendanceWithDelay.length === 0) {
       html += '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--accent-success)">🎉 لا يوجد لديك أي تأخيرات! ممتاز جداً.</td></tr>';
     } else {
@@ -2607,10 +2615,10 @@ Pages['my-delays'] = function (el) {
         else if (delayMin > 120) { deductionFraction = 0.5; deductionLabel = 'خصم نصف يوم'; }
         else if (delayMin > 15) { deductionFraction = 0.25; deductionLabel = 'خصم ربع يوم'; }
         else { deductionLabel = 'تأخير مسموح (أقل من 15 دقيقة)'; }
-        
+
         var deductionAmount = Math.round(dailyRate26 * deductionFraction);
         var hoursStr = (delayMin / 60).toFixed(1) + ' ساعة (' + delayMin + ' دقيقة)';
-        
+
         html += '<tr>';
         html += '<td>' + formatDate(att.date) + '</td>';
         html += '<td style="color:var(--accent-warning);font-weight:600">' + hoursStr + '</td>';
@@ -2649,7 +2657,7 @@ Pages.allDelays = function (el) {
 
     html += '<div class="card"><div class="card-header"><div><h3>سجل التأخيرات العام</h3><p>' + delays.length + ' سجل تأخير</p></div><button class="btn btn-outline" id="export-delays">' + icon('download') + ' Export CSV</button></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
     html += '<th>الموظف</th><th>القسم</th><th>التاريخ</th><th>مدة التأخير</th><th>الخصم</th><th>الحالة</th></tr></thead><tbody>';
-    
+
     if (delays.length === 0) {
       html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد تأخيرات مسجلة</td></tr>';
     } else {
@@ -2670,9 +2678,9 @@ Pages.allDelays = function (el) {
 
     var exportBtn = document.getElementById('export-delays');
     if (exportBtn) {
-      exportBtn.addEventListener('click', function() {
+      exportBtn.addEventListener('click', function () {
         var csv = 'Employee,Department,Date,Delay Minutes,Deduction Amount,Type\n';
-        delays.forEach(function(d) {
+        delays.forEach(function (d) {
           csv += '"' + (d.employee_name || '') + '","' + (d.department || '') + '","' + (d.delay_date || '') + '",' + d.delay_minutes + ',"' + d.deduction_amount + '","' + d.deduction_type + '"\n';
         });
         App.downloadCSV(csv, 'Employees_Delays.csv');
@@ -2681,22 +2689,22 @@ Pages.allDelays = function (el) {
   }
 
   el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل من قاعدة البيانات...</div>';
-  
+
   // We fetch directly from attendance where delay_minutes > 0.
   // This bypasses the old late_deductions table completely.
   sbClient.from('attendance').select('*').gt('delay_minutes', 0).order('date', { ascending: false }).then(function (r) {
     if (r.error) { alert('DB Error: ' + r.error.message); return; }
-    
+
     if (r.data) {
-      delays = r.data.map(function(d) {
+      delays = r.data.map(function (d) {
         var deductionLabel = '';
         var deductionFraction = 0;
-        
+
         if (d.delay_minutes > 360) { deductionLabel = 'خصم يوم كامل'; deductionFraction = 1; }
         else if (d.delay_minutes > 120) { deductionLabel = 'خصم نصف يوم'; deductionFraction = 0.5; }
         else if (d.delay_minutes > 15) { deductionLabel = 'خصم ربع يوم'; deductionFraction = 0.25; }
         else { deductionLabel = 'بدون خصم'; deductionFraction = 0; }
-        
+
         return {
           employee_name: d.employee_name || 'غير معروف',
           department: d.department || '-',
@@ -2712,7 +2720,7 @@ Pages.allDelays = function (el) {
 };
 
 // ----- MISSIONS (Employee View) -----
-Pages.missions = function(el) {
+Pages.missions = function (el) {
   var missions = [];
 
   function render() {
@@ -2722,7 +2730,7 @@ Pages.missions = function(el) {
     html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">طلب وتسجيل المأموريات (Missions)</h3>';
     html += '</div>';
     html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">قم بتقديم طلب مأمورية عمل للـ HR. بعد الموافقة، يمكنك تسجيل بصمة الخروج والعودة من هنا.</p>';
-    
+
     html += '<div style="margin-top:20px;padding:20px;background:var(--bg-secondary);border-radius:8px;text-align:center;">';
     html += '<input type="date" id="mission-date" class="input-field" value="' + todayStr() + '" style="margin-bottom:15px;width:100%">';
     html += '<input type="text" id="mission-reason" class="input-field" placeholder="سبب المأمورية والوجهة (مطلوب)" style="margin-bottom:15px;width:100%">';
@@ -2732,33 +2740,33 @@ Pages.missions = function(el) {
 
     html += '<div class="card"><div class="card-header"><h3>سجل مأمورياتك</h3></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
     html += '<th>التاريخ</th><th>الوجهة/السبب</th><th>الحالة</th><th>وقت الخروج</th><th>وقت العودة</th><th>إجراء البصمة</th></tr></thead><tbody>';
-    
+
     if (missions.length === 0) {
       html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد مأموريات مسجلة</td></tr>';
     } else {
       missions.forEach(function (m) {
-        var statusBadge = m.status === 'approved' ? '<span class="badge badge-success">مقبول</span>' : 
-                          (m.status === 'rejected' ? '<span class="badge badge-danger">مرفوض</span>' : '<span class="badge badge-warning">قيد الانتظار</span>');
-        
+        var statusBadge = m.status === 'approved' ? '<span class="badge badge-success">مقبول</span>' :
+          (m.status === 'rejected' ? '<span class="badge badge-danger">مرفوض</span>' : '<span class="badge badge-warning">قيد الانتظار</span>');
+
         var actionHtml = '-';
         if (m.status === 'approved') {
           if (!m.time_out && m.mission_date === todayStr()) {
-             actionHtml = '<button class="btn btn-warning btn-xs" data-start-mission="' + m.id + '">تسجيل الخروج</button>';
+            actionHtml = '<button class="btn btn-warning btn-xs" data-start-mission="' + m.id + '">تسجيل الخروج</button>';
           } else if (m.time_out && !m.time_in) {
-             actionHtml = '<button class="btn btn-success btn-xs" data-end-mission="' + m.id + '">تسجيل العودة</button>';
+            actionHtml = '<button class="btn btn-success btn-xs" data-end-mission="' + m.id + '">تسجيل العودة</button>';
           } else if (m.time_in) {
-             actionHtml = '<span style="color:var(--text-muted)">مكتملة</span>';
+            actionHtml = '<span style="color:var(--text-muted)">مكتملة</span>';
           } else if (m.mission_date !== todayStr() && !m.time_out) {
-             actionHtml = '<span style="color:var(--text-muted)">غير متاحة اليوم</span>';
+            actionHtml = '<span style="color:var(--text-muted)">غير متاحة اليوم</span>';
           }
         }
-        
+
         html += '<tr>';
         html += '<td>' + formatDate(m.mission_date) + '</td>';
         html += '<td>' + (m.reason || 'بدون سبب') + '</td>';
         html += '<td>' + statusBadge + '</td>';
-        html += '<td style="color:var(--accent-warning);font-weight:bold">' + (m.time_out ? m.time_out.substring(0,5) : '-') + '</td>';
-        html += '<td style="color:var(--accent-success);font-weight:bold">' + (m.time_in ? m.time_in.substring(0,5) : '-') + '</td>';
+        html += '<td style="color:var(--accent-warning);font-weight:bold">' + (m.time_out ? m.time_out.substring(0, 5) : '-') + '</td>';
+        html += '<td style="color:var(--accent-success);font-weight:bold">' + (m.time_in ? m.time_in.substring(0, 5) : '-') + '</td>';
         html += '<td>' + actionHtml + '</td>';
         html += '</tr>';
       });
@@ -2768,18 +2776,18 @@ Pages.missions = function(el) {
 
     var reqBtn = document.getElementById('req-mission-btn');
     if (reqBtn) {
-      reqBtn.addEventListener('click', function() {
+      reqBtn.addEventListener('click', function () {
         var reason = document.getElementById('mission-reason').value;
         var date = document.getElementById('mission-date').value;
         if (!reason || !date) { alert('يرجى كتابة سبب المأمورية وتاريخها.'); return; }
-        
+
         sbClient.from('missions').insert([{
           employee_id: App.user.id,
           employee_name: App.user.full_name,
           mission_date: date,
           reason: reason,
           status: 'pending'
-        }]).then(function(r) {
+        }]).then(function (r) {
           if (r.error) {
             alert('خطأ في التسجيل: ' + r.error.message + ' | code: ' + r.error.code + ' | details: ' + r.error.details);
             console.error(r.error);
@@ -2791,28 +2799,28 @@ Pages.missions = function(el) {
       });
     }
 
-    el.querySelectorAll('[data-start-mission]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
+    el.querySelectorAll('[data-start-mission]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         var id = this.getAttribute('data-start-mission');
-        
+
         var modalBody = '<div style="text-align:center"><div id="mission-qr-container" style="display:flex;justify-content:center;margin-bottom:20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح الباركود لتسجيل <b>خروجك</b> للمأمورية</p></div>';
         var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-warning" id="qr-scan-out-btn" style="width:100%;font-size:1rem;padding:12px;">' + icon('logOut') + ' مسح وتسجيل خروج</button>';
         App.showModal('تسجيل خروج للمأمورية (QR Code)', modalBody, modalFooter);
-        
-        setTimeout(function() {
-           var qrData = JSON.stringify({ type: 'mission_out', mission_id: id, timestamp: new Date().toISOString() });
-           if (typeof QRCode !== 'undefined') {
-             new QRCode(document.getElementById('mission-qr-container'), { text: qrData, width: 200, height: 200, colorDark: '#f59e0b' });
-           }
+
+        setTimeout(function () {
+          var qrData = JSON.stringify({ type: 'mission_out', mission_id: id, timestamp: new Date().toISOString() });
+          if (typeof QRCode !== 'undefined') {
+            new QRCode(document.getElementById('mission-qr-container'), { text: qrData, width: 200, height: 200, colorDark: '#f59e0b' });
+          }
         }, 50);
 
-        document.getElementById('qr-scan-out-btn').addEventListener('click', function() {
+        document.getElementById('qr-scan-out-btn').addEventListener('click', function () {
           this.innerHTML = '<span class="spinner"></span> جاري التحقق...';
           this.disabled = true;
-          setTimeout(function() {
+          setTimeout(function () {
             var now = new Date();
             var timeStr = now.toTimeString().split(' ')[0];
-            sbClient.from('missions').update({ time_out: timeStr }).eq('id', id).then(function(r) {
+            sbClient.from('missions').update({ time_out: timeStr }).eq('id', id).then(function (r) {
               App.closeModal();
               if (!r.error) { showToast('تم تسجيل الخروج للمأمورية بنجاح!', 'success'); loadData(); }
               else { alert('حدث خطأ: ' + r.error.message); }
@@ -2822,78 +2830,78 @@ Pages.missions = function(el) {
       });
     });
 
-    el.querySelectorAll('[data-end-mission]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
+    el.querySelectorAll('[data-end-mission]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         var id = this.getAttribute('data-end-mission');
-        
+
         var modalBody = '<div style="text-align:center"><div id="mission-qr-container" style="display:flex;justify-content:center;margin-bottom:20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح الباركود لتسجيل <b>العودة</b> من المأمورية</p></div>';
         var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-success" id="qr-scan-in-btn" style="width:100%;font-size:1rem;padding:12px;">' + icon('logIn') + ' مسح وتسجيل عودة</button>';
         App.showModal('تسجيل عودة المأمورية (QR Code)', modalBody, modalFooter);
 
-        setTimeout(function() {
-           var qrData = JSON.stringify({ type: 'mission_in', mission_id: id, timestamp: new Date().toISOString() });
-           if (typeof QRCode !== 'undefined') {
-             new QRCode(document.getElementById('mission-qr-container'), { text: qrData, width: 200, height: 200, colorDark: '#22c55e' });
-           }
+        setTimeout(function () {
+          var qrData = JSON.stringify({ type: 'mission_in', mission_id: id, timestamp: new Date().toISOString() });
+          if (typeof QRCode !== 'undefined') {
+            new QRCode(document.getElementById('mission-qr-container'), { text: qrData, width: 200, height: 200, colorDark: '#22c55e' });
+          }
         }, 50);
 
-        document.getElementById('qr-scan-in-btn').addEventListener('click', function() {
+        document.getElementById('qr-scan-in-btn').addEventListener('click', function () {
           this.innerHTML = '<span class="spinner"></span> جاري التحقق...';
           this.disabled = true;
-          setTimeout(function() {
+          setTimeout(function () {
             var now = new Date();
             var timeStr = now.toTimeString().split(' ')[0];
-            sbClient.from('missions').update({ time_in: timeStr }).eq('id', id).then(function(r) {
+            sbClient.from('missions').update({ time_in: timeStr }).eq('id', id).then(function (r) {
               if (r.error) { App.closeModal(); alert('حدث خطأ: ' + r.error.message); return; }
-              
+
               // Calculate Overtime automatically!
               var empShiftSystem = App.user.shift_system || '3-shift';
               var shift = getShiftConfig(App.user.shift || 'morning', empShiftSystem);
               var overTimeAmount = 0;
               var diffHours = 0;
-              
+
               if (shift && shift.end) {
                 var parts = shift.end.split(':');
                 var shiftEnd = new Date(now);
                 shiftEnd.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-                
+
                 // If it's night shift, ending next day
                 if (parseInt(parts[0]) <= 8 && now.getHours() > 12) {
-                   shiftEnd.setDate(shiftEnd.getDate() + 1);
+                  shiftEnd.setDate(shiftEnd.getDate() + 1);
                 }
-                
+
                 var diffMs = now - shiftEnd;
                 if (diffMs > 0) {
-                   diffHours = diffMs / 3600000;
-                   var baseSalary = App.user.base_salary || 0;
-                   var dailyRate26 = baseSalary / 26;
-                   var hourlyRate = dailyRate26 / shift.hours;
-                   // Calculate 1.5x for overtime
-                   overTimeAmount = Math.round(diffHours * hourlyRate * 1.5);
+                  diffHours = diffMs / 3600000;
+                  var baseSalary = App.user.base_salary || 0;
+                  var dailyRate26 = baseSalary / 26;
+                  var hourlyRate = dailyRate26 / shift.hours;
+                  // Calculate 1.5x for overtime
+                  overTimeAmount = Math.round(diffHours * hourlyRate * 1.5);
                 }
               }
 
               if (overTimeAmount > 0) {
-                 var currentMonth = now.toISOString().substring(0, 7);
-                 sbClient.from('salary_adjustments').insert([{
-                   employee_id: App.user.id,
-                   employee_name: App.user.full_name,
-                   department: App.user.department,
-                   type: 'bonus',
-                   amount: overTimeAmount,
-                   reason: 'إضافي تلقائي: عودة مأمورية متأخرة (' + diffHours.toFixed(1) + ' ساعات × 1.5)',
-                   month: currentMonth,
-                   requested_by: 'النظام (تلقائي)',
-                   status: 'approved'
-                 }]).then(function() {
-                   App.closeModal();
-                   showToast('تم تسجيل العودة! وإضافة ' + overTimeAmount + ' ج.م كإضافي لمرتبك تلقائياً ✅', 'success');
-                   loadData();
-                 });
+                var currentMonth = now.toISOString().substring(0, 7);
+                sbClient.from('salary_adjustments').insert([{
+                  employee_id: App.user.id,
+                  employee_name: App.user.full_name,
+                  department: App.user.department,
+                  type: 'bonus',
+                  amount: overTimeAmount,
+                  reason: 'إضافي تلقائي: عودة مأمورية متأخرة (' + diffHours.toFixed(1) + ' ساعات × 1.5)',
+                  month: currentMonth,
+                  requested_by: 'النظام (تلقائي)',
+                  status: 'approved'
+                }]).then(function () {
+                  App.closeModal();
+                  showToast('تم تسجيل العودة! وإضافة ' + overTimeAmount + ' ج.م كإضافي لمرتبك تلقائياً ✅', 'success');
+                  loadData();
+                });
               } else {
-                 App.closeModal();
-                 showToast('تم تسجيل العودة من المأمورية بنجاح!', 'success');
-                 loadData();
+                App.closeModal();
+                showToast('تم تسجيل العودة من المأمورية بنجاح!', 'success');
+                loadData();
               }
             });
           }, 1500);
@@ -2904,28 +2912,28 @@ Pages.missions = function(el) {
 
   function loadData() {
     el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل...</div>';
-    sbClient.from('missions').select('*').eq('employee_id', App.user.id).order('created_at', { ascending: false }).then(function(r) {
-      if (r.error) { 
+    sbClient.from('missions').select('*').eq('employee_id', App.user.id).order('created_at', { ascending: false }).then(function (r) {
+      if (r.error) {
         el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)">لا يمكن عرض المأموريات. يرجى التأكد من إنشاء جدول missions في Supabase.<br><code>' + r.error.message + '</code></div>';
-        return; 
+        return;
       }
       missions = r.data || [];
       render();
     });
   }
-  
+
   loadData();
 };
 
 // ----- ALL MISSIONS (HR View) -----
-Pages.allMissions = function(el) {
+Pages.allMissions = function (el) {
   if (!App.isHR()) return;
   var missions = [];
 
   function render() {
     var html = '<div class="card"><div class="card-header"><div><h3>سجل طلبات مأموريات الموظفين</h3><p>' + missions.length + ' طلب مسجل</p></div><button class="btn btn-outline" id="export-missions">' + icon('download') + ' Export CSV</button></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
     html += '<th>الموظف</th><th>التاريخ</th><th>السبب/الوجهة</th><th>الخروج</th><th>العودة</th><th>الإجراء / الحالة</th></tr></thead><tbody>';
-    
+
     if (missions.length === 0) {
       html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد مأموريات مسجلة</td></tr>';
     } else {
@@ -2936,13 +2944,13 @@ Pages.allMissions = function(el) {
         } else {
           actionHtml = m.status === 'approved' ? '<span class="badge badge-success">مقبول</span>' : '<span class="badge badge-danger">مرفوض</span>';
         }
-        
+
         html += '<tr>';
         html += '<td><div style="font-weight:bold;color:var(--text-primary)">' + (m.employee_name || 'غير معروف') + '</div></td>';
         html += '<td>' + formatDate(m.mission_date) + '</td>';
         html += '<td>' + (m.reason || 'بدون سبب') + '</td>';
-        html += '<td style="color:var(--accent-warning);font-weight:bold">' + (m.time_out ? m.time_out.substring(0,5) : '-') + '</td>';
-        html += '<td style="color:var(--accent-success);font-weight:bold">' + (m.time_in ? m.time_in.substring(0,5) : '-') + '</td>';
+        html += '<td style="color:var(--accent-warning);font-weight:bold">' + (m.time_out ? m.time_out.substring(0, 5) : '-') + '</td>';
+        html += '<td style="color:var(--accent-success);font-weight:bold">' + (m.time_in ? m.time_in.substring(0, 5) : '-') + '</td>';
         html += '<td>' + actionHtml + '</td>';
         html += '</tr>';
       });
@@ -2950,19 +2958,19 @@ Pages.allMissions = function(el) {
     html += '</tbody></table></div></div></div>';
     el.innerHTML = html;
 
-    el.querySelectorAll('[data-approve-mission]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
+    el.querySelectorAll('[data-approve-mission]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         var id = this.getAttribute('data-approve-mission');
-        sbClient.from('missions').update({ status: 'approved' }).eq('id', id).then(function(r) {
+        sbClient.from('missions').update({ status: 'approved' }).eq('id', id).then(function (r) {
           if (!r.error) { showToast('تم قبول المأمورية', 'success'); loadData(); }
         });
       });
     });
 
-    el.querySelectorAll('[data-reject-mission]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
+    el.querySelectorAll('[data-reject-mission]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
         var id = this.getAttribute('data-reject-mission');
-        sbClient.from('missions').update({ status: 'rejected' }).eq('id', id).then(function(r) {
+        sbClient.from('missions').update({ status: 'rejected' }).eq('id', id).then(function (r) {
           if (!r.error) { showToast('تم رفض المأمورية', 'warning'); loadData(); }
         });
       });
@@ -2970,9 +2978,9 @@ Pages.allMissions = function(el) {
 
     var exportBtn = document.getElementById('export-missions');
     if (exportBtn) {
-      exportBtn.addEventListener('click', function() {
+      exportBtn.addEventListener('click', function () {
         var csv = 'Employee,Date,Reason,Time Out,Time In,Status\n';
-        missions.forEach(function(m) {
+        missions.forEach(function (m) {
           csv += '"' + (m.employee_name || '') + '","' + (m.mission_date || '') + '","' + (m.reason || '') + '",' + (m.time_out || '') + ',' + (m.time_in || '') + ',"' + m.status + '"\n';
         });
         App.downloadCSV(csv, 'Employees_Missions.csv');
@@ -2982,10 +2990,10 @@ Pages.allMissions = function(el) {
 
   function loadData() {
     el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">جاري التحميل...</div>';
-    sbClient.from('missions').select('*').order('created_at', { ascending: false }).then(function(r) {
-      if (r.error) { 
+    sbClient.from('missions').select('*').order('created_at', { ascending: false }).then(function (r) {
+      if (r.error) {
         el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)">لا يمكن عرض المأموريات. يرجى التأكد من إنشاء جدول missions في Supabase.</div>';
-        return; 
+        return;
       }
       missions = r.data || [];
       render();
