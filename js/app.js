@@ -2782,10 +2782,30 @@ Pages.missions = function(el) {
     el.querySelectorAll('[data-start-mission]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var id = this.getAttribute('data-start-mission');
-        var now = new Date();
-        var timeStr = now.toTimeString().split(' ')[0];
-        sbClient.from('missions').update({ time_out: timeStr }).eq('id', id).then(function(r) {
-          if (!r.error) { showToast('تم تسجيل الخروج بنجاح!', 'success'); loadData(); }
+        
+        var modalBody = '<div style="text-align:center"><div id="mission-qr-container" style="display:flex;justify-content:center;margin-bottom:20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح الباركود لتسجيل <b>خروجك</b> للمأمورية</p></div>';
+        var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-warning" id="qr-scan-out-btn" style="width:100%;font-size:1rem;padding:12px;">' + icon('logOut') + ' مسح وتسجيل خروج</button>';
+        App.showModal('تسجيل خروج للمأمورية (QR Code)', modalBody, modalFooter);
+        
+        setTimeout(function() {
+           var qrData = JSON.stringify({ type: 'mission_out', mission_id: id, timestamp: new Date().toISOString() });
+           if (typeof QRCode !== 'undefined') {
+             new QRCode(document.getElementById('mission-qr-container'), { text: qrData, width: 200, height: 200, colorDark: '#f59e0b' });
+           }
+        }, 50);
+
+        document.getElementById('qr-scan-out-btn').addEventListener('click', function() {
+          this.innerHTML = '<span class="spinner"></span> جاري التحقق...';
+          this.disabled = true;
+          setTimeout(function() {
+            var now = new Date();
+            var timeStr = now.toTimeString().split(' ')[0];
+            sbClient.from('missions').update({ time_out: timeStr }).eq('id', id).then(function(r) {
+              App.closeModal();
+              if (!r.error) { showToast('تم تسجيل الخروج للمأمورية بنجاح!', 'success'); loadData(); }
+              else { alert('حدث خطأ: ' + r.error.message); }
+            });
+          }, 1500);
         });
       });
     });
@@ -2793,10 +2813,78 @@ Pages.missions = function(el) {
     el.querySelectorAll('[data-end-mission]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var id = this.getAttribute('data-end-mission');
-        var now = new Date();
-        var timeStr = now.toTimeString().split(' ')[0];
-        sbClient.from('missions').update({ time_in: timeStr }).eq('id', id).then(function(r) {
-          if (!r.error) { showToast('تم تسجيل العودة بنجاح!', 'success'); loadData(); }
+        
+        var modalBody = '<div style="text-align:center"><div id="mission-qr-container" style="display:flex;justify-content:center;margin-bottom:20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح الباركود لتسجيل <b>العودة</b> من المأمورية</p></div>';
+        var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-success" id="qr-scan-in-btn" style="width:100%;font-size:1rem;padding:12px;">' + icon('logIn') + ' مسح وتسجيل عودة</button>';
+        App.showModal('تسجيل عودة المأمورية (QR Code)', modalBody, modalFooter);
+
+        setTimeout(function() {
+           var qrData = JSON.stringify({ type: 'mission_in', mission_id: id, timestamp: new Date().toISOString() });
+           if (typeof QRCode !== 'undefined') {
+             new QRCode(document.getElementById('mission-qr-container'), { text: qrData, width: 200, height: 200, colorDark: '#22c55e' });
+           }
+        }, 50);
+
+        document.getElementById('qr-scan-in-btn').addEventListener('click', function() {
+          this.innerHTML = '<span class="spinner"></span> جاري التحقق...';
+          this.disabled = true;
+          setTimeout(function() {
+            var now = new Date();
+            var timeStr = now.toTimeString().split(' ')[0];
+            sbClient.from('missions').update({ time_in: timeStr }).eq('id', id).then(function(r) {
+              if (r.error) { App.closeModal(); alert('حدث خطأ: ' + r.error.message); return; }
+              
+              // Calculate Overtime automatically!
+              var empShiftSystem = App.user.shift_system || '3-shift';
+              var shift = getShiftConfig(App.user.shift || 'morning', empShiftSystem);
+              var overTimeAmount = 0;
+              var diffHours = 0;
+              
+              if (shift && shift.end) {
+                var parts = shift.end.split(':');
+                var shiftEnd = new Date(now);
+                shiftEnd.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+                
+                // If it's night shift, ending next day
+                if (parseInt(parts[0]) <= 8 && now.getHours() > 12) {
+                   shiftEnd.setDate(shiftEnd.getDate() + 1);
+                }
+                
+                var diffMs = now - shiftEnd;
+                if (diffMs > 0) {
+                   diffHours = diffMs / 3600000;
+                   var baseSalary = App.user.base_salary || 0;
+                   var dailyRate26 = baseSalary / 26;
+                   var hourlyRate = dailyRate26 / shift.hours;
+                   // Calculate 1.5x for overtime
+                   overTimeAmount = Math.round(diffHours * hourlyRate * 1.5);
+                }
+              }
+
+              if (overTimeAmount > 0) {
+                 var currentMonth = now.toISOString().substring(0, 7);
+                 sbClient.from('salary_adjustments').insert([{
+                   employee_id: App.user.id,
+                   employee_name: App.user.full_name,
+                   department: App.user.department,
+                   type: 'bonus',
+                   amount: overTimeAmount,
+                   reason: 'إضافي تلقائي: عودة مأمورية متأخرة (' + diffHours.toFixed(1) + ' ساعات × 1.5)',
+                   month: currentMonth,
+                   requested_by: 'النظام (تلقائي)',
+                   status: 'approved'
+                 }]).then(function() {
+                   App.closeModal();
+                   showToast('تم تسجيل العودة! وإضافة ' + overTimeAmount + ' ج.م كإضافي لمرتبك تلقائياً ✅', 'success');
+                   loadData();
+                 });
+              } else {
+                 App.closeModal();
+                 showToast('تم تسجيل العودة من المأمورية بنجاح!', 'success');
+                 loadData();
+              }
+            });
+          }, 1500);
         });
       });
     });
