@@ -493,6 +493,12 @@ Pages.hrDashboard = function (el) {
 
     var html = '';
 
+    // ===== QUICK CHECK-IN FOR HR/MANAGERS =====
+    html += '<div style="display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary)); padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); direction: rtl; text-align: right;">';
+    html += '<div><h3 style="margin:0; font-weight: 800; color: var(--text-primary); font-size: 1.3rem;">مرحباً بك! 👋</h3><p style="margin:6px 0 0; color: var(--text-secondary); font-size: 0.95rem;">نظام تسجيل حضور وانصراف الإدارة (مرن - 8 ساعات تلقائية بدون تأخير)</p></div>';
+    html += '<button class="btn btn-primary" onclick="App.navigate(\'qr-checkin\')" style="font-size:1.05rem; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">' + icon('scanLine') + ' تسجيل الحضور / الانصراف الآن</button>';
+    html += '</div>';
+
     // ===== PENDING REQUESTS ALERT BANNER =====
     var alertItems = [];
     if (pendingLeaves > 0) alertItems.push({ count: pendingLeaves, label: 'طلب إجازة', labelEn: 'Leave Requests', icon: 'calendarDays', color: '#f59e0b', page: 'leaves' });
