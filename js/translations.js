@@ -17,7 +17,7 @@ const ARABIC_DICT = {
   "My Dashboard": "لوحتي الخاصة",
   "My Info": "بياناتي",
   "My Attendance": "سجل حضوري",
-  "QR Check-In": "تسجيل الحضور (QR)",
+  "QR Check-In": "تسجيل حضور الإدارة (QR)",
   "My Leaves": "إجازاتي",
   "My Salary": "راتبي",
   "My Overtime": "وقتي الإضافي",
