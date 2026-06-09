@@ -9,18 +9,18 @@ var SHIFT_SYSTEMS = {
 
 var SHIFTS = {
   // 2-shift system (12 hours each)
-  day:     { label: 'Day Shift',     start: '06:00', end: '18:00', hours: 12, system: '2-shift' },
+  day:     { label: 'Day Shift',     start: '08:00', end: '20:00', hours: 12, system: '2-shift' },
   // 3-shift system (8 hours each)
-  morning: { label: 'Morning Shift', start: '06:00', end: '14:00', hours: 8,  system: '3-shift' },
-  evening: { label: 'Evening Shift', start: '14:00', end: '22:00', hours: 8,  system: '3-shift' },
+  morning: { label: 'Morning Shift', start: '08:00', end: '16:00', hours: 8,  system: '3-shift' },
+  evening: { label: 'Evening Shift', start: '16:00', end: '00:00', hours: 8,  system: '3-shift' },
   // Night shift shared: 8h in 3-shift, 12h in 2-shift
-  night:   { label: 'Night Shift',   start: '22:00', end: '06:00', hours: 8,  system: '3-shift' }
+  night:   { label: 'Night Shift',   start: '00:00', end: '08:00', hours: 8,  system: '3-shift' }
 };
 
 // Helper to get the correct night shift config based on system
 function getShiftConfig(shiftKey, shiftSystem) {
   if (shiftKey === 'night' && shiftSystem === '2-shift') {
-    return { label: 'Night Shift', start: '18:00', end: '06:00', hours: 12, system: '2-shift' };
+    return { label: 'Night Shift', start: '20:00', end: '08:00', hours: 12, system: '2-shift' };
   }
   if (shiftKey === 'day') {
     return SHIFTS.day;
@@ -32,14 +32,14 @@ function getShiftConfig(shiftKey, shiftSystem) {
 function getShiftsForSystem(system) {
   if (system === '2-shift') {
     return [
-      { key: 'day',   label: 'Day Shift (06:00 - 18:00)' },
-      { key: 'night', label: 'Night Shift (18:00 - 06:00)' }
+      { key: 'day',   label: 'Day Shift (08:00 - 20:00)' },
+      { key: 'night', label: 'Night Shift (20:00 - 08:00)' }
     ];
   }
   return [
-    { key: 'morning', label: 'Morning Shift (06:00 - 14:00)' },
-    { key: 'evening', label: 'Evening Shift (14:00 - 22:00)' },
-    { key: 'night',   label: 'Night Shift (22:00 - 06:00)' }
+    { key: 'morning', label: 'Morning Shift (08:00 - 16:00)' },
+    { key: 'evening', label: 'Evening Shift (16:00 - 00:00)' },
+    { key: 'night',   label: 'Night Shift (00:00 - 08:00)' }
   ];
 }
 
