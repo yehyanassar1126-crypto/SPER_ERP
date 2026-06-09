@@ -1228,31 +1228,49 @@ Pages.qrCheckin = function (el) {
           if (!checkedIn) {
             checkedIn = true;
             checkInTime = timeNow;
-            // Calculate delay: compare check-in time to shift start
+            
+            // Auto-detect shift based on check-in time (handles weekly shift rotation automatically)
+            var empShiftSystem = user.shift_system || '3-shift';
+            var detectedShiftKey = user.shift || 'morning';
+            var availableShifts = getShiftsForSystem(empShiftSystem);
+            var bestDiff = Infinity;
+            var bestShiftStart = null;
+            
+            availableShifts.forEach(function(s) {
+              var sConf = getShiftConfig(s.key, empShiftSystem);
+              var parts = sConf.start.split(':');
+              
+              var candidate1 = new Date(timeNow);
+              candidate1.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+              
+              var candidate2 = new Date(timeNow);
+              candidate2.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+              candidate2.setDate(candidate2.getDate() - 1);
+              
+              var candidate3 = new Date(timeNow);
+              candidate3.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+              candidate3.setDate(candidate3.getDate() + 1);
+
+              [candidate1, candidate2, candidate3].forEach(function(cand) {
+                var diffAbs = Math.abs(timeNow - cand);
+                if (diffAbs < bestDiff) {
+                  bestDiff = diffAbs;
+                  detectedShiftKey = s.key;
+                  bestShiftStart = cand;
+                }
+              });
+            });
+
             delayMin = 0;
-            if (shift && shift.start) {
-              var parts = shift.start.split(':');
-              var shiftStart = new Date(timeNow);
-              shiftStart.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-              // Handle night shift crossing midnight
-              if (empShiftSystem === '2-shift' && user.shift === 'night') {
-                // Night shift starts at 18:00 - if current time is after midnight, shift started yesterday
-                if (timeNow.getHours() < 12) {
-                  shiftStart.setDate(shiftStart.getDate() - 1);
-                }
-              } else if (user.shift === 'night') {
-                // 3-shift night starts at 22:00 - if current time is after midnight, shift started yesterday
-                if (timeNow.getHours() < 12) {
-                  shiftStart.setDate(shiftStart.getDate() - 1);
-                }
-              }
-              var diffMs = timeNow - shiftStart;
+            if (bestShiftStart) {
+              var diffMs = timeNow - bestShiftStart;
               if (diffMs > 0) {
                 delayMin = Math.floor(diffMs / 60000);
               }
             }
+
             {
-              sbClient.from('attendance').insert({ employee_id: user.id, employee_name: user.full_name, department: user.department, date: todayStr(), check_in: timeNow.toISOString(), shift: user.shift, delay_minutes: delayMin, status: 'present' }).select().single().then(function (r) {
+              sbClient.from('attendance').insert({ employee_id: user.id, employee_name: user.full_name, department: user.department, date: todayStr(), check_in: timeNow.toISOString(), shift: detectedShiftKey, delay_minutes: delayMin, status: 'present' }).select().single().then(function (r) {
                 if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
                 if (r.data) currentRecordId = r.data.id;
               });
