@@ -478,21 +478,21 @@ Pages.inventory = function(el) {
   function render() {
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<div style="display:flex; gap:8px;">';
-    html += '<button class="btn btn-sm btn-outline" id="tab-items" style="border-color:var(--accent-primary); color:var(--accent-primary)">Stock & Items (???? ??????)</button>';
-    html += '<button class="btn btn-sm btn-ghost" id="tab-tx">Transactions (???? ???????)</button>';
+    html += '<button class="btn btn-sm btn-outline" id="tab-items" style="border-color:var(--accent-primary); color:var(--accent-primary)">Stock & Items (رصيد المخزن)</button>';
+    html += '<button class="btn btn-sm btn-ghost" id="tab-tx">Transactions (حركة المخزون)</button>';
     html += '</div>';
     
     if (isWarehouse) {
       html += '<div>';
       html += '<button class="btn btn-primary" onclick="newInventoryItemModal()" style="margin-right:10px">' + icon('plus') + ' Add New Item</button>';
-      html += '<button class="btn btn-success" onclick="newTransactionModal()">' + icon('refreshCw') + ' Add Transaction (???/?????)</button>';
+      html += '<button class="btn btn-success" onclick="newTransactionModal()">' + icon('refreshCw') + ' Add Transaction (صرف/إضافة)</button>';
       html += '</div>';
     }
     html += '</div>';
 
     // 1. Items View
     html += '<div id="view-items">';
-    html += '<div class="card"><div class="card-header"><div><h3>Current Stock (???? ??????)</h3><p>' + items.length + ' registered items</p></div></div><div class="card-body no-pad">';
+    html += '<div class="card"><div class="card-header"><div><h3>Current Stock (رصيد المخزن)</h3><p>' + items.length + ' registered items</p></div></div><div class="card-body no-pad">';
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Item Name</th><th>Category</th><th>Current Qty</th><th>Min Qty</th><th>Alert</th></tr></thead><tbody>';
     
     if (items.length === 0) {
@@ -520,7 +520,7 @@ Pages.inventory = function(el) {
 
     // 2. Transactions View
     html += '<div id="view-tx" style="display:none">';
-    html += '<div class="card"><div class="card-header"><div><h3>Inventory Transactions (???? ???????)</h3><p>Recent IN/OUT operations</p></div></div><div class="card-body no-pad">';
+    html += '<div class="card"><div class="card-header"><div><h3>Inventory Transactions (حركة المخزون)</h3><p>Recent IN/OUT operations</p></div></div><div class="card-body no-pad">';
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Qty</th><th>Requested By</th><th>Processed By</th></tr></thead><tbody>';
     if (transactions.length === 0) {
       html += '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No transactions yet.</td></tr>';
@@ -530,7 +530,7 @@ Pages.inventory = function(el) {
         html += '<tr>';
         html += '<td>' + formatDate(tx.date) + '</td>';
         html += '<td style="font-weight:600">' + tx.item_name + '</td>';
-        html += '<td><span class="badge badge-' + (isOut ? 'warning' : 'success') + '">' + (isOut ? 'OUT (???)' : 'IN (?????)') + '</span></td>';
+        html += '<td><span class="badge badge-' + (isOut ? 'warning' : 'success') + '">' + (isOut ? 'OUT (صرف)' : 'IN (إضافة)') + '</span></td>';
         html += '<td style="font-weight:700">' + (isOut ? '-' : '+') + tx.quantity + '</td>';
         html += '<td>' + (tx.requested_by || '-') + '</td>';
         html += '<td>' + (tx.processed_by || '-') + '</td>';
@@ -573,7 +573,7 @@ Pages.inventory = function(el) {
 
   window.newInventoryItemModal = function() {
     var body = '<div class="form-field"><label>Item Name *</label><input type="text" id="inv-name" class="form-input"></div>';
-    body += '<div class="form-row"><div class="form-field"><label>Category *</label><select id="inv-cat" class="form-input"><option value="Maintenance">Maintenance (??? ???? ?????)</option><option value="Workshop">Workshop (????)</option><option value="Supplies">Supplies (????????)</option><option value="Chemicals">Chemicals (????????)</option><option value="Fixed Assets">Fixed Assets (???? ?????)</option></select></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Category *</label><select id="inv-cat" class="form-input"><option value="Maintenance">Maintenance (قطع غيار صيانة)</option><option value="Workshop">Workshop (ورشة)</option><option value="Supplies">Supplies (مستلزمات)</option><option value="Chemicals">Chemicals (كيماويات)</option><option value="Fixed Assets">Fixed Assets (أصول ثابتة)</option></select></div>';
     body += '<div class="form-field"><label>Minimum Qty Alert *</label><input type="number" id="inv-min" class="form-input" value="2"></div></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn">Save Item</button>';
@@ -603,7 +603,7 @@ Pages.inventory = function(el) {
     });
     body += '</select></div>';
     
-    body += '<div class="form-row"><div class="form-field"><label>Type *</label><select id="tx-type" class="form-input"><option value="out">OUT (??? ???????)</option><option value="in">IN (????? ??????)</option></select></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Type *</label><select id="tx-type" class="form-input"><option value="out">OUT (صرف للإنتاج)</option><option value="in">IN (إضافة للمخزن)</option></select></div>';
     body += '<div class="form-field"><label>Quantity *</label><input type="number" id="tx-qty" class="form-input" min="1" value="1"></div></div>';
     body += '<div class="form-field"><label>Requested By (For OUT only)</label><input type="text" id="tx-req" class="form-input" placeholder="e.g. Production Manager Name"></div>';
 
@@ -675,7 +675,7 @@ Pages.purchaseRequests = function(el) {
 
   function render() {
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
-    html += '<h3>Purchase Requests (????? ??????)</h3>';
+    html += '<h3>Purchase Requests (طلبات الشراء)</h3>';
     if (!isProcurement) {
       html += '<button class="btn btn-primary" onclick="newPurchaseRequestModal()">' + icon('plus') + ' Request Purchase</button>';
     }
