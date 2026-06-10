@@ -489,68 +489,106 @@ var App = {
 window.Pages = window.Pages || {};
 // ----- OWNER DASHBOARD -----
 Pages.ownerDashboard = function(el) {
-  el.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner" style="margin-bottom:16px;"></span><p>Loading Owner Control Panel...</p></div>';
+  el.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner" style="margin-bottom:16px;"></span><p>Loading Enterprise Command Center...</p></div>';
   
   Promise.all([
     sbClient.from('users').select('id, department, status'),
     sbClient.from('attendance').select('id, status, delay_minutes').eq('date', todayStr()),
     sbClient.from('inventory_items').select('id, name, quantity, min_quantity, category'),
-    sbClient.from('it_tickets').select('id, status, priority')
+    sbClient.from('it_tickets').select('id, status, priority'),
+    sbClient.from('purchase_requests').select('id, status'),
+    sbClient.from('purchase_orders').select('id, status')
   ]).then(function(results) {
     var users = results[0].data || [];
     var attendance = results[1].data || [];
     var inventory = results[2].data || [];
     var tickets = results[3].data || [];
+    var purchReq = results[4].data || [];
+    var purchOrd = results[5].data || [];
     
     var activeUsers = users.filter(function(u) { return u.status === 'active'; }).length;
     var presentCount = attendance.filter(function(a) { return a.status === 'present' || a.status === 'checked_in'; }).length;
     var lowStock = inventory.filter(function(i) { return i.quantity <= i.min_quantity; }).length;
     var openTickets = tickets.filter(function(t) { return t.status !== 'resolved'; }).length;
+    var pendingReqs = purchReq.filter(function(r) { return r.status === 'pending'; }).length;
+    var pendingCash = purchOrd.filter(function(o) { return o.status === 'pending_approval'; }).length;
     
-    var html = '<div class="card"><div class="card-header"><div><h3>🌍 General Manager Overview</h3><p>Enterprise Resource Planning (ERP) Status</p></div></div></div>';
+    var html = '<div class="owner-hero" style="background: linear-gradient(135deg, #0f172a, #3b82f6); border-radius: var(--radius-xl); padding: 40px; color: white; margin-bottom: 32px; box-shadow: 0 20px 40px rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between; overflow: hidden; position: relative;">';
+    html += '<div style="position:relative; z-index:2;">';
+    html += '<h1 style="font-size: 2.2rem; margin-bottom: 10px; color: white; font-weight: 800; letter-spacing: -0.5px;">Enterprise Command Center</h1>';
+    html += '<p style="opacity: 0.85; font-size: 1.15rem; max-width: 600px;">Welcome back, General Manager. Here is a real-time overview of all factory operations, resources, and departments.</p>';
+    html += '</div>';
+    html += '<div style="font-size: 120px; opacity: 0.1; position: absolute; right: 20px; top: -10px; transform: rotate(-15deg); pointer-events: none;">🏢</div>';
+    html += '</div>';
     
-    html += '<div class="stats-grid" style="margin-bottom: 24px;">';
-    html += '<div class="stat-card" style="--stat-color:#6366f1"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(99,102,241,0.12)">' + icon('users', 20) + '</div></div><div class="stat-card-value">' + activeUsers + '</div><div class="stat-card-label">Total Employees</div></div>';
-    html += '<div class="stat-card" style="--stat-color:#22c55e"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(34,197,94,0.12)">' + icon('calendarCheck', 20) + '</div></div><div class="stat-card-value">' + presentCount + '</div><div class="stat-card-label">Present Today</div></div>';
-    html += '<div class="stat-card" style="--stat-color:#f59e0b"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(245,158,11,0.12)">' + icon('alertTriangle', 20) + '</div></div><div class="stat-card-value">' + lowStock + '</div><div class="stat-card-label">Low Stock Alerts</div></div>';
-    html += '<div class="stat-card" style="--stat-color:#ef4444"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,0.12)">' + icon('messageSquare', 20) + '</div></div><div class="stat-card-value">' + openTickets + '</div><div class="stat-card-label">Open IT Tickets</div></div>';
+    // Key Metrics Grid
+    html += '<div class="stats-grid" style="margin-bottom: 32px;">';
+    html += '<div class="stat-card" style="--stat-color:#6366f1; background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s;"><div class="stat-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;"><div class="stat-card-icon" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(99,102,241,0.12); color:#6366f1;">' + icon('users', 24) + '</div></div><div class="stat-card-value" style="font-size:2rem; font-weight:800; margin-bottom:4px;">' + activeUsers + '</div><div class="stat-card-label" style="color:var(--text-muted); font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Active Workforce</div></div>';
+    
+    html += '<div class="stat-card" style="--stat-color:#22c55e; background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s;"><div class="stat-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;"><div class="stat-card-icon" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(34,197,94,0.12); color:#22c55e;">' + icon('calendarCheck', 24) + '</div></div><div class="stat-card-value" style="font-size:2rem; font-weight:800; margin-bottom:4px;">' + presentCount + '</div><div class="stat-card-label" style="color:var(--text-muted); font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Present Today</div></div>';
+    
+    html += '<div class="stat-card" style="--stat-color:#f59e0b; background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s;"><div class="stat-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;"><div class="stat-card-icon" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(245,158,11,0.12); color:#f59e0b;">' + icon('alertTriangle', 24) + '</div></div><div class="stat-card-value" style="font-size:2rem; font-weight:800; margin-bottom:4px;">' + lowStock + '</div><div class="stat-card-label" style="color:var(--text-muted); font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Low Stock Alerts</div></div>';
+    
+    html += '<div class="stat-card" style="--stat-color:#10b981; background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s;"><div class="stat-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;"><div class="stat-card-icon" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(16, 185, 129,0.12); color:#10b981;">' + icon('dollarSign', 24) + '</div></div><div class="stat-card-value" style="font-size:2rem; font-weight:800; margin-bottom:4px;">' + pendingCash + '</div><div class="stat-card-label" style="color:var(--text-muted); font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Pending Petty Cash</div></div>';
     html += '</div>';
 
-    html += '<div class="grid-2">';
+    // Department Modules Grid
+    html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">';
+    html += '<h3 style="font-size: 1.4rem; font-weight: 700;">Department Portals</h3>';
+    html += '<span style="font-size:0.9rem; color:var(--text-muted);">Quick access to all ERP modules</span>';
+    html += '</div>';
     
-    // Departments Card
-    html += '<div class="card"><div class="card-header"><h3>🏢 Department Breakdown</h3></div><div class="card-body">';
-    html += '<div style="display:flex; flex-direction:column; gap:12px; max-height: 300px; overflow-y: auto; padding-right: 5px;">';
-    DEPARTMENTS.forEach(function(dept) {
-      var deptCount = users.filter(function(u) { return u.department === dept && u.status === 'active'; }).length;
-      if (deptCount > 0 || ['Production','Warehouse','Sales'].indexOf(dept) !== -1) {
-        html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--bg-secondary); border-radius:var(--radius-sm);">';
-        html += '<span style="font-weight:600">' + dept + '</span>';
-        html += '<span class="badge badge-info">' + deptCount + ' Employees</span>';
-        html += '</div>';
-      }
-    });
-    html += '</div></div></div>';
+    html += '<div class="grid-3" style="gap: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">';
 
-    // System Status Card
-    html += '<div class="card"><div class="card-header"><h3>⚙️ System Modules</h3></div><div class="card-body">';
-    var modules = [
-      { name: 'Human Resources (HR)', status: 'Active', icon: 'users', color: '#6366f1' },
-      { name: 'Inventory & Procurement', status: lowStock > 0 ? lowStock + ' Alerts' : 'Optimized', icon: 'checkCircle', color: lowStock > 0 ? '#f59e0b' : '#22c55e' },
-      { name: 'IT Support', status: openTickets > 0 ? openTickets + ' Open' : 'All Clear', icon: 'checkCircle', color: openTickets > 0 ? '#ef4444' : '#22c55e' },
-      { name: 'Production & Planning', status: 'Active', icon: 'checkCircle', color: '#06b6d4' },
-      { name: 'Sales & CRM', status: 'Active', icon: 'checkCircle', color: '#a855f7' }
-    ];
-    html += '<div style="display:flex; flex-direction:column; gap:12px;">';
-    modules.forEach(function(mod) {
-      html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-md);">';
-      html += '<div style="display:flex; align-items:center; gap:12px;"><div style="color:' + mod.color + '">' + icon(mod.icon, 20) + '</div><span style="font-weight:700">' + mod.name + '</span></div>';
-      html += '<span style="font-size:0.8rem; font-weight:600; color:' + mod.color + '">' + mod.status + '</span>';
-      html += '</div>';
-    });
-    html += '</div></div></div>';
+    // HR Module
+    html += '<div onclick="App.navigateTo(\'reports\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#6366f1\'; this.style.boxShadow=\'0 12px 30px rgba(99,102,241,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(99,102,241,0.1); color: #6366f1; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('users', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Human Resources (HR)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Workforce management, attendance tracking, payroll, and employee requests.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(99,102,241,0.1); color: #6366f1; font-size: 0.8rem; font-weight: 700;">' + activeUsers + ' Employees</span></div>';
+    html += '</div>';
 
-    html += '</div>'; // End grid-2
+    // Inventory Module
+    html += '<div onclick="App.navigateTo(\'inventory\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f59e0b\'; this.style.boxShadow=\'0 12px 30px rgba(245,158,11,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(245,158,11,0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('package', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Warehouse (المخازن)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Monitor stock levels, inventory transactions, and supply shortages.</p>';
+    html += '<div>' + (lowStock > 0 ? '<span style="padding: 6px 12px; border-radius: 20px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 0.8rem; font-weight: 700;">' + lowStock + ' Low Stock</span>' : '<span style="padding: 6px 12px; border-radius: 20px; background: rgba(34,197,94,0.1); color: #22c55e; font-size: 0.8rem; font-weight: 700;">Stock Optimized</span>') + '</div>';
+    html += '</div>';
+
+    // Procurement Module
+    html += '<div onclick="App.navigateTo(\'purchase-requests\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#3b82f6\'; this.style.boxShadow=\'0 12px 30px rgba(59,130,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(59,130,246,0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('shoppingCart', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Procurement (المشتريات)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Manage purchase requests, supplier quotations, and purchase orders.</p>';
+    html += '<div>' + (pendingReqs > 0 ? '<span style="padding: 6px 12px; border-radius: 20px; background: rgba(245,158,11,0.1); color: #f59e0b; font-size: 0.8rem; font-weight: 700;">' + pendingReqs + ' Pending Requests</span>' : '<span style="padding: 6px 12px; border-radius: 20px; background: rgba(34,197,94,0.1); color: #22c55e; font-size: 0.8rem; font-weight: 700;">All Clear</span>') + '</div>';
+    html += '</div>';
+
+    // Finance Module
+    html += '<div onclick="App.navigateTo(\'petty-cash\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#10b981\'; this.style.boxShadow=\'0 12px 30px rgba(16,185,129,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(16,185,129,0.1); color: #10b981; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('dollarSign', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Finance (الحسابات)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Handle petty cash advances, settlements, payroll integration, and general ledger.</p>';
+    html += '<div>' + (pendingCash > 0 ? '<span style="padding: 6px 12px; border-radius: 20px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 0.8rem; font-weight: 700;">' + pendingCash + ' Pending Advances</span>' : '<span style="padding: 6px 12px; border-radius: 20px; background: rgba(34,197,94,0.1); color: #22c55e; font-size: 0.8rem; font-weight: 700;">Up to Date</span>') + '</div>';
+    html += '</div>';
+
+    // IT Module
+    html += '<div onclick="alert(\'IT Support dashboard coming soon!\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#8b5cf6\'; this.style.boxShadow=\'0 12px 30px rgba(139,92,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(139,92,246,0.1); color: #8b5cf6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('monitor', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">IT Support</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Manage system infrastructure, employee support tickets, and hardware maintenance.</p>';
+    html += '<div>' + (openTickets > 0 ? '<span style="padding: 6px 12px; border-radius: 20px; background: rgba(239,68,68,0.1); color: #ef4444; font-size: 0.8rem; font-weight: 700;">' + openTickets + ' Open Tickets</span>' : '<span style="padding: 6px 12px; border-radius: 20px; background: rgba(34,197,94,0.1); color: #22c55e; font-size: 0.8rem; font-weight: 700;">Systems Normal</span>') + '</div>';
+    html += '</div>';
+
+    // Production Module
+    html += '<div onclick="alert(\'Production Management dashboard coming soon!\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#06b6d4\'; this.style.boxShadow=\'0 12px 30px rgba(6,182,212,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(6,182,212,0.1); color: #06b6d4; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('settings', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Production (الإنتاج)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Oversee factory lines, hall managers, and daily production output.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(6,182,212,0.1); color: #06b6d4; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '</div>';
+    
+    html += '</div>'; // End grid
     el.innerHTML = html;
   });
 };
