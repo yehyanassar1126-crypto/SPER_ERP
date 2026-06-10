@@ -594,3 +594,24 @@ CREATE TABLE general_ledger (
   recorded_by TEXT
 );
 
+
+-- ============================================================
+-- 18. LATE DEDUCTIONS (Attendance Sub-module)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS late_deductions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_name TEXT NOT NULL,
+  date DATE NOT NULL,
+  delay_minutes INTEGER NOT NULL,
+  deduction_type TEXT NOT NULL,
+  amount NUMERIC(10,2) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE late_deductions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Late deductions select" ON late_deductions FOR SELECT USING (true);
+CREATE POLICY "Late deductions insert" ON late_deductions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Late deductions update" ON late_deductions FOR UPDATE USING (true);
+CREATE POLICY "Late deductions delete" ON late_deductions FOR DELETE USING (true);
+
