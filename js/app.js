@@ -54,6 +54,7 @@ var App = {
     if (o) o.classList.remove('open');
   },
 
+  isOwner: function () { return App.user && App.user.role === 'owner'; },
   isHR: function () { return App.user && ['owner', 'hr manager', 'hr'].indexOf(App.user.role) !== -1; },
   isManager: function () { return App.user && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager'].indexOf(App.user.role) !== -1; },
   getRoleLevel: function (r) { return r === 'owner' ? 6 : r === 'hr manager' ? 5 : r === 'hr' ? 4 : r === 'hall manager' ? 3 : r === 'department head' ? 2 : 1; },
@@ -295,6 +296,14 @@ var App = {
       ];
     }
 
+    if (App.isOwner()) {
+      menu.unshift({
+        section: 'ERP Control', items: [
+          { id: 'owner-dashboard', label: 'Owner Dashboard', icon: 'globe' }
+        ]
+      });
+    }
+
     var html = '<div class="sidebar-header"><div class="sidebar-logo">' + icon('factory', 20) + '</div><div class="sidebar-brand"><h2>Smart Factory</h2><p>HR Management</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
@@ -431,6 +440,7 @@ var App = {
       case 'expenses': case 'my-expenses': Pages.expenses(el); break;
       case 'complaints': Pages.complaints(el); break;
       case 'offboarding': App.isHR() ? Pages.offboarding(el) : Pages.empDashboard(el); break;
+      case 'owner-dashboard': App.isOwner() ? Pages.ownerDashboard(el) : Pages.hrDashboard(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },
@@ -452,6 +462,73 @@ var App = {
 
 // ========== ALL PAGES ==========
 window.Pages = window.Pages || {};
+// ----- OWNER DASHBOARD -----
+Pages.ownerDashboard = function(el) {
+  el.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner" style="margin-bottom:16px;"></span><p>Loading Owner Control Panel...</p></div>';
+  
+  Promise.all([
+    sbClient.from('users').select('id, department, status'),
+    sbClient.from('attendance').select('id, status, delay_minutes').eq('date', todayStr()),
+    sbClient.from('inventory_items').select('id, name, quantity, min_quantity, category'),
+    sbClient.from('it_tickets').select('id, status, priority')
+  ]).then(function(results) {
+    var users = results[0].data || [];
+    var attendance = results[1].data || [];
+    var inventory = results[2].data || [];
+    var tickets = results[3].data || [];
+    
+    var activeUsers = users.filter(function(u) { return u.status === 'active'; }).length;
+    var presentCount = attendance.filter(function(a) { return a.status === 'present' || a.status === 'checked_in'; }).length;
+    var lowStock = inventory.filter(function(i) { return i.quantity <= i.min_quantity; }).length;
+    var openTickets = tickets.filter(function(t) { return t.status !== 'resolved'; }).length;
+    
+    var html = '<div class="card"><div class="card-header"><div><h3>🌍 General Manager Overview</h3><p>Enterprise Resource Planning (ERP) Status</p></div></div></div>';
+    
+    html += '<div class="stats-grid" style="margin-bottom: 24px;">';
+    html += '<div class="stat-card" style="--stat-color:#6366f1"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(99,102,241,0.12)">' + icon('users', 20) + '</div></div><div class="stat-card-value">' + activeUsers + '</div><div class="stat-card-label">Total Employees</div></div>';
+    html += '<div class="stat-card" style="--stat-color:#22c55e"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(34,197,94,0.12)">' + icon('calendarCheck', 20) + '</div></div><div class="stat-card-value">' + presentCount + '</div><div class="stat-card-label">Present Today</div></div>';
+    html += '<div class="stat-card" style="--stat-color:#f59e0b"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(245,158,11,0.12)">' + icon('alertTriangle', 20) + '</div></div><div class="stat-card-value">' + lowStock + '</div><div class="stat-card-label">Low Stock Alerts</div></div>';
+    html += '<div class="stat-card" style="--stat-color:#ef4444"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,0.12)">' + icon('messageSquare', 20) + '</div></div><div class="stat-card-value">' + openTickets + '</div><div class="stat-card-label">Open IT Tickets</div></div>';
+    html += '</div>';
+
+    html += '<div class="grid-2">';
+    
+    // Departments Card
+    html += '<div class="card"><div class="card-header"><h3>🏢 Department Breakdown</h3></div><div class="card-body">';
+    html += '<div style="display:flex; flex-direction:column; gap:12px; max-height: 300px; overflow-y: auto; padding-right: 5px;">';
+    DEPARTMENTS.forEach(function(dept) {
+      var deptCount = users.filter(function(u) { return u.department === dept && u.status === 'active'; }).length;
+      if (deptCount > 0 || ['Production','Warehouse','Sales'].indexOf(dept) !== -1) {
+        html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--bg-secondary); border-radius:var(--radius-sm);">';
+        html += '<span style="font-weight:600">' + dept + '</span>';
+        html += '<span class="badge badge-info">' + deptCount + ' Employees</span>';
+        html += '</div>';
+      }
+    });
+    html += '</div></div></div>';
+
+    // System Status Card
+    html += '<div class="card"><div class="card-header"><h3>⚙️ System Modules</h3></div><div class="card-body">';
+    var modules = [
+      { name: 'Human Resources (HR)', status: 'Active', icon: 'users', color: '#6366f1' },
+      { name: 'Inventory & Procurement', status: lowStock > 0 ? lowStock + ' Alerts' : 'Optimized', icon: 'checkCircle', color: lowStock > 0 ? '#f59e0b' : '#22c55e' },
+      { name: 'IT Support', status: openTickets > 0 ? openTickets + ' Open' : 'All Clear', icon: 'checkCircle', color: openTickets > 0 ? '#ef4444' : '#22c55e' },
+      { name: 'Production & Planning', status: 'Active', icon: 'checkCircle', color: '#06b6d4' },
+      { name: 'Sales & CRM', status: 'Active', icon: 'checkCircle', color: '#a855f7' }
+    ];
+    html += '<div style="display:flex; flex-direction:column; gap:12px;">';
+    modules.forEach(function(mod) {
+      html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid var(--border-color); border-radius:var(--radius-md);">';
+      html += '<div style="display:flex; align-items:center; gap:12px;"><div style="color:' + mod.color + '">' + icon(mod.icon, 20) + '</div><span style="font-weight:700">' + mod.name + '</span></div>';
+      html += '<span style="font-size:0.8rem; font-weight:600; color:' + mod.color + '">' + mod.status + '</span>';
+      html += '</div>';
+    });
+    html += '</div></div></div>';
+
+    html += '</div>'; // End grid-2
+    el.innerHTML = html;
+  });
+};
 
 // ----- HR DASHBOARD -----
 Pages.hrDashboard = function (el) {
