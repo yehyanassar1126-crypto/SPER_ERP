@@ -798,7 +798,9 @@ Pages.purchaseRequests = function(el) {
     });
     body += '</datalist></div>';
     
-    body += '<div class="form-field"><label>Quantity Required *</label><input type="number" id="pr-qty" class="form-input" min="0.01" step="0.01" value="1"></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Quantity Required *</label><input type="number" id="pr-qty" class="form-input" min="0.01" step="0.01" value="1"></div>';
+    body += '<div class="form-field"><label>Estimated Price (السعر المتوقع)</label><input type="number" id="pr-price" class="form-input" min="0" step="0.01" placeholder="Optional"></div></div>';
+    body += '<div class="form-field"><label>Supplier Name (اسم المورد)</label><input type="text" id="pr-supplier" class="form-input" placeholder="Optional"></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-pr-btn">Submit Request</button>';
     App.showModal('New Purchase Request', body, footer);
@@ -806,6 +808,9 @@ Pages.purchaseRequests = function(el) {
     document.getElementById('save-pr-btn').addEventListener('click', function() {
       var nameInput = document.getElementById('pr-item-name').value;
       var qty = parseFloat(document.getElementById('pr-qty').value);
+      var price = parseFloat(document.getElementById('pr-price').value) || 0;
+      var supplier = document.getElementById('pr-supplier').value;
+      
       if(!nameInput || !qty || isNaN(qty)) return alert('Please provide item name and quantity');
 
       var matchedItem = inventoryItems.find(function(i) { return i.name.toLowerCase() === nameInput.toLowerCase(); });
@@ -813,6 +818,7 @@ Pages.purchaseRequests = function(el) {
 
       sbClient.from('purchase_requests').insert([{
         item_id: itemId, item_name: nameInput, requested_quantity: qty,
+        supplier_name: supplier, estimated_price: price,
         requested_by: App.user.full_name, status: 'pending_warehouse'
       }]).then(function(r) {
         if(r.error) return alert(r.error.message);
