@@ -483,6 +483,7 @@ var App = {
       case 'inventory': Pages.inventory(el); break;
       case 'purchase-requests': Pages.purchaseRequests(el); break;
       case 'petty-cash': Pages.pettyCash(el); break;
+      case 'it-tickets': Pages.itTickets(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },
