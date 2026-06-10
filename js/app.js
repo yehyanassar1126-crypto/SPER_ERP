@@ -7,6 +7,48 @@ var App = {
   init: function () {
     App.user = null;
     localStorage.removeItem('hr_portal_user');
+
+    // One-time migration for leaves from 1/6/2026
+    if (!localStorage.getItem('migrated_leaves_1_6_2026')) {
+      localStorage.setItem('migrated_leaves_1_6_2026', 'true');
+      setTimeout(function() {
+        if (typeof sbClient !== 'undefined') {
+          sbClient.from('leave_requests').select('*').eq('status', 'approved').gte('start_date', '2026-06-01').then(function(res) {
+            if (res.data) {
+              res.data.forEach(function(l) {
+                var sDate = new Date(l.start_date);
+                var eDate = new Date(l.end_date);
+                var duration = Math.ceil((eDate - sDate) / 86400000) + 1;
+                var attRecords = [];
+                for (var d = new Date(sDate); d <= eDate; d.setDate(d.getDate() + 1)) {
+                  if (l.days !== 0.5 && duration < 7 && d.getDay() === 5) continue;
+                  var dateStr = d.toISOString().substring(0, 10);
+                  attRecords.push({
+                    employee_id: l.employee_id,
+                    employee_name: l.employee_name,
+                    department: l.department,
+                    date: dateStr,
+                    check_in: '00:00',
+                    check_out: '00:00',
+                    shift: 'morning',
+                    working_hours: 0,
+                    delay_minutes: 0,
+                    status: 'leave'
+                  });
+                }
+                if (attRecords.length > 0) {
+                  var dates = attRecords.map(function(r) { return r.date; });
+                  sbClient.from('attendance').delete().eq('employee_id', l.employee_id).in('date', dates).then(function() {
+                    sbClient.from('attendance').insert(attRecords).then(function() {});
+                  });
+                }
+              });
+            }
+          });
+        }
+      }, 3000);
+    }
+
     if (App.user) {
       App.loadNotifications();
       App.renderApp();
@@ -306,7 +348,7 @@ var App = {
 
     var canViewInventory = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'hall manager' || App.isOwner() || App.isHR());
     var canViewProcurement = App.isManager() || App.isOwner() || (App.user && (App.user.department === 'Procurement' || App.user.role === 'procurement manager' || App.user.role === 'procurement specialist'));
-    
+
     if (canViewInventory || canViewProcurement) {
       var opItems = [];
       if (canViewInventory) opItems.push({ id: 'inventory', label: 'Inventory (المخازن)', icon: 'package' });
@@ -314,7 +356,7 @@ var App = {
       if (canViewProcurement) {
         opItems.push({ id: 'petty-cash', label: 'Petty Cash (العهد والتسويات)', icon: 'dollarSign' });
       }
-      
+
       menu.push({
         section: 'Operations & Logistics', items: opItems
       });
@@ -506,9 +548,9 @@ var App = {
 // ========== ALL PAGES ==========
 window.Pages = window.Pages || {};
 // ----- OWNER DASHBOARD -----
-Pages.ownerDashboard = function(el) {
+Pages.ownerDashboard = function (el) {
   el.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner" style="margin-bottom:16px;"></span><p>Loading Enterprise Command Center...</p></div>';
-  
+
   Promise.all([
     sbClient.from('users').select('id, department, status'),
     sbClient.from('attendance').select('id, status, delay_minutes').eq('date', todayStr()),
@@ -516,21 +558,21 @@ Pages.ownerDashboard = function(el) {
     sbClient.from('it_tickets').select('id, status, priority'),
     sbClient.from('purchase_requests').select('id, status'),
     sbClient.from('purchase_orders').select('id, status')
-  ]).then(function(results) {
+  ]).then(function (results) {
     var users = results[0].data || [];
     var attendance = results[1].data || [];
     var inventory = results[2].data || [];
     var tickets = results[3].data || [];
     var purchReq = results[4].data || [];
     var purchOrd = results[5].data || [];
-    
-    var activeUsers = users.filter(function(u) { return u.status === 'active'; }).length;
-    var presentCount = attendance.filter(function(a) { return a.status === 'present' || a.status === 'checked_in'; }).length;
-    var lowStock = inventory.filter(function(i) { return i.quantity <= i.min_quantity; }).length;
-    var openTickets = tickets.filter(function(t) { return t.status !== 'resolved'; }).length;
-    var pendingReqs = purchReq.filter(function(r) { return r.status === 'pending'; }).length;
-    var pendingCash = purchOrd.filter(function(o) { return o.status === 'pending_approval'; }).length;
-    
+
+    var activeUsers = users.filter(function (u) { return u.status === 'active'; }).length;
+    var presentCount = attendance.filter(function (a) { return a.status === 'present' || a.status === 'checked_in'; }).length;
+    var lowStock = inventory.filter(function (i) { return i.quantity <= i.min_quantity; }).length;
+    var openTickets = tickets.filter(function (t) { return t.status !== 'resolved'; }).length;
+    var pendingReqs = purchReq.filter(function (r) { return r.status === 'pending'; }).length;
+    var pendingCash = purchOrd.filter(function (o) { return o.status === 'pending_approval'; }).length;
+
     var html = '<div class="owner-hero" style="background: linear-gradient(135deg, #0f172a, #3b82f6); border-radius: var(--radius-xl); padding: 40px; color: white; margin-bottom: 32px; box-shadow: 0 20px 40px rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between; overflow: hidden; position: relative;">';
     html += '<div style="position:relative; z-index:2;">';
     html += '<h1 style="font-size: 2.2rem; margin-bottom: 10px; color: white; font-weight: 800; letter-spacing: -0.5px;">Enterprise Command Center</h1>';
@@ -538,15 +580,15 @@ Pages.ownerDashboard = function(el) {
     html += '</div>';
     html += '<div style="font-size: 120px; opacity: 0.1; position: absolute; right: 20px; top: -10px; transform: rotate(-15deg); pointer-events: none;">🏢</div>';
     html += '</div>';
-    
+
     // Key Metrics Grid
     html += '<div class="stats-grid" style="margin-bottom: 32px;">';
     html += '<div class="stat-card" style="--stat-color:#6366f1; background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s;"><div class="stat-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;"><div class="stat-card-icon" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(99,102,241,0.12); color:#6366f1;">' + icon('users', 24) + '</div></div><div class="stat-card-value" style="font-size:2rem; font-weight:800; margin-bottom:4px;">' + activeUsers + '</div><div class="stat-card-label" style="color:var(--text-muted); font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Active Workforce</div></div>';
-    
+
     html += '<div class="stat-card" style="--stat-color:#22c55e; background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s;"><div class="stat-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;"><div class="stat-card-icon" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(34,197,94,0.12); color:#22c55e;">' + icon('calendarCheck', 24) + '</div></div><div class="stat-card-value" style="font-size:2rem; font-weight:800; margin-bottom:4px;">' + presentCount + '</div><div class="stat-card-label" style="color:var(--text-muted); font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Present Today</div></div>';
-    
+
     html += '<div class="stat-card" style="--stat-color:#f59e0b; background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s;"><div class="stat-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;"><div class="stat-card-icon" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(245,158,11,0.12); color:#f59e0b;">' + icon('alertTriangle', 24) + '</div></div><div class="stat-card-value" style="font-size:2rem; font-weight:800; margin-bottom:4px;">' + lowStock + '</div><div class="stat-card-label" style="color:var(--text-muted); font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Low Stock Alerts</div></div>';
-    
+
     html += '<div class="stat-card" style="--stat-color:#10b981; background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s;"><div class="stat-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;"><div class="stat-card-icon" style="width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(16, 185, 129,0.12); color:#10b981;">' + icon('dollarSign', 24) + '</div></div><div class="stat-card-value" style="font-size:2rem; font-weight:800; margin-bottom:4px;">' + pendingCash + '</div><div class="stat-card-label" style="color:var(--text-muted); font-size:0.9rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;">Pending Petty Cash</div></div>';
     html += '</div>';
 
@@ -555,7 +597,7 @@ Pages.ownerDashboard = function(el) {
     html += '<h3 style="font-size: 1.4rem; font-weight: 700;">Department Portals</h3>';
     html += '<span style="font-size:0.9rem; color:var(--text-muted);">Quick access to all ERP modules</span>';
     html += '</div>';
-    
+
     html += '<div class="grid-3" style="gap: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">';
 
     // HR Module
@@ -629,7 +671,7 @@ Pages.ownerDashboard = function(el) {
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Quality control checks, defect tracking, and factory standard compliance.</p>';
     html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(20,184,166,0.1); color: #14b8a6; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
     html += '</div>';
-    
+
     html += '</div>'; // End grid
     el.innerHTML = html;
   });
@@ -1197,7 +1239,7 @@ Pages.employees = function (el) {
       'Safety & Security Officer (أمن وسلامة)', 'Secretary (سكرتارية)',
       'Employee (موظف عادي)'
     ];
-    positionsList.forEach(function(p) {
+    positionsList.forEach(function (p) {
       body += '<option value="' + p + '"' + (currentPos === p ? ' selected' : '') + '>' + p + '</option>';
     });
     body += '</select></div><div></div></div>';
@@ -1309,24 +1351,24 @@ Pages.employees = function (el) {
         var passInputValue = document.getElementById('ef-password') ? document.getElementById('ef-password').value : 'emp123';
         if (!form.username) { alert('Username is required'); return; }
         if (!passInputValue) { alert('Password is required'); return; }
-        
-        sbClient.from('users').select('employee_id').then(function(res) {
+
+        sbClient.from('users').select('employee_id').then(function (res) {
           var allIds = res.data || [];
           var maxNum = 0;
-          allIds.forEach(function(u) {
+          allIds.forEach(function (u) {
             if (u.employee_id && u.employee_id.indexOf('EMP-') === 0) {
               var num = parseInt(u.employee_id.replace('EMP-', ''), 10);
               if (!isNaN(num) && num > maxNum) maxNum = num;
             }
           });
           var nextEmpId = 'EMP-' + String(maxNum + 1).padStart(3, '0');
-          
+
           var newEmp = Object.assign({ employee_id: nextEmpId, status: 'active', avatar_color: 'hsl(' + Math.floor(Math.random() * 360) + ',60%,50%)', password_hash: passInputValue }, form);
           sbClient.from('users').insert([newEmp]).select().single().then(function (r) {
             if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); return; }
-            if (r.data) { 
-              employees.push(r.data); 
-              render(); 
+            if (r.data) {
+              employees.push(r.data);
+              render();
               showToast('Employee added!', 'success');
             }
           });
@@ -1370,7 +1412,7 @@ Pages.attendance = function (el) {
     var html = '<div class="toolbar">';
     if (isHR) html += '<div class="search-wrapper"><span class="search-icon">' + icon('search') + '</span><input type="text" class="search-input" placeholder="Search by name..." id="att-search" value="' + (search || '').replace(/"/g, '&quot;') + '"></div>';
     if (isHR) { html += '<select class="filter-select" id="att-dept"><option value="">All Departments</option>'; DEPARTMENTS.forEach(function (d) { html += '<option value="' + d + '"' + (deptFilter === d ? ' selected' : '') + '>' + d + '</option>'; }); html += '</select>'; }
-    html += '<input type="date" class="filter-select" id="att-date" value="' + dateFilter + '"><select class="filter-select" id="att-status"><option value=""' + (statusFilter === '' ? ' selected' : '') + '>All Status</option><option value="present"' + (statusFilter === 'present' ? ' selected' : '') + '>Present</option><option value="checked_in"' + (statusFilter === 'checked_in' ? ' selected' : '') + '>Checked In</option><option value="absent"' + (statusFilter === 'absent' ? ' selected' : '') + '>Absent</option></select>';
+    html += '<input type="date" class="filter-select" id="att-date" value="' + dateFilter + '"><select class="filter-select" id="att-status"><option value=""' + (statusFilter === '' ? ' selected' : '') + '>All Status</option><option value="present"' + (statusFilter === 'present' ? ' selected' : '') + '>Present</option><option value="checked_in"' + (statusFilter === 'checked_in' ? ' selected' : '') + '>Checked In</option><option value="absent"' + (statusFilter === 'absent' ? ' selected' : '') + '>Absent</option><option value="leave"' + (statusFilter === 'leave' ? ' selected' : '') + '>Leave (اجازة)</option></select>';
     html += '<button class="btn btn-outline" id="att-export">' + icon('download') + ' Export</button></div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>' + (isHR ? 'Attendance Records' : 'My Attendance History') + '</h3><p>' + data.length + ' records</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
@@ -1382,9 +1424,10 @@ Pages.attendance = function (el) {
       html += '<td>' + formatDate(r.date) + '</td><td>' + formatTime(r.check_in) + '</td><td>' + formatTime(r.check_out) + '</td>';
       html += '<td><span class="shift-badge shift-' + r.shift + '">' + icon('clock', 11) + ' ' + r.shift + '</span></td>';
       html += '<td>' + (r.working_hours ? r.working_hours + 'h' : '—') + '</td>';
-      html += '<td>' + (r.delay_minutes > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + icon('alertTriangle') + ' ' + formatDelay(r.delay_minutes) + '</span>' : '<span style="color:var(--accent-success)">On time</span>') + '</td>';
-      var badge = r.status === 'present' ? 'badge-success' : r.status === 'checked_in' ? 'badge-info' : 'badge-danger';
-      html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + r.status.replace('_', ' ') + '</span></td></tr>';
+      html += '<td>' + (r.status === 'leave' ? '—' : (r.delay_minutes > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + icon('alertTriangle') + ' ' + formatDelay(r.delay_minutes) + '</span>' : '<span style="color:var(--accent-success)">On time</span>')) + '</td>';
+      var badge = r.status === 'present' ? 'badge-success' : r.status === 'checked_in' ? 'badge-info' : r.status === 'leave' ? 'badge-warning' : 'badge-danger';
+      var statusText = r.status === 'leave' ? 'Leave (اجازة)' : r.status.replace('_', ' ');
+      html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + statusText + '</span></td></tr>';
     });
     if (data.length === 0) html += '<tr><td colspan="' + (isHR ? 9 : 7) + '" style="text-align:center;padding:40px;color:var(--text-muted)">No attendance records found</td></tr>';
     html += '</tbody></table></div></div></div>';
@@ -1522,7 +1565,7 @@ Pages.qrCheckin = function (el) {
 
             delayMin = 0;
             var roleLC = (user.role || '').toLowerCase();
-            
+
             if (roleLC === 'hr manager') {
               // HR Manager is completely exempt
               detectedShiftKey = 'morning';
@@ -1603,7 +1646,7 @@ Pages.qrCheckin = function (el) {
             checkedOut = true;
             checkOutTime = timeNow;
             var diff = ((timeNow - checkInTime) / 3600000).toFixed(2);
-            
+
             if (user.role === 'hr' || user.role === 'manager' || user.role === 'owner') {
               var actualHours = parseFloat(diff);
               if (actualHours < 8) {
@@ -1612,7 +1655,7 @@ Pages.qrCheckin = function (el) {
                 if (baseSal > 0 && missingMinutes > 0) {
                   var minuteRate = (baseSal / 26 / 8 / 60);
                   var penaltyAmount = (missingMinutes * minuteRate).toFixed(2);
-                  
+
                   sbClient.from('salary_adjustments').insert({
                     employee_id: user.id,
                     amount: penaltyAmount,
@@ -1621,10 +1664,10 @@ Pages.qrCheckin = function (el) {
                     month: new Date().toISOString().substring(0, 7),
                     status: 'approved',
                     created_at: new Date().toISOString()
-                  }).then(function(r) {
+                  }).then(function (r) {
                     if (r && r.error) console.error("Penalty insertion error:", r.error);
                   });
-                  
+
                   App.addNotification({
                     user_id: user.id,
                     type: 'late_deduction',
@@ -1636,7 +1679,7 @@ Pages.qrCheckin = function (el) {
               }
               diff = '8.00'; // HR and Managers get automatic 8 hours for attendance stats
             }
-            
+
             if (currentRecordId) {
               sbClient.from('attendance').update({ check_out: timeNow.toISOString(), working_hours: Number(diff) }).eq('id', currentRecordId).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
             }
@@ -1799,15 +1842,44 @@ Pages.leaves = function (el) {
     sbClient.from('leave_requests').update({ status: action, approved_by: App.user.full_name }).eq('id', id).then(function (r) {
       if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); return; }
 
-      // If approved Annual leave, deduct from user's balance
-      if (action === 'approved' && l.type === 'Annual') {
-        sbClient.from('users').select('annual_leave_balance').eq('id', l.employee_id).single().then(function (res) {
-          if (res.data) {
-            var currentBalance = res.data.annual_leave_balance !== null ? res.data.annual_leave_balance : 24;
-            var newBalance = Math.max(0, currentBalance - l.days);
-            sbClient.from('users').update({ annual_leave_balance: newBalance }).eq('id', l.employee_id).then(function (uRes) { });
-          }
-        });
+      if (action === 'approved') {
+        if (l.type === 'Annual') {
+          sbClient.from('users').select('annual_leave_balance').eq('id', l.employee_id).single().then(function (res) {
+            if (res.data) {
+              var currentBalance = res.data.annual_leave_balance !== null ? res.data.annual_leave_balance : 24;
+              var newBalance = Math.max(0, currentBalance - l.days);
+              sbClient.from('users').update({ annual_leave_balance: newBalance }).eq('id', l.employee_id).then(function (uRes) { });
+            }
+          });
+        }
+
+        var sDate = new Date(l.start_date);
+        var eDate = new Date(l.end_date);
+        var duration = Math.ceil((eDate - sDate) / 86400000) + 1;
+        var attRecords = [];
+        for (var d = new Date(sDate); d <= eDate; d.setDate(d.getDate() + 1)) {
+           if (l.days !== 0.5 && duration < 7 && d.getDay() === 5) continue;
+           var dateStr = d.toISOString().substring(0, 10);
+           attRecords.push({
+             employee_id: l.employee_id,
+             employee_name: l.employee_name,
+             department: l.department,
+             date: dateStr,
+             check_in: '00:00',
+             check_out: '00:00',
+             shift: 'morning',
+             working_hours: 0,
+             delay_minutes: 0,
+             status: 'leave'
+           });
+        }
+
+        if (attRecords.length > 0) {
+           var dates = attRecords.map(function(r) { return r.date; });
+           sbClient.from('attendance').delete().eq('employee_id', l.employee_id).in('date', dates).then(function() {
+               sbClient.from('attendance').insert(attRecords).then(function() {});
+           });
+        }
       }
     });
 
@@ -2301,6 +2373,7 @@ Pages.payroll = function (el) {
               var earnedSoFar = 0;
               var totalLateDeduction = 0;
               attRecords.forEach(function (att) {
+                if (att.status === 'leave') return;
                 var dm = att.delay_minutes || 0;
                 var lateDed = 0;
                 if (dm > 360) lateDed = dailyRate * 1;
