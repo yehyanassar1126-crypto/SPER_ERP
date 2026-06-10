@@ -993,10 +993,13 @@ Pages.employees = function (el) {
       return matchSearch && matchDept;
     });
 
+    var isHR = App.isHR();
     var html = '<div class="toolbar"><div class="search-wrapper"><span class="search-icon">' + icon('search') + '</span><input type="text" class="search-input" placeholder="Search by name, ID or email..." id="emp-search" value="' + (search || '').replace(/"/g, '&quot;') + '"></div>';
     html += '<select class="filter-select" id="emp-dept-filter"><option value="">All Departments</option>';
     DEPARTMENTS.forEach(function (d) { html += '<option value="' + d + '"' + (deptFilter === d ? ' selected' : '') + '>' + d + '</option>'; });
-    html += '</select><button class="btn btn-primary" id="add-emp-btn">' + icon('plus') + ' Add Employee</button></div>';
+    html += '</select>';
+    if (isHR) html += '<button class="btn btn-primary" id="add-emp-btn">' + icon('plus') + ' Add Employee</button>';
+    html += '</div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>All Employees</h3><p>' + filtered.length + ' employees found</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr><th>Employee</th><th>ID</th><th>Department</th><th>Position</th><th>Shift System</th><th>Shift</th><th>Status</th><th>Docs</th><th>Actions</th></tr></thead><tbody>';
     filtered.forEach(function (emp) {
@@ -1011,7 +1014,9 @@ Pages.employees = function (el) {
       html += '<td><span class="badge badge-success"><span class="badge-dot"></span>' + emp.status + '</span></td>';
       var docsHtml = emp.documents_complete ? '<span class="badge badge-info" style="cursor:pointer" data-doc-complete="' + emp.id + '" title="View Documents">' + icon('checkCheck', 12) + ' Complete</span>' : '<button class="btn btn-xs btn-warning" data-doc-complete="' + emp.id + '" title="Manage Documents">?? Missing</button>';
       html += '<td>' + docsHtml + '</td>';
-      html += '<td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-icon" data-view="' + emp.id + '" title="View">' + icon('eye') + '</button><button class="btn btn-ghost btn-icon" data-edit="' + emp.id + '" title="Edit">' + icon('edit') + '</button><button class="btn btn-ghost btn-icon" data-del="' + emp.id + '" title="Delete" style="color:var(--accent-danger)">' + icon('trash') + '</button></div></td></tr>';
+      html += '<td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-icon" data-view="' + emp.id + '" title="View">' + icon('eye') + '</button>';
+      if (isHR) html += '<button class="btn btn-ghost btn-icon" data-edit="' + emp.id + '" title="Edit">' + icon('edit') + '</button><button class="btn btn-ghost btn-icon" data-del="' + emp.id + '" title="Delete" style="color:var(--accent-danger)">' + icon('trash') + '</button>';
+      html += '</div></td></tr>';
     });
     if (filtered.length === 0) html += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No employees found</td></tr>';
     html += '</tbody></table></div></div></div>';
@@ -1027,19 +1032,24 @@ Pages.employees = function (el) {
     // Events
     document.getElementById('emp-search').addEventListener('input', function () { search = this.value; render(); });
     document.getElementById('emp-dept-filter').addEventListener('change', function () { deptFilter = this.value; render(); });
-    document.getElementById('add-emp-btn').addEventListener('click', function () { showEmpModal(); });
+    if (isHR) {
+      var addBtn = document.getElementById('add-emp-btn');
+      if (addBtn) addBtn.addEventListener('click', function () { showEmpModal(); });
+    }
     document.querySelectorAll('[data-view]').forEach(function (btn) { btn.addEventListener('click', function () { showEmpView(this.getAttribute('data-view')); }); });
-    document.querySelectorAll('[data-edit]').forEach(function (btn) { btn.addEventListener('click', function () { showEmpModal(this.getAttribute('data-edit')); }); });
-    document.querySelectorAll('[data-del]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var id = this.getAttribute('data-del');
-        if (confirm('Are you sure you want to remove this employee?')) {
-          sbClient.from('users').delete().eq('id', id).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
-          employees = employees.filter(function (e) { return e.id !== id; });
-          render();
-        }
+    if (isHR) {
+      document.querySelectorAll('[data-edit]').forEach(function (btn) { btn.addEventListener('click', function () { showEmpModal(this.getAttribute('data-edit')); }); });
+      document.querySelectorAll('[data-del]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = this.getAttribute('data-del');
+          if (confirm('Are you sure you want to remove this employee?')) {
+            sbClient.from('users').delete().eq('id', id).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
+            employees = employees.filter(function (e) { return e.id !== id; });
+            render();
+          }
+        });
       });
-    });
+    }
 
     // Document Checklist
     document.querySelectorAll('[data-doc-complete]').forEach(function (btn) {
