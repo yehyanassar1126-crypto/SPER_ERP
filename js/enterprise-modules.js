@@ -1095,7 +1095,7 @@ Pages.pettyCash = function(el) {
 // MODULE 11: IT Tickets & Support
 // ==========================================
 Pages.itTickets = function(el) {
-  var isIT = App.user && (App.user.department === 'IT' || App.isOwner());
+  var isIT = App.user && (App.user.department === 'IT' || App.isOwner() || App.isHR());
   var tickets = [];
 
   function loadData() {

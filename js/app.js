@@ -329,7 +329,7 @@ var App = {
       });
     }
 
-    var canViewIT = App.isManager() || App.isOwner() || (App.user && App.user.department === 'IT');
+    var canViewIT = App.isManager() || App.isHR() || App.isOwner() || (App.user && App.user.department === 'IT');
     if (canViewIT) {
       menu.push({
         section: 'IT & Support', items: [
