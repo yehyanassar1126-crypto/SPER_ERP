@@ -299,7 +299,7 @@ var App = {
     if (App.isOwner()) {
       menu.unshift({
         section: 'ERP Control', items: [
-          { id: 'owner-dashboard', label: 'Owner Dashboard', icon: 'globe' }
+          { id: 'owner-dashboard', label: 'Owner Dashboard (لوحة المالك)', icon: 'globe' }
         ]
       });
     }
@@ -309,8 +309,8 @@ var App = {
     
     if (canViewInventory || canViewProcurement) {
       var opItems = [];
-      if (canViewInventory) opItems.push({ id: 'inventory', label: 'Inventory & Stock', icon: 'package' });
-      if (canViewProcurement) opItems.push({ id: 'purchase-requests', label: 'Purchase Requests', icon: 'shoppingCart' });
+      if (canViewInventory) opItems.push({ id: 'inventory', label: 'Inventory (المخازن)', icon: 'package' });
+      if (canViewProcurement) opItems.push({ id: 'purchase-requests', label: 'Purchase Requests (المشتريات)', icon: 'shoppingCart' });
       
       menu.push({
         section: 'Operations & Logistics', items: opItems
