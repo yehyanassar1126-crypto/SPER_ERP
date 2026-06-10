@@ -1474,9 +1474,10 @@ Pages.qrCheckin = function (el) {
             });
 
             delayMin = 0;
-            var flexibleRoles = ['hr', 'hr manager', 'manager', 'owner', 'department head'];
-            if (flexibleRoles.indexOf(user.role) !== -1 || user.role.indexOf('manager') !== -1) {
-              // HR, Managers, and Owner have flexible schedules, no lateness penalties
+            var roleLC = (user.role || '').toLowerCase();
+            var flexibleRoles = ['hr manager', 'manager', 'owner', 'department head'];
+            if (flexibleRoles.indexOf(roleLC) !== -1 || roleLC.indexOf('manager') !== -1) {
+              // Managers and Owner have flexible schedules, no lateness penalties
               detectedShiftKey = 'morning';
               delayMin = 0;
             } else if (bestShiftStart) {
