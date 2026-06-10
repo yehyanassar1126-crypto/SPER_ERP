@@ -1090,3 +1090,128 @@ Pages.pettyCash = function(el) {
 
   loadData();
 };
+
+// ==========================================
+// MODULE 11: IT Tickets & Support
+// ==========================================
+Pages.itTickets = function(el) {
+  var isIT = App.user && (App.user.department === 'IT' || App.isOwner());
+  var tickets = [];
+
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading IT Tickets...</div>';
+    
+    var query = sbClient.from('it_tickets').select('*').order('created_at', {ascending: false});
+    if (!isIT) {
+      query = query.eq('employee_id', App.user.id);
+    }
+    
+    query.then(function(res) {
+      tickets = res.data || [];
+      render();
+    });
+  }
+
+  function render() {
+    var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
+    html += '<h3>IT Support Tickets (طلبات الدعم الفني)</h3>';
+    if (!isIT || true) {
+      html += '<button class="btn btn-primary" onclick="newItTicketModal()">' + icon('plus') + ' Request IT Support</button>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><div class="card-header"><div><h3>IT Requests</h3><p>Manage hardware, software, and network issues</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Employee</th><th>Department</th><th>Issue Type</th><th>Description</th><th>Priority</th><th>Status</th>' + (isIT ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+    
+    if (tickets.length === 0) {
+      html += '<tr><td colspan="' + (isIT ? '8' : '7') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No IT tickets found.</td></tr>';
+    } else {
+      tickets.forEach(function(t) {
+        var statusColor = 'warning'; var statusIcon = 'alertCircle';
+        if(t.status === 'in_progress') { statusColor = 'primary'; statusIcon = 'clock'; }
+        if(t.status === 'resolved') { statusColor = 'success'; statusIcon = 'checkCircle'; }
+        
+        var prioColor = 'secondary';
+        if(t.priority === 'high') prioColor = 'danger';
+        if(t.priority === 'medium') prioColor = 'warning';
+
+        html += '<tr>';
+        html += '<td>' + formatDate(t.created_at) + '</td>';
+        html += '<td style="font-weight:600">' + t.employee_name + '</td>';
+        html += '<td>' + (t.department || '-') + '</td>';
+        html += '<td>' + t.issue_type + '</td>';
+        html += '<td style="max-width:250px;white-space:normal">' + t.description + '</td>';
+        html += '<td><span class="badge badge-' + prioColor + '">' + t.priority.toUpperCase() + '</span></td>';
+        html += '<td><span class="badge badge-' + statusColor + '">' + icon(statusIcon, 12) + ' ' + t.status.replace('_', ' ').toUpperCase() + '</span></td>';
+        
+        if (isIT) {
+          html += '<td>';
+          if (t.status === 'open') {
+            html += '<button class="btn btn-xs btn-primary" onclick="updateITStatus(\'' + t.id + '\', \'in_progress\')">Mark In Progress</button>';
+          } else if (t.status === 'in_progress') {
+            html += '<button class="btn btn-xs btn-success" onclick="updateITStatus(\'' + t.id + '\', \'resolved\')">Resolve</button>';
+          } else {
+            html += '<span style="color:var(--text-muted);font-size:0.8rem">Resolved</span>';
+          }
+          html += '</td>';
+        }
+        
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    el.innerHTML = html;
+  }
+
+  window.updateITStatus = function(id, newStatus) {
+    sbClient.from('it_tickets').update({status: newStatus, assigned_to: App.user.full_name}).eq('id', id).then(function(r) {
+      if(r.error) return alert(r.error.message);
+      loadData();
+      showToast('Ticket marked as ' + newStatus.replace('_', ' '), 'success');
+    });
+  };
+
+  window.newItTicketModal = function() {
+    var body = '<div class="form-row"><div class="form-field"><label>Issue Type (نوع المشكلة) *</label><select id="it-type" class="form-input">';
+    body += '<option value="Hardware">Hardware (أجهزة)</option><option value="Software">Software (برامج)</option><option value="Network">Network (شبكات)</option><option value="Other">Other (أخرى)</option></select></div>';
+    body += '<div class="form-field"><label>Priority (مستوى المشكلة) *</label><select id="it-prio" class="form-input">';
+    body += '<option value="low">Low (سهلة / بسيطة)</option><option value="medium" selected>Medium (متوسطة)</option><option value="high">High (صعبة / طارئة)</option></select></div></div>';
+    body += '<div class="form-field"><label>Description (تفاصيل المشكلة) *</label><textarea id="it-desc" class="form-input" rows="4" placeholder="Describe the issue..."></textarea></div>';
+    
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-it-btn">Submit Request</button>';
+    App.showModal('New IT Request (طلب دعم فني)', body, footer);
+    
+    document.getElementById('save-it-btn').addEventListener('click', function() {
+      var type = document.getElementById('it-type').value;
+      var prio = document.getElementById('it-prio').value;
+      var desc = document.getElementById('it-desc').value.trim();
+      
+      if(!desc) return alert('Please describe the issue');
+      
+      var btn = this;
+      btn.innerHTML = '<span class="spinner"></span> Sending...';
+      btn.disabled = true;
+      
+      sbClient.from('it_tickets').insert([{
+        employee_id: App.user.id,
+        employee_name: App.user.full_name,
+        department: App.user.department,
+        issue_type: type,
+        description: desc,
+        priority: prio,
+        status: 'open'
+      }]).then(function(r) {
+        if(r.error) {
+          btn.innerHTML = 'Submit Request';
+          btn.disabled = false;
+          return alert(r.error.message);
+        }
+        App.closeModal();
+        loadData();
+        showToast('IT Support Request Submitted Successfully', 'success');
+      });
+    });
+  };
+
+  loadData();
+};

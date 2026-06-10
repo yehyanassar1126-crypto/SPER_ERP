@@ -329,6 +329,15 @@ var App = {
       });
     }
 
+    var canViewIT = App.isManager() || App.isOwner() || (App.user && App.user.department === 'IT');
+    if (canViewIT) {
+      menu.push({
+        section: 'IT & Support', items: [
+          { id: 'it-tickets', label: 'IT Support (الدعم الفني)', icon: 'cpu' }
+        ]
+      });
+    }
+
     var html = '<div class="sidebar-header"><div class="sidebar-logo">' + icon('factory', 20) + '</div><div class="sidebar-brand"><h2>Smart Factory</h2><p>HR Management</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
@@ -392,6 +401,7 @@ var App = {
       'inventory': { title: 'Inventory (المخازن)', sub: 'Warehouse Management' },
       'purchase-requests': { title: 'Material Requests (طلبات صرف وشراء)', sub: 'Warehouse and Procurement workflows' },
       'petty-cash': { title: 'Petty Cash (العهد والتسويات)', sub: 'Cash advances & settlements' },
+      'it-tickets': { title: 'IT Support (الدعم الفني)', sub: 'Technical support and issue tracking' },
       'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
