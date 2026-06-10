@@ -501,3 +501,96 @@ CREATE POLICY "IT tickets update policy" ON it_tickets FOR UPDATE USING (true);
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_department_check;
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 -- We allow any string for department and role now to support new departments and roles without breaking the DB.
+
+-- ============================================================
+-- 24. CRM & SALES TABLE
+-- ============================================================
+CREATE TABLE clients (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  company_name TEXT NOT NULL,
+  contact_person TEXT,
+  phone TEXT,
+  email TEXT,
+  address TEXT,
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE sales_orders (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+  order_number TEXT UNIQUE NOT NULL,
+  total_amount NUMERIC(10,2) NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')),
+  created_by TEXT, -- Sales Rep Name
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 25. QUALITY CONTROL (QC) TABLE
+-- ============================================================
+CREATE TABLE qc_inspections (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  reference_type TEXT CHECK (reference_type IN ('incoming_material', 'finished_product')),
+  reference_id UUID, -- Can be purchase_order_id or production_batch_id
+  item_name TEXT NOT NULL,
+  inspector_name TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'passed', 'failed', 'conditional_approval')),
+  notes TEXT,
+  inspection_date TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 26. MAINTENANCE MANAGEMENT TABLE
+-- ============================================================
+CREATE TABLE machines (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  code TEXT UNIQUE,
+  location TEXT,
+  status TEXT DEFAULT 'operational' CHECK (status IN ('operational', 'down', 'under_maintenance')),
+  last_maintenance_date DATE,
+  next_maintenance_date DATE
+);
+
+CREATE TABLE maintenance_logs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  machine_id UUID REFERENCES machines(id) ON DELETE CASCADE,
+  technician_name TEXT,
+  issue_description TEXT,
+  action_taken TEXT,
+  parts_used TEXT, -- Could be linked to inventory_transactions
+  cost NUMERIC(10,2) DEFAULT 0,
+  date TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- 27. FLEET & LOGISTICS TABLE
+-- ============================================================
+CREATE TABLE fleet_vehicles (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  plate_number TEXT UNIQUE NOT NULL,
+  model TEXT,
+  type TEXT,
+  driver_name TEXT,
+  license_expiry DATE,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'in_repair', 'out_of_service'))
+);
+
+-- ============================================================
+-- 28. GENERAL LEDGER (FINANCE) TABLE
+-- ============================================================
+CREATE TABLE general_ledger (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  transaction_date TIMESTAMPTZ DEFAULT NOW(),
+  account_type TEXT CHECK (account_type IN ('asset', 'liability', 'equity', 'revenue', 'expense')),
+  account_name TEXT NOT NULL,
+  description TEXT,
+  debit NUMERIC(12,2) DEFAULT 0,
+  credit NUMERIC(12,2) DEFAULT 0,
+  reference_type TEXT, -- e.g., 'payroll', 'purchase_order', 'sales_order'
+  reference_id UUID,
+  recorded_by TEXT
+);
+

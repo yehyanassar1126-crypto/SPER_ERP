@@ -55,7 +55,7 @@ var App = {
   },
 
   isHR: function () { return App.user && ['owner', 'hr manager', 'hr'].indexOf(App.user.role) !== -1; },
-  isManager: function () { return App.user && ['hall manager', 'department head'].indexOf(App.user.role) !== -1; },
+  isManager: function () { return App.user && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager'].indexOf(App.user.role) !== -1; },
   getRoleLevel: function (r) { return r === 'owner' ? 6 : r === 'hr manager' ? 5 : r === 'hr' ? 4 : r === 'hall manager' ? 3 : r === 'department head' ? 2 : 1; },
 
   showLoginError: function (msg) {
