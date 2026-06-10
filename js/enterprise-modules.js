@@ -452,3 +452,194 @@ Pages.expenses = function (el) {
 
   loadData();
 };
+
+// ==========================================
+// MODULE 8: Inventory Management
+// ==========================================
+Pages.inventory = function(el) {
+  var isWarehouse = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager');
+  var isManagerView = !isWarehouse; // read-only for others (Owner, Hall Manager, HR)
+
+  var items = [];
+  var transactions = [];
+  
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Inventory...</div>';
+    Promise.all([
+      sbClient.from('inventory_items').select('*').order('name'),
+      sbClient.from('inventory_transactions').select('*').order('date', {ascending: false}).limit(100)
+    ]).then(function(res) {
+      items = res[0].data || [];
+      transactions = res[1].data || [];
+      render();
+    });
+  }
+
+  function render() {
+    var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
+    html += '<div style="display:flex; gap:8px;">';
+    html += '<button class="btn btn-sm btn-outline" id="tab-items" style="border-color:var(--accent-primary); color:var(--accent-primary)">Stock & Items (???? ??????)</button>';
+    html += '<button class="btn btn-sm btn-ghost" id="tab-tx">Transactions (???? ???????)</button>';
+    html += '</div>';
+    
+    if (isWarehouse) {
+      html += '<div>';
+      html += '<button class="btn btn-primary" onclick="newInventoryItemModal()" style="margin-right:10px">' + icon('plus') + ' Add New Item</button>';
+      html += '<button class="btn btn-success" onclick="newTransactionModal()">' + icon('refreshCw') + ' Add Transaction (???/?????)</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // 1. Items View
+    html += '<div id="view-items">';
+    html += '<div class="card"><div class="card-header"><div><h3>Current Stock (???? ??????)</h3><p>' + items.length + ' registered items</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Item Name</th><th>Category</th><th>Current Qty</th><th>Min Qty</th><th>Alert</th></tr></thead><tbody>';
+    
+    if (items.length === 0) {
+      html += '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">No items found.</td></tr>';
+    } else {
+      items.forEach(function(item) {
+        var isLow = item.quantity <= item.min_quantity;
+        var rowStyle = isLow ? 'background:rgba(245,158,11,0.05)' : '';
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td style="font-weight:600">' + item.name + '</td>';
+        html += '<td><span class="badge badge-info">' + item.category + '</span></td>';
+        html += '<td style="font-weight:700; font-size:1.1rem; color:' + (isLow ? 'var(--accent-danger)' : 'var(--text-primary)') + '">' + item.quantity + '</td>';
+        html += '<td>' + item.min_quantity + '</td>';
+        
+        if (isLow) {
+          html += '<td><span class="badge badge-danger">?? Low Stock</span></td>';
+        } else {
+          html += '<td><span class="badge badge-success">OK</span></td>';
+        }
+        
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div></div>';
+
+    // 2. Transactions View
+    html += '<div id="view-tx" style="display:none">';
+    html += '<div class="card"><div class="card-header"><div><h3>Inventory Transactions (???? ???????)</h3><p>Recent IN/OUT operations</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Qty</th><th>Requested By</th><th>Processed By</th></tr></thead><tbody>';
+    if (transactions.length === 0) {
+      html += '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No transactions yet.</td></tr>';
+    } else {
+      transactions.forEach(function(tx) {
+        var isOut = tx.transaction_type === 'out';
+        html += '<tr>';
+        html += '<td>' + formatDate(tx.date) + '</td>';
+        html += '<td style="font-weight:600">' + tx.item_name + '</td>';
+        html += '<td><span class="badge badge-' + (isOut ? 'warning' : 'success') + '">' + (isOut ? 'OUT (???)' : 'IN (?????)') + '</span></td>';
+        html += '<td style="font-weight:700">' + (isOut ? '-' : '+') + tx.quantity + '</td>';
+        html += '<td>' + (tx.requested_by || '-') + '</td>';
+        html += '<td>' + (tx.processed_by || '-') + '</td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div></div>';
+
+    el.innerHTML = html;
+
+    // Tabs logic
+    var tabItems = document.getElementById('tab-items');
+    var tabTx = document.getElementById('tab-tx');
+    var viewItems = document.getElementById('view-items');
+    var viewTx = document.getElementById('view-tx');
+
+    if (tabItems && tabTx) {
+      tabItems.addEventListener('click', function() {
+        tabItems.className = 'btn btn-sm btn-outline';
+        tabItems.style.borderColor = 'var(--accent-primary)';
+        tabItems.style.color = 'var(--accent-primary)';
+        tabTx.className = 'btn btn-sm btn-ghost';
+        tabTx.style.borderColor = 'transparent';
+        tabTx.style.color = 'inherit';
+        viewItems.style.display = 'block';
+        viewTx.style.display = 'none';
+      });
+      tabTx.addEventListener('click', function() {
+        tabTx.className = 'btn btn-sm btn-outline';
+        tabTx.style.borderColor = 'var(--accent-primary)';
+        tabTx.style.color = 'var(--accent-primary)';
+        tabItems.className = 'btn btn-sm btn-ghost';
+        tabItems.style.borderColor = 'transparent';
+        tabItems.style.color = 'inherit';
+        viewTx.style.display = 'block';
+        viewItems.style.display = 'none';
+      });
+    }
+  }
+
+  window.newInventoryItemModal = function() {
+    var body = '<div class="form-field"><label>Item Name *</label><input type="text" id="inv-name" class="form-input"></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Category *</label><select id="inv-cat" class="form-input"><option value="Maintenance">Maintenance (??? ???? ?????)</option><option value="Workshop">Workshop (????)</option><option value="Supplies">Supplies (????????)</option><option value="Chemicals">Chemicals (????????)</option><option value="Fixed Assets">Fixed Assets (???? ?????)</option></select></div>';
+    body += '<div class="form-field"><label>Minimum Qty Alert *</label><input type="number" id="inv-min" class="form-input" value="2"></div></div>';
+    
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn">Save Item</button>';
+    App.showModal('Add New Inventory Item', body, footer);
+
+    document.getElementById('save-inv-btn').addEventListener('click', function() {
+      var name = document.getElementById('inv-name').value;
+      var cat = document.getElementById('inv-cat').value;
+      var min = parseInt(document.getElementById('inv-min').value);
+      if(!name) return alert('Name is required');
+
+      sbClient.from('inventory_items').insert([{
+        name: name, category: cat, min_quantity: min || 0, quantity: 0
+      }]).then(function(r) {
+        if (r.error) return alert(r.error.message);
+        App.closeModal();
+        loadData();
+        showToast('Item Added Successfully', 'success');
+      });
+    });
+  };
+
+  window.newTransactionModal = function() {
+    var body = '<div class="form-field"><label>Item *</label><select id="tx-item" class="form-input"><option value="">-- Select Item --</option>';
+    items.forEach(function(i) {
+      body += '<option value="' + i.id + '" data-qty="' + i.quantity + '">' + i.name + ' (Current: ' + i.quantity + ')</option>';
+    });
+    body += '</select></div>';
+    
+    body += '<div class="form-row"><div class="form-field"><label>Type *</label><select id="tx-type" class="form-input"><option value="out">OUT (??? ???????)</option><option value="in">IN (????? ??????)</option></select></div>';
+    body += '<div class="form-field"><label>Quantity *</label><input type="number" id="tx-qty" class="form-input" min="1" value="1"></div></div>';
+    body += '<div class="form-field"><label>Requested By (For OUT only)</label><input type="text" id="tx-req" class="form-input" placeholder="e.g. Production Manager Name"></div>';
+
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-tx-btn">Process Transaction</button>';
+    App.showModal('Inventory Transaction', body, footer);
+
+    document.getElementById('save-tx-btn').addEventListener('click', function() {
+      var select = document.getElementById('tx-item');
+      var itemId = select.value;
+      var itemName = select.options[select.selectedIndex].text.split(' (')[0];
+      var currentQty = parseInt(select.options[select.selectedIndex].getAttribute('data-qty'));
+      
+      var type = document.getElementById('tx-type').value;
+      var qty = parseInt(document.getElementById('tx-qty').value);
+      var reqBy = document.getElementById('tx-req').value;
+
+      if(!itemId || !qty) return alert('Please fill all fields');
+      if(type === 'out' && qty > currentQty) return alert('Not enough stock! Current stock: ' + currentQty);
+
+      var newQty = type === 'in' ? currentQty + qty : currentQty - qty;
+
+      sbClient.from('inventory_items').update({quantity: newQty}).eq('id', itemId).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        
+        sbClient.from('inventory_transactions').insert([{
+          item_id: itemId, item_name: itemName, transaction_type: type, quantity: qty,
+          requested_by: reqBy, processed_by: App.user.full_name
+        }]).then(function(r2) {
+          if(r2.error) return alert(r2.error.message);
+          App.closeModal();
+          loadData();
+          showToast('Transaction processed successfully', 'success');
+        });
+      });
+    });
+  };
+
+  loadData();
+};

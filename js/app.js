@@ -304,6 +304,15 @@ var App = {
       });
     }
 
+    var canViewInventory = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'hall manager' || App.isOwner() || App.isHR());
+    if (canViewInventory) {
+      menu.push({
+        section: 'Operations & Logistics', items: [
+          { id: 'inventory', label: 'Inventory & Stock', icon: 'package' }
+        ]
+      });
+    }
+
     var html = '<div class="sidebar-header"><div class="sidebar-logo">' + icon('factory', 20) + '</div><div class="sidebar-brand"><h2>Smart Factory</h2><p>HR Management</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
@@ -441,6 +450,7 @@ var App = {
       case 'complaints': Pages.complaints(el); break;
       case 'offboarding': App.isHR() ? Pages.offboarding(el) : Pages.empDashboard(el); break;
       case 'owner-dashboard': App.isOwner() ? Pages.ownerDashboard(el) : Pages.hrDashboard(el); break;
+      case 'inventory': Pages.inventory(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },
