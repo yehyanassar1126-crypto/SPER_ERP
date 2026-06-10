@@ -310,7 +310,10 @@ var App = {
     if (canViewInventory || canViewProcurement) {
       var opItems = [];
       if (canViewInventory) opItems.push({ id: 'inventory', label: 'Inventory (المخازن)', icon: 'package' });
-      if (canViewProcurement) opItems.push({ id: 'purchase-requests', label: 'Purchase Requests (المشتريات)', icon: 'shoppingCart' });
+      if (canViewProcurement) {
+        opItems.push({ id: 'purchase-requests', label: 'Purchase Requests (المشتريات)', icon: 'shoppingCart' });
+        opItems.push({ id: 'petty-cash', label: 'Petty Cash (العهد والتسويات)', icon: 'dollarSign' });
+      }
       
       menu.push({
         section: 'Operations & Logistics', items: opItems
@@ -386,6 +389,10 @@ var App = {
       'my-expenses': { title: 'My Expenses', sub: 'Your expense claims' },
       'complaints': { title: 'Grievances & Disciplinary', sub: 'Complaints and disciplinary actions' },
       'offboarding': { title: 'Offboarding', sub: 'Manage employee exit process' },
+      'inventory': { title: 'Inventory (المخازن)', sub: 'Warehouse Management' },
+      'purchase-requests': { title: 'Purchase Requests (المشتريات)', sub: 'Procurement workflows' },
+      'petty-cash': { title: 'Petty Cash (العهد والتسويات)', sub: 'Cash advances & settlements' },
+      'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
