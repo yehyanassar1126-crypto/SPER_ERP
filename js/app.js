@@ -1474,8 +1474,9 @@ Pages.qrCheckin = function (el) {
             });
 
             delayMin = 0;
-            if (user.role === 'hr' || user.role === 'manager' || user.role === 'owner') {
-              // HR and Management have flexible schedules, no lateness penalties
+            var flexibleRoles = ['hr', 'hr manager', 'manager', 'owner', 'department head'];
+            if (flexibleRoles.indexOf(user.role) !== -1 || user.role.indexOf('manager') !== -1) {
+              // HR, Managers, and Owner have flexible schedules, no lateness penalties
               detectedShiftKey = 'morning';
               delayMin = 0;
             } else if (bestShiftStart) {
@@ -1526,20 +1527,7 @@ Pages.qrCheckin = function (el) {
                 }
               });
               // Also save in dedicated late_deductions table
-              sbClient.from('late_deductions').insert([{
-                employee_id: user.id,
-                delay_date: todayStr(),
-                delay_minutes: delayMin,
-                deduction_fraction: deductionFraction,
-                deduction_amount: deductionAmount
-              }]).then(function (r) {
-                if (r.error) {
-                  console.error('late_deductions table error:', r.error);
-                  alert('خطأ في تسجيل التأخير في جدول late_deductions: ' + r.error.message + '\nتأكد إنك عملت الجدول في Supabase.');
-                } else {
-                  console.log('Late deduction saved to late_deductions table.', r.data);
-                }
-              });
+              // (Redundant block removed because salary_adjustments already handles the penalty properly)
               App.addNotification({
                 user_id: user.id,
                 type: 'late_deduction',
