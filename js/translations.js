@@ -22,6 +22,9 @@ const ARABIC_DICT = {
   "My Salary": "راتبي",
   "My Overtime": "وقتي الإضافي",
   "Other": "أخرى",
+  "Technical support and issue tracking": "الدعم الفني ومتابعة الأعطال",
+  "Cash advances & settlements": "العهد والتسويات السلفة",
+  "Warehouse and Procurement workflows": "دورة عمل المخازن والمشتريات",
 
   // Top Bar & Buttons
   "Smart Factory": "المصنع الذكي",
