@@ -707,7 +707,8 @@ Pages.purchaseRequests = function(el) {
   var isProcurementMgr = App.user && App.user.role === 'procurement manager';
   var isProcurementSpec = App.user && App.user.role === 'procurement specialist';
   var isProcurement = isProcurementMgr || isProcurementSpec || App.isOwner();
-  var isManager = App.isManager() && !isProcurement; // regular department manager
+  var isWarehouse = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'hall manager') && !isProcurement;
+  var isManager = App.isManager() && !isProcurement && !isWarehouse;
 
   var requests = [];
   var inventoryItems = [];
@@ -715,7 +716,7 @@ Pages.purchaseRequests = function(el) {
   function loadData() {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Purchase Requests...</div>';
     
-    var reqQuery = isProcurement ? 
+    var reqQuery = (isProcurement || isWarehouse) ? 
       sbClient.from('purchase_requests').select('*').order('created_at', {ascending: false}) :
       sbClient.from('purchase_requests').select('*').eq('requested_by', App.user.full_name).order('created_at', {ascending: false});
 
@@ -737,8 +738,8 @@ Pages.purchaseRequests = function(el) {
     }
     html += '</div>';
 
-    html += '<div class="card"><div class="card-header"><div><h3>Purchase Requisitions</h3><p>Manage requested items and procurement statuses</p></div></div><div class="card-body no-pad">';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Requested By</th><th>Status</th>' + (isProcurement ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header"><div><h3>Material & Purchase Requisitions</h3><p>Manage requested items, warehouse dispensations, and procurement</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Requested By</th><th>Status</th>' + ((isProcurement || isWarehouse) ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
     
     if (requests.length === 0) {
       html += '<tr><td colspan="' + (isProcurement ? '6' : '5') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No purchase requests found.</td></tr>';
@@ -751,16 +752,24 @@ Pages.purchaseRequests = function(el) {
         if(req.status === 'quotation_requested') { statusColor = 'primary'; statusIcon = 'fileText'; }
         if(req.status === 'purchased') { statusColor = 'success'; statusIcon = 'checkCheck'; }
 
+        if(req.status === 'pending_warehouse') { statusColor = 'secondary'; statusIcon = 'package'; }
+        if(req.status === 'dispensed') { statusColor = 'success'; statusIcon = 'checkCheck'; }
+
         html += '<tr>';
         html += '<td>' + formatDate(req.created_at) + '</td>';
         html += '<td style="font-weight:600">' + req.item_name + '</td>';
         html += '<td>' + req.requested_quantity + '</td>';
         html += '<td>' + (req.requested_by || '-') + '</td>';
-        html += '<td><span class="badge badge-' + statusColor + '">' + icon(statusIcon, 12) + ' ' + req.status.replace('_', ' ').toUpperCase() + '</span></td>';
+        var displayStatus = req.status.replace('_', ' ').toUpperCase();
+        if (req.status === 'pending_warehouse') displayStatus = 'PENDING WAREHOUSE';
+        html += '<td><span class="badge badge-' + statusColor + '">' + icon(statusIcon, 12) + ' ' + displayStatus + '</span></td>';
         
-        if (isProcurement) {
+        if (isProcurement || isWarehouse) {
           html += '<td>';
-          if (isProcurementMgr && req.status === 'pending') {
+          if (isWarehouse && req.status === 'pending_warehouse') {
+            html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'dispensed\')">Dispense</button>';
+            html += '<button class="btn btn-xs btn-warning" onclick="updateReqStatus(\'' + req.id + '\', \'pending\')">Send to Procurement</button>';
+          } else if (isProcurementMgr && req.status === 'pending') {
             html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'approved\')">Approve</button>';
             html += '<button class="btn btn-xs btn-danger" onclick="updateReqStatus(\'' + req.id + '\', \'rejected\')">Reject</button>';
           } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'approved') {
@@ -789,22 +798,22 @@ Pages.purchaseRequests = function(el) {
     });
     body += '</datalist></div>';
     
-    body += '<div class="form-field"><label>Quantity Required *</label><input type="number" id="pr-qty" class="form-input" min="1" value="1"></div>';
+    body += '<div class="form-field"><label>Quantity Required *</label><input type="number" id="pr-qty" class="form-input" min="0.01" step="0.01" value="1"></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-pr-btn">Submit Request</button>';
     App.showModal('New Purchase Request', body, footer);
 
     document.getElementById('save-pr-btn').addEventListener('click', function() {
       var nameInput = document.getElementById('pr-item-name').value;
-      var qty = parseInt(document.getElementById('pr-qty').value);
-      if(!nameInput || !qty) return alert('Please provide item name and quantity');
+      var qty = parseFloat(document.getElementById('pr-qty').value);
+      if(!nameInput || !qty || isNaN(qty)) return alert('Please provide item name and quantity');
 
       var matchedItem = inventoryItems.find(function(i) { return i.name.toLowerCase() === nameInput.toLowerCase(); });
       var itemId = matchedItem ? matchedItem.id : null;
 
       sbClient.from('purchase_requests').insert([{
         item_id: itemId, item_name: nameInput, requested_quantity: qty,
-        requested_by: App.user.full_name, status: 'pending'
+        requested_by: App.user.full_name, status: 'pending_warehouse'
       }]).then(function(r) {
         if(r.error) return alert(r.error.message);
         App.closeModal();
