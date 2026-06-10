@@ -1511,15 +1511,26 @@ Pages.qrCheckin = function (el) {
 
             delayMin = 0;
             var roleLC = (user.role || '').toLowerCase();
-            var flexibleRoles = ['hr manager', 'manager', 'owner', 'department head'];
-            if (flexibleRoles.indexOf(roleLC) !== -1 || roleLC.indexOf('manager') !== -1) {
-              // Managers and Owner have flexible schedules, no lateness penalties
+            
+            if (roleLC === 'hr manager') {
+              // HR Manager is completely exempt
               detectedShiftKey = 'morning';
               delayMin = 0;
-            } else if (bestShiftStart) {
-              var diffMs = timeNow - bestShiftStart;
-              if (diffMs > 0) {
-                delayMin = Math.floor(diffMs / 60000);
+            } else {
+              if (detectedShiftKey === 'morning') {
+                var isManagement = ['manager', 'owner', 'department head', 'hall manager', 'hr'].indexOf(roleLC) !== -1 || roleLC.indexOf('manager') !== -1;
+                var expectedHour = isManagement ? 9 : 8;
+                var expectedStart = new Date(timeNow);
+                expectedStart.setHours(expectedHour, 0, 0, 0);
+                var diffMs = timeNow - expectedStart;
+                if (diffMs > 0) {
+                  delayMin = Math.floor(diffMs / 60000);
+                }
+              } else if (bestShiftStart) {
+                var diffMs = timeNow - bestShiftStart;
+                if (diffMs > 0) {
+                  delayMin = Math.floor(diffMs / 60000);
+                }
               }
             }
 
