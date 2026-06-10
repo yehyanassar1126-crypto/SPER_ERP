@@ -9,8 +9,8 @@ var App = {
     localStorage.removeItem('hr_portal_user');
 
     // One-time migration for leaves from 1/6/2026
-    if (!localStorage.getItem('migrated_leaves_1_6_2026')) {
-      localStorage.setItem('migrated_leaves_1_6_2026', 'true');
+    if (!localStorage.getItem('migrated_leaves_1_6_2026_v2')) {
+      localStorage.setItem('migrated_leaves_1_6_2026_v2', 'true');
       setTimeout(function() {
         if (typeof sbClient !== 'undefined') {
           sbClient.from('leave_requests').select('*').eq('status', 'approved').gte('start_date', '2026-06-01').then(function(res) {
@@ -28,8 +28,8 @@ var App = {
                     employee_name: l.employee_name,
                     department: l.department,
                     date: dateStr,
-                    check_in: '00:00',
-                    check_out: '00:00',
+                    check_in: null,
+                    check_out: null,
                     shift: 'morning',
                     working_hours: 0,
                     delay_minutes: 0,
@@ -1865,8 +1865,8 @@ Pages.leaves = function (el) {
              employee_name: l.employee_name,
              department: l.department,
              date: dateStr,
-             check_in: '00:00',
-             check_out: '00:00',
+             check_in: null,
+             check_out: null,
              shift: 'morning',
              working_hours: 0,
              delay_minutes: 0,
