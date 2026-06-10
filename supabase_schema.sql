@@ -391,3 +391,113 @@ ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Expenses view policy" ON expenses FOR SELECT USING (true);
 CREATE POLICY "Expenses insert policy" ON expenses FOR INSERT WITH CHECK (true);
 CREATE POLICY "Expenses update policy" ON expenses FOR UPDATE USING (true);
+
+-- ============================================================
+-- 19. INVENTORY ITEMS TABLE
+-- ============================================================
+CREATE TABLE inventory_items (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('Maintenance', 'Workshop', 'Supplies', 'Chemicals', 'Fixed Assets')),
+  quantity INTEGER DEFAULT 0,
+  min_quantity INTEGER DEFAULT 2,
+  last_purchase_price NUMERIC(10,2) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE inventory_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Inventory items view policy" ON inventory_items FOR SELECT USING (true);
+CREATE POLICY "Inventory items insert policy" ON inventory_items FOR INSERT WITH CHECK (true);
+CREATE POLICY "Inventory items update policy" ON inventory_items FOR UPDATE USING (true);
+
+-- ============================================================
+-- 20. INVENTORY TRANSACTIONS TABLE
+-- ============================================================
+CREATE TABLE inventory_transactions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  item_id UUID REFERENCES inventory_items(id) ON DELETE CASCADE,
+  item_name TEXT,
+  transaction_type TEXT CHECK (transaction_type IN ('in', 'out')),
+  quantity INTEGER NOT NULL,
+  requested_by TEXT, -- Production Manager name
+  processed_by TEXT, -- Warehouse clerk name
+  date TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE inventory_transactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Inventory transactions view policy" ON inventory_transactions FOR SELECT USING (true);
+CREATE POLICY "Inventory transactions insert policy" ON inventory_transactions FOR INSERT WITH CHECK (true);
+
+-- ============================================================
+-- 21. PURCHASE REQUESTS TABLE
+-- ============================================================
+CREATE TABLE purchase_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  item_id UUID REFERENCES inventory_items(id) ON DELETE CASCADE,
+  item_name TEXT,
+  requested_quantity INTEGER NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'quotation_requested', 'purchased')),
+  requested_by TEXT,
+  approved_by TEXT, -- Procurement manager
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE purchase_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Purchase requests view policy" ON purchase_requests FOR SELECT USING (true);
+CREATE POLICY "Purchase requests insert policy" ON purchase_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Purchase requests update policy" ON purchase_requests FOR UPDATE USING (true);
+
+-- ============================================================
+-- 22. PURCHASE QUOTATIONS & ORDERS
+-- ============================================================
+CREATE TABLE purchase_orders (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  request_id UUID REFERENCES purchase_requests(id) ON DELETE CASCADE,
+  item_name TEXT,
+  supplier_name TEXT NOT NULL,
+  price NUMERIC(10,2) NOT NULL,
+  invoice_url TEXT,
+  status TEXT DEFAULT 'pending_approval' CHECK (status IN ('pending_approval', 'approved', 'purchased', 'settled')),
+  specialist_name TEXT, -- Procurement specialist
+  manager_name TEXT,
+  petty_cash_amount NUMERIC(10,2) DEFAULT 0,
+  petty_cash_spent NUMERIC(10,2) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE purchase_orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Purchase orders view policy" ON purchase_orders FOR SELECT USING (true);
+CREATE POLICY "Purchase orders insert policy" ON purchase_orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Purchase orders update policy" ON purchase_orders FOR UPDATE USING (true);
+
+-- ============================================================
+-- 23. IT TICKETS TABLE
+-- ============================================================
+CREATE TABLE it_tickets (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  employee_name TEXT,
+  department TEXT,
+  issue_type TEXT NOT NULL,
+  description TEXT NOT NULL,
+  priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved')),
+  assigned_to TEXT, -- IT Employee Name
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE it_tickets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "IT tickets view policy" ON it_tickets FOR SELECT USING (true);
+CREATE POLICY "IT tickets insert policy" ON it_tickets FOR INSERT WITH CHECK (true);
+CREATE POLICY "IT tickets update policy" ON it_tickets FOR UPDATE USING (true);
+
+-- ============================================================
+-- ALTER USERS TABLE CONSTRAINTS
+-- ============================================================
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_department_check;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+-- We allow any string for department and role now to support new departments and roles without breaking the DB.

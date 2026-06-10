@@ -972,15 +972,29 @@ Pages.employees = function (el) {
     var baseVal = emp ? (isDaily ? Math.round(emp.base_salary / 30) : emp.base_salary) : '';
     var myLevel = App.getRoleLevel(App.user ? App.user.role : 'hr');
     var roleOptions = '';
+    if (myLevel >= 6) roleOptions += '<option value="owner" ' + (emp && emp.role === 'owner' ? 'selected' : '') + '>Owner / General Manager</option>';
     if (myLevel >= 6) roleOptions += '<option value="hr manager" ' + (emp && emp.role === 'hr manager' ? 'selected' : '') + '>HR Manager</option>';
     if (myLevel >= 5) roleOptions += '<option value="hr" ' + (emp && emp.role === 'hr' ? 'selected' : '') + '>HR</option>';
+    if (myLevel >= 4) roleOptions += '<option value="manager" ' + (emp && emp.role === 'manager' ? 'selected' : '') + '>Manager (مدير إدارة)</option>';
     if (myLevel >= 4) roleOptions += '<option value="hall manager" ' + (emp && emp.role === 'hall manager' ? 'selected' : '') + '>Hall Manager (مدير صالة)</option>';
     if (myLevel >= 3) roleOptions += '<option value="department head" ' + (emp && emp.role === 'department head' ? 'selected' : '') + '>Department Head (رئيس قسم)</option>';
+    if (myLevel >= 3) roleOptions += '<option value="supervisor" ' + (emp && emp.role === 'supervisor' ? 'selected' : '') + '>Supervisor (مشرف)</option>';
+    if (myLevel >= 3) roleOptions += '<option value="procurement manager" ' + (emp && emp.role === 'procurement manager' ? 'selected' : '') + '>Procurement Manager (مدير مشتروات)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="procurement specialist" ' + (emp && emp.role === 'procurement specialist' ? 'selected' : '') + '>Procurement Specialist (أخصائي مشتروات)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="warehouse manager" ' + (emp && emp.role === 'warehouse manager' ? 'selected' : '') + '>Warehouse Manager (أمين مخزن)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="it" ' + (emp && emp.role === 'it' ? 'selected' : '') + '>IT Support (دعم فني)</option>';
     if (myLevel >= 2) roleOptions += '<option value="employee" ' + (!emp || emp.role === 'employee' ? 'selected' : '') + '>Employee (موظف)</option>';
 
     body += '<div class="form-row"><div class="form-field"><label>System Role *</label><select id="ef-role">' + roleOptions + '</select></div><div class="form-field"><label>Department *</label><select id="ef-dept">';
     DEPARTMENTS.forEach(function (d) { body += '<option value="' + d + '"' + (emp && emp.department === d ? ' selected' : '') + '>' + d + '</option>'; });
-    body += '</select></div></div><div class="form-row"><div class="form-field"><label>Position</label><input id="ef-pos" value="' + (emp ? (emp.position || '').replace(' (عامل يومية)', '') : '') + '" placeholder="Job title"></div><div></div></div>';
+    body += '</select></div></div><div class="form-row"><div class="form-field"><label>Position / Title *</label><select id="ef-pos">';
+    var currentPos = emp ? (emp.position || '').replace(' (عامل يومية)', '') : '';
+    body += '<option value="Manager (مدير)"' + (currentPos === 'Manager (مدير)' ? ' selected' : '') + '>Manager (مدير)</option>';
+    body += '<option value="Supervisor (مشرف)"' + (currentPos === 'Supervisor (مشرف)' ? ' selected' : '') + '>Supervisor (مشرف)</option>';
+    body += '<option value="Hall Manager (مدير صالة)"' + (currentPos === 'Hall Manager (مدير صالة)' ? ' selected' : '') + '>Hall Manager (مدير صالة)</option>';
+    body += '<option value="Hall Supervisor (مشرف صالة)"' + (currentPos === 'Hall Supervisor (مشرف صالة)' ? ' selected' : '') + '>Hall Supervisor (مشرف صالة)</option>';
+    body += '<option value="Employee (موظف عادي)"' + (currentPos === 'Employee (موظف عادي)' || !currentPos ? ' selected' : '') + '>Employee (موظف عادي)</option>';
+    body += '</select></div><div></div></div>';
 
     var canEditSalary = true;
     if (App.user && App.user.role === 'hr') {

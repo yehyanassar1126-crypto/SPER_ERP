@@ -1,5 +1,5 @@
 // ===== APP CONSTANTS =====
-var DEPARTMENTS = ['Production', 'Warehouse', 'Administration', 'Packaging', 'Engineering'];
+var DEPARTMENTS = ['Production', 'Warehouse', 'Administration', 'Packaging', 'Maintenance', 'Procurement', 'Finance', 'IT', 'Quality', 'Engineering'];
 
 // Shift systems: 2-shift (12h each) or 3-shift (8h each)
 var SHIFT_SYSTEMS = {
