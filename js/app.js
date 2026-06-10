@@ -1282,24 +1282,33 @@ Pages.employees = function (el) {
         if (!form.username) { alert('Username is required'); return; }
         if (!passInputValue) { alert('Password is required'); return; }
         
-        var maxNum = 0;
-        employees.forEach(function(e) {
-          if (e.employee_id && e.employee_id.indexOf('EMP-') === 0) {
-            var num = parseInt(e.employee_id.replace('EMP-', ''), 10);
-            if (!isNaN(num) && num > maxNum) maxNum = num;
-          }
-        });
-        var nextEmpId = 'EMP-' + String(maxNum + 1).padStart(3, '0');
-        
-        var newEmp = Object.assign({ employee_id: nextEmpId, status: 'active', avatar_color: 'hsl(' + Math.floor(Math.random() * 360) + ',60%,50%)', password_hash: passInputValue }, form);
-        sbClient.from('users').insert([newEmp]).select().single().then(function (r) {
-          if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); return; }
-          if (r.data) { employees.push(r.data); render(); }
+        sbClient.from('users').select('employee_id').then(function(res) {
+          var allIds = res.data || [];
+          var maxNum = 0;
+          allIds.forEach(function(u) {
+            if (u.employee_id && u.employee_id.indexOf('EMP-') === 0) {
+              var num = parseInt(u.employee_id.replace('EMP-', ''), 10);
+              if (!isNaN(num) && num > maxNum) maxNum = num;
+            }
+          });
+          var nextEmpId = 'EMP-' + String(maxNum + 1).padStart(3, '0');
+          
+          var newEmp = Object.assign({ employee_id: nextEmpId, status: 'active', avatar_color: 'hsl(' + Math.floor(Math.random() * 360) + ',60%,50%)', password_hash: passInputValue }, form);
+          sbClient.from('users').insert([newEmp]).select().single().then(function (r) {
+            if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); return; }
+            if (r.data) { 
+              employees.push(r.data); 
+              render(); 
+              showToast('Employee added!', 'success');
+            }
+          });
         });
       }
       App.closeModal();
-      render();
-      showToast(emp ? 'Employee updated!' : 'Employee added!', 'success');
+      if (emp) {
+        render();
+        showToast('Employee updated!', 'success');
+      }
     });
   }
 
