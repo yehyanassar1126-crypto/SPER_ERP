@@ -305,11 +305,15 @@ var App = {
     }
 
     var canViewInventory = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'hall manager' || App.isOwner() || App.isHR());
-    if (canViewInventory) {
+    var canViewProcurement = App.isManager() || App.isOwner() || (App.user && (App.user.department === 'Procurement' || App.user.role === 'procurement manager' || App.user.role === 'procurement specialist'));
+    
+    if (canViewInventory || canViewProcurement) {
+      var opItems = [];
+      if (canViewInventory) opItems.push({ id: 'inventory', label: 'Inventory & Stock', icon: 'package' });
+      if (canViewProcurement) opItems.push({ id: 'purchase-requests', label: 'Purchase Requests', icon: 'shoppingCart' });
+      
       menu.push({
-        section: 'Operations & Logistics', items: [
-          { id: 'inventory', label: 'Inventory & Stock', icon: 'package' }
-        ]
+        section: 'Operations & Logistics', items: opItems
       });
     }
 
@@ -451,6 +455,7 @@ var App = {
       case 'offboarding': App.isHR() ? Pages.offboarding(el) : Pages.empDashboard(el); break;
       case 'owner-dashboard': App.isOwner() ? Pages.ownerDashboard(el) : Pages.hrDashboard(el); break;
       case 'inventory': Pages.inventory(el); break;
+      case 'purchase-requests': Pages.purchaseRequests(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },

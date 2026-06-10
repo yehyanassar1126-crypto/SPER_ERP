@@ -643,3 +643,133 @@ Pages.inventory = function(el) {
 
   loadData();
 };
+
+// ==========================================
+// MODULE 9: Procurement & Purchase Requests
+// ==========================================
+Pages.purchaseRequests = function(el) {
+  var isProcurementMgr = App.user && App.user.role === 'procurement manager';
+  var isProcurementSpec = App.user && App.user.role === 'procurement specialist';
+  var isProcurement = isProcurementMgr || isProcurementSpec || App.isOwner();
+  var isManager = App.isManager() && !isProcurement; // regular department manager
+
+  var requests = [];
+  var inventoryItems = [];
+  
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Purchase Requests...</div>';
+    
+    var reqQuery = isProcurement ? 
+      sbClient.from('purchase_requests').select('*').order('created_at', {ascending: false}) :
+      sbClient.from('purchase_requests').select('*').eq('requested_by', App.user.full_name).order('created_at', {ascending: false});
+
+    Promise.all([
+      reqQuery,
+      sbClient.from('inventory_items').select('id, name').order('name')
+    ]).then(function(res) {
+      requests = res[0].data || [];
+      inventoryItems = res[1].data || [];
+      render();
+    });
+  }
+
+  function render() {
+    var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
+    html += '<h3>Purchase Requests (????? ??????)</h3>';
+    if (!isProcurement) {
+      html += '<button class="btn btn-primary" onclick="newPurchaseRequestModal()">' + icon('plus') + ' Request Purchase</button>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><div class="card-header"><div><h3>Purchase Requisitions</h3><p>Manage requested items and procurement statuses</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Requested By</th><th>Status</th>' + (isProcurement ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+    
+    if (requests.length === 0) {
+      html += '<tr><td colspan="' + (isProcurement ? '6' : '5') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No purchase requests found.</td></tr>';
+    } else {
+      requests.forEach(function(req) {
+        var statusColor = 'warning';
+        var statusIcon = 'clock';
+        if(req.status === 'approved') { statusColor = 'info'; statusIcon = 'check'; }
+        if(req.status === 'rejected') { statusColor = 'danger'; statusIcon = 'x'; }
+        if(req.status === 'quotation_requested') { statusColor = 'primary'; statusIcon = 'fileText'; }
+        if(req.status === 'purchased') { statusColor = 'success'; statusIcon = 'checkCheck'; }
+
+        html += '<tr>';
+        html += '<td>' + formatDate(req.created_at) + '</td>';
+        html += '<td style="font-weight:600">' + req.item_name + '</td>';
+        html += '<td>' + req.requested_quantity + '</td>';
+        html += '<td>' + (req.requested_by || '-') + '</td>';
+        html += '<td><span class="badge badge-' + statusColor + '">' + icon(statusIcon, 12) + ' ' + req.status.replace('_', ' ').toUpperCase() + '</span></td>';
+        
+        if (isProcurement) {
+          html += '<td>';
+          if (isProcurementMgr && req.status === 'pending') {
+            html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'approved\')">Approve</button>';
+            html += '<button class="btn btn-xs btn-danger" onclick="updateReqStatus(\'' + req.id + '\', \'rejected\')">Reject</button>';
+          } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'approved') {
+             html += '<button class="btn btn-xs btn-primary" onclick="updateReqStatus(\'' + req.id + '\', \'quotation_requested\')">Request Quotes</button>';
+          } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'quotation_requested') {
+             html += '<button class="btn btn-xs btn-success" onclick="updateReqStatus(\'' + req.id + '\', \'purchased\')">Mark Purchased</button>';
+          } else {
+             html += '<span style="color:var(--text-muted);font-size:0.8rem">No Action</span>';
+          }
+          html += '</td>';
+        }
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    
+    el.innerHTML = html;
+  }
+
+  window.newPurchaseRequestModal = function() {
+    var body = '<div class="form-field"><label>Item Name (Or select from inventory) *</label>';
+    body += '<input type="text" id="pr-item-name" class="form-input" placeholder="e.g. Printer Paper A4" list="inv-items-list">';
+    body += '<datalist id="inv-items-list">';
+    inventoryItems.forEach(function(i) {
+      body += '<option value="' + i.name + '" data-id="' + i.id + '">';
+    });
+    body += '</datalist></div>';
+    
+    body += '<div class="form-field"><label>Quantity Required *</label><input type="number" id="pr-qty" class="form-input" min="1" value="1"></div>';
+    
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-pr-btn">Submit Request</button>';
+    App.showModal('New Purchase Request', body, footer);
+
+    document.getElementById('save-pr-btn').addEventListener('click', function() {
+      var nameInput = document.getElementById('pr-item-name').value;
+      var qty = parseInt(document.getElementById('pr-qty').value);
+      if(!nameInput || !qty) return alert('Please provide item name and quantity');
+
+      var matchedItem = inventoryItems.find(function(i) { return i.name.toLowerCase() === nameInput.toLowerCase(); });
+      var itemId = matchedItem ? matchedItem.id : null;
+
+      sbClient.from('purchase_requests').insert([{
+        item_id: itemId, item_name: nameInput, requested_quantity: qty,
+        requested_by: App.user.full_name, status: 'pending'
+      }]).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        App.closeModal();
+        loadData();
+        showToast('Purchase request submitted', 'success');
+      });
+    });
+  };
+
+  window.updateReqStatus = function(id, newStatus) {
+    if(confirm('Update request status to ' + newStatus + '?')) {
+      sbClient.from('purchase_requests').update({
+        status: newStatus,
+        approved_by: (newStatus === 'approved' ? App.user.full_name : null)
+      }).eq('id', id).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        loadData();
+        showToast('Status updated successfully', 'success');
+      });
+    }
+  };
+
+  loadData();
+};
