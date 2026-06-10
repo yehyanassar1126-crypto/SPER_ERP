@@ -1281,7 +1281,17 @@ Pages.employees = function (el) {
         var passInputValue = document.getElementById('ef-password') ? document.getElementById('ef-password').value : 'emp123';
         if (!form.username) { alert('Username is required'); return; }
         if (!passInputValue) { alert('Password is required'); return; }
-        var newEmp = Object.assign({ employee_id: 'EMP-' + String(employees.length + 1).padStart(3, '0'), status: 'active', avatar_color: 'hsl(' + Math.floor(Math.random() * 360) + ',60%,50%)', password_hash: passInputValue }, form);
+        
+        var maxNum = 0;
+        employees.forEach(function(e) {
+          if (e.employee_id && e.employee_id.indexOf('EMP-') === 0) {
+            var num = parseInt(e.employee_id.replace('EMP-', ''), 10);
+            if (!isNaN(num) && num > maxNum) maxNum = num;
+          }
+        });
+        var nextEmpId = 'EMP-' + String(maxNum + 1).padStart(3, '0');
+        
+        var newEmp = Object.assign({ employee_id: nextEmpId, status: 'active', avatar_color: 'hsl(' + Math.floor(Math.random() * 360) + ',60%,50%)', password_hash: passInputValue }, form);
         sbClient.from('users').insert([newEmp]).select().single().then(function (r) {
           if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); return; }
           if (r.data) { employees.push(r.data); render(); }
