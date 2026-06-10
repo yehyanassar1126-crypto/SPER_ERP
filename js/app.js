@@ -317,6 +317,15 @@ var App = {
       });
     }
 
+    var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance');
+    if (canViewFinance) {
+      menu.push({
+        section: 'Finance & Accounting', items: [
+          { id: 'petty-cash', label: 'Petty Cash (العهد)', icon: 'dollarSign' }
+        ]
+      });
+    }
+
     var html = '<div class="sidebar-header"><div class="sidebar-logo">' + icon('factory', 20) + '</div><div class="sidebar-brand"><h2>Smart Factory</h2><p>HR Management</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
@@ -456,6 +465,7 @@ var App = {
       case 'owner-dashboard': App.isOwner() ? Pages.ownerDashboard(el) : Pages.hrDashboard(el); break;
       case 'inventory': Pages.inventory(el); break;
       case 'purchase-requests': Pages.purchaseRequests(el); break;
+      case 'petty-cash': Pages.pettyCash(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },

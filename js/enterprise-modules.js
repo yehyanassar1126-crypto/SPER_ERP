@@ -708,9 +708,9 @@ Pages.purchaseRequests = function(el) {
             html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'approved\')">Approve</button>';
             html += '<button class="btn btn-xs btn-danger" onclick="updateReqStatus(\'' + req.id + '\', \'rejected\')">Reject</button>';
           } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'approved') {
-             html += '<button class="btn btn-xs btn-primary" onclick="updateReqStatus(\'' + req.id + '\', \'quotation_requested\')">Request Quotes</button>';
-          } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'quotation_requested') {
-             html += '<button class="btn btn-xs btn-success" onclick="updateReqStatus(\'' + req.id + '\', \'purchased\')">Mark Purchased</button>';
+             html += '<button class="btn btn-xs btn-primary" onclick="requestPettyCashModal(\'' + req.id + '\', \'' + req.item_name.replace(/'/g, "\\'") + '\')">Request Petty Cash</button>';
+          } else if (req.status === 'quotation_requested') {
+             html += '<span style="color:var(--text-muted);font-size:0.8rem">Awaiting Finance</span>';
           } else {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">No Action</span>';
           }
@@ -758,6 +758,34 @@ Pages.purchaseRequests = function(el) {
     });
   };
 
+  window.requestPettyCashModal = function(reqId, itemName) {
+    var body = '<div class="form-field"><label>Supplier Name *</label><input type="text" id="pc-supplier" class="form-input"></div>';
+    body += '<div class="form-field"><label>Total Price (EGP) *</label><input type="number" id="pc-price" class="form-input" min="1"></div>';
+    
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-pc-btn">Request Cash</button>';
+    App.showModal('Request Petty Cash (طلب عهدة)', body, footer);
+
+    document.getElementById('save-pc-btn').addEventListener('click', function() {
+      var supplier = document.getElementById('pc-supplier').value;
+      var price = parseFloat(document.getElementById('pc-price').value);
+      if(!supplier || !price) return alert('Please provide supplier and price');
+
+      sbClient.from('purchase_orders').insert([{
+        request_id: reqId, item_name: itemName, supplier_name: supplier, price: price,
+        status: 'pending_approval', specialist_name: App.user.full_name, manager_name: App.user.full_name,
+        petty_cash_amount: price
+      }]).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        
+        sbClient.from('purchase_requests').update({status: 'quotation_requested'}).eq('id', reqId).then(function(r2) {
+           App.closeModal();
+           loadData();
+           showToast('Petty cash requested from Finance', 'success');
+        });
+      });
+    });
+  };
+
   window.updateReqStatus = function(id, newStatus) {
     if(confirm('Update request status to ' + newStatus + '?')) {
       sbClient.from('purchase_requests').update({
@@ -769,6 +797,135 @@ Pages.purchaseRequests = function(el) {
         showToast('Status updated successfully', 'success');
       });
     }
+  };
+
+  loadData();
+};
+
+// ==========================================
+// MODULE 10: Petty Cash & Settlements (Finance)
+// ==========================================
+Pages.pettyCash = function(el) {
+  var isFinance = App.user && App.user.department === 'Finance';
+  var isOwner = App.isOwner();
+  var isProcurement = App.user && (App.user.role === 'procurement specialist' || App.user.role === 'procurement manager');
+  
+  var orders = [];
+
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Petty Cash Data...</div>';
+    
+    var query = sbClient.from('purchase_orders').select('*').order('created_at', {ascending: false});
+    if (isProcurement) {
+      query = query.eq('specialist_name', App.user.full_name);
+    }
+    
+    query.then(function(res) {
+      orders = res.data || [];
+      render();
+    });
+  }
+
+  function render() {
+    var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
+    html += '<h3>Petty Cash & Settlements (العهد والتسويات)</h3>';
+    html += '</div>';
+
+    html += '<div class="card"><div class="card-header"><div><h3>Active Cash Advances</h3><p>Manage procurement funds and invoices</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Supplier</th><th>Amount</th><th>Status</th><th>Invoice</th><th>Actions</th></tr></thead><tbody>';
+    
+    if (orders.length === 0) {
+      html += '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No petty cash requests found.</td></tr>';
+    } else {
+      orders.forEach(function(o) {
+        var statusColor = 'warning';
+        var statusText = 'Pending Finance';
+        if(o.status === 'approved') { statusColor = 'info'; statusText = 'Cash Issued'; }
+        if(o.status === 'purchased') { statusColor = 'primary'; statusText = 'Pending Settlement'; }
+        if(o.status === 'settled') { statusColor = 'success'; statusText = 'Settled'; }
+
+        html += '<tr>';
+        html += '<td>' + formatDate(o.created_at) + '</td>';
+        html += '<td style="font-weight:600">' + o.item_name + '</td>';
+        html += '<td>' + o.supplier_name + '</td>';
+        html += '<td style="font-weight:700">EGP ' + o.petty_cash_amount + '</td>';
+        html += '<td><span class="badge badge-' + statusColor + '">' + statusText + '</span></td>';
+        
+        html += '<td>';
+        if(o.invoice_url) {
+          html += '<a href="' + o.invoice_url + '" target="_blank" style="color:var(--accent-primary);text-decoration:underline;">View Invoice</a>';
+        } else {
+          html += '<span style="color:var(--text-muted)">-</span>';
+        }
+        html += '</td>';
+
+        html += '<td>';
+        if ((isFinance || isOwner) && o.status === 'pending_approval') {
+          html += '<button class="btn btn-xs btn-success" onclick="approveCash(\'' + o.id + '\')">Issue Cash</button>';
+        } else if (isProcurement && o.status === 'approved') {
+          html += '<button class="btn btn-xs btn-primary" onclick="uploadInvoiceModal(\'' + o.id + '\')">Upload Invoice</button>';
+        } else if ((isFinance || isOwner) && o.status === 'purchased') {
+          html += '<button class="btn btn-xs btn-success" onclick="settleCashModal(\'' + o.id + '\', ' + o.petty_cash_amount + ', \'' + o.request_id + '\')">Settle (تسوية)</button>';
+        } else {
+          html += '<span style="color:var(--text-muted);font-size:0.8rem">No Action</span>';
+        }
+        html += '</td>';
+        
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    el.innerHTML = html;
+  }
+
+  window.approveCash = function(id) {
+    if(confirm('Approve and issue cash advance?')) {
+      sbClient.from('purchase_orders').update({status: 'approved'}).eq('id', id).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        loadData();
+        showToast('Cash Issued Successfully', 'success');
+      });
+    }
+  };
+
+  window.uploadInvoiceModal = function(id) {
+    var body = '<div class="form-field"><label>Invoice Image URL (Or path) *</label><input type="text" id="pc-inv-url" class="form-input" placeholder="https://..."></div>';
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn">Submit Invoice</button>';
+    App.showModal('Upload Invoice & Confirm Purchase', body, footer);
+
+    document.getElementById('save-inv-btn').addEventListener('click', function() {
+      var url = document.getElementById('pc-inv-url').value;
+      if(!url) return alert('Please provide an invoice link');
+      
+      sbClient.from('purchase_orders').update({status: 'purchased', invoice_url: url}).eq('id', id).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        App.closeModal();
+        loadData();
+        showToast('Invoice uploaded, awaiting settlement', 'success');
+      });
+    });
+  };
+
+  window.settleCashModal = function(id, issuedAmount, requestId) {
+    var body = '<div style="margin-bottom:16px;font-weight:600">Issued Cash: EGP ' + issuedAmount + '</div>';
+    body += '<div class="form-field"><label>Actual Spent Amount (EGP) *</label><input type="number" id="pc-spent" class="form-input" value="' + issuedAmount + '"></div>';
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-success" id="save-stl-btn">Confirm Settlement</button>';
+    App.showModal('Settle Petty Cash (تسوية العهدة)', body, footer);
+
+    document.getElementById('save-stl-btn').addEventListener('click', function() {
+      var spent = parseFloat(document.getElementById('pc-spent').value);
+      if(!spent) return alert('Please enter the actual spent amount');
+      
+      sbClient.from('purchase_orders').update({status: 'settled', petty_cash_spent: spent}).eq('id', id).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        
+        sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', requestId).then(function(r2) {
+          App.closeModal();
+          loadData();
+          showToast('Petty cash settled', 'success');
+        });
+      });
+    });
   };
 
   loadData();
