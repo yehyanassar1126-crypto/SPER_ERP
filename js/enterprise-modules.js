@@ -903,7 +903,7 @@ Pages.pettyCash = function(el) {
     html += '</div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>Active Cash Advances</h3><p>Manage procurement funds and invoices</p></div></div><div class="card-body no-pad">';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Supplier</th><th>Amount</th><th>Status</th><th>Invoice</th><th>Actions</th></tr></thead><tbody>';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Specialist</th><th>Item</th><th>Supplier</th><th>Amount</th><th>Status</th><th>Invoice</th><th>Actions</th></tr></thead><tbody>';
     
     if (orders.length === 0) {
       html += '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No petty cash requests found.</td></tr>';
@@ -917,9 +917,17 @@ Pages.pettyCash = function(el) {
 
         html += '<tr>';
         html += '<td>' + formatDate(o.created_at) + '</td>';
+        html += '<td>' + (o.specialist_name || '-') + '</td>';
         html += '<td style="font-weight:600">' + o.item_name + '</td>';
         html += '<td>' + o.supplier_name + '</td>';
-        html += '<td style="font-weight:700">EGP ' + o.petty_cash_amount + '</td>';
+        
+        var amtHtml = '<div style="font-weight:700">EGP ' + o.petty_cash_amount + '</div>';
+        if (o.status === 'settled') {
+          var returned = o.petty_cash_amount - (o.petty_cash_spent || 0);
+          amtHtml += '<div style="font-size:0.75rem;color:var(--text-secondary)">Spent: EGP ' + (o.petty_cash_spent || 0) + '</div>';
+          amtHtml += '<div style="font-size:0.75rem;color:' + (returned > 0 ? 'var(--accent-success)' : 'var(--text-secondary)') + '">Returned: EGP ' + returned + '</div>';
+        }
+        html += '<td>' + amtHtml + '</td>';
         html += '<td><span class="badge badge-' + statusColor + '">' + statusText + '</span></td>';
         
         html += '<td>';
@@ -960,16 +968,49 @@ Pages.pettyCash = function(el) {
   };
 
   window.uploadInvoiceModal = function(id) {
-    var body = '<div class="form-field"><label>Invoice Image URL (Or path) *</label><input type="text" id="pc-inv-url" class="form-input" placeholder="https://..."></div>';
-    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn">Submit Invoice</button>';
+    var body = '<div class="form-field"><label>Upload Invoice Image (رفع صورة الفاتورة) *</label><input type="file" id="pc-inv-file" accept="image/*" class="form-input" style="padding:10px"></div>';
+    body += '<div id="inv-preview" style="margin-top:10px;text-align:center"></div>';
+    
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn" disabled>Submit Invoice</button>';
     App.showModal('Upload Invoice & Confirm Purchase', body, footer);
 
+    var base64Img = '';
+    document.getElementById('pc-inv-file').addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(evt) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var MAX_WIDTH = 800; var MAX_HEIGHT = 800;
+          var width = img.width; var height = img.height;
+          if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
+          else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+          canvas.width = width; canvas.height = height;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          base64Img = canvas.toDataURL('image/jpeg', 0.7);
+          document.getElementById('inv-preview').innerHTML = '<img src="' + base64Img + '" style="max-width:100%;max-height:200px;border-radius:8px">';
+          document.getElementById('save-inv-btn').disabled = false;
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
     document.getElementById('save-inv-btn').addEventListener('click', function() {
-      var url = document.getElementById('pc-inv-url').value;
-      if(!url) return alert('Please provide an invoice link');
+      if(!base64Img) return alert('Please select an image');
+      var btn = this;
+      btn.innerHTML = '<span class="spinner"></span> Uploading...';
+      btn.disabled = true;
       
-      sbClient.from('purchase_orders').update({status: 'purchased', invoice_url: url}).eq('id', id).then(function(r) {
-        if(r.error) return alert(r.error.message);
+      sbClient.from('purchase_orders').update({status: 'purchased', invoice_url: base64Img}).eq('id', id).then(function(r) {
+        if(r.error) {
+          btn.innerHTML = 'Submit Invoice';
+          btn.disabled = false;
+          return alert(r.error.message);
+        }
         App.closeModal();
         loadData();
         showToast('Invoice uploaded, awaiting settlement', 'success');
