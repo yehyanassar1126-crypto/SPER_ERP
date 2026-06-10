@@ -484,6 +484,7 @@ Pages.inventory = function(el) {
     
     if (isWarehouse) {
       html += '<div>';
+      html += '<button class="btn btn-outline" onclick="warehousePurchaseRequestModal()" style="margin-right:10px; border-color:#3b82f6; color:#3b82f6;">' + icon('shoppingCart') + ' Request Purchase (طلب شراء)</button>';
       html += '<button class="btn btn-primary" onclick="newInventoryItemModal()" style="margin-right:10px">' + icon('plus') + ' Add New Item</button>';
       html += '<button class="btn btn-success" onclick="newTransactionModal()">' + icon('refreshCw') + ' Add Transaction (صرف/إضافة)</button>';
       html += '</div>';
@@ -575,6 +576,8 @@ Pages.inventory = function(el) {
     var body = '<div class="form-field"><label>Item Name *</label><input type="text" id="inv-name" class="form-input"></div>';
     body += '<div class="form-row"><div class="form-field"><label>Category *</label><select id="inv-cat" class="form-input"><option value="Maintenance">Maintenance (قطع غيار صيانة)</option><option value="Workshop">Workshop (ورشة)</option><option value="Supplies">Supplies (مستلزمات)</option><option value="Chemicals">Chemicals (كيماويات)</option><option value="Fixed Assets">Fixed Assets (أصول ثابتة)</option></select></div>';
     body += '<div class="form-field"><label>Minimum Qty Alert *</label><input type="number" id="inv-min" class="form-input" value="2"></div></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Supplier Name (اسم المورد)</label><input type="text" id="inv-supplier" class="form-input" placeholder="Optional"></div>';
+    body += '<div class="form-field"><label>Purchase Price (السعر)</label><input type="number" id="inv-price" class="form-input" value="0"></div></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn">Save Item</button>';
     App.showModal('Add New Inventory Item', body, footer);
@@ -583,10 +586,13 @@ Pages.inventory = function(el) {
       var name = document.getElementById('inv-name').value;
       var cat = document.getElementById('inv-cat').value;
       var min = parseInt(document.getElementById('inv-min').value);
+      var supplier = document.getElementById('inv-supplier').value;
+      var price = parseFloat(document.getElementById('inv-price').value) || 0;
       if(!name) return alert('Name is required');
 
       sbClient.from('inventory_items').insert([{
-        name: name, category: cat, min_quantity: min || 0, quantity: 0
+        name: name, category: cat, min_quantity: min || 0, quantity: 0,
+        supplier_name: supplier, last_purchase_price: price
       }]).then(function(r) {
         if (r.error) return alert(r.error.message);
         App.closeModal();
@@ -603,9 +609,19 @@ Pages.inventory = function(el) {
     });
     body += '</select></div>';
     
-    body += '<div class="form-row"><div class="form-field"><label>Type *</label><select id="tx-type" class="form-input"><option value="out">OUT (صرف للإنتاج)</option><option value="in">IN (إضافة للمخزن)</option></select></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Type *</label><select id="tx-type" class="form-input" onchange="window.toggleTxFields()"><option value="out">OUT (صرف للإنتاج)</option><option value="in">IN (إضافة للمخزن)</option></select></div>';
     body += '<div class="form-field"><label>Quantity *</label><input type="number" id="tx-qty" class="form-input" min="1" value="1"></div></div>';
-    body += '<div class="form-field"><label>Requested By (For OUT only)</label><input type="text" id="tx-req" class="form-input" placeholder="e.g. Production Manager Name"></div>';
+    
+    body += '<div class="form-field" id="tx-req-container"><label>Requested By (For OUT only)</label><input type="text" id="tx-req" class="form-input" placeholder="e.g. Production Manager Name"></div>';
+    
+    body += '<div class="form-row" id="tx-in-fields" style="display:none;"><div class="form-field"><label>New Supplier (اختياري)</label><input type="text" id="tx-supplier" class="form-input" placeholder="Update supplier if changed"></div>';
+    body += '<div class="form-field"><label>New Price (تحديث السعر)</label><input type="number" id="tx-price" class="form-input" placeholder="Optional"></div></div>';
+
+    window.toggleTxFields = function() {
+      var isIn = document.getElementById('tx-type').value === 'in';
+      document.getElementById('tx-in-fields').style.display = isIn ? 'flex' : 'none';
+      document.getElementById('tx-req-container').style.display = isIn ? 'none' : 'block';
+    };
 
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-tx-btn">Process Transaction</button>';
     App.showModal('Inventory Transaction', body, footer);
@@ -619,13 +635,20 @@ Pages.inventory = function(el) {
       var type = document.getElementById('tx-type').value;
       var qty = parseInt(document.getElementById('tx-qty').value);
       var reqBy = document.getElementById('tx-req').value;
+      var newSupplier = document.getElementById('tx-supplier').value;
+      var newPrice = document.getElementById('tx-price').value;
 
       if(!itemId || !qty) return alert('Please fill all fields');
       if(type === 'out' && qty > currentQty) return alert('Not enough stock! Current stock: ' + currentQty);
 
       var newQty = type === 'in' ? currentQty + qty : currentQty - qty;
+      var updateData = { quantity: newQty };
+      if (type === 'in') {
+        if (newSupplier) updateData.supplier_name = newSupplier;
+        if (newPrice) updateData.last_purchase_price = parseFloat(newPrice);
+      }
 
-      sbClient.from('inventory_items').update({quantity: newQty}).eq('id', itemId).then(function(r) {
+      sbClient.from('inventory_items').update(updateData).eq('id', itemId).then(function(r) {
         if(r.error) return alert(r.error.message);
         
         sbClient.from('inventory_transactions').insert([{
@@ -637,6 +660,39 @@ Pages.inventory = function(el) {
           loadData();
           showToast('Transaction processed successfully', 'success');
         });
+      });
+    });
+  };
+
+  window.warehousePurchaseRequestModal = function() {
+    var body = '<div class="form-field"><label>Item Name (Or select from inventory) *</label>';
+    body += '<input type="text" id="wh-pr-item-name" class="form-input" placeholder="e.g. Printer Paper A4" list="wh-inv-items-list">';
+    body += '<datalist id="wh-inv-items-list">';
+    items.forEach(function(i) {
+      body += '<option value="' + i.name + '" data-id="' + i.id + '">';
+    });
+    body += '</datalist></div>';
+    
+    body += '<div class="form-field"><label>Quantity Required *</label><input type="number" id="wh-pr-qty" class="form-input" min="1" value="1"></div>';
+    
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-wh-pr-btn">Submit Request to Procurement</button>';
+    App.showModal('Request Purchase (طلب شراء)', body, footer);
+
+    document.getElementById('save-wh-pr-btn').addEventListener('click', function() {
+      var nameInput = document.getElementById('wh-pr-item-name').value;
+      var qty = parseInt(document.getElementById('wh-pr-qty').value);
+      if(!nameInput || !qty) return alert('Please provide item name and quantity');
+
+      var matchedItem = items.find(function(i) { return i.name.toLowerCase() === nameInput.toLowerCase(); });
+      var itemId = matchedItem ? matchedItem.id : null;
+
+      sbClient.from('purchase_requests').insert([{
+        item_id: itemId, item_name: nameInput, requested_quantity: qty,
+        status: 'pending', requested_by: App.user.full_name + ' (Warehouse)'
+      }]).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        App.closeModal();
+        showToast('Purchase request sent to Procurement successfully', 'success');
       });
     });
   };

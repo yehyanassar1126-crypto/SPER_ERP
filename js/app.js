@@ -587,6 +587,30 @@ Pages.ownerDashboard = function(el) {
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Oversee factory lines, hall managers, and daily production output.</p>';
     html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(6,182,212,0.1); color: #06b6d4; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
     html += '</div>';
+
+    // Sales Module
+    html += '<div onclick="alert(\'Sales dashboard coming soon!\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f43f5e\'; this.style.boxShadow=\'0 12px 30px rgba(244,63,94,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(244,63,94,0.1); color: #f43f5e; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('shoppingBag', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Sales (المبيعات)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Monitor revenue, client contracts, and product deliveries.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(244,63,94,0.1); color: #f43f5e; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '</div>';
+
+    // Planning Module
+    html += '<div onclick="alert(\'Planning dashboard coming soon!\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#8b5cf6\'; this.style.boxShadow=\'0 12px 30px rgba(139,92,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(139,92,246,0.1); color: #8b5cf6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('calendar', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Planning (التخطيط)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Strategic planning, resource allocation, and factory timeline scheduling.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(139,92,246,0.1); color: #8b5cf6; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '</div>';
+
+    // Quality Module
+    html += '<div onclick="alert(\'Quality Assurance dashboard coming soon!\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#14b8a6\'; this.style.boxShadow=\'0 12px 30px rgba(20,184,166,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(20,184,166,0.1); color: #14b8a6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('checkCircle', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Quality (الجودة)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Quality control checks, defect tracking, and factory standard compliance.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(20,184,166,0.1); color: #14b8a6; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '</div>';
     
     html += '</div>'; // End grid
     el.innerHTML = html;
@@ -1129,11 +1153,25 @@ Pages.employees = function (el) {
     DEPARTMENTS.forEach(function (d) { body += '<option value="' + d + '"' + (emp && emp.department === d ? ' selected' : '') + '>' + d + '</option>'; });
     body += '</select></div></div><div class="form-row"><div class="form-field"><label>Position / Title *</label><select id="ef-pos">';
     var currentPos = emp ? (emp.position || '').replace(' (عامل يومية)', '') : '';
-    body += '<option value="Manager (مدير)"' + (currentPos === 'Manager (مدير)' ? ' selected' : '') + '>Manager (مدير)</option>';
-    body += '<option value="Supervisor (مشرف)"' + (currentPos === 'Supervisor (مشرف)' ? ' selected' : '') + '>Supervisor (مشرف)</option>';
-    body += '<option value="Hall Manager (مدير صالة)"' + (currentPos === 'Hall Manager (مدير صالة)' ? ' selected' : '') + '>Hall Manager (مدير صالة)</option>';
-    body += '<option value="Hall Supervisor (مشرف صالة)"' + (currentPos === 'Hall Supervisor (مشرف صالة)' ? ' selected' : '') + '>Hall Supervisor (مشرف صالة)</option>';
-    body += '<option value="Employee (موظف عادي)"' + (currentPos === 'Employee (موظف عادي)' || !currentPos ? ' selected' : '') + '>Employee (موظف عادي)</option>';
+    var positionsList = [
+      'General Manager (مدير عام)', 'Factory Manager (مدير مصنع)',
+      'HR Manager (مدير موارد بشرية)', 'HR Specialist (أخصائي موارد بشرية)',
+      'Finance Manager (مدير حسابات)', 'Accountant (محاسب)',
+      'Procurement Manager (مدير مشتروات)', 'Procurement Specialist (أخصائي مشتروات)',
+      'Warehouse Manager (أمين مخزن)', 'Warehouse Clerk (عامل مخزن)',
+      'Production Manager (مدير إنتاج)', 'Hall Manager (مدير صالة)', 'Hall Supervisor (مشرف صالة)', 'Production Worker (عامل إنتاج)',
+      'Maintenance Manager (مدير صيانة)', 'Technician (فني صيانة)',
+      'Quality Manager (مدير جودة)', 'QA Inspector (مراقب جودة)',
+      'Sales Manager (مدير مبيعات)', 'Sales Representative (مندوب مبيعات)',
+      'Planning Manager (مدير تخطيط)', 'Planning Specialist (أخصائي تخطيط)',
+      'IT Support (دعم فني)',
+      'Logistics Manager (مدير حركة/نقل)', 'Driver (سائق)',
+      'Safety & Security Officer (أمن وسلامة)', 'Secretary (سكرتارية)',
+      'Employee (موظف عادي)'
+    ];
+    positionsList.forEach(function(p) {
+      body += '<option value="' + p + '"' + (currentPos === p ? ' selected' : '') + '>' + p + '</option>';
+    });
     body += '</select></div><div></div></div>';
 
     var canEditSalary = true;

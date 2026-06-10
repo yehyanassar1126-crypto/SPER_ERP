@@ -402,6 +402,7 @@ CREATE TABLE inventory_items (
   quantity INTEGER DEFAULT 0,
   min_quantity INTEGER DEFAULT 2,
   last_purchase_price NUMERIC(10,2) DEFAULT 0,
+  supplier_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
