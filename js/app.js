@@ -348,29 +348,30 @@ var App = {
     }
 
     var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager'));
-    var canViewProcurement = App.isOwner() || (App.user && (App.user.department === 'Procurement' || App.user.role === 'procurement manager' || App.user.role === 'procurement specialist'));
+    var canViewProcurement = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
 
     if (canViewInventory || canViewProcurement) {
       var opItems = [];
       if (canViewInventory) opItems.push({ id: 'inventory', label: 'Inventory (المخازن)', icon: 'package' });
-      opItems.push({ id: 'purchase-requests', label: 'Material Requests (طلبات صرف وشراء)', icon: 'shoppingCart' });
-      if (canViewProcurement) {
-        opItems.push({ id: 'petty-cash', label: 'Petty Cash (العهد والتسويات)', icon: 'dollarSign' });
-      }
-
+      if (canViewProcurement) opItems.push({ id: 'purchase-requests', label: 'Purchase Requests (طلبات الشراء)', icon: 'shoppingCart' });
+      
       menu.push({
         section: 'Operations & Logistics', items: opItems
       });
     }
 
     var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance') || (App.user && App.user.role === 'hr manager');
-    if (canViewFinance) {
+    if (canViewFinance || canViewProcurement) {
+      var finItems = [];
+      finItems.push({ id: 'petty-cash', label: 'Petty Cash (العهد والتسويات)', icon: 'dollarSign' });
+      if (canViewFinance) {
+        finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
+        finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
+      }
+
+      // Avoid duplicate "Petty Cash" section if both Finance and Procurement
       menu.push({
-        section: 'Finance & Accounting', items: [
-          { id: 'petty-cash', label: 'Petty Cash (العهد)', icon: 'dollarSign' },
-          { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' },
-          { id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' }
-        ]
+        section: 'Finance & Accounting', items: finItems
       });
     }
 

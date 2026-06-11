@@ -787,11 +787,17 @@ Pages.inventory = function(el) {
 // MODULE 9: Procurement & Purchase Requests
 // ==========================================
 Pages.purchaseRequests = function(el) {
+  var isAllowed = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
+  if (!isAllowed) {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-danger)"><h3>Access Denied</h3><p>This module is restricted to Procurement, Finance, HR, and Owner.</p></div>';
+    return;
+  }
+
   var isProcurementMgr = App.user && App.user.role === 'procurement manager';
   var isProcurementSpec = App.user && App.user.role === 'procurement specialist';
-  var isProcurement = isProcurementMgr || isProcurementSpec || App.isOwner();
-  var isWarehouse = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'hall manager') && !isProcurement;
-  var isManager = App.isManager() && !isProcurement && !isWarehouse;
+  var isProcurement = true;
+  var isWarehouse = false;
+  var isManager = false;
 
   var requests = [];
   var inventoryItems = [];
@@ -1160,6 +1166,12 @@ Pages.purchaseRequests = function(el) {
 // MODULE 10: Petty Cash & Settlements (Finance)
 // ==========================================
 Pages.pettyCash = function(el) {
+  var isAllowed = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
+  if (!isAllowed) {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-danger)"><h3>Access Denied</h3><p>This module is restricted to Procurement, Finance, HR, and Owner.</p></div>';
+    return;
+  }
+
   var isFinance = App.user && App.user.department === 'Finance';
   var isOwner = App.isOwner();
   var isProcurement = App.user && (App.user.role === 'procurement specialist' || App.user.role === 'procurement manager');
