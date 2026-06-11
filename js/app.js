@@ -366,7 +366,8 @@ var App = {
     if (canViewFinance) {
       menu.push({
         section: 'Finance & Accounting', items: [
-          { id: 'petty-cash', label: 'Petty Cash (العهد)', icon: 'dollarSign' }
+          { id: 'petty-cash', label: 'Petty Cash (العهد)', icon: 'dollarSign' },
+          { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }
         ]
       });
     }
@@ -525,6 +526,7 @@ var App = {
       case 'inventory': Pages.inventory(el); break;
       case 'purchase-requests': Pages.purchaseRequests(el); break;
       case 'petty-cash': Pages.pettyCash(el); break;
+      case 'payroll-funding': Pages.payrollFunding(el); break;
       case 'it-tickets': Pages.itTickets(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
@@ -2275,9 +2277,13 @@ Pages.payroll = function (el) {
       html += '<td style="color:var(--accent-info)">+' + ((p.bonuses || 0) + (p.performance_bonus || 0)).toLocaleString() + '</td>';
       html += '<td style="color:' + (totalDed > 0 ? 'var(--accent-danger)' : 'var(--text-secondary)') + '">' + ((totalDed || 0) > 0 ? '-' + (totalDed || 0).toLocaleString() : '0') + '</td>';
       html += '<td style="font-weight:800;color:var(--accent-primary-hover);font-size:0.95rem">EGP ' + (p.net_salary || 0).toLocaleString() + '</td>';
-      html += '<td>' + (p.status === 'paid' ? '<span class="badge badge-success"><span class="badge-dot"></span>Paid</span>' : '<span class="badge badge-warning"><span class="badge-dot"></span>Processing</span>') + '</td>';
+      html += '<td>' + (p.status === 'paid' ? '<span class="badge badge-success"><span class="badge-dot"></span>Paid</span>' : (p.status === 'funds_released' ? '<span class="badge badge-info"><span class="badge-dot"></span>Ready to Pay</span>' : '<span class="badge badge-warning"><span class="badge-dot"></span>Processing</span>')) + '</td>';
       html += '<td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-icon" data-view-slip="' + p.id + '" title="View Slip">' + icon('eye') + '</button>';
-      if (isHR && p.status === 'processing') html += '<button class="btn btn-success btn-xs" data-mark-paid="' + p.id + '">Mark Paid</button>';
+      if (isHR && p.status === 'funds_released') {
+        html += '<button class="btn btn-success btn-xs" data-mark-paid="' + p.id + '">Mark Paid</button>';
+      } else if (isHR && p.status === 'processing') {
+        html += '<span style="color:var(--text-muted);font-size:0.75rem">Waiting Funds</span>';
+      }
       html += '</div></td></tr>';
     });
     if (data.length === 0) html += '<tr><td colspan="' + (isHR ? 10 : 8) + '" style="text-align:center;padding:40px;color:var(--text-muted)">No payroll records</td></tr>';

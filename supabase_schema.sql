@@ -103,7 +103,7 @@ CREATE TABLE payroll (
   late_deductions NUMERIC(10, 2) DEFAULT 0,
   absence_deductions NUMERIC(10, 2) DEFAULT 0,
   net_salary NUMERIC(10, 2) DEFAULT 0,
-  status TEXT DEFAULT 'processing' CHECK (status IN ('processing', 'paid')),
+  status TEXT DEFAULT 'processing' CHECK (status IN ('processing', 'funds_released', 'paid')),
   paid_date DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -1419,3 +1419,84 @@ Pages.itTickets = function(el) {
 
   loadData();
 };
+// MODULE 12: Payroll Funding (Finance)
+Pages.payrollFunding = function(el) {
+  var isFinance = App.user && App.user.department === 'Finance';
+  var isOwner = App.isOwner();
+  if(!isFinance && !isOwner) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Access Denied. Finance & Management only.</div>';
+    return;
+  }
+
+  var processingPayroll = [];
+
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading payroll funds...</div>';
+    sbClient.from('payroll').select('*').eq('status', 'processing').then(function(r) {
+      if(r.error) { el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)">Error: ' + r.error.message + '</div>'; return; }
+      processingPayroll = r.data || [];
+      render();
+    });
+  }
+
+  function render() {
+    var fundsByMonth = {};
+    processingPayroll.forEach(function(p) {
+      if(!fundsByMonth[p.month]) fundsByMonth[p.month] = { records: [], total: 0 };
+      fundsByMonth[p.month].records.push(p);
+      fundsByMonth[p.month].total += p.net_salary || 0;
+    });
+
+    var html = '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-success-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-success)">' + icon('briefcase', 22) + '</div>';
+    html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">??? ???????? ??? HR (Payroll Funding)</h3>';
+    html += '</div>';
+    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">??? ?????? ????? ???? ????????. ??? ?? ???? ??? HR ????? ????????? ????? ??? ?????? ??????? ???????? ??? ???. ????? ?????? ???????? ?????? ?????? ?????? ??? HR.</p>';
+    html += '</div>';
+
+    var months = Object.keys(fundsByMonth).sort(function(a, b) { return a > b ? -1 : 1; });
+
+    if(months.length === 0) {
+      html += '<div class="empty-state" style="padding:60px">' + icon('checkCircle', 40) + '<p>No pending salaries require funding.</p></div>';
+      el.innerHTML = html;
+      return;
+    }
+
+    months.forEach(function(m) {
+      var group = fundsByMonth[m];
+      html += '<div class="card" style="margin-bottom:20px"><div class="card-header"><div><h3>' + m + ' - Pending Salaries Funding</h3><p>' + group.records.length + ' employees need payment</p></div></div>';
+      html += '<div class="card-body" style="text-align:center;padding:30px">';
+      html += '<div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:8px">?????? ?????? ??????? ?????? ??? HR</div>';
+      html += '<div style="font-size:2.5rem;font-weight:900;color:var(--accent-primary);margin-bottom:24px">EGP ' + group.total.toLocaleString() + '</div>';
+      html += '<button class="btn btn-success btn-lg" data-release-funds="' + m + '">?? ????? ?????? ??? HR (Release Funds)</button>';
+      html += '</div></div>';
+    });
+
+    el.innerHTML = html;
+
+    document.querySelectorAll('[data-release-funds]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var m = this.getAttribute('data-release-funds');
+        if(!confirm('Are you sure you want to release EGP ' + fundsByMonth[m].total.toLocaleString() + ' for ' + m + ' salaries to HR?')) return;
+        
+        var recordIds = fundsByMonth[m].records.map(function(r) { return r.id; });
+        var btnEl = this;
+        btnEl.innerHTML = '<span class="spinner"></span> Processing...';
+        btnEl.disabled = true;
+
+        sbClient.from('payroll').update({ status: 'funds_released' }).in('id', recordIds).then(function(r) {
+          if(r.error) {
+            btnEl.innerHTML = '?? ????? ?????? ??? HR (Release Funds)';
+            btnEl.disabled = false;
+            return alert(r.error.message);
+          }
+          showToast('Funds released successfully. HR can now pay employees.', 'success');
+          loadData();
+        });
+      });
+    });
+  }
+
+  loadData();
+};
