@@ -769,15 +769,20 @@ Pages.purchaseRequests = function(el) {
           if (isWarehouse && req.status === 'pending_warehouse') {
             html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'dispensed\')">Dispense</button>';
             html += '<button class="btn btn-xs btn-warning" onclick="updateReqStatus(\'' + req.id + '\', \'pending\')">Send to Procurement</button>';
-          } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'pending') {
-             html += '<button class="btn btn-xs btn-primary" onclick="submitQuotesModal(\'' + req.id + '\', \'' + req.item_name.replace(/'/g, "\\'") + '\')">Submit 3 Quotes</button>';
-             if(isProcurementMgr) html += ' <button class="btn btn-xs btn-danger" onclick="updateReqStatus(\'' + req.id + '\', \'rejected\')">Reject</button>';
+          } else if (isProcurementMgr && req.status === 'pending') {
+             html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'approved\')">Approve Request</button>';
+             html += '<button class="btn btn-xs btn-danger" onclick="updateReqStatus(\'' + req.id + '\', \'rejected\')">Reject</button>';
+          } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'approved') {
+             html += '<button class="btn btn-xs btn-primary" onclick="submitQuotesModal(\'' + req.id + '\', \'' + req.item_name.replace(/'/g, "\\'") + '\')">Submit Quotes</button>';
           } else if (isProcurementMgr && req.status === 'quotation_requested') {
              html += '<button class="btn btn-xs btn-warning" onclick="reviewQuotesModal(\'' + req.id + '\', \'' + req.item_id + '\')">Review Quotes</button>';
           } else if (req.status === 'quotation_requested') {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">Awaiting Manager</span>';
-          } else if (req.status === 'approved') {
-             html += '<span style="color:var(--text-muted);font-size:0.8rem">Waiting for Petty Cash</span>';
+          } else if (req.status === 'purchased') {
+             html += '<span style="color:var(--text-muted);font-size:0.8rem">Sent to Finance / Purchasing</span>';
+             if (isProcurementMgr || isProcurementSpec) {
+                html += '<br><button class="btn btn-xs btn-success" style="margin-top:4px" onclick="sendWhatsAppPO(\'' + req.id + '\', ' + req.requested_quantity + ')">Send PO (WhatsApp)</button>';
+             }
           } else {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">No Action</span>';
           }
@@ -800,9 +805,7 @@ Pages.purchaseRequests = function(el) {
     });
     body += '</datalist></div>';
     
-    body += '<div class="form-row"><div class="form-field"><label>Quantity Required *</label><input type="number" id="pr-qty" class="form-input" min="0.01" step="0.01" value="1"></div>';
-    body += '<div class="form-field"><label>Estimated Price (السعر المتوقع)</label><input type="number" id="pr-price" class="form-input" min="0" step="0.01" placeholder="Optional"></div></div>';
-    body += '<div class="form-field"><label>Supplier Name (اسم المورد)</label><input type="text" id="pr-supplier" class="form-input" placeholder="Optional"></div>';
+    body += '<div class="form-field"><label>Quantity Required *</label><input type="number" id="pr-qty" class="form-input" min="0.01" step="0.01" value="1"></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-pr-btn">Submit Request</button>';
     App.showModal('New Purchase Request', body, footer);
@@ -810,8 +813,6 @@ Pages.purchaseRequests = function(el) {
     document.getElementById('save-pr-btn').addEventListener('click', function() {
       var nameInput = document.getElementById('pr-item-name').value;
       var qty = parseFloat(document.getElementById('pr-qty').value);
-      var price = parseFloat(document.getElementById('pr-price').value) || 0;
-      var supplier = document.getElementById('pr-supplier').value;
       
       if(!nameInput || !qty || isNaN(qty)) return alert('Please provide item name and quantity');
 
@@ -820,7 +821,6 @@ Pages.purchaseRequests = function(el) {
 
       sbClient.from('purchase_requests').insert([{
         item_id: itemId, item_name: nameInput, requested_quantity: qty,
-        supplier_name: supplier, estimated_price: price,
         requested_by: App.user.full_name, status: 'pending_warehouse'
       }]).then(function(r) {
         if(r.error) return alert(r.error.message);
@@ -832,34 +832,48 @@ Pages.purchaseRequests = function(el) {
   };
 
   window.submitQuotesModal = function(reqId, itemName) {
-    var body = '<p>Please enter 3 price quotes for <b>' + itemName + '</b></p>';
+    var body = '<p>Enter quotes for <b>' + itemName + '</b></p>';
     for(var i=1; i<=3; i++) {
-      body += '<div style="background:var(--bg-tertiary); padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid var(--border-color)">';
-      body += '<b>Quote ' + i + '</b>';
-      body += '<div class="form-row" style="margin-top:8px"><div class="form-field"><label>Supplier Name *</label><input type="text" id="q-sup-' + i + '" class="form-input"></div>';
-      body += '<div class="form-field"><label>Price (EGP) *</label><input type="number" id="q-price-' + i + '" class="form-input" min="1"></div></div>';
+      body += '<div style="background:var(--bg-tertiary); padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border-color)">';
+      body += '<b>Supplier ' + i + ' Option</b>';
+      body += '<input type="text" id="q-sup-' + i + '" class="form-input" style="margin-bottom:10px" placeholder="Supplier Name">';
+      body += '<div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:5px">Available Types/Brands & Prices from this supplier:</div>';
+      for(var j=1; j<=3; j++) {
+        var isReq = j===1 ? '*' : '';
+        body += '<div class="form-row" style="margin-bottom:5px">';
+        body += '<div class="form-field" style="margin-bottom:0"><input type="text" id="q-type-' + i + '-' + j + '" class="form-input form-input-sm" placeholder="Type/Brand ' + isReq + '"></div>';
+        body += '<div class="form-field" style="margin-bottom:0"><input type="number" id="q-price-' + i + '-' + j + '" class="form-input form-input-sm" placeholder="Price ' + isReq + '"></div>';
+        body += '</div>';
+      }
       body += '</div>';
     }
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-quotes-btn">Submit Quotes</button>';
-    App.showModal('Submit 3 Quotes', body, footer);
+    App.showModal('Submit Quotes', body, footer);
 
     document.getElementById('save-quotes-btn').addEventListener('click', function() {
-      var quotes = [];
+      var inserts = [];
       for(var i=1; i<=3; i++) {
         var sup = document.getElementById('q-sup-' + i).value;
-        var p = parseFloat(document.getElementById('q-price-' + i).value);
-        if(sup && p) quotes.push({ supplier: sup, price: p });
+        if (!sup) continue;
+        for(var j=1; j<=3; j++) {
+          var type = document.getElementById('q-type-' + i + '-' + j).value;
+          var p = parseFloat(document.getElementById('q-price-' + i + '-' + j).value);
+          if (type && p) {
+            inserts.push({
+              request_id: reqId, 
+              item_name: itemName + ' (' + type + ')', 
+              supplier_name: sup, 
+              price: p,
+              status: 'pending_approval', 
+              specialist_name: App.user.full_name, 
+              manager_name: App.user.full_name,
+              petty_cash_amount: 0 // Keep 0 so it doesn't show in Finance Petty Cash yet
+            });
+          }
+        }
       }
-      if(quotes.length < 3) return alert('Please provide all 3 quotes.');
-
-      var inserts = quotes.map(function(q) {
-        return {
-          request_id: reqId, item_name: itemName, supplier_name: q.supplier, price: q.price,
-          status: 'pending_approval', specialist_name: App.user.full_name, manager_name: App.user.full_name,
-          petty_cash_amount: 0 // Keep 0 so it doesn't show in Finance Petty Cash yet
-        };
-      });
+      if(inserts.length === 0) return alert('Please provide at least one valid quote with type and price.');
 
       sbClient.from('purchase_orders').insert(inserts).then(function(r) {
         if(r.error) return alert(r.error.message);
@@ -887,7 +901,7 @@ Pages.purchaseRequests = function(el) {
       body += '<div style="display:flex; flex-direction:column; gap:12px">';
       quotes.forEach(function(q, idx) {
         body += '<div style="border:1px solid var(--border-color); padding:16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; background:var(--bg-tertiary)">';
-        body += '<div><div style="font-weight:600">' + q.supplier_name + '</div><div style="color:var(--text-secondary)">Price: EGP ' + q.price + '</div></div>';
+        body += '<div><div style="font-weight:600">' + q.supplier_name + '</div><div style="color:var(--text-secondary)">Item: ' + q.item_name + '<br>Price: EGP ' + q.price + '</div></div>';
         body += '<button class="btn btn-sm btn-success" onclick="approveQuote(\'' + reqId + '\', \'' + q.id + '\', ' + q.price + ', \'' + itemId + '\', \'' + q.supplier_name.replace(/'/g, "\\'") + '\')">Approve This</button>';
         body += '</div>';
       });
@@ -902,7 +916,7 @@ Pages.purchaseRequests = function(el) {
     if(confirm('Approve this quote and request EGP ' + price + ' petty cash?')) {
       sbClient.from('purchase_orders').delete().eq('request_id', reqId).neq('id', orderId).then(function() {
         sbClient.from('purchase_orders').update({petty_cash_amount: price}).eq('id', orderId).then(function() {
-          sbClient.from('purchase_requests').update({status: 'approved'}).eq('id', reqId).then(function() {
+          sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function() {
              
              // Update inventory item if it exists
              if (itemId && itemId !== 'null' && itemId !== 'undefined') {
@@ -936,6 +950,35 @@ Pages.purchaseRequests = function(el) {
         });
       });
     }
+  };
+
+  window.sendWhatsAppPO = function(reqId, qty) {
+    sbClient.from('purchase_orders').select('*').eq('request_id', reqId).gt('petty_cash_amount', 0).single().then(function(res) {
+      if(res.error || !res.data) return alert('Approved quote not found.');
+      var order = res.data;
+      
+      var body = '<p>Send Supply Order to <b>' + order.supplier_name + '</b></p>';
+      body += '<div class="form-field"><label>Supplier WhatsApp Number *</label><input type="text" id="wa-number" class="form-input" placeholder="e.g. +201012345678"></div>';
+      
+      var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-success" id="send-wa-btn">Send Message</button>';
+      App.showModal('WhatsApp Supply Order', body, footer);
+      
+      document.getElementById('send-wa-btn').addEventListener('click', function() {
+        var num = document.getElementById('wa-number').value.replace(/[^0-9+]/g, '');
+        if(!num) return alert('Please enter a valid number');
+        if(!num.startsWith('+')) num = '+' + num;
+        
+        var message = "مرحباً،\nنود طلب توريد الأصناف التالية:\n";
+        message += "الصنف: " + order.item_name + "\n";
+        message += "الكمية: " + qty + "\n";
+        message += "بناءً على السعر المتفق عليه: " + order.price + " ج.م.\n\n";
+        message += "برجاء تأكيد الطلب. شكراً.";
+        
+        var url = "https://wa.me/" + num.replace('+', '') + "?text=" + encodeURIComponent(message);
+        window.open(url, '_blank');
+        App.closeModal();
+      });
+    });
   };
 
   window.updateReqStatus = function(id, newStatus) {
