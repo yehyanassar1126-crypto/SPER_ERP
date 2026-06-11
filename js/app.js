@@ -1439,6 +1439,7 @@ Pages.employees = function (el) {
 // ----- ATTENDANCE -----
 Pages.attendance = function (el) {
   var isHR = App.isHR();
+  var canEdit = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner');
   var records = isHR ? [] : [].filter(function (a) { return a.employee_id === App.user.id; });
   var search = '';
   var deptFilter = '';
@@ -1452,9 +1453,15 @@ Pages.attendance = function (el) {
     html += '<input type="date" class="filter-select" id="att-date" value="' + dateFilter + '"><select class="filter-select" id="att-status"><option value=""' + (statusFilter === '' ? ' selected' : '') + '>All Status</option><option value="present"' + (statusFilter === 'present' ? ' selected' : '') + '>Present</option><option value="checked_in"' + (statusFilter === 'checked_in' ? ' selected' : '') + '>Checked In</option><option value="absent"' + (statusFilter === 'absent' ? ' selected' : '') + '>Absent</option><option value="leave"' + (statusFilter === 'leave' ? ' selected' : '') + '>Leave (اجازة)</option></select>';
     html += '<button class="btn btn-outline" id="att-export">' + icon('download') + ' Export</button></div>';
 
-    html += '<div class="card"><div class="card-header"><div><h3>' + (isHR ? 'Attendance Records' : 'My Attendance History') + '</h3><p>' + data.length + ' records</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
+    var colCount = 7;
+    if (isHR) colCount += 2;
+    if (canEdit) colCount += 1;
+
+    html += '<div class="card"><div class="card-header"><div><h3>' + (isHR ? 'Attendance Records (سجل الحضور)' : 'My Attendance History') + '</h3><p>' + data.length + ' records</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
     if (isHR) html += '<th>Employee</th><th>Department</th>';
-    html += '<th>Date</th><th>Check In</th><th>Check Out</th><th>Shift</th><th>Working Hours</th><th>Delay</th><th>Status</th></tr></thead><tbody>';
+    html += '<th>Date</th><th>Check In</th><th>Check Out</th><th>Shift</th><th>Working Hours</th><th>Delay</th><th>Status</th>';
+    if (canEdit) html += '<th>Actions (إجراءات)</th>';
+    html += '</tr></thead><tbody>';
     data.sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).forEach(function (r) {
       html += '<tr>';
       if (isHR) html += '<td style="color:var(--text-primary);font-weight:500">' + r.employee_name + '</td><td>' + r.department + '</td>';
@@ -1464,9 +1471,13 @@ Pages.attendance = function (el) {
       html += '<td>' + (r.status === 'leave' ? '—' : (r.delay_minutes > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + icon('alertTriangle') + ' ' + formatDelay(r.delay_minutes) + '</span>' : '<span style="color:var(--accent-success)">On time</span>')) + '</td>';
       var badge = r.status === 'present' ? 'badge-success' : r.status === 'checked_in' ? 'badge-info' : r.status === 'leave' ? 'badge-warning' : 'badge-danger';
       var statusText = r.status === 'leave' ? 'Leave (اجازة)' : r.status.replace('_', ' ');
-      html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + statusText + '</span></td></tr>';
+      html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + statusText + '</span></td>';
+      if (canEdit) {
+        html += '<td><button class="btn btn-xs btn-outline" onclick="window.editAttendanceRecord(\'' + r.id + '\')" style="font-size:0.72rem">' + icon('edit', 12) + ' تعديل</button></td>';
+      }
+      html += '</tr>';
     });
-    if (data.length === 0) html += '<tr><td colspan="' + (isHR ? 9 : 7) + '" style="text-align:center;padding:40px;color:var(--text-muted)">No attendance records found</td></tr>';
+    if (data.length === 0) html += '<tr><td colspan="' + colCount + '" style="text-align:center;padding:40px;color:var(--text-muted)">No attendance records found</td></tr>';
     html += '</tbody></table></div></div></div>';
     el.innerHTML = html;
 
@@ -1498,6 +1509,76 @@ Pages.attendance = function (el) {
     document.getElementById('att-status').addEventListener('change', applyFilters);
     document.getElementById('att-export').addEventListener('click', function () { exportToCSV(data, 'attendance_report'); });
   }
+
+  // ---- Edit Attendance Record Modal (HR Manager / Owner only) ----
+  window.editAttendanceRecord = function(recordId) {
+    var rec = records.find(function(r) { return r.id === recordId; });
+    if (!rec) return alert('Record not found');
+
+    var body = '<div style="margin-bottom:16px;padding:14px;background:var(--bg-secondary);border-radius:var(--radius-md);border:1px solid var(--border-color)">';
+    body += '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text-muted);font-size:0.82rem">الموظف (Employee)</span><span style="font-weight:700">' + rec.employee_name + '</span></div>';
+    body += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted);font-size:0.82rem">التاريخ (Date)</span><span style="font-weight:700">' + formatDate(rec.date) + '</span></div>';
+    body += '</div>';
+
+    body += '<div class="form-field"><label>الحالة (Status) *</label><select id="edit-att-status" class="form-input">';
+    body += '<option value="present"' + (rec.status === 'present' ? ' selected' : '') + '>✅ حاضر (Present)</option>';
+    body += '<option value="absent"' + (rec.status === 'absent' ? ' selected' : '') + '>❌ غائب (Absent)</option>';
+    body += '<option value="checked_in"' + (rec.status === 'checked_in' ? ' selected' : '') + '>🔵 سجل حضور (Checked In)</option>';
+    body += '<option value="leave"' + (rec.status === 'leave' ? ' selected' : '') + '>⛱️ إجازة (Leave)</option>';
+    body += '</select></div>';
+
+    body += '<div class="form-field"><label>وقت الحضور (Check-In Time)</label><input type="time" id="edit-att-checkin" class="form-input" value="' + (rec.check_in ? new Date(rec.check_in).toTimeString().slice(0,5) : '') + '"></div>';
+
+    body += '<div class="form-field"><label>التأخير بالدقائق (Delay Minutes)</label><input type="number" id="edit-att-delay" class="form-input" value="' + (rec.delay_minutes || 0) + '" min="0"></div>';
+
+    body += '<div class="form-field"><label>ساعات العمل (Working Hours)</label><input type="number" id="edit-att-hours" class="form-input" value="' + (rec.working_hours || 0) + '" min="0" step="0.5"></div>';
+
+    body += '<div style="margin-top:12px;padding:10px;background:rgba(245,158,11,0.08);border-radius:var(--radius-sm);border:1px solid rgba(245,158,11,0.15);font-size:0.78rem;color:#f59e0b">';
+    body += '⚠️ تنبيه: التعديل هيأثر على حساب المرتب تلقائياً';
+    body += '</div>';
+
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء (Cancel)</button>';
+    footer += '<button class="btn btn-primary" id="save-att-edit">💾 حفظ التعديل (Save)</button>';
+
+    App.showModal('✏️ تعديل سجل حضور - Edit Attendance', body, footer);
+
+    document.getElementById('save-att-edit').addEventListener('click', function() {
+      var newStatus = document.getElementById('edit-att-status').value;
+      var newDelay = parseInt(document.getElementById('edit-att-delay').value) || 0;
+      var newHours = parseFloat(document.getElementById('edit-att-hours').value) || 0;
+      var newCheckinTime = document.getElementById('edit-att-checkin').value;
+
+      var updateObj = {
+        status: newStatus,
+        delay_minutes: newDelay,
+        working_hours: newHours
+      };
+
+      // If status changed to present and there was no check-in, set one
+      if (newStatus === 'present' && newCheckinTime) {
+        var dateStr = rec.date;
+        updateObj.check_in = dateStr + 'T' + newCheckinTime + ':00';
+      }
+
+      // If absent, clear check-in/out and delay
+      if (newStatus === 'absent') {
+        updateObj.check_in = null;
+        updateObj.check_out = null;
+        updateObj.delay_minutes = 0;
+        updateObj.working_hours = 0;
+      }
+
+      sbClient.from('attendance').update(updateObj).eq('id', recordId).then(function(res) {
+        if (res.error) return alert('Error: ' + res.error.message);
+        App.closeModal();
+        showToast('تم تعديل السجل بنجاح ✅', 'success');
+        // Reload data
+        var query = sbClient.from('attendance').select('*').order('date', { ascending: false });
+        if (!isHR) query = query.eq('employee_id', App.user.id);
+        query.then(function (res2) { if (res2.data) { records = res2.data; render(records); } });
+      });
+    });
+  };
 
   {
     var query = sbClient.from('attendance').select('*').order('date', { ascending: false });
