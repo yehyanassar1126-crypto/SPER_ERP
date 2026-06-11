@@ -769,13 +769,15 @@ Pages.purchaseRequests = function(el) {
           if (isWarehouse && req.status === 'pending_warehouse') {
             html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'dispensed\')">Dispense</button>';
             html += '<button class="btn btn-xs btn-warning" onclick="updateReqStatus(\'' + req.id + '\', \'pending\')">Send to Procurement</button>';
-          } else if (isProcurementMgr && req.status === 'pending') {
-            html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'approved\')">Approve</button>';
-            html += '<button class="btn btn-xs btn-danger" onclick="updateReqStatus(\'' + req.id + '\', \'rejected\')">Reject</button>';
-          } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'approved') {
-             html += '<button class="btn btn-xs btn-primary" onclick="requestPettyCashModal(\'' + req.id + '\', \'' + req.item_name.replace(/'/g, "\\'") + '\')">Request Petty Cash</button>';
+          } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'pending') {
+             html += '<button class="btn btn-xs btn-primary" onclick="submitQuotesModal(\'' + req.id + '\', \'' + req.item_name.replace(/'/g, "\\'") + '\')">Submit 3 Quotes</button>';
+             if(isProcurementMgr) html += ' <button class="btn btn-xs btn-danger" onclick="updateReqStatus(\'' + req.id + '\', \'rejected\')">Reject</button>';
+          } else if (isProcurementMgr && req.status === 'quotation_requested') {
+             html += '<button class="btn btn-xs btn-warning" onclick="reviewQuotesModal(\'' + req.id + '\', \'' + req.item_id + '\')">Review Quotes</button>';
           } else if (req.status === 'quotation_requested') {
-             html += '<span style="color:var(--text-muted);font-size:0.8rem">Awaiting Finance</span>';
+             html += '<span style="color:var(--text-muted);font-size:0.8rem">Awaiting Manager</span>';
+          } else if (req.status === 'approved') {
+             html += '<span style="color:var(--text-muted);font-size:0.8rem">Waiting for Petty Cash</span>';
           } else {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">No Action</span>';
           }
@@ -829,32 +831,111 @@ Pages.purchaseRequests = function(el) {
     });
   };
 
-  window.requestPettyCashModal = function(reqId, itemName) {
-    var body = '<div class="form-field"><label>Supplier Name *</label><input type="text" id="pc-supplier" class="form-input"></div>';
-    body += '<div class="form-field"><label>Total Price (EGP) *</label><input type="number" id="pc-price" class="form-input" min="1"></div>';
+  window.submitQuotesModal = function(reqId, itemName) {
+    var body = '<p>Please enter 3 price quotes for <b>' + itemName + '</b></p>';
+    for(var i=1; i<=3; i++) {
+      body += '<div style="background:var(--bg-tertiary); padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid var(--border-color)">';
+      body += '<b>Quote ' + i + '</b>';
+      body += '<div class="form-row" style="margin-top:8px"><div class="form-field"><label>Supplier Name *</label><input type="text" id="q-sup-' + i + '" class="form-input"></div>';
+      body += '<div class="form-field"><label>Price (EGP) *</label><input type="number" id="q-price-' + i + '" class="form-input" min="1"></div></div>';
+      body += '</div>';
+    }
     
-    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-pc-btn">Request Cash</button>';
-    App.showModal('Request Petty Cash (طلب عهدة)', body, footer);
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-quotes-btn">Submit Quotes</button>';
+    App.showModal('Submit 3 Quotes', body, footer);
 
-    document.getElementById('save-pc-btn').addEventListener('click', function() {
-      var supplier = document.getElementById('pc-supplier').value;
-      var price = parseFloat(document.getElementById('pc-price').value);
-      if(!supplier || !price) return alert('Please provide supplier and price');
+    document.getElementById('save-quotes-btn').addEventListener('click', function() {
+      var quotes = [];
+      for(var i=1; i<=3; i++) {
+        var sup = document.getElementById('q-sup-' + i).value;
+        var p = parseFloat(document.getElementById('q-price-' + i).value);
+        if(sup && p) quotes.push({ supplier: sup, price: p });
+      }
+      if(quotes.length < 3) return alert('Please provide all 3 quotes.');
 
-      sbClient.from('purchase_orders').insert([{
-        request_id: reqId, item_name: itemName, supplier_name: supplier, price: price,
-        status: 'pending_approval', specialist_name: App.user.full_name, manager_name: App.user.full_name,
-        petty_cash_amount: price
-      }]).then(function(r) {
+      var inserts = quotes.map(function(q) {
+        return {
+          request_id: reqId, item_name: itemName, supplier_name: q.supplier, price: q.price,
+          status: 'pending_approval', specialist_name: App.user.full_name, manager_name: App.user.full_name,
+          petty_cash_amount: 0 // Keep 0 so it doesn't show in Finance Petty Cash yet
+        };
+      });
+
+      sbClient.from('purchase_orders').insert(inserts).then(function(r) {
         if(r.error) return alert(r.error.message);
         
         sbClient.from('purchase_requests').update({status: 'quotation_requested'}).eq('id', reqId).then(function(r2) {
            App.closeModal();
            loadData();
-           showToast('Petty cash requested from Finance', 'success');
+           showToast('Quotes submitted to Manager', 'success');
         });
       });
     });
+  };
+
+  window.reviewQuotesModal = function(reqId, itemId) {
+    App.showModal('Review Quotes', '<div style="padding:20px;text-align:center">Loading Quotes...</div>', '');
+    
+    sbClient.from('purchase_orders').select('*').eq('request_id', reqId).then(function(res) {
+      var quotes = res.data || [];
+      if(quotes.length === 0) {
+        App.closeModal();
+        return alert('No quotes found.');
+      }
+      
+      var body = '<p>Select the best quote to approve for Petty Cash:</p>';
+      body += '<div style="display:flex; flex-direction:column; gap:12px">';
+      quotes.forEach(function(q, idx) {
+        body += '<div style="border:1px solid var(--border-color); padding:16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; background:var(--bg-tertiary)">';
+        body += '<div><div style="font-weight:600">' + q.supplier_name + '</div><div style="color:var(--text-secondary)">Price: EGP ' + q.price + '</div></div>';
+        body += '<button class="btn btn-sm btn-success" onclick="approveQuote(\'' + reqId + '\', \'' + q.id + '\', ' + q.price + ', \'' + itemId + '\', \'' + q.supplier_name.replace(/'/g, "\\'") + '\')">Approve This</button>';
+        body += '</div>';
+      });
+      body += '</div>';
+      var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-danger" onclick="rejectAllQuotes(\'' + reqId + '\')">Reject All (لا أوافق)</button>';
+      
+      App.showModal('Review Quotes', body, footer);
+    });
+  };
+
+  window.approveQuote = function(reqId, orderId, price, itemId, supplier) {
+    if(confirm('Approve this quote and request EGP ' + price + ' petty cash?')) {
+      sbClient.from('purchase_orders').delete().eq('request_id', reqId).neq('id', orderId).then(function() {
+        sbClient.from('purchase_orders').update({petty_cash_amount: price}).eq('id', orderId).then(function() {
+          sbClient.from('purchase_requests').update({status: 'approved'}).eq('id', reqId).then(function() {
+             
+             // Update inventory item if it exists
+             if (itemId && itemId !== 'null' && itemId !== 'undefined') {
+                sbClient.from('inventory_items').update({
+                  last_purchase_price: price,
+                  supplier_name: supplier
+                }).eq('id', itemId).then(function() {
+                  App.closeModal();
+                  loadData();
+                  showToast('Quote approved & price updated. Sent to Finance.', 'success');
+                });
+             } else {
+                App.closeModal();
+                loadData();
+                showToast('Quote approved. Sent to Finance for Petty Cash.', 'success');
+             }
+
+          });
+        });
+      });
+    }
+  };
+
+  window.rejectAllQuotes = function(reqId) {
+    if(confirm('Reject all quotes? The specialist will need to submit new quotes.')) {
+      sbClient.from('purchase_orders').delete().eq('request_id', reqId).then(function() {
+        sbClient.from('purchase_requests').update({status: 'pending'}).eq('id', reqId).then(function() {
+           App.closeModal();
+           loadData();
+           showToast('Quotes rejected.', 'warning');
+        });
+      });
+    }
   };
 
   window.updateReqStatus = function(id, newStatus) {
@@ -892,7 +973,7 @@ Pages.pettyCash = function(el) {
     }
     
     query.then(function(res) {
-      orders = res.data || [];
+      orders = (res.data || []).filter(function(o) { return o.petty_cash_amount > 0; });
       render();
     });
   }
