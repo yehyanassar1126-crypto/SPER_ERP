@@ -2660,16 +2660,21 @@ Pages.reports = function (el) {
   var attendance = [];
   var leaves = [];
   var payroll = [];
+  var purchaseReqs = [];
+  var inventory = [];
+  var expenses = [];
   var activeReport = 'attendance';
 
   function render() {
-    var html = '<div style="margin-bottom:24px;border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:4px;background:var(--bg-card);display:inline-flex;gap:0">';
-    [{ id: 'attendance', label: '📊 Attendance' }, { id: 'absenteeism', label: '🔴 Absenteeism' }, { id: 'performance', label: '📈 Dept Performance' }, { id: 'leaves', label: '🏖️ Leave Analytics' }].forEach(function (tab) {
+    var html = '<div style="margin-bottom:24px;border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:4px;background:var(--bg-card);display:inline-flex;gap:0;flex-wrap:wrap;">';
+    var tabs = [{ id: 'attendance', label: '📊 Attendance' }, { id: 'absenteeism', label: '🔴 Absenteeism' }, { id: 'performance', label: '📈 Dept Performance' }, { id: 'leaves', label: '🏖️ Leave Analytics' }, { id: 'procurement', label: '🛒 Procurement' }, { id: 'inventory', label: '📦 Inventory' }, { id: 'expenses', label: '💰 Expenses' }];
+    tabs.forEach(function (tab) {
       html += '<button class="tab' + (activeReport === tab.id ? ' active' : '') + '" data-report="' + tab.id + '" style="border-bottom:none;border-radius:var(--radius-md);margin:0;background:' + (activeReport === tab.id ? 'var(--accent-primary-soft)' : 'transparent') + '">' + tab.label + '</button>';
     });
     html += '</div>';
 
-    html += '<div class="card"><div class="card-header"><div><h3>' + { attendance: '📊 Monthly Attendance Report', absenteeism: '🔴 Absenteeism Analysis', performance: '📈 Department Performance', leaves: '🏖️ Leave Analytics' }[activeReport] + '</h3></div><button class="btn btn-outline" id="rpt-export">' + icon('download') + ' Export CSV</button></div><div class="chart-container" style="height:350px;padding:24px"><canvas id="report-chart"></canvas></div></div>';
+    var titles = { attendance: '📊 Monthly Attendance Report', absenteeism: '🔴 Absenteeism Analysis', performance: '📈 Department Performance', leaves: '🏖️ Leave Analytics', procurement: '🛒 Procurement Requests Analysis', inventory: '📦 Inventory Categories', expenses: '💰 Expenses Status' };
+    html += '<div class="card"><div class="card-header"><div><h3>' + titles[activeReport] + '</h3></div><button class="btn btn-outline" id="rpt-export">' + icon('download') + ' Export CSV</button></div><div class="chart-container" style="height:350px;padding:24px"><canvas id="report-chart"></canvas></div></div>';
 
     el.innerHTML = html;
 
@@ -2679,6 +2684,9 @@ Pages.reports = function (el) {
       if (activeReport === 'performance') dataToExport = payroll;
       else if (activeReport === 'leaves') dataToExport = leaves;
       else if (activeReport === 'absenteeism') dataToExport = attendance.filter(function (a) { return a.status === 'absent'; });
+      else if (activeReport === 'procurement') dataToExport = purchaseReqs;
+      else if (activeReport === 'inventory') dataToExport = inventory;
+      else if (activeReport === 'expenses') dataToExport = expenses;
       exportToCSV(dataToExport, activeReport + '_report');
     });
 
@@ -2702,6 +2710,18 @@ Pages.reports = function (el) {
         var leaveByType = {};
         leaves.forEach(function (l) { leaveByType[l.type] = (leaveByType[l.type] || 0) + 1; });
         new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(leaveByType), datasets: [{ data: Object.values(leaveByType), backgroundColor: ['#6366f1', '#ef4444', '#f59e0b', '#06b6d4', '#a855f7'], borderWidth: 0 }] }, options: Object.assign({}, chartOpts, { scales: undefined, cutout: '60%' }) });
+      } else if (activeReport === 'procurement') {
+        var reqByStatus = {};
+        purchaseReqs.forEach(function(r) { reqByStatus[r.status] = (reqByStatus[r.status] || 0) + 1; });
+        new Chart(ctx, { type: 'pie', data: { labels: Object.keys(reqByStatus), datasets: [{ data: Object.values(reqByStatus), backgroundColor: ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#8b5cf6', '#14b8a6'], borderWidth: 0 }] }, options: Object.assign({}, chartOpts, { scales: undefined }) });
+      } else if (activeReport === 'inventory') {
+        var invByCat = {};
+        inventory.forEach(function(i) { invByCat[i.category] = (invByCat[i.category] || 0) + 1; });
+        new Chart(ctx, { type: 'bar', data: { labels: Object.keys(invByCat), datasets: [{ label: 'Items per Category', data: Object.values(invByCat), backgroundColor: '#06b6d4', borderRadius: 4 }] }, options: chartOpts });
+      } else if (activeReport === 'expenses') {
+        var expByStatus = {};
+        expenses.forEach(function(e) { expByStatus[e.status] = (expByStatus[e.status] || 0) + 1; });
+        new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(expByStatus), datasets: [{ data: Object.values(expByStatus), backgroundColor: ['#f59e0b', '#22c55e', '#ef4444'], borderWidth: 0 }] }, options: Object.assign({}, chartOpts, { scales: undefined, cutout: '60%' }) });
       }
     }, 50);
   }
@@ -2712,12 +2732,18 @@ Pages.reports = function (el) {
     sbClient.from('users').select('*').eq('status', 'active'),
     sbClient.from('attendance').select('*'),
     sbClient.from('leave_requests').select('*'),
-    sbClient.from('payroll').select('*')
+    sbClient.from('payroll').select('*'),
+    sbClient.from('purchase_requests').select('*'),
+    sbClient.from('inventory_items').select('*'),
+    sbClient.from('expenses').select('*')
   ]).then(function (results) {
     employees = results[0].data || [];
     attendance = results[1].data || [];
     leaves = results[2].data || [];
     payroll = results[3].data || [];
+    purchaseReqs = results[4].data || [];
+    inventory = results[5].data || [];
+    expenses = results[6].data || [];
     render();
   }).catch(function (err) {
     console.error('Reports Data Load Error:', err);
