@@ -466,6 +466,7 @@ Pages.inventory = function(el) {
   }
 
   var isManagerView = !isWarehouse; // read-only for Owner
+  window.currentWarehouseTab = 'raw';
 
   var items = [];
   var transactions = [];
@@ -502,7 +503,7 @@ Pages.inventory = function(el) {
     
     if (isWarehouse) {
       html += '<div>';
-      html += '<button class="btn btn-outline" onclick="warehousePurchaseRequestModal()" style="margin-right:10px; border-color:#3b82f6; color:#3b82f6;">' + icon('shoppingCart') + ' Request Purchase (طلب شراء)</button>';
+      html += '<button class="btn btn-outline" id="btn-request-purchase" onclick="warehousePurchaseRequestModal()" style="margin-right:10px; border-color:#3b82f6; color:#3b82f6; display:none;">' + icon('shoppingCart') + ' Request Purchase (طلب شراء)</button>';
       html += '<button class="btn btn-primary" onclick="newInventoryItemModal()" style="margin-right:10px">' + icon('plus') + ' Add New Item</button>';
       html += '<button class="btn btn-success" onclick="newTransactionModal()">' + icon('refreshCw') + ' Add Transaction (صرف/إضافة)</button>';
       html += '</div>';
@@ -640,14 +641,26 @@ Pages.inventory = function(el) {
       allViews.forEach(function(v) { var e=document.getElementById(v); if(e) e.style.display='none'; });
       var at=document.getElementById(activeTab); if(at){at.className='btn btn-sm btn-outline';at.style.borderColor='var(--accent-primary)';at.style.color='var(--accent-primary)';}
       var av=document.getElementById(activeView); if(av) av.style.display='block';
+      
+      var prBtn = document.getElementById('btn-request-purchase');
+      if (prBtn) {
+        prBtn.style.display = (activeTab === 'tab-general') ? 'inline-block' : 'none';
+      }
+      
+      if (activeTab === 'tab-items') window.currentWarehouseTab = 'raw';
+      else if (activeTab === 'tab-finished') window.currentWarehouseTab = 'finished';
+      else if (activeTab === 'tab-general') window.currentWarehouseTab = 'general';
     }
     allTabs.forEach(function(t,i) { var e=document.getElementById(t); if(e) e.addEventListener('click', function(){switchTab(t,allViews[i]);}); });
   }
 
   window.newInventoryItemModal = function() {
+    var whValue = window.currentWarehouseTab || 'raw';
+    var whLabel = whValue === 'raw' ? 'مخزن خام (Raw)' : (whValue === 'finished' ? 'مخزن تام (Finished)' : 'مخزن عام (General)');
+    
     var body = '<div class="form-field"><label>Item Name *</label><input type="text" id="inv-name" class="form-input"></div>';
     body += '<div class="form-row"><div class="form-field"><label>Category *</label><select id="inv-cat" class="form-input"><option value="Maintenance">Maintenance (قطع غيار صيانة)</option><option value="Workshop">Workshop (ورشة)</option><option value="Supplies">Supplies (مستلزمات)</option><option value="Chemicals">Chemicals (كيماويات)</option><option value="Raw Material">Raw Material (خامات)</option><option value="Finished Product">Finished Product (منتج تام)</option><option value="Fixed Assets">Fixed Assets (أصول ثابتة)</option></select></div>';
-    body += '<div class="form-field"><label>Warehouse (المخزن) *</label><select id="inv-wh" class="form-input"><option value="raw">مخزن خام (Raw)</option><option value="finished">مخزن تام (Finished)</option><option value="general">مخزن عام (General)</option></select></div></div>';
+    body += '<div class="form-field"><label>Warehouse (المخزن)</label><input type="text" class="form-input" disabled value="' + whLabel + '"><input type="hidden" id="inv-wh" value="' + whValue + '"></div></div>';
     body += '<div class="form-field"><label>Minimum Qty Alert *</label><input type="number" id="inv-min" class="form-input" value="2"></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn">Save Item</button>';
