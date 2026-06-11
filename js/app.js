@@ -242,7 +242,7 @@ var App = {
             { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
             { id: 'shifts', label: 'Shift Management', icon: 'clock' },
             { id: 'overtime', label: 'Overtime', icon: 'timer' },
-            { id: 'payroll', label: 'Payroll', icon: 'dollarSign' },
+            ...(App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }] : []),
             { id: 'hr-adjustments', label: 'Salary Adjustments', icon: 'fileText' },
             { id: 'recruitment', label: 'Recruitment', icon: 'userCheck' },
             { id: 'documents', label: 'Documents', icon: 'fileText' },
@@ -259,7 +259,8 @@ var App = {
         {
           section: 'Workplace', items: [
             { id: 'org-directory', label: 'Company Directory', icon: 'users' },
-            { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
+            { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' },
+            ...(App.user && App.user.role === 'hr' ? [{ id: 'my-salary', label: 'My Salary', icon: 'dollarSign' }] : [])
           ]
         },
         {
@@ -2110,7 +2111,7 @@ Pages.overtime = function (el) {
 
 // ----- PAYROLL -----
 Pages.payroll = function (el) {
-  var isHR = App.isHR();
+  var isHR = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner');
   var payroll = isHR ? [] : [].filter(function (p) { return p.employee_id === App.user.id; });
   var medicalClaims = [];
   var salaryAdjustments = [];
