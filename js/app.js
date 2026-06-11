@@ -1610,7 +1610,7 @@ Pages.qrCheckin = function (el) {
 
             delayMin = 0;
             var roleLC = (user.role || '').toLowerCase();
-            var isManagement = ['manager', 'owner', 'department head', 'hall manager', 'hr', 'hr manager'].indexOf(roleLC) !== -1 || roleLC.indexOf('manager') !== -1;
+            var isManagement = ['owner', 'hr', 'hr manager'].indexOf(roleLC) !== -1;
 
             if (isManagement) {
               // Management is completely exempt from delays
