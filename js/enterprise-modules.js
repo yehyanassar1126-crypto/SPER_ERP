@@ -1423,7 +1423,8 @@ Pages.itTickets = function(el) {
 Pages.payrollFunding = function(el) {
   var isFinance = App.user && App.user.department === 'Finance';
   var isOwner = App.isOwner();
-  if(!isFinance && !isOwner) {
+  var isHRManager = App.user && App.user.role === 'hr manager';
+  if(!isFinance && !isOwner && !isHRManager) {
     el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Access Denied. Finance & Management only.</div>';
     return;
   }

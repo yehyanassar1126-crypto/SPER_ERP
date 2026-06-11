@@ -242,7 +242,7 @@ var App = {
             { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
             { id: 'shifts', label: 'Shift Management', icon: 'clock' },
             { id: 'overtime', label: 'Overtime', icon: 'timer' },
-            ...(App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }] : []),
+            ...(App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }] : []),
             { id: 'hr-adjustments', label: 'Salary Adjustments', icon: 'fileText' },
             { id: 'recruitment', label: 'Recruitment', icon: 'userCheck' },
             { id: 'documents', label: 'Documents', icon: 'fileText' },
@@ -363,7 +363,7 @@ var App = {
       });
     }
 
-    var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance');
+    var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance') || (App.user && App.user.role === 'hr manager');
     if (canViewFinance) {
       menu.push({
         section: 'Finance & Accounting', items: [
@@ -447,6 +447,7 @@ var App = {
       'purchase-requests': { title: 'Material Requests (طلبات صرف وشراء)', sub: 'Warehouse and Procurement workflows' },
       'petty-cash': { title: 'Petty Cash (العهد والتسويات)', sub: 'Cash advances & settlements' },
       'it-tickets': { title: 'IT Support (الدعم الفني)', sub: 'Technical support and issue tracking' },
+      'payroll-funding': { title: 'Payroll Funding (صرف المرتبات)', sub: 'Release salary funds for HR' },
       'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
