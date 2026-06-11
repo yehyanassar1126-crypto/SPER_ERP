@@ -1589,7 +1589,10 @@ Pages.qrCheckin = function (el) {
               candidate3.setDate(candidate3.getDate() + 1);
 
               [candidate1, candidate2, candidate3].forEach(function (cand) {
-                var diffAbs = Math.abs(timeNow - cand);
+                // Adjust candidate by +2 hours to shift the midpoint boundary.
+                // This ensures an employee is only considered for the next shift if they check in at most 2 hours early.
+                var adjustedCand = new Date(cand.getTime() + 2 * 3600000);
+                var diffAbs = Math.abs(timeNow - adjustedCand);
                 if (diffAbs < bestDiff) {
                   bestDiff = diffAbs;
                   detectedShiftKey = s.key;
