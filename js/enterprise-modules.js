@@ -742,7 +742,7 @@ Pages.purchaseRequests = function(el) {
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Requested By</th><th>Status</th>' + ((isProcurement || isWarehouse) ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
     
     if (requests.length === 0) {
-      html += '<tr><td colspan="' + (isProcurement ? '6' : '5') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No purchase requests found.</td></tr>';
+      html += '<tr><td colspan="' + ((isProcurement || isWarehouse) ? '6' : '5') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No purchase requests found.</td></tr>';
     } else {
       requests.forEach(function(req) {
         var statusColor = 'warning';
@@ -766,8 +766,9 @@ Pages.purchaseRequests = function(el) {
         
         if (isProcurement || isWarehouse) {
           html += '<td>';
+          html += '<button class="btn btn-xs btn-outline" style="margin-right:4px; margin-bottom:4px" onclick="printDocument(\'PR\', \'' + req.id + '\')" title="Print Purchase Request">' + icon('printer', 14) + ' Print PR</button>';
           if (isWarehouse && req.status === 'pending_warehouse') {
-            html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'dispensed\')">Dispense</button>';
+            html += '<br><button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'dispensed\')">Dispense</button>';
             html += '<button class="btn btn-xs btn-warning" onclick="updateReqStatus(\'' + req.id + '\', \'pending\')">Send to Procurement</button>';
           } else if (isProcurementMgr && req.status === 'pending') {
              html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'approved\')">Approve Request</button>';
@@ -786,6 +787,7 @@ Pages.purchaseRequests = function(el) {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">Sent to Finance / Purchasing</span>';
              if (isProcurementMgr || isProcurementSpec) {
                 html += '<br><button class="btn btn-xs btn-success" style="margin-top:4px" onclick="sendWhatsAppPO(\'' + req.id + '\', ' + req.requested_quantity + ')">Send PO (WhatsApp)</button>';
+                html += ' <button class="btn btn-xs btn-outline" style="margin-top:4px" onclick="printDocument(\'PO\', \'' + req.id + '\')" title="Print Supply Order">' + icon('printer', 14) + ' Print PO</button>';
              }
           } else {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">No Action</span>';
@@ -982,6 +984,76 @@ Pages.purchaseRequests = function(el) {
         window.open(url, '_blank');
         App.closeModal();
       });
+    });
+  };
+
+  window.printDocument = function(type, reqId) {
+    var reqQuery = sbClient.from('purchase_requests').select('*, inventory_items(quantity, category)').eq('id', reqId).single();
+    var orderQuery = type === 'PO' ? sbClient.from('purchase_orders').select('*').eq('request_id', reqId).gt('petty_cash_amount', 0).single() : Promise.resolve({data: null});
+    
+    Promise.all([reqQuery, orderQuery]).then(function(res) {
+      if(res[0].error || !res[0].data) return alert('Request not found');
+      var req = res[0].data;
+      var order = res[1].data;
+      
+      var html = '<html dir="rtl"><head><title>Print Document</title>';
+      html += '<style>';
+      html += '@page { margin: 0; } body { font-family: Tahoma, Arial, sans-serif; direction: rtl; text-align: right; margin: 40px; }';
+      html += '.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }';
+      html += '.logo-container { text-align: left; }';
+      html += '.logo-text { font-size: 32px; font-weight: bold; color: #5a7b9e; }';
+      html += '.logo-sub { font-size: 18px; font-weight: bold; color: #666; margin-top: -5px; }';
+      html += '.doc-id { font-size: 16px; font-weight: bold; }';
+      html += '.title { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; }';
+      html += '.info-row { margin-bottom: 10px; font-size: 16px; display:flex; gap: 20px; }';
+      html += '.info-label { width: 150px; }';
+      html += 'table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: center; font-size: 14px; }';
+      html += 'th, td { border: 1px solid #000; padding: 10px; }';
+      html += 'th { background: #f9f9f9; }';
+      html += '</style></head><body>';
+      
+      html += '<div class="header">';
+      html += '<div class="doc-id">' + (type === 'PR' ? 'F-840-01-04' : 'F-840-01-07') + '</div>';
+      html += '<div class="logo-container"><div class="logo-text">Mac<span style="color:#2b2b2b">plast</span></div><div class="logo-sub">Smart Factory</div></div>';
+      html += '</div>';
+      
+      var dateObj = new Date(req.created_at);
+      var dateStr = ('0' + dateObj.getDate()).slice(-2) + '-' + ('0' + (dateObj.getMonth() + 1)).slice(-2) + '-' + dateObj.getFullYear();
+      
+      if (type === 'PR') {
+         html += '<div class="title">طلب شراء ( ' + req.id.split('-')[0].toUpperCase() + ' )</div>';
+         html += '<div class="info-row"><div class="info-label">التاريخ :</div><div>' + dateStr + '</div></div>';
+         html += '<div class="info-row" style="margin-bottom:20px"><div class="info-label">القسم :</div><div>المخازن (التخطيط)</div></div>';
+         html += '<div class="info-row" style="margin-bottom:10px">أرجو من سيادتكم التكرم بالموافقة على شراء الأصناف الآتية :-</div>';
+         
+         html += '<table><tr><th>م</th><th>الكود</th><th>الصنف / الحساب النوعي</th><th>الوصف</th><th>الكمية</th><th>الوحدة</th><th>الرصيد الحالي في المخزن</th><th>ميعاد التوريد</th></tr>';
+         var stock = (req.inventory_items && req.inventory_items.quantity !== undefined) ? req.inventory_items.quantity : '0.00';
+         html += '<tr><td>1</td><td>' + (req.item_id ? req.item_id.split('-')[0] : '-') + '</td><td>' + req.item_name + '</td><td>' + req.item_name + '</td><td>' + req.requested_quantity + '</td><td>Piece</td><td>' + stock + '</td><td>' + dateStr + '</td></tr>';
+         html += '</table>';
+         html += '<div style="margin-top:20px; font-size:14px; text-align:center;">ملحوظة : برجاء مراعاة متطلبات البيئة والسلامة ومتطلبات ترشيد الطاقة في الاصناف المشتراه.</div>';
+      } else {
+         html += '<div class="title">أمر توريد رقم ( ' + req.id.split('-')[0].toUpperCase() + ' )</div>';
+         html += '<div style="display:flex; justify-content:flex-end; margin-bottom:20px"><div style="text-align:right">';
+         html += '<div class="info-row"><div class="info-label">التاريخ :</div><div>' + dateStr + '</div></div>';
+         html += '<div class="info-row"><div class="info-label">السادة شركة :</div><div>' + (order ? order.supplier_name : '') + '</div></div>';
+         html += '<div class="info-row"><div class="info-label">عناية :</div><div>المبيعات</div></div>';
+         html += '</div></div>';
+         html += '<div class="title" style="font-size:18px; text-decoration:none">برجاء التكرم بتوريد الأتى :-</div>';
+         
+         html += '<table><tr><th>م</th><th>كود</th><th>اسم الصنف</th><th>مواصفات الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>اجمالى القيمة</th><th>ميعاد التسليم</th></tr>';
+         if(order) {
+            var total = parseFloat(order.price) * parseFloat(req.requested_quantity);
+            html += '<tr><td>1</td><td>' + (req.item_id ? req.item_id.split('-')[0] : '-') + '</td><td>' + req.item_name + '</td><td>' + (order ? order.supplier_name : '') + '</td><td>Piece</td><td>' + req.requested_quantity + '</td><td>' + parseFloat(order.price).toFixed(2) + '</td><td>' + total.toFixed(2) + '</td><td>' + dateStr + '</td></tr>';
+         }
+         html += '</table>';
+      }
+      
+      html += '</body></html>';
+      
+      var printWin = window.open('', '_blank');
+      printWin.document.write(html);
+      printWin.document.close();
+      setTimeout(function() { printWin.print(); }, 500);
     });
   };
 
