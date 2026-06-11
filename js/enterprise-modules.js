@@ -488,12 +488,14 @@ Pages.inventory = function(el) {
   function render() {
     var rawItems = items.filter(function(i){return !i.warehouse_type || i.warehouse_type==='raw'});
     var finishedItems = items.filter(function(i){return i.warehouse_type==='finished'});
+    var generalItems = items.filter(function(i){return i.warehouse_type==='general'});
     var pendingMR = matReqs.filter(function(m){return m.status==='pending'||m.status==='approved'});
 
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<div style="display:flex; gap:8px;">';
     html += '<button class="btn btn-sm btn-outline" id="tab-items" style="border-color:var(--accent-primary); color:var(--accent-primary)">📦 مخزن خام (Raw)</button>';
     html += '<button class="btn btn-sm btn-ghost" id="tab-finished">📦 مخزن تام (Finished)</button>';
+    html += '<button class="btn btn-sm btn-ghost" id="tab-general">📦 مخزن عام (General)</button>';
     html += '<button class="btn btn-sm btn-ghost" id="tab-tx">Transactions (حركة المخزون)</button>';
     if(pendingMR.length>0) html += '<button class="btn btn-sm btn-ghost" id="tab-mr" style="color:var(--accent-warning)">⚠️ Material Requests ('+pendingMR.length+')</button>';
     html += '</div>';
@@ -551,6 +553,34 @@ Pages.inventory = function(el) {
     }
     html += '</tbody></table></div></div></div></div>';
 
+    // General Goods View
+    html += '<div id="view-general" style="display:none">';
+    html += '<div class="card"><div class="card-header"><div><h3>📦 مخزن عام - General Warehouse</h3><p>' + generalItems.length + ' items</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Item Name</th><th>Category</th><th>Current Qty</th><th>Min Qty</th><th>Alert</th></tr></thead><tbody>';
+    
+    if (generalItems.length === 0) {
+      html += '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">No general items.</td></tr>';
+    } else {
+      generalItems.forEach(function(item) {
+        var isLow = item.quantity <= item.min_quantity;
+        var rowStyle = isLow ? 'background:rgba(245,158,11,0.05)' : '';
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td style="font-weight:600">' + item.name + '</td>';
+        html += '<td><span class="badge badge-info">' + item.category + '</span></td>';
+        html += '<td style="font-weight:700; font-size:1.1rem; color:' + (isLow ? 'var(--accent-danger)' : 'var(--text-primary)') + '">' + item.quantity + '</td>';
+        html += '<td>' + item.min_quantity + '</td>';
+        
+        if (isLow) {
+          html += '<td><span class="badge badge-danger">⚠️ Low Stock</span></td>';
+        } else {
+          html += '<td><span class="badge badge-success">OK</span></td>';
+        }
+        
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div></div>';
+
     // Transactions View
     html += '<div id="view-tx" style="display:none">';
     html += '<div class="card"><div class="card-header"><div><h3>Inventory Transactions (حركة المخزون)</h3><p>Recent IN/OUT operations</p></div></div><div class="card-body no-pad">';
@@ -603,8 +633,8 @@ Pages.inventory = function(el) {
     el.innerHTML = html;
 
     // Tab switching
-    var allTabs = ['tab-items','tab-finished','tab-tx','tab-mr'];
-    var allViews = ['view-items','view-finished','view-tx','view-mr'];
+    var allTabs = ['tab-items','tab-finished','tab-general','tab-tx','tab-mr'];
+    var allViews = ['view-items','view-finished','view-general','view-tx','view-mr'];
     function switchTab(activeTab, activeView) {
       allTabs.forEach(function(t) { var e=document.getElementById(t); if(e){e.className='btn btn-sm btn-ghost';e.style.borderColor='transparent';e.style.color='inherit';} });
       allViews.forEach(function(v) { var e=document.getElementById(v); if(e) e.style.display='none'; });
@@ -617,7 +647,7 @@ Pages.inventory = function(el) {
   window.newInventoryItemModal = function() {
     var body = '<div class="form-field"><label>Item Name *</label><input type="text" id="inv-name" class="form-input"></div>';
     body += '<div class="form-row"><div class="form-field"><label>Category *</label><select id="inv-cat" class="form-input"><option value="Maintenance">Maintenance (قطع غيار صيانة)</option><option value="Workshop">Workshop (ورشة)</option><option value="Supplies">Supplies (مستلزمات)</option><option value="Chemicals">Chemicals (كيماويات)</option><option value="Raw Material">Raw Material (خامات)</option><option value="Finished Product">Finished Product (منتج تام)</option><option value="Fixed Assets">Fixed Assets (أصول ثابتة)</option></select></div>';
-    body += '<div class="form-field"><label>Warehouse (المخزن) *</label><select id="inv-wh" class="form-input"><option value="raw">مخزن خام (Raw)</option><option value="finished">مخزن تام (Finished)</option></select></div></div>';
+    body += '<div class="form-field"><label>Warehouse (المخزن) *</label><select id="inv-wh" class="form-input"><option value="raw">مخزن خام (Raw)</option><option value="finished">مخزن تام (Finished)</option><option value="general">مخزن عام (General)</option></select></div></div>';
     body += '<div class="form-field"><label>Minimum Qty Alert *</label><input type="number" id="inv-min" class="form-input" value="2"></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn">Save Item</button>';
