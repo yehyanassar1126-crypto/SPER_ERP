@@ -576,8 +576,6 @@ Pages.inventory = function(el) {
     var body = '<div class="form-field"><label>Item Name *</label><input type="text" id="inv-name" class="form-input"></div>';
     body += '<div class="form-row"><div class="form-field"><label>Category *</label><select id="inv-cat" class="form-input"><option value="Maintenance">Maintenance (قطع غيار صيانة)</option><option value="Workshop">Workshop (ورشة)</option><option value="Supplies">Supplies (مستلزمات)</option><option value="Chemicals">Chemicals (كيماويات)</option><option value="Fixed Assets">Fixed Assets (أصول ثابتة)</option></select></div>';
     body += '<div class="form-field"><label>Minimum Qty Alert *</label><input type="number" id="inv-min" class="form-input" value="2"></div></div>';
-    body += '<div class="form-row"><div class="form-field"><label>Supplier Name (اسم المورد)</label><input type="text" id="inv-supplier" class="form-input" placeholder="Optional"></div>';
-    body += '<div class="form-field"><label>Purchase Price (السعر)</label><input type="number" id="inv-price" class="form-input" value="0"></div></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-inv-btn">Save Item</button>';
     App.showModal('Add New Inventory Item', body, footer);
@@ -586,13 +584,10 @@ Pages.inventory = function(el) {
       var name = document.getElementById('inv-name').value;
       var cat = document.getElementById('inv-cat').value;
       var min = parseInt(document.getElementById('inv-min').value);
-      var supplier = document.getElementById('inv-supplier').value;
-      var price = parseFloat(document.getElementById('inv-price').value) || 0;
       if(!name) return alert('Name is required');
 
       sbClient.from('inventory_items').insert([{
-        name: name, category: cat, min_quantity: min || 0, quantity: 0,
-        supplier_name: supplier, last_purchase_price: price
+        name: name, category: cat, min_quantity: min || 0, quantity: 0
       }]).then(function(r) {
         if (r.error) return alert(r.error.message);
         App.closeModal();
