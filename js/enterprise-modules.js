@@ -1450,9 +1450,9 @@ Pages.payrollFunding = function(el) {
     var html = '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
     html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-success-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-success)">' + icon('briefcase', 22) + '</div>';
-    html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">??? ???????? ??? HR (Payroll Funding)</h3>';
+    html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">صرف المرتبات للـ HR (Payroll Funding)</h3>';
     html += '</div>';
-    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">??? ?????? ????? ???? ????????. ??? ?? ???? ??? HR ????? ????????? ????? ??? ?????? ??????? ???????? ??? ???. ????? ?????? ???????? ?????? ?????? ?????? ??? HR.</p>';
+    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">هذه الشاشة مخصصة لقسم الحسابات. بعد أن يقوم الـ HR بحساب المرتبات، ستظهر هنا إجمالي المبالغ المطلوبة لكل شهر. يمكنك مراجعة الإجمالي وتسليم العهدة بالعدد للـ HR.</p>';
     html += '</div>';
 
     var months = Object.keys(fundsByMonth).sort(function(a, b) { return a > b ? -1 : 1; });
@@ -1467,9 +1467,9 @@ Pages.payrollFunding = function(el) {
       var group = fundsByMonth[m];
       html += '<div class="card" style="margin-bottom:20px"><div class="card-header"><div><h3>' + m + ' - Pending Salaries Funding</h3><p>' + group.records.length + ' employees need payment</p></div></div>';
       html += '<div class="card-body" style="text-align:center;padding:30px">';
-      html += '<div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:8px">?????? ?????? ??????? ?????? ??? HR</div>';
+      html += '<div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:8px">إجمالي المبلغ المطلوب تسليمه للـ HR</div>';
       html += '<div style="font-size:2.5rem;font-weight:900;color:var(--accent-primary);margin-bottom:24px">EGP ' + group.total.toLocaleString() + '</div>';
-      html += '<button class="btn btn-success btn-lg" data-release-funds="' + m + '">?? ????? ?????? ??? HR (Release Funds)</button>';
+      html += '<button class="btn btn-success btn-lg" data-release-funds="' + m + '">💰 تسليم العهدة للـ HR (Release Funds)</button>';
       html += '</div></div>';
     });
 
@@ -1487,7 +1487,7 @@ Pages.payrollFunding = function(el) {
 
         sbClient.from('payroll').update({ status: 'funds_released' }).in('id', recordIds).then(function(r) {
           if(r.error) {
-            btnEl.innerHTML = '?? ????? ?????? ??? HR (Release Funds)';
+            btnEl.innerHTML = '💰 تسليم العهدة للـ HR (Release Funds)';
             btnEl.disabled = false;
             return alert(r.error.message);
           }
