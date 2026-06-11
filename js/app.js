@@ -383,6 +383,25 @@ var App = {
       });
     }
 
+    // ERP Departments
+    var canViewSales = App.isOwner() || App.isHR() || (App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager'));
+    var canViewPlanning = App.isOwner() || App.isHR() || (App.user && (App.user.department === 'Planning' || App.user.role === 'planning manager'));
+    var canViewProduction = App.isOwner() || App.isHR() || (App.user && (App.user.department === 'Production' || App.user.role === 'hall manager'));
+    var canViewQuality = App.isOwner() || App.isHR() || (App.user && (App.user.department === 'Quality' || App.user.role === 'qc inspector' || App.user.role === 'quality manager'));
+
+    if (canViewSales) {
+      menu.push({ section: 'Sales (المبيعات)', items: [{ id: 'erp-sales', label: 'Sales Orders (أوامر البيع)', icon: 'shoppingBag' }] });
+    }
+    if (canViewPlanning) {
+      menu.push({ section: 'Planning (التخطيط)', items: [{ id: 'erp-planning', label: 'Production Planning (تخطيط الإنتاج)', icon: 'calendar' }] });
+    }
+    if (canViewProduction) {
+      menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
+    }
+    if (canViewQuality) {
+      menu.push({ section: 'Quality (الجودة)', items: [{ id: 'erp-quality', label: 'QC Inspections (فحص الجودة)', icon: 'checkCircle' }] });
+    }
+
     var html = '<div class="sidebar-header"><div class="sidebar-logo">' + icon('factory', 20) + '</div><div class="sidebar-brand"><h2>Smart Factory</h2><p>HR Management</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
@@ -448,7 +467,11 @@ var App = {
       'petty-cash': { title: 'Petty Cash (العهد والتسويات)', sub: 'Cash advances & settlements' },
       'it-tickets': { title: 'IT Support (الدعم الفني)', sub: 'Technical support and issue tracking' },
       'payroll-funding': { title: 'Payroll Funding (صرف المرتبات)', sub: 'Release salary funds for HR' },
-      'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' }
+      'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' },
+      'erp-sales': { title: 'Sales (المبيعات)', sub: 'Sales orders & client management' },
+      'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
+      'erp-production': { title: 'Production (الإنتاج)', sub: 'Manufacturing & material requests' },
+      'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -531,6 +554,10 @@ var App = {
       case 'petty-cash': Pages.pettyCash(el); break;
       case 'payroll-funding': Pages.payrollFunding(el); break;
       case 'it-tickets': Pages.itTickets(el); break;
+      case 'erp-sales': Pages.sales(el); break;
+      case 'erp-planning': Pages.planning(el); break;
+      case 'erp-production': Pages.production(el); break;
+      case 'erp-quality': Pages.quality(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },
