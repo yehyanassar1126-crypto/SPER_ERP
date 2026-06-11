@@ -1290,7 +1290,8 @@ Pages.employees = function (el) {
     var availableShifts = getShiftsForSystem(currentSystem);
     availableShifts.forEach(function (s) { body += '<option value="' + s.key + '"' + (currentShift === s.key ? ' selected' : '') + '>' + s.label + '</option>'; });
     body += '</select></div><div class="form-field"><label>Hire Date</label><input type="date" id="ef-hire" value="' + (emp ? (emp.hire_date || '') : '') + '"></div></div>';
-    body += '<div class="form-row"><div class="form-field"><label>Insurance Start Date <span style="color:var(--text-muted);font-size:0.75rem">(leave blank = no insurance)</span></label><input type="date" id="ef-ins" value="' + (emp ? (emp.insurance_start || '') : '') + '"></div><div></div></div>';
+    var monthValStr = new Date().toISOString().substring(0, 7) + '-01';
+    body += '<div class="form-row"><div class="form-field"><label>Insurance Start Date <span style="color:var(--text-muted);font-size:0.75rem">(leave blank = no insurance)</span></label><input type="date" id="ef-ins" value="' + (emp ? (emp.insurance_start || '') : monthValStr) + '"></div><div></div></div>';
 
     if (myLevel >= 5) {
       var p = emp ? (emp.permissions || {}) : {};
@@ -1393,9 +1394,10 @@ Pages.employees = function (el) {
               if (!isNaN(num) && num > maxNum) maxNum = num;
             }
           });
-          var nextEmpId = 'EMP-' + String(maxNum + 1).padStart(3, '0');
+          var hireMonth = new Date(form.hire_date || new Date()).getMonth() + 1;
+          var calculatedLeaveBalance = (12 - hireMonth + 1) * 2; // 2 days per remaining month in the year
 
-          var newEmp = Object.assign({ employee_id: nextEmpId, status: 'active', avatar_color: 'hsl(' + Math.floor(Math.random() * 360) + ',60%,50%)', password_hash: passInputValue }, form);
+          var newEmp = Object.assign({ employee_id: nextEmpId, status: 'active', avatar_color: 'hsl(' + Math.floor(Math.random() * 360) + ',60%,50%)', password_hash: passInputValue, annual_leave_balance: calculatedLeaveBalance }, form);
           sbClient.from('users').insert([newEmp]).select().single().then(function (r) {
             if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); return; }
             if (r.data) {

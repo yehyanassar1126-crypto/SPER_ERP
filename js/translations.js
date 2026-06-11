@@ -336,7 +336,64 @@ const ARABIC_DICT = {
   "Available Shifts": "الورديات المتاحة",
   "My Offers": "عروضي",
   "Offer Shift": "عرض وردية",
-  "Accept & Swap": "قبول التبديل"
+  "Accept & Swap": "قبول التبديل",
+
+  // ERP Modules (Sales, Planning, Production, Quality, Procurement, Inventory)
+  "Sales (المبيعات)": "المبيعات",
+  "Sales Orders (أوامر البيع)": "أوامر البيع",
+  "Sales Orders": "أوامر البيع",
+  "Clients (العملاء)": "العملاء",
+  "Total Orders": "إجمالي الأوامر",
+  "In Production": "قيد الإنتاج",
+  "Shipped/Delivered": "مشحون/تم التسليم",
+  "Shipped": "مشحون",
+  "Delivered": "تم التسليم",
+  "New Sales Order": "أمر بيع جديد",
+  "Order #": "رقم الأمر",
+  "Client": "العميل",
+  "Delivery Date": "تاريخ التسليم",
+  "Add Client": "إضافة عميل",
+  "Company Name": "اسم الشركة",
+  "Contact Person": "الشخص المسؤول",
+
+  "Planning (التخطيط)": "التخطيط",
+  "Production Plans": "خطط الإنتاج",
+  "Production Plan": "خطة الإنتاج",
+  "Awaiting Planning": "بانتظار التخطيط",
+  "Assigned": "مُسند",
+  "Start Date": "تاريخ البدء",
+  "End Date": "تاريخ الانتهاء",
+
+  "Production (الإنتاج)": "الإنتاج",
+  "Active Orders": "أوامر نشطة",
+  "Materials Requested": "خامات مطلوبة",
+  "Products for QC": "منتجات للفحص",
+  "Material Requests (صرف خامات)": "طلبات صرف الخامات",
+  "Request Materials": "طلب صرف خامات",
+  "Needed Qty": "الكمية المطلوبة",
+  "Send to QC": "إرسال للجودة",
+
+  "Quality Control (الجودة)": "الجودة",
+  "QC Inspections (فحص الجودة)": "فحوصات الجودة",
+  "Inspections": "الفحوصات",
+  "Total Inspections": "إجمالي الفحوصات",
+  "Passed": "مطابق",
+  "Failed": "مرفوض",
+  "Inspect Finished Goods": "فحص منتجات تامة",
+
+  "Inventory (المخازن)": "المخازن",
+  "Raw Materials": "خامات (Raw)",
+  "Finished Goods": "منتج تام (Finished)",
+  "Stock Flow": "حركة المخزون",
+  "Low Stock Alerts": "نواقص المخزون",
+  "Add Item": "إضافة صنف",
+  "Item Name": "اسم الصنف",
+  "Category": "الفئة",
+  "Quantity": "الكمية",
+  "Warehouse Type": "نوع المخزن",
+
+  "Procurement": "المشتريات",
+  "Purchase Requests": "طلبات الشراء"
 };
 
 // Set Arabic as default language
