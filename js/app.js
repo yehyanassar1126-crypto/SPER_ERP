@@ -368,7 +368,8 @@ var App = {
       menu.push({
         section: 'Finance & Accounting', items: [
           { id: 'petty-cash', label: 'Petty Cash (العهد)', icon: 'dollarSign' },
-          { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }
+          { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' },
+          { id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' }
         ]
       });
     }
@@ -2111,7 +2112,9 @@ Pages.overtime = function (el) {
 
 // ----- PAYROLL -----
 Pages.payroll = function (el) {
-  var isHR = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner');
+  var isHRManagerOrOwner = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner');
+  var isFinance = App.user && App.user.department === 'Finance';
+  var isHR = isHRManagerOrOwner || isFinance;
   var payroll = isHR ? [] : [].filter(function (p) { return p.employee_id === App.user.id; });
   var medicalClaims = [];
   var salaryAdjustments = [];
@@ -2247,7 +2250,7 @@ Pages.payroll = function (el) {
     html += '<div class="toolbar">';
     if (isHR) html += '<div class="search-wrapper"><span class="search-icon">' + icon('search') + '</span><input type="text" class="search-input" placeholder="Search employee..." id="pay-search" value="' + (search || '').replace(/"/g, '&quot;') + '"></div>';
     html += '<input type="month" class="filter-select" id="pay-month" value="' + monthFilter + '"><select class="filter-select" id="pay-status"><option value=""' + (statusFilter === '' ? ' selected' : '') + '>All Status</option><option value="paid"' + (statusFilter === 'paid' ? ' selected' : '') + '>Paid</option><option value="processing"' + (statusFilter === 'processing' ? ' selected' : '') + '>Processing</option></select>';
-    html += '' + (isHR ? '<button class="btn btn-primary" id="add-payroll" style="margin-right:8px">' + icon('plus') + ' Process Salary</button><button class="btn btn-outline" id="add-adj-direct-btn" style="margin-right:8px">' + icon('plus') + ' Add Manual Amount</button>' : '') + '<button class="btn btn-outline" id="pay-export">' + icon('download') + ' Export</button></div>';
+    html += '' + (isHRManagerOrOwner ? '<button class="btn btn-primary" id="add-payroll" style="margin-right:8px">' + icon('plus') + ' Process Salary</button><button class="btn btn-outline" id="add-adj-direct-btn" style="margin-right:8px">' + icon('plus') + ' Add Manual Amount</button>' : '') + '<button class="btn btn-outline" id="pay-export">' + icon('download') + ' Export</button></div>';
 
     if (!isHR && salaryAdjustments && salaryAdjustments.length > 0) {
       html += '<div class="card" style="margin-bottom:24px"><div class="card-header"><div><h3 style="color:var(--text-primary)">📋 سجل الخصومات والمكافآت التفصيلي</h3><p>' + salaryAdjustments.length + ' سجلات محفوظة في الداتا بيز</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
@@ -2280,10 +2283,12 @@ Pages.payroll = function (el) {
       html += '<td style="font-weight:800;color:var(--accent-primary-hover);font-size:0.95rem">EGP ' + (p.net_salary || 0).toLocaleString() + '</td>';
       html += '<td>' + (p.status === 'paid' ? '<span class="badge badge-success"><span class="badge-dot"></span>Paid</span>' : (p.status === 'funds_released' ? '<span class="badge badge-info"><span class="badge-dot"></span>Ready to Pay</span>' : '<span class="badge badge-warning"><span class="badge-dot"></span>Processing</span>')) + '</td>';
       html += '<td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-icon" data-view-slip="' + p.id + '" title="View Slip">' + icon('eye') + '</button>';
-      if (isHR && p.status === 'funds_released') {
+      if (isHRManagerOrOwner && p.status === 'funds_released') {
         html += '<button class="btn btn-success btn-xs" data-mark-paid="' + p.id + '">Mark Paid</button>';
-      } else if (isHR && p.status === 'processing') {
+      } else if (isHRManagerOrOwner && p.status === 'processing') {
         html += '<span style="color:var(--text-muted);font-size:0.75rem">Waiting Funds</span>';
+      } else if (isFinance && p.status === 'processing') {
+        html += '<span style="color:var(--text-muted);font-size:0.75rem">Review Funding</span>';
       }
       html += '</div></td></tr>';
     });
