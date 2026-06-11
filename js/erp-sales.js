@@ -5,6 +5,12 @@ Pages.sales = function(el) {
   var isOwner = App.isOwner();
   var isSales = App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager');
   var canEdit = isOwner || isSales;
+
+  if (!canEdit) {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Sales department.</p></div>';
+    return;
+  }
+
   var orders = [], clients = [];
 
   function loadData() {

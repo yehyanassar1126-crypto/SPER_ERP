@@ -458,7 +458,14 @@ Pages.expenses = function (el) {
 // ==========================================
 Pages.inventory = function(el) {
   var isWarehouse = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager');
-  var isManagerView = !isWarehouse; // read-only for others (Owner, Hall Manager, HR)
+  var canViewInventory = App.isOwner() || isWarehouse;
+
+  if (!canViewInventory) {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Warehouse department.</p></div>';
+    return;
+  }
+
+  var isManagerView = !isWarehouse; // read-only for Owner
 
   var items = [];
   var transactions = [];

@@ -5,6 +5,12 @@ Pages.quality = function(el) {
   var isOwner = App.isOwner();
   var isQC = App.user && (App.user.department === 'Quality' || App.user.role === 'qc inspector' || App.user.role === 'quality manager');
   var canEdit = isOwner || isQC;
+
+  if (!canEdit) {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Quality Control department.</p></div>';
+    return;
+  }
+
   var inspections = [], prodOrdersQC = [];
 
   function loadData() {

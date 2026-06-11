@@ -347,8 +347,8 @@ var App = {
       });
     }
 
-    var canViewInventory = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'hall manager' || App.isOwner() || App.isHR());
-    var canViewProcurement = App.isManager() || App.isOwner() || (App.user && (App.user.department === 'Procurement' || App.user.role === 'procurement manager' || App.user.role === 'procurement specialist'));
+    var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager'));
+    var canViewProcurement = App.isOwner() || (App.user && (App.user.department === 'Procurement' || App.user.role === 'procurement manager' || App.user.role === 'procurement specialist'));
 
     if (canViewInventory || canViewProcurement) {
       var opItems = [];
@@ -384,10 +384,10 @@ var App = {
     }
 
     // ERP Departments
-    var canViewSales = App.isOwner() || App.isHR() || (App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager'));
-    var canViewPlanning = App.isOwner() || App.isHR() || (App.user && (App.user.department === 'Planning' || App.user.role === 'planning manager'));
-    var canViewProduction = App.isOwner() || App.isHR() || (App.user && (App.user.department === 'Production' || App.user.role === 'hall manager'));
-    var canViewQuality = App.isOwner() || App.isHR() || (App.user && (App.user.department === 'Quality' || App.user.role === 'qc inspector' || App.user.role === 'quality manager'));
+    var canViewSales = App.isOwner() || (App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager'));
+    var canViewPlanning = App.isOwner() || (App.user && (App.user.department === 'Planning' || App.user.role === 'planning manager'));
+    var canViewProduction = App.isOwner() || (App.user && (App.user.department === 'Production' || App.user.role === 'hall manager'));
+    var canViewQuality = App.isOwner() || (App.user && (App.user.department === 'Quality' || App.user.role === 'qc inspector' || App.user.role === 'quality manager'));
 
     if (canViewSales) {
       menu.push({ section: 'Sales (المبيعات)', items: [{ id: 'erp-sales', label: 'Sales Orders (أوامر البيع)', icon: 'shoppingBag' }] });
