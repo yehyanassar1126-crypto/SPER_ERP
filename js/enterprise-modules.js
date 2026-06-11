@@ -673,7 +673,12 @@ Pages.inventory = function(el) {
     });
     body += '</datalist></div>';
     
+    body += '<div class="form-field"><label>Description (الوصف) *</label><textarea id="wh-pr-desc" class="form-input" rows="2" placeholder="مواصفات الصنف..."></textarea></div>';
+    body += '<div class="form-row">';
     body += '<div class="form-field"><label>Quantity Required *</label><input type="number" id="wh-pr-qty" class="form-input" min="1" value="1"></div>';
+    body += '<div class="form-field"><label>Unit (الوحدة) *</label><select id="wh-pr-unit" class="form-input"><option value="Piece">Piece (قطعة)</option><option value="Kilogram">Kilogram (كجم)</option><option value="Liter">Liter (لتر)</option><option value="Meter">Meter (متر)</option><option value="Box">Box (كرتونة)</option></select></div>';
+    body += '</div>';
+    body += '<div class="form-field"><label>Delivery Date (ميعاد التوريد المطلوب) *</label><input type="date" id="wh-pr-date" class="form-input"></div>';
     
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-wh-pr-btn">Submit Request to Procurement</button>';
     App.showModal('Request Purchase (طلب شراء)', body, footer);
@@ -681,13 +686,17 @@ Pages.inventory = function(el) {
     document.getElementById('save-wh-pr-btn').addEventListener('click', function() {
       var nameInput = document.getElementById('wh-pr-item-name').value;
       var qty = parseInt(document.getElementById('wh-pr-qty').value);
-      if(!nameInput || !qty) return alert('Please provide item name and quantity');
+      var descInput = document.getElementById('wh-pr-desc').value;
+      var unitInput = document.getElementById('wh-pr-unit').value;
+      var dateInput = document.getElementById('wh-pr-date').value;
+      if(!nameInput || !qty || !descInput || !dateInput) return alert('Please fill in all required fields');
 
       var matchedItem = items.find(function(i) { return i.name.toLowerCase() === nameInput.toLowerCase(); });
       var itemId = matchedItem ? matchedItem.id : null;
 
       sbClient.from('purchase_requests').insert([{
         item_id: itemId, item_name: nameInput, requested_quantity: qty,
+        description: descInput, unit: unitInput, delivery_date: dateInput,
         status: 'pending', requested_by: App.user.full_name + ' (Warehouse)'
       }]).then(function(r) {
         if(r.error) return alert(r.error.message);
@@ -1028,7 +1037,7 @@ Pages.purchaseRequests = function(el) {
          
          html += '<table><tr><th>م</th><th>الكود</th><th>الصنف / الحساب النوعي</th><th>الوصف</th><th>الكمية</th><th>الوحدة</th><th>الرصيد الحالي في المخزن</th><th>ميعاد التوريد</th></tr>';
          var stock = (req.inventory_items && req.inventory_items.quantity !== undefined) ? req.inventory_items.quantity : '0.00';
-         html += '<tr><td>1</td><td>' + (req.item_id ? req.item_id.split('-')[0] : '-') + '</td><td>' + req.item_name + '</td><td>' + req.item_name + '</td><td>' + req.requested_quantity + '</td><td>Piece</td><td>' + stock + '</td><td>' + dateStr + '</td></tr>';
+         html += '<tr><td>1</td><td>' + (req.item_id ? req.item_id.split('-')[0] : '-') + '</td><td>' + req.item_name + '</td><td>' + (req.description || req.item_name) + '</td><td>' + req.requested_quantity + '</td><td>' + (req.unit || 'Piece') + '</td><td>' + stock + '</td><td>' + (req.delivery_date || dateStr) + '</td></tr>';
          html += '</table>';
          html += '<div style="margin-top:20px; font-size:14px; text-align:center;">ملحوظة : برجاء مراعاة متطلبات البيئة والسلامة ومتطلبات ترشيد الطاقة في الاصناف المشتراه.</div>';
       } else {
@@ -1043,7 +1052,7 @@ Pages.purchaseRequests = function(el) {
          html += '<table><tr><th>م</th><th>كود</th><th>اسم الصنف</th><th>مواصفات الصنف</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>اجمالى القيمة</th><th>ميعاد التسليم</th></tr>';
          if(order) {
             var total = parseFloat(order.price) * parseFloat(req.requested_quantity);
-            html += '<tr><td>1</td><td>' + (req.item_id ? req.item_id.split('-')[0] : '-') + '</td><td>' + req.item_name + '</td><td>' + (order ? order.supplier_name : '') + '</td><td>Piece</td><td>' + req.requested_quantity + '</td><td>' + parseFloat(order.price).toFixed(2) + '</td><td>' + total.toFixed(2) + '</td><td>' + dateStr + '</td></tr>';
+            html += '<tr><td>1</td><td>' + (req.item_id ? req.item_id.split('-')[0] : '-') + '</td><td>' + req.item_name + '</td><td>' + (order ? order.supplier_name : '') + '</td><td>' + (req.unit || 'Piece') + '</td><td>' + req.requested_quantity + '</td><td>' + parseFloat(order.price).toFixed(2) + '</td><td>' + total.toFixed(2) + '</td><td>' + (req.delivery_date || dateStr) + '</td></tr>';
          }
          html += '</table>';
       }

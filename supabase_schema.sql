@@ -438,7 +438,10 @@ CREATE TABLE purchase_requests (
   item_id UUID REFERENCES inventory_items(id) ON DELETE CASCADE,
   item_name TEXT,
   requested_quantity INTEGER NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'quotation_requested', 'purchased')),
+  description TEXT,
+  unit TEXT DEFAULT 'Piece',
+  delivery_date DATE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'pending_warehouse', 'dispensed', 'approved', 'rejected', 'quotation_requested', 'purchased')),
   requested_by TEXT,
   approved_by TEXT, -- Procurement manager
   created_at TIMESTAMPTZ DEFAULT NOW(),
