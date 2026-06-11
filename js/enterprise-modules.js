@@ -772,8 +772,12 @@ Pages.purchaseRequests = function(el) {
           } else if (isProcurementMgr && req.status === 'pending') {
              html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="updateReqStatus(\'' + req.id + '\', \'approved\')">Approve Request</button>';
              html += '<button class="btn btn-xs btn-danger" onclick="updateReqStatus(\'' + req.id + '\', \'rejected\')">Reject</button>';
-          } else if ((isProcurementSpec || isProcurementMgr) && req.status === 'approved') {
-             html += '<button class="btn btn-xs btn-primary" onclick="submitQuotesModal(\'' + req.id + '\', \'' + req.item_name.replace(/'/g, "\\'") + '\')">Submit Quotes</button>';
+          } else if (req.status === 'approved') {
+             if (isProcurementSpec) {
+                html += '<button class="btn btn-xs btn-primary" onclick="submitQuotesModal(\'' + req.id + '\', \'' + req.item_name.replace(/'/g, "\\'") + '\')">Submit Quotes</button>';
+             } else {
+                html += '<span style="color:var(--text-muted);font-size:0.8rem">Awaiting Quotes (Specialist)</span>';
+             }
           } else if (isProcurementMgr && req.status === 'quotation_requested') {
              html += '<button class="btn btn-xs btn-warning" onclick="reviewQuotesModal(\'' + req.id + '\', \'' + req.item_id + '\')">Review Quotes</button>';
           } else if (req.status === 'quotation_requested') {
