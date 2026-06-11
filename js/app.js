@@ -230,7 +230,7 @@ var App = {
         {
           section: 'Overview', items: [
             { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' },
-            { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
+            ...(App.user && App.user.role === 'owner' ? [] : [{ id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }])
           ]
         },
         {
@@ -1037,7 +1037,9 @@ Pages.empDashboard = function (el) {
       html += '<div style="padding:20px;background:rgba(239,68,68,0.08);border-radius:var(--radius-lg);border:1px solid rgba(239,68,68,0.15)"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:1.5rem">🚫</span><div><h3 style="font-size:1rem;font-weight:700">No Insurance</h3><p style="font-size:0.8rem;color:var(--accent-danger)">Salary divided by 30 working days</p></div></div></div>';
     }
 
-    html += '<div class="card"><div class="card-header"><div><h3>Today\'s Attendance</h3><p>' + formatDate(new Date()) + '</p></div><button class="btn btn-sm btn-primary" onclick="App.navigate(\'qr-checkin\')">QR Check-In ' + icon('arrowRight') + '</button></div><div class="card-body">';
+    html += '<div class="card"><div class="card-header"><div><h3>Today\'s Attendance</h3><p>' + formatDate(new Date()) + '</p></div>';
+    if (user.role !== 'owner') html += '<button class="btn btn-sm btn-primary" onclick="App.navigate(\'qr-checkin\')">QR Check-In ' + icon('arrowRight') + '</button>';
+    html += '</div><div class="card-body">';
     if (todayAtt) {
       html += '<div style="display:flex;flex-direction:column;gap:14px">';
       html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-tertiary);font-size:0.82rem">Check In</span><span style="font-weight:600">' + formatTime(todayAtt.check_in) + '</span></div>';
@@ -1508,6 +1510,11 @@ Pages.attendance = function (el) {
 // ----- QR CHECKIN -----
 Pages.qrCheckin = function (el) {
   var user = App.user;
+  if (user && user.role === 'owner') {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)"><h2>🚫 Not Required (غير مطلوب)</h2><p>Owner (المالك) does not require attendance tracking.</p></div>';
+    return;
+  }
+  
   var empShiftSystem = user.shift_system || '3-shift';
   var shift = getShiftConfig(user.shift, empShiftSystem);
   var checkedIn = false, checkedOut = false, checkInTime = null, checkOutTime = null, currentRecordId = null, delayMin = 0;
@@ -1603,15 +1610,14 @@ Pages.qrCheckin = function (el) {
 
             delayMin = 0;
             var roleLC = (user.role || '').toLowerCase();
+            var isManagement = ['manager', 'owner', 'department head', 'hall manager', 'hr', 'hr manager'].indexOf(roleLC) !== -1 || roleLC.indexOf('manager') !== -1;
 
-            if (roleLC === 'hr manager') {
-              // HR Manager is completely exempt
-              detectedShiftKey = 'morning';
+            if (isManagement) {
+              // Management is completely exempt from delays
               delayMin = 0;
             } else {
               if (detectedShiftKey === 'morning') {
-                var isManagement = ['manager', 'owner', 'department head', 'hall manager', 'hr'].indexOf(roleLC) !== -1 || roleLC.indexOf('manager') !== -1;
-                var expectedHour = isManagement ? 9 : 8;
+                var expectedHour = 8;
                 var expectedStart = new Date(timeNow);
                 expectedStart.setHours(expectedHour, 0, 0, 0);
                 var diffMs = timeNow - expectedStart;
