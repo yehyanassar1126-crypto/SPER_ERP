@@ -16,7 +16,7 @@ window.SalesWorkflow = {
     });
   },
   getStatusBadge: function(status) {
-    var color = '#64748b';
+    if (status === 'Pending Sales Review') color = '#64748b';
     if (status === 'New Request' || status === 'Under Planning Review') color = '#3b82f6';
     if (status === 'Waiting Customer Approval') color = '#f59e0b';
     if (status === 'Customer Approved') color = '#22c55e';
@@ -60,7 +60,9 @@ Pages.sales = function(el) {
         tHtml += '<td>' + SalesWorkflow.getStatusBadge(o.status) + '</td>';
         
         var actions = '';
-        if (o.status === 'Waiting Customer Approval') {
+        if (o.status === 'Pending Sales Review') {
+          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesSendToPlanning(\''+o.id+'\')">إرسال للتخطيط</button>';
+        } else if (o.status === 'Waiting Customer Approval') {
           actions += '<button class="btn btn-sm btn-success" onclick="window.salesApprove(\''+o.id+'\')" style="margin-bottom:4px">موافقة العميل</button><br>';
           actions += '<button class="btn btn-sm btn-danger" onclick="window.salesReject(\''+o.id+'\')">رفض العميل</button>';
         } else if (o.status === 'Ready For Delivery' || o.status === 'Ready For Customer Delivery') {
@@ -113,6 +115,11 @@ Pages.sales = function(el) {
       App.closeModal();
       render();
     });
+  };
+
+  window.salesSendToPlanning = function(id) {
+    if(!confirm('هل تريد تأكيد إرسال هذا الطلب إلى قسم التخطيط (Planning) لمراجعته؟')) return;
+    SalesWorkflow.updateStatus(id, 'New Request', {}, render);
   };
 
   window.salesApprove = function(id) {

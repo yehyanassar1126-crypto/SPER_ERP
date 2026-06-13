@@ -314,7 +314,7 @@ window.ERPSuppliers = {
       product_name: prod,
       quantity_requested: Number(qty),
       delivery_date_requested: date,
-      status: 'New Request',
+      status: 'Pending Sales Review',
       created_by: App.user.id
     }).then(function(res) {
       if (res.error) {
