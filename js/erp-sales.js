@@ -95,8 +95,8 @@ Pages.sales = function(el) {
     
     if (!cust || !prod || !qty || !date) return alert('يرجى إدخال جميع البيانات');
     
-    var btn = document.querySelector('#app-modal .btn-primary');
-    btn.disabled = true; btn.innerHTML = 'جاري الإرسال...';
+    var btn = document.querySelector('.modal-footer .btn-primary');
+    if (btn) { btn.disabled = true; btn.innerHTML = 'جاري الإرسال...'; }
     
     sbClient.from('sales_workflow_orders').insert({
       customer_name: cust,

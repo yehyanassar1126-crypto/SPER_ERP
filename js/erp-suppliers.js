@@ -288,8 +288,6 @@ window.ERPSuppliers = {
   },
 
   customerSendRequest: function() {
-    var supplierId = App.user.supplier_id;
-    if (!supplierId) return;
     var customerName = App.user.full_name;
 
     var b = '<div class="form-grid">';
@@ -308,8 +306,8 @@ window.ERPSuppliers = {
 
     if (!prod || !qty || !date) return alert('يرجى ملء جميع الحقول المطلوبة.');
 
-    var btn = document.querySelector('#app-modal .btn-primary');
-    btn.disabled = true; btn.innerHTML = 'جاري الإرسال...';
+    var btn = document.querySelector('.modal-footer .btn-primary');
+    if (btn) { btn.disabled = true; btn.innerHTML = 'جاري الإرسال...'; }
 
     sbClient.from('sales_workflow_orders').insert({
       customer_name: App.user.full_name,
