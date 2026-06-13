@@ -114,7 +114,13 @@ window.ERPSuppliers = {
       sbClient.from('supplier_orders').select('*').eq('supplier_id', id).order('created_at', {ascending: false}),
       sbClient.from('supplier_transactions').select('*').eq('supplier_id', id).order('transaction_date', {ascending: false})
     ]).then(function(results) {
-      if (results[0].error || !results[0].data) return alert('Supplier not found');
+      if (results[0].error || !results[0].data) {
+        document.querySelector('#app-modal .modal-body').innerHTML = '<div style="color:red">Error loading supplier: ' + (results[0].error ? results[0].error.message : 'Not found') + '</div>';
+        return;
+      }
+      if (results[1].error) console.error("Supplier Orders Error:", results[1].error);
+      if (results[2].error) console.error("Supplier Txs Error:", results[2].error);
+
       var s = results[0].data;
       var orders = results[1].data || [];
       var txs = results[2].data || [];
@@ -183,6 +189,8 @@ window.ERPSuppliers = {
 
       document.querySelector('#app-modal .modal-body').innerHTML = html;
       document.querySelector('#app-modal .modal-footer').innerHTML = '<button class="btn btn-secondary" onclick="App.closeModal()">إغلاق</button>';
+    }).catch(function(err) {
+      document.querySelector('#app-modal .modal-body').innerHTML = '<div style="color:red">Network or DB Error: ' + err.message + '</div>';
     });
   },
 
@@ -351,5 +359,8 @@ Pages['supplier-portal'] = function(el) {
       tHtml += '</tbody></table></div>';
       document.getElementById('sup-ext-txs').innerHTML = tHtml;
     }
+  }).catch(function(err) {
+    document.getElementById('sup-ext-orders').innerHTML = '<div style="color:red">Error: ' + err.message + '</div>';
+    document.getElementById('sup-ext-txs').innerHTML = '';
   });
 };
