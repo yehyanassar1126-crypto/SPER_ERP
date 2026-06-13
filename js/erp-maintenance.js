@@ -6,8 +6,10 @@ Pages.maintenance = function(el) {
   var isMaintenance = App.user && (App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician');
   var isManager = App.isManager();
   
-  // Everyone can request maintenance, but only Maintenance dept can manage it.
+  // Everyone except HR can request maintenance, but only Maintenance dept/Owner can manage it.
   var canEdit = isOwner || isMaintenance;
+  var isHR = App.isHR();
+  var canViewAll = canEdit || isHR;
 
   var requests = [];
   var schedules = [];
@@ -31,7 +33,9 @@ Pages.maintenance = function(el) {
 
     var html = '<div class="toolbar" style="display:flex;justify-content:space-between;margin-bottom:24px">';
     html += '<h3>Maintenance & Facilities (إدارة الصيانة والمرافق)</h3>';
-    html += '<button class="btn btn-primary" onclick="newMaintenanceRequest()">' + icon('tool') + ' Request Maintenance (طلب صيانة)</button>';
+    if (!isHR) {
+      html += '<button class="btn btn-primary" onclick="newMaintenanceRequest()">' + icon('tool') + ' Request Maintenance (طلب صيانة)</button>';
+    }
     html += '</div>';
 
     html += '<div class="stats-grid" style="margin-bottom:24px">';
@@ -46,7 +50,7 @@ Pages.maintenance = function(el) {
     html += '<div class="card"><div class="card-header"><div><h3>🛠️ Maintenance Requests (طلبات الإصلاح)</h3><p>Reported breakdowns and issues</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
     html += '<th>Date</th><th>Asset / Location</th><th>Issue</th><th>Priority</th><th>Status</th>' + (canEdit ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
     
-    var visibleRequests = canEdit ? requests : requests.filter(function(r) { return r.requested_by === App.user.full_name; });
+    var visibleRequests = canViewAll ? requests : requests.filter(function(r) { return r.requested_by === App.user.full_name; });
     
     if (visibleRequests.length === 0) {
       html += '<tr><td colspan="' + (canEdit ? '6' : '5') + '" style="text-align:center;padding:30px;color:var(--text-muted)">No maintenance requests found</td></tr>';

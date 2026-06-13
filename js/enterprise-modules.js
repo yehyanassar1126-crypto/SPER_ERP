@@ -1433,14 +1433,15 @@ Pages.pettyCash = function(el) {
 // MODULE 11: IT Tickets & Support
 // ==========================================
 Pages.itTickets = function(el) {
-  var isIT = App.user && (App.user.department === 'IT' || App.isOwner() || App.isHR());
+  var canEdit = App.user && (App.user.department === 'IT' || App.isOwner());
+  var canViewAll = canEdit || App.isHR();
   var tickets = [];
 
   function loadData() {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading IT Tickets...</div>';
     
     var query = sbClient.from('it_tickets').select('*').order('created_at', {ascending: false});
-    if (!isIT) {
+    if (!canViewAll) {
       query = query.eq('employee_id', App.user.id);
     }
     
@@ -1459,10 +1460,10 @@ Pages.itTickets = function(el) {
     html += '</div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>IT Requests</h3><p>Manage hardware, software, and network issues</p></div></div><div class="card-body no-pad">';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Employee</th><th>Department</th><th>Issue Type</th><th>Description</th><th>Priority</th><th>Status</th>' + (isIT ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Employee</th><th>Department</th><th>Issue Type</th><th>Description</th><th>Priority</th><th>Status</th>' + (canEdit ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
     
     if (tickets.length === 0) {
-      html += '<tr><td colspan="' + (isIT ? '8' : '7') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No IT tickets found.</td></tr>';
+      html += '<tr><td colspan="' + (canEdit ? '8' : '7') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No IT tickets found.</td></tr>';
     } else {
       tickets.forEach(function(t) {
         var statusColor = 'warning'; var statusIcon = 'alertCircle';
@@ -1482,7 +1483,7 @@ Pages.itTickets = function(el) {
         html += '<td><span class="badge badge-' + prioColor + '">' + t.priority.toUpperCase() + '</span></td>';
         html += '<td><span class="badge badge-' + statusColor + '">' + icon(statusIcon, 12) + ' ' + t.status.replace('_', ' ').toUpperCase() + '</span></td>';
         
-        if (isIT) {
+        if (canEdit) {
           html += '<td>';
           if (t.status === 'open') {
             html += '<button class="btn btn-xs btn-primary" onclick="updateITStatus(\'' + t.id + '\', \'in_progress\')">Mark In Progress</button>';
