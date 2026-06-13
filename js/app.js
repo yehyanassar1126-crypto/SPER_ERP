@@ -377,7 +377,7 @@ var App = {
         });
       }
 
-      var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'sales coordinator'));
+      var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'sales coordinator' || App.user.department === 'Planning' || App.user.role === 'planning manager'));
       var canViewProcurement = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
 
       if (canViewInventory || canViewProcurement) {

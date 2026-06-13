@@ -459,14 +459,15 @@ Pages.expenses = function (el) {
 Pages.inventory = function(el) {
   var isWarehouse = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager');
   var isSalesCoord = App.user && (App.user.role === 'sales coordinator' || App.user.department === 'Sales');
-  var canViewInventory = App.isOwner() || isWarehouse || isSalesCoord;
+  var isPlanning = App.user && (App.user.department === 'Planning' || App.user.role === 'planning manager');
+  var canViewInventory = App.isOwner() || isWarehouse || isSalesCoord || isPlanning;
 
   if (!canViewInventory) {
-    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Warehouse and Sales departments.</p></div>';
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Warehouse, Sales, and Planning departments.</p></div>';
     return;
   }
 
-  var isManagerView = !isWarehouse; // read-only for Owner
+  var isManagerView = !isWarehouse; // read-only for Owner, Sales, and Planning
   window.currentWarehouseTab = 'raw';
 
   var items = [];
@@ -496,10 +497,12 @@ Pages.inventory = function(el) {
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<div style="display:flex; gap:8px;">';
     html += '<button class="btn btn-sm btn-outline" id="tab-items" style="border-color:var(--accent-primary); color:var(--accent-primary)">📦 مخزن خام (Raw)</button>';
-    html += '<button class="btn btn-sm btn-ghost" id="tab-finished">📦 مخزن تام (Finished)</button>';
-    html += '<button class="btn btn-sm btn-ghost" id="tab-general">📦 مخزن عام (General)</button>';
-    html += '<button class="btn btn-sm btn-ghost" id="tab-tx">Transactions (حركة المخزون)</button>';
-    if(pendingMR.length>0) html += '<button class="btn btn-sm btn-ghost" id="tab-mr" style="color:var(--accent-warning)">⚠️ Material Requests ('+pendingMR.length+')</button>';
+    if (!isPlanning) {
+      html += '<button class="btn btn-sm btn-ghost" id="tab-finished">📦 مخزن تام (Finished)</button>';
+      html += '<button class="btn btn-sm btn-ghost" id="tab-general">📦 مخزن عام (General)</button>';
+      html += '<button class="btn btn-sm btn-ghost" id="tab-tx">Transactions (حركة المخزون)</button>';
+      if(pendingMR.length>0) html += '<button class="btn btn-sm btn-ghost" id="tab-mr" style="color:var(--accent-warning)">⚠️ Material Requests ('+pendingMR.length+')</button>';
+    }
     html += '</div>';
     
     if (isWarehouse) {
