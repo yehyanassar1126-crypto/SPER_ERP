@@ -393,7 +393,7 @@ var App = {
       var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance') || (App.user && App.user.role === 'hr manager');
       if (canViewFinance || canViewProcurement) {
         var finItems = [];
-        finItems.push({ id: 'petty-cash', label: 'Petty Cash (العهد والتسويات)', icon: 'dollarSign' });
+        finItems.push({ id: 'petty-cash', label: 'Treasury & Petty Cash (الخزنة والعهد)', icon: 'dollarSign' });
         if (canViewFinance) {
           finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
           finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
@@ -530,7 +530,7 @@ var App = {
       'offboarding': { title: 'Offboarding', sub: 'Manage employee exit process' },
       'inventory': { title: 'Inventory (المخازن)', sub: 'Warehouse Management' },
       'purchase-requests': { title: 'Material Requests (طلبات صرف وشراء)', sub: 'Warehouse and Procurement workflows' },
-      'petty-cash': { title: 'Petty Cash (العهد والتسويات)', sub: 'Cash advances & settlements' },
+      'petty-cash': { title: 'Treasury & Petty Cash (الخزنة والعهد)', sub: 'Manage bank, safe balances and cash advances' },
       'it-tickets': { title: 'IT Support (الدعم الفني)', sub: 'Technical support and issue tracking' },
       'payroll-funding': { title: 'Payroll Funding (صرف المرتبات)', sub: 'Release salary funds for HR' },
       'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' },
