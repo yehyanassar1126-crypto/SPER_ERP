@@ -1,6 +1,33 @@
 // ===== ERP MODULE: Sales (المبيعات) =====
 window.Pages = window.Pages || {};
 
+window.SalesWorkflow = {
+  loadOrders: function(callback) {
+    sbClient.from('sales_workflow_orders').select('*').order('created_at', {ascending: false}).then(function(res) {
+      if (res.error) return alert("Error loading orders: " + res.error.message);
+      callback(res.data || []);
+    });
+  },
+  updateStatus: function(id, status, extraFields, callback) {
+    var payload = Object.assign({ status: status }, extraFields || {});
+    sbClient.from('sales_workflow_orders').update(payload).eq('id', id).then(function(res) {
+      if (res.error) return alert("Error updating: " + res.error.message);
+      if (callback) callback();
+    });
+  },
+  getStatusBadge: function(status) {
+    var color = '#64748b';
+    if (status === 'New Request' || status === 'Under Planning Review') color = '#3b82f6';
+    if (status === 'Waiting Customer Approval') color = '#f59e0b';
+    if (status === 'Customer Approved') color = '#22c55e';
+    if (status === 'Rejected By Customer' || status === 'Quality Rejected') color = '#ef4444';
+    if (status === 'Production Started' || status === 'Under Quality Inspection') color = '#8b5cf6';
+    if (status === 'Production Completed' || status === 'Quality Accepted' || status === 'Ready For Delivery') color = '#10b981';
+    if (status === 'Delivered') color = '#14b8a6';
+    return '<span style="display:inline-block;padding:4px 8px;border-radius:4px;font-size:0.75rem;background:'+color+'20;color:'+color+';font-weight:bold">' + status + '</span>';
+  }
+};
+
 Pages.sales = function(el) {
   var isOwner = App.isOwner();
   var isSales = App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager');
@@ -11,203 +38,98 @@ Pages.sales = function(el) {
     return;
   }
 
-  var orders = [], clients = [];
+  function render() {
+    var html = '<div class="header-banner"><div><h1>إدارة المبيعات (Sales)</h1><p>إنشاء ومتابعة طلبات العملاء</p></div><button class="btn btn-primary" onclick="window.newSalesOrder()">' + icon('plus') + ' إنشاء طلب عميل جديد</button></div>';
+    html += '<div id="sales-content" style="margin-top:20px">Loading...</div>';
+    el.innerHTML = html;
 
-  function loadData() {
-    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading Sales...</div>';
-    Promise.all([
-      sbClient.from('sales_orders').select('*').order('created_at', {ascending: false}),
-      sbClient.from('clients').select('*').order('company_name')
-    ]).then(function(res) {
-      orders = res[0].data || [];
-      clients = res[1].data || [];
+    SalesWorkflow.loadOrders(function(orders) {
+      if (orders.length === 0) {
+        document.getElementById('sales-content').innerHTML = '<div class="empty-state">لا يوجد طلبات حالياً</div>';
+        return;
+      }
+      var tHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>تاريخ الطلب</th><th>اسم العميل</th><th>المنتج المطلوب</th><th>الكمية المطلوبة</th><th>الكمية المتاحة</th><th>تاريخ التسليم المطلوب</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>';
+      orders.forEach(function(o) {
+        tHtml += '<tr>';
+        tHtml += '<td>' + formatDate(o.created_at) + '</td>';
+        tHtml += '<td><strong>' + o.customer_name + '</strong></td>';
+        tHtml += '<td>' + o.product_name + '</td>';
+        tHtml += '<td>' + o.quantity_requested + '</td>';
+        tHtml += '<td>' + (o.quantity_available !== null ? '<span style="color:var(--accent-primary);font-weight:bold">' + o.quantity_available + '</span>' : '-') + '</td>';
+        tHtml += '<td>' + (o.delivery_date_requested || '-') + '</td>';
+        tHtml += '<td>' + SalesWorkflow.getStatusBadge(o.status) + '</td>';
+        
+        var actions = '';
+        if (o.status === 'Waiting Customer Approval') {
+          actions += '<button class="btn btn-sm btn-success" onclick="window.salesApprove(\''+o.id+'\')" style="margin-bottom:4px">موافقة العميل</button><br>';
+          actions += '<button class="btn btn-sm btn-danger" onclick="window.salesReject(\''+o.id+'\')">رفض العميل</button>';
+        } else if (o.status === 'Ready For Delivery' || o.status === 'Ready For Customer Delivery') {
+          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesDeliver(\''+o.id+'\')">تأكيد الاستلام والتسليم</button>';
+        } else {
+          actions += '-';
+        }
+        
+        tHtml += '<td>' + actions + '</td>';
+        tHtml += '</tr>';
+      });
+      tHtml += '</tbody></table></div>';
+      document.getElementById('sales-content').innerHTML = tHtml;
+    });
+  }
+
+  window.newSalesOrder = function() {
+    var b = '<div class="form-grid">';
+    b += '<div class="form-group"><label>اسم العميل *</label><input type="text" id="so-cust" class="form-input"></div>';
+    b += '<div class="form-group"><label>المنتج المطلوب *</label><input type="text" id="so-prod" class="form-input"></div>';
+    b += '<div class="form-group"><label>الكمية المطلوبة *</label><input type="number" id="so-qty" class="form-input" min="1"></div>';
+    b += '<div class="form-group"><label>تاريخ التسليم المطلوب *</label><input type="date" id="so-date" class="form-input"></div>';
+    b += '</div>';
+    App.showModal('إنشاء طلب عميل جديد', b, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" onclick="window.saveSalesOrder()">حفظ وإرسال للتخطيط</button>');
+  };
+
+  window.saveSalesOrder = function() {
+    var cust = document.getElementById('so-cust').value.trim();
+    var prod = document.getElementById('so-prod').value.trim();
+    var qty = document.getElementById('so-qty').value;
+    var date = document.getElementById('so-date').value;
+    
+    if (!cust || !prod || !qty || !date) return alert('يرجى إدخال جميع البيانات');
+    
+    var btn = document.querySelector('#app-modal .btn-primary');
+    btn.disabled = true; btn.innerHTML = 'جاري الإرسال...';
+    
+    sbClient.from('sales_workflow_orders').insert({
+      customer_name: cust,
+      product_name: prod,
+      quantity_requested: Number(qty),
+      delivery_date_requested: date,
+      status: 'New Request',
+      created_by: App.user.id
+    }).then(function(res) {
+      if(res.error) {
+        btn.disabled = false; btn.innerHTML = 'حفظ وإرسال للتخطيط';
+        return alert(res.error.message);
+      }
+      App.closeModal();
       render();
     });
-  }
-
-  function render() {
-    var pending = orders.filter(function(o){return o.status==='pending'}).length;
-    var inProd = orders.filter(function(o){return o.status==='sent_to_planning'||o.status==='processing'}).length;
-    var shipped = orders.filter(function(o){return o.status==='shipped'||o.status==='delivered'}).length;
-
-    var html = '<div class="stats-grid" style="margin-bottom:24px">';
-    html += _statCard('#6366f1','fileText',orders.length,'Total Orders');
-    html += _statCard('#f59e0b','clock',pending,'Pending');
-    html += _statCard('#3b82f6','settings',inProd,'In Production');
-    html += _statCard('#22c55e','checkCircle',shipped,'Shipped/Delivered');
-    html += '</div>';
-
-    html += '<div class="toolbar" style="display:flex;justify-content:space-between;margin-bottom:24px">';
-    html += '<h3>Sales Orders (أوامر البيع)</h3>';
-    html += '<div>';
-    if(canEdit) {
-      html += '<button class="btn btn-outline" style="margin-right:8px" onclick="manageClientsModal()">'+icon('users')+' Clients (العملاء)</button>';
-      html += '<button class="btn btn-primary" onclick="newSalesOrderModal()">'+icon('plus')+' New Sales Order</button>';
-    }
-    html += '</div></div>';
-
-    html += '<div class="card"><div class="card-header"><div><h3>Orders Log</h3><p>'+orders.length+' orders</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
-    html += '<th>Date</th><th>Order #</th><th>Client</th><th>Items</th><th>Total</th><th>Delivery</th><th>Status</th><th>Actions</th>';
-    html += '</tr></thead><tbody>';
-
-    if(orders.length===0) {
-      html += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No sales orders yet</td></tr>';
-    } else {
-      orders.forEach(function(o) {
-        var sBadge = 'warning', sText = o.status.replace(/_/g,' ').toUpperCase();
-        if(o.status==='sent_to_planning') { sBadge='info'; }
-        else if(o.status==='processing') { sBadge='primary'; }
-        else if(o.status==='shipped') { sBadge='success'; }
-        else if(o.status==='delivered') { sBadge='success'; }
-        else if(o.status==='cancelled') { sBadge='danger'; }
-
-        var itemsList = '';
-        try { var items = typeof o.items === 'string' ? JSON.parse(o.items) : (o.items||[]); itemsList = items.map(function(i){return i.name+' x'+i.qty}).join(', ') || '-'; } catch(e){ itemsList='-'; }
-
-        html += '<tr>';
-        html += '<td>'+formatDate(o.created_at)+'</td>';
-        html += '<td style="font-weight:700">'+o.order_number+'</td>';
-        html += '<td>'+(o.client_name||'-')+'</td>';
-        html += '<td style="max-width:200px;white-space:normal;font-size:0.85rem">'+itemsList+'</td>';
-        html += '<td style="font-weight:700">EGP '+(o.total_amount||0).toLocaleString()+'</td>';
-        html += '<td>'+(o.delivery_date ? formatDate(o.delivery_date) : '-')+'</td>';
-        html += '<td><span class="badge badge-'+sBadge+'">'+sText+'</span></td>';
-        html += '<td><div style="display:flex;gap:4px;flex-wrap:wrap">';
-
-        if(canEdit && o.status==='pending') {
-          html += '<button class="btn btn-xs btn-info" onclick="sendToPlanning(\''+o.id+'\')">📋 Send to Planning</button>';
-          html += '<button class="btn btn-xs btn-danger" onclick="cancelSalesOrder(\''+o.id+'\')">Cancel</button>';
-        }
-        if(canEdit && o.status==='processing') {
-          html += '<button class="btn btn-xs btn-success" onclick="markShipped(\''+o.id+'\')">🚚 Mark Shipped</button>';
-        }
-        if(canEdit && o.status==='shipped') {
-          html += '<button class="btn btn-xs btn-success" onclick="markDelivered(\''+o.id+'\')">✅ Delivered</button>';
-        }
-        if(!canEdit || (o.status!=='pending' && o.status!=='processing' && o.status!=='shipped')) {
-          html += '<span style="color:var(--text-muted);font-size:0.75rem">'+sText+'</span>';
-        }
-        html += '</div></td></tr>';
-      });
-    }
-    html += '</tbody></table></div></div></div>';
-    el.innerHTML = html;
-  }
-
-  window.newSalesOrderModal = function() {
-    var num = 'SO-' + Date.now().toString().slice(-6);
-    var b = '<div class="form-row"><div class="form-field"><label>Order # *</label><input type="text" id="so-num" class="form-input" value="'+num+'" readonly></div>';
-    b += '<div class="form-field"><label>Client (العميل) *</label><select id="so-client" class="form-input"><option value="">-- Select --</option>';
-    clients.forEach(function(c){ b += '<option value="'+c.id+'|'+c.company_name+'">'+c.company_name+'</option>'; });
-    b += '</select></div></div>';
-    b += '<div class="form-field"><label>Delivery Date (تاريخ التسليم)</label><input type="date" id="so-date" class="form-input"></div>';
-    b += '<div id="so-items-list"><div class="form-row" data-item-row><div class="form-field"><label>Product Name *</label><input type="text" class="form-input so-item-name" placeholder="Product name"></div><div class="form-field"><label>Qty *</label><input type="number" class="form-input so-item-qty" value="1" min="1"></div><div class="form-field"><label>Price *</label><input type="number" class="form-input so-item-price" value="0" min="0"></div></div></div>';
-    b += '<button class="btn btn-xs btn-outline" style="margin:8px 0" onclick="addSOItemRow()">+ Add Item</button>';
-    b += '<div class="form-field"><label>Notes</label><textarea id="so-notes" class="form-input" rows="2"></textarea></div>';
-    var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-so-btn">Create Order</button>';
-    App.showModal('New Sales Order (أمر بيع جديد)', b, f, true);
-
-    document.getElementById('save-so-btn').addEventListener('click', function() {
-      var clientVal = document.getElementById('so-client').value;
-      if(!clientVal) return alert('Select a client');
-      var clientParts = clientVal.split('|');
-      var rows = document.querySelectorAll('[data-item-row]');
-      var items = [], total = 0;
-      rows.forEach(function(r) {
-        var n = r.querySelector('.so-item-name').value;
-        var q = parseInt(r.querySelector('.so-item-qty').value)||0;
-        var p = parseFloat(r.querySelector('.so-item-price').value)||0;
-        if(n && q>0) { items.push({name:n,qty:q,price:p}); total += q*p; }
-      });
-      if(items.length===0) return alert('Add at least one item');
-
-      sbClient.from('sales_orders').insert([{
-        order_number: document.getElementById('so-num').value,
-        client_id: clientParts[0], client_name: clientParts[1],
-        items: JSON.stringify(items), total_amount: total,
-        delivery_date: document.getElementById('so-date').value || null,
-        notes: document.getElementById('so-notes').value,
-        status: 'pending', created_by: App.user.full_name
-      }]).then(function(r) {
-        if(r.error) return alert(r.error.message);
-        App.closeModal(); loadData();
-        showToast('Sales order created successfully', 'success');
-      });
-    });
   };
 
-  window.addSOItemRow = function() {
-    var div = document.createElement('div');
-    div.className = 'form-row'; div.setAttribute('data-item-row','');
-    div.innerHTML = '<div class="form-field"><input type="text" class="form-input so-item-name" placeholder="Product name"></div><div class="form-field"><input type="number" class="form-input so-item-qty" value="1" min="1"></div><div class="form-field"><input type="number" class="form-input so-item-price" value="0" min="0"></div>';
-    document.getElementById('so-items-list').appendChild(div);
+  window.salesApprove = function(id) {
+    if(!confirm('تأكيد موافقة العميل على الكمية المتاحة؟')) return;
+    SalesWorkflow.updateStatus(id, 'Customer Approved', {}, render);
   };
 
-  window.sendToPlanning = function(id) {
-    if(!confirm('Send this order to Planning department for production scheduling?')) return;
-    sbClient.from('sales_orders').update({status:'sent_to_planning'}).eq('id',id).then(function(r) {
-      if(r.error) return alert(r.error.message);
-      loadData(); showToast('Order sent to Planning (التخطيط)', 'success');
-    });
+  window.salesReject = function(id) {
+    var reason = prompt('يرجى إدخال سبب رفض العميل:');
+    if(!reason) return;
+    SalesWorkflow.updateStatus(id, 'Rejected By Customer', { rejection_reason: reason }, render);
   };
 
-  window.cancelSalesOrder = function(id) {
-    if(!confirm('Cancel this order?')) return;
-    sbClient.from('sales_orders').update({status:'cancelled'}).eq('id',id).then(function(r) {
-      if(r.error) return alert(r.error.message);
-      loadData(); showToast('Order cancelled', 'warning');
-    });
+  window.salesDeliver = function(id) {
+    var notes = prompt('الكمية المسلمة وملاحظات التسليم (اختياري):');
+    SalesWorkflow.updateStatus(id, 'Delivered', { delivery_date_actual: new Date().toISOString().split('T')[0], rejection_reason: notes }, render);
   };
 
-  window.markShipped = function(id) {
-    if(!confirm('Mark as shipped?')) return;
-    sbClient.from('sales_orders').update({status:'shipped'}).eq('id',id).then(function(r) {
-      if(r.error) return alert(r.error.message);
-      loadData(); showToast('Order shipped!', 'success');
-    });
-  };
-
-  window.markDelivered = function(id) {
-    if(!confirm('Mark as delivered?')) return;
-    sbClient.from('sales_orders').update({status:'delivered'}).eq('id',id).then(function(r) {
-      if(r.error) return alert(r.error.message);
-      loadData(); showToast('Order delivered!', 'success');
-    });
-  };
-
-  window.manageClientsModal = function() {
-    var b = '<div style="margin-bottom:16px"><button class="btn btn-sm btn-primary" onclick="newClientModal()">'+icon('plus')+' Add Client</button></div>';
-    b += '<div style="max-height:400px;overflow:auto"><table class="data-table"><thead><tr><th>Company</th><th>Contact</th><th>Phone</th></tr></thead><tbody>';
-    clients.forEach(function(c) {
-      b += '<tr><td style="font-weight:600">'+c.company_name+'</td><td>'+(c.contact_person||'-')+'</td><td>'+(c.phone||'-')+'</td></tr>';
-    });
-    if(clients.length===0) b += '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">No clients</td></tr>';
-    b += '</tbody></table></div>';
-    App.showModal('Clients (العملاء)', b, '<button class="btn btn-outline" onclick="App.closeModal()">Close</button>', true);
-  };
-
-  window.newClientModal = function() {
-    App.closeModal();
-    var b = '<div class="form-field"><label>Company Name *</label><input type="text" id="cl-name" class="form-input"></div>';
-    b += '<div class="form-row"><div class="form-field"><label>Contact Person</label><input type="text" id="cl-contact" class="form-input"></div>';
-    b += '<div class="form-field"><label>Phone</label><input type="text" id="cl-phone" class="form-input"></div></div>';
-    b += '<div class="form-field"><label>Email</label><input type="email" id="cl-email" class="form-input"></div>';
-    b += '<div class="form-field"><label>Address</label><input type="text" id="cl-addr" class="form-input"></div>';
-    var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-cl-btn">Save Client</button>';
-    App.showModal('Add New Client', b, f);
-    document.getElementById('save-cl-btn').addEventListener('click', function() {
-      var name = document.getElementById('cl-name').value;
-      if(!name) return alert('Company name is required');
-      sbClient.from('clients').insert([{
-        company_name: name, contact_person: document.getElementById('cl-contact').value,
-        phone: document.getElementById('cl-phone').value, email: document.getElementById('cl-email').value,
-        address: document.getElementById('cl-addr').value
-      }]).then(function(r) {
-        if(r.error) return alert(r.error.message);
-        App.closeModal(); loadData(); showToast('Client added', 'success');
-      });
-    });
-  };
-
-  loadData();
+  render();
 };

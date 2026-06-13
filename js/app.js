@@ -429,7 +429,7 @@ var App = {
         supplyChainItems.push({ id: 'erp-planning', label: 'Production Planning (تخطيط)', icon: 'calendarCheck' });
       }
       if (canViewSuppliers) {
-        supplyChainItems.push({ id: 'erp-suppliers', label: 'Customers (العملاء)', icon: 'users' });
+        supplyChainItems.push({ id: 'erp-suppliers', label: 'Suppliers (الموردين)', icon: 'users' });
       }
 
       if (supplyChainItems.length > 0) {
@@ -458,9 +458,9 @@ var App = {
       ));
 
       if (canViewSupplierPortal) {
-        var menuLabel = (App.user && App.user.role === 'supplier_external') ? 'لوحة تحكم العميل' : 'Customer Portal';
+        var menuLabel = (App.user && App.user.role === 'supplier_external') ? 'لوحة تحكم المورد' : 'Supplier Portal';
         menu.push({
-          section: 'Customer Portal (بوابة العملاء)', items: [
+          section: 'Supplier Portal (بوابة الموردين)', items: [
             { id: 'supplier-portal', label: menuLabel, icon: 'layoutDashboard' }
           ]
         });

@@ -5,9 +5,9 @@ window.ERPSuppliers = {
       document.getElementById('page-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-danger)"><h3>🚫 Access Denied</h3><p>This module is restricted to HR, Finance, Sales, and Owner.</p></div>';
       return;
     }
-    var html = '<div class="header-banner"><div><h1>إدارة العملاء</h1><p>إدارة بيانات العملاء وطلبات الشراء والحسابات</p></div>';
+    var html = '<div class="header-banner"><div><h1>إدارة الموردين</h1><p>إدارة بيانات الموردين وأوامر الشراء والحسابات</p></div>';
     if (isAllowed) {
-      html += '<button class="btn btn-primary" onclick="ERPSuppliers.addSupplier()">' + icon('plus') + ' إضافة عميل جديد</button>';
+      html += '<button class="btn btn-primary" onclick="ERPSuppliers.addSupplier()">' + icon('plus') + ' إضافة مورد جديد</button>';
     }
     html += '</div>';
 
@@ -67,7 +67,7 @@ window.ERPSuppliers = {
 
   addSupplier: function() {
     var html = '<div class="form-grid">';
-    html += '<div class="form-group"><label class="form-label">اسم العميل أو الشركة *</label><input type="text" id="sup-company" class="form-input"></div>';
+    html += '<div class="form-group"><label class="form-label">اسم الشركة الموردة *</label><input type="text" id="sup-company" class="form-input"></div>';
     html += '<div class="form-group"><label class="form-label">اسم المستخدم (لتسجيل الدخول) *</label><input type="text" id="sup-email" class="form-input"></div>';
     html += '<div class="form-group"><label class="form-label">كلمة المرور (للبوابة) *</label><input type="text" id="sup-password" class="form-input"></div>';
     html += '<div class="form-group"><label class="form-label">رقم الهاتف</label><input type="text" id="sup-phone" class="form-input"></div>';
@@ -76,7 +76,7 @@ window.ERPSuppliers = {
 
     var footerHtml = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="save-new-supplier">حفظ وإضافة</button>';
 
-    App.showModal('إضافة عميل جديد', html, footerHtml);
+    App.showModal('إضافة مورد جديد', html, footerHtml);
 
     document.getElementById('save-new-supplier').addEventListener('click', function() {
         var comp = document.getElementById('sup-company').value.trim();
@@ -107,7 +107,7 @@ window.ERPSuppliers = {
   },
 
   viewSupplier: function(id) {
-    App.showModal('تفاصيل العميل', '<div style="padding:20px;text-align:center">جاري التحميل...</div>');
+    App.showModal('تفاصيل المورد', '<div style="padding:20px;text-align:center">جاري التحميل...</div>');
     
     Promise.all([
       sbClient.from('suppliers').select('*').eq('id', id).single(),
@@ -139,7 +139,7 @@ window.ERPSuppliers = {
       html += '</div>';
       
       html += '<div style="width:200px;background:' + (balance > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)') + ';padding:15px;border-radius:var(--radius-md);text-align:center;display:flex;flex-direction:column;justify-content:center">';
-      html += '<div style="font-size:0.8rem;color:var(--text-secondary)">رصيد مستحق للعميل</div>';
+      html += '<div style="font-size:0.8rem;color:var(--text-secondary)">رصيد مستحق للمورد</div>';
       html += '<div style="font-size:1.5rem;font-weight:900;color:' + (balance > 0 ? '#ef4444' : '#22c55e') + '">' + balance.toLocaleString() + ' ج.م</div>';
       html += '</div></div>';
 
@@ -291,7 +291,7 @@ window.ERPSuppliers = {
     var supplierId = App.user.supplier_id;
     if (!supplierId) return;
 
-    var reqDetails = prompt('ما الذي ترغب في شرائه من المصنع؟ (اكتب التفاصيل والكمية)');
+    var reqDetails = prompt('ما الذي ترغب في طلبه/توريده للمصنع؟ (اكتب التفاصيل والكمية)');
     if (!reqDetails) return;
 
     var estAmount = prompt('التكلفة التقديرية أو الإجمالية (بالجنيه):', '0');
@@ -325,8 +325,8 @@ Pages['supplier-portal'] = function(el) {
 
   var supplierId = isSupplier ? App.user.supplier_id : null;
   
-  var title = isSupplier ? 'بوابة العملاء - ' + App.user.full_name : 'بوابة العملاء (طلبات البيع)';
-  var html = '<div class="header-banner" style="background:linear-gradient(135deg, #1e293b, #0f172a)"><div><h1>' + title + '</h1><p>' + (isSupplier ? 'مرحباً بك' : 'عرض كافة طلبات ومعاملات العملاء') + '</p></div></div>';
+  var title = isSupplier ? 'بوابة الموردين - ' + App.user.full_name : 'بوابة الموردين (إدارة المشتريات)';
+  var html = '<div class="header-banner" style="background:linear-gradient(135deg, #1e293b, #0f172a)"><div><h1>' + title + '</h1><p>' + (isSupplier ? 'مرحباً بك' : 'عرض كافة طلبات ومعاملات الموردين') + '</p></div></div>';
   
   html += '<div class="stats-grid" id="sup-ext-stats" style="margin-top:-20px">Loading...</div>';
   
@@ -360,9 +360,9 @@ Pages['supplier-portal'] = function(el) {
 
     document.getElementById('sup-ext-stats').innerHTML = 
       '<div class="stat-card" style="--stat-color:#6366f1"><div class="stat-card-value">' + orders.length + '</div><div class="stat-card-label">عدد الطلبات</div></div>' +
-      '<div class="stat-card" style="--stat-color:#ef4444"><div class="stat-card-value">' + totalOrdered.toLocaleString() + '</div><div class="stat-card-label">إجمالي المشتريات (ج.م)</div></div>' +
-      '<div class="stat-card" style="--stat-color:#22c55e"><div class="stat-card-value">' + totalPaid.toLocaleString() + '</div><div class="stat-card-label">إجمالي المدفوع (ج.م)</div></div>' +
-      '<div class="stat-card" style="--stat-color:#f59e0b"><div class="stat-card-value">' + balance.toLocaleString() + '</div><div class="stat-card-label">إجمالي ' + (isSupplier ? 'الرصيد المتبقي عليك' : 'المستحقات المتبقية') + ' (ج.م)</div></div>';
+      '<div class="stat-card" style="--stat-color:#ef4444"><div class="stat-card-value">' + totalOrdered.toLocaleString() + '</div><div class="stat-card-label">إجمالي التوريدات (ج.م)</div></div>' +
+      '<div class="stat-card" style="--stat-color:#22c55e"><div class="stat-card-value">' + totalPaid.toLocaleString() + '</div><div class="stat-card-label">إجمالي المستلم (ج.م)</div></div>' +
+      '<div class="stat-card" style="--stat-color:#f59e0b"><div class="stat-card-value">' + balance.toLocaleString() + '</div><div class="stat-card-label">إجمالي ' + (isSupplier ? 'الرصيد المتبقي لك' : 'المستحقات المتبقية') + ' (ج.م)</div></div>';
 
     // Render Orders
     if (orders.length === 0) {
