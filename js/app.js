@@ -902,10 +902,26 @@ Pages.empDashboard = function (el) {
       attDatesMap[att.date] = { record: att, lateDed: lateDed, dayNet: dayNet };
     });
 
+    var firstActiveDay = dayOfMonth;
+    if (monthAttendance.length === 0) {
+      firstActiveDay = 99; // no active days, all fridays unpaid
+    } else {
+      monthAttendance.forEach(function (att) {
+        var dayNum = parseInt(att.date.split('-')[2], 10);
+        if (dayNum < firstActiveDay) firstActiveDay = dayNum;
+      });
+      myLeaves.forEach(function(lv) {
+        if (lv.start_date >= monthStart && lv.start_date <= monthEnd && lv.status === 'approved') {
+          var dayNum = parseInt(lv.start_date.split('-')[2], 10);
+          if (dayNum < firstActiveDay) firstActiveDay = dayNum;
+        }
+      });
+    }
+
     var fridaysPassed = 0;
     for (var fDay = 1; fDay <= dayOfMonth; fDay++) {
       if (new Date(todayDate.getFullYear(), todayDate.getMonth(), fDay).getDay() === 5) {
-         fridaysPassed++;
+         if (fDay >= firstActiveDay) fridaysPassed++;
       }
     }
     earnedSoFar += (fridaysPassed * dailyRate);
@@ -989,11 +1005,16 @@ Pages.empDashboard = function (el) {
       var earnLabel = '-';
 
       if (isFriday) {
-        dayEarned = dailyRate;
-        cumulative += dayEarned;
-        statusBadge = '<span style="background:rgba(99,102,241,0.1);color:#6366f1;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">إجازة رسمية</span>';
+        if (d >= firstActiveDay) {
+          dayEarned = dailyRate;
+          cumulative += dayEarned;
+          statusBadge = '<span style="background:rgba(99,102,241,0.1);color:#6366f1;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">إجازة رسمية مدفوعة</span>';
+          earnLabel = '<span style="color:#6366f1">+' + dayEarned.toLocaleString() + '</span>';
+        } else {
+          statusBadge = '<span style="background:rgba(156,163,175,0.1);color:#9ca3af;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">إجازة رسمية (قبل التعيين)</span>';
+          earnLabel = '<span style="color:#9ca3af">-</span>';
+        }
         rowBg = 'background:rgba(99,102,241,0.03);';
-        earnLabel = '<span style="color:#6366f1">+' + dayEarned.toLocaleString() + '</span>';
       } else if (attInfo) {
         dayEarned = attInfo.dayNet;
         cumulative += dayEarned;
@@ -2544,15 +2565,38 @@ Pages.payroll = function (el) {
                 }
               });
 
+              var firstActiveDay = lastDay;
+              if (attRecords.length === 0 && approvedLeaveDays === 0) {
+                firstActiveDay = 99; // no active days, all fridays unpaid
+              } else {
+                attRecords.forEach(function (att) {
+                  var dayNum = parseInt(att.date.split('-')[2], 10);
+                  if (dayNum < firstActiveDay) firstActiveDay = dayNum;
+                });
+                leaveRecords.forEach(function(lv) {
+                  if (lv.start_date >= monthStart && lv.start_date <= monthEnd && lv.status === 'approved') {
+                    var dayNum = parseInt(lv.start_date.split('-')[2], 10);
+                    if (dayNum < firstActiveDay) firstActiveDay = dayNum;
+                  }
+                });
+              }
+
               var fridaysCount = 0;
+              var totalFridaysInMonth = 0;
               for (var fDay = 1; fDay <= lastDay; fDay++) {
-                if (new Date(Number(yy), Number(mm)-1, fDay).getDay() === 5) fridaysCount++;
+                if (new Date(Number(yy), Number(mm)-1, fDay).getDay() === 5) {
+                  totalFridaysInMonth++;
+                  if (fDay >= firstActiveDay) fridaysCount++;
+                }
               }
 
               // Calculate absence explicitly
-              var expectedWorkDays = lastDay - fridaysCount;
-              var missingWorkDays = Math.max(0, expectedWorkDays - (attRecords.length + approvedLeaveDays));
-              var calculatedAbsenceDeductions = Math.round(missingWorkDays * dailyRate);
+              var expectedWorkDays = lastDay - totalFridaysInMonth;
+              var missingWorkDays = Math.max(0, expectedWorkDays - (attRecords.length + Math.floor(approvedLeaveDays)));
+              var unpaidFridays = totalFridaysInMonth - fridaysCount;
+              var totalMissedDays = missingWorkDays + unpaidFridays;
+              
+              var calculatedAbsenceDeductions = Math.round(totalMissedDays * dailyRate);
 
               var earnedSoFar = base; // Start from full 30 days base
 
@@ -2598,7 +2642,7 @@ Pages.payroll = function (el) {
                 '<div style="color:var(--accent-info)">Bonuses (' + adjRecords.filter(function (a) { return a.type === "bonus" }).length + ' approved):</div><div style="font-weight:600;color:var(--accent-info)">+EGP ' + (totalBonuses + extraB).toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-danger)">Penalties:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + (totalPenalties + extraP).toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-warning)">⏰ Late Deductions:</div><div style="font-weight:600;color:var(--accent-warning)">-EGP ' + totalLateDeduction.toLocaleString() + '</div>' +
-                '<div style="color:var(--accent-danger)">🚫 Absence Deductions:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + calculatedAbsenceDeductions.toLocaleString() + ' (' + missingWorkDays + ' days)</div>' +
+                '<div style="color:var(--accent-danger)">🚫 Absence Deductions:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + calculatedAbsenceDeductions.toLocaleString() + ' (' + totalMissedDays + ' days)</div>' +
                 '</div>' +
                 '<div style="border-top:2px solid var(--accent-primary);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;font-size:1rem">NET SALARY</span><span style="font-weight:900;font-size:1.3rem;color:var(--accent-primary-hover)">EGP ' + net.toLocaleString() + '</span></div>' +
                 cumulativeHtml;
