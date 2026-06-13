@@ -1567,7 +1567,7 @@ Pages.payrollFunding = function(el) {
 
   function loadData() {
     el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading payroll funds...</div>';
-    sbClient.from('payroll').select('*').eq('status', 'processing').then(function(r) {
+    sbClient.from('payroll').select('*').in('status', ['processing', 'funds_released']).then(function(r) {
       if(r.error) { el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)">Error: ' + r.error.message + '</div>'; return; }
       processingPayroll = r.data || [];
       render();
@@ -1575,11 +1575,12 @@ Pages.payrollFunding = function(el) {
   }
 
   function render() {
-    var fundsByMonth = {};
+    var fundsGroups = {};
     processingPayroll.forEach(function(p) {
-      if(!fundsByMonth[p.month]) fundsByMonth[p.month] = { records: [], total: 0 };
-      fundsByMonth[p.month].records.push(p);
-      fundsByMonth[p.month].total += p.net_salary || 0;
+      var key = p.month + '|' + p.status;
+      if(!fundsGroups[key]) fundsGroups[key] = { month: p.month, status: p.status, records: [], total: 0 };
+      fundsGroups[key].records.push(p);
+      fundsGroups[key].total += p.net_salary || 0;
     });
 
     var html = '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
@@ -1587,50 +1588,78 @@ Pages.payrollFunding = function(el) {
     html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-success-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-success)">' + icon('briefcase', 22) + '</div>';
     html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">صرف المرتبات للـ HR (Payroll Funding)</h3>';
     html += '</div>';
-    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">هذه الشاشة مخصصة لقسم الحسابات. بعد أن يقوم الـ HR بحساب المرتبات، ستظهر هنا إجمالي المبالغ المطلوبة لكل شهر. يمكنك مراجعة الإجمالي وتسليم العهدة بالعدد للـ HR.</p>';
+    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">دورة صرف الرواتب: 1) مراجعة الحسابات وتسليم العهدة 2) استلام الـ HR للعهدة 3) الدفع للموظفين.</p>';
     html += '</div>';
 
-    var months = Object.keys(fundsByMonth).sort(function(a, b) { return a > b ? -1 : 1; });
+    var keys = Object.keys(fundsGroups).sort(function(a, b) { return a > b ? -1 : 1; });
 
-    if(months.length === 0) {
-      html += '<div class="empty-state" style="padding:60px">' + icon('checkCircle', 40) + '<p>No pending salaries require funding.</p></div>';
+    if(keys.length === 0) {
+      html += '<div class="empty-state" style="padding:60px">' + icon('checkCircle', 40) + '<p>No pending salaries require funding or acceptance.</p></div>';
       el.innerHTML = html;
       return;
     }
 
-    months.forEach(function(m) {
-      var group = fundsByMonth[m];
-      html += '<div class="card" style="margin-bottom:20px"><div class="card-header"><div><h3>' + m + ' - Pending Salaries Funding</h3><p>' + group.records.length + ' employees need payment</p></div></div>';
+    keys.forEach(function(k) {
+      var group = fundsGroups[k];
+      html += '<div class="card" style="margin-bottom:20px"><div class="card-header"><div><h3>' + group.month + ' - ' + (group.status === 'processing' ? 'Pending Finance Funding' : 'Awaiting HR Acceptance') + '</h3><p>' + group.records.length + ' employees need payment</p></div></div>';
       html += '<div class="card-body" style="text-align:center;padding:30px">';
-      html += '<div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:8px">إجمالي المبلغ المطلوب تسليمه للـ HR</div>';
+      html += '<div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:8px">إجمالي المبلغ المطلوب</div>';
       html += '<div style="font-size:2.5rem;font-weight:900;color:var(--accent-primary);margin-bottom:24px">EGP ' + group.total.toLocaleString() + '</div>';
-      html += '<button class="btn btn-success btn-lg" data-release-funds="' + m + '">💰 تسليم العهدة للـ HR (Release Funds)</button>';
+      
+      if (group.status === 'processing') {
+        if (isFinance || isOwner) {
+          html += '<button class="btn btn-success btn-lg" onclick="window.releaseFunds(\'' + k + '\')">💰 تسليم العهدة للـ HR (Release Funds)</button>';
+        } else {
+          html += '<div style="color:var(--text-muted)">⏳ بانتظار موافقة وتسليم الحسابات...</div>';
+        }
+      } else if (group.status === 'funds_released') {
+        if (isHRManager || isOwner) {
+          html += '<div style="display:flex;justify-content:center;gap:16px">';
+          html += '<button class="btn btn-success btn-lg" onclick="window.acceptFunds(\'' + k + '\')">✅ استلام العهدة (Accept Funds)</button>';
+          html += '<button class="btn btn-outline btn-lg" style="color:var(--accent-danger);border-color:var(--accent-danger)" onclick="window.rejectFunds(\'' + k + '\')">❌ رفض العهدة (Reject)</button>';
+          html += '</div>';
+        } else {
+          html += '<div style="color:var(--text-muted)">⏳ بانتظار استلام الـ HR للعهدة...</div>';
+        }
+      }
+      
       html += '</div></div>';
     });
 
     el.innerHTML = html;
 
-    document.querySelectorAll('[data-release-funds]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var m = this.getAttribute('data-release-funds');
-        if(!confirm('Are you sure you want to release EGP ' + fundsByMonth[m].total.toLocaleString() + ' for ' + m + ' salaries to HR?')) return;
-        
-        var recordIds = fundsByMonth[m].records.map(function(r) { return r.id; });
-        var btnEl = this;
-        btnEl.innerHTML = '<span class="spinner"></span> Processing...';
-        btnEl.disabled = true;
-
-        sbClient.from('payroll').update({ status: 'funds_released' }).in('id', recordIds).then(function(r) {
-          if(r.error) {
-            btnEl.innerHTML = '💰 تسليم العهدة للـ HR (Release Funds)';
-            btnEl.disabled = false;
-            return alert(r.error.message);
-          }
-          showToast('Funds released successfully. HR can now pay employees.', 'success');
-          loadData();
-        });
+    window.releaseFunds = function(k) {
+      var group = fundsGroups[k];
+      if(!confirm('Are you sure you want to release EGP ' + group.total.toLocaleString() + ' to HR?')) return;
+      var recordIds = group.records.map(function(r) { return r.id; });
+      sbClient.from('payroll').update({ status: 'funds_released' }).in('id', recordIds).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        showToast('Funds released successfully. HR must now accept them.', 'success');
+        loadData();
       });
-    });
+    };
+
+    window.acceptFunds = function(k) {
+      var group = fundsGroups[k];
+      if(!confirm('Are you sure you want to Accept EGP ' + group.total.toLocaleString() + ' from Finance?')) return;
+      var recordIds = group.records.map(function(r) { return r.id; });
+      sbClient.from('payroll').update({ status: 'funds_accepted' }).in('id', recordIds).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        showToast('Funds accepted! You can now mark salaries as paid.', 'success');
+        loadData();
+      });
+    };
+
+    window.rejectFunds = function(k) {
+      var group = fundsGroups[k];
+      if(!confirm('Are you sure you want to Reject this funding and return it to Finance?')) return;
+      var recordIds = group.records.map(function(r) { return r.id; });
+      sbClient.from('payroll').update({ status: 'processing' }).in('id', recordIds).then(function(r) {
+        if(r.error) return alert(r.error.message);
+        showToast('Funds rejected and returned to Finance.', 'warning');
+        loadData();
+      });
+    };
   }
 
   loadData();

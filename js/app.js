@@ -430,6 +430,7 @@ var App = {
       if (canViewQuality) {
         menu.push({ section: 'Quality (الجودة)', items: [{ id: 'erp-quality', label: 'QC Inspections (فحص الجودة)', icon: 'checkCircle' }] });
       }
+      menu.push({ section: 'Maintenance (الصيانة)', items: [{ id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' }] });
     }
 
     var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>HR & ERP</p></div></div>';
@@ -502,6 +503,7 @@ var App = {
       'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
       'erp-production': { title: 'Production (الإنتاج)', sub: 'Manufacturing & material requests' },
       'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' },
+      'erp-maintenance': { title: 'Maintenance (الصيانة)', sub: 'Equipment repairs & preventative maintenance' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' }
     };
@@ -596,6 +598,7 @@ var App = {
       case 'erp-planning': Pages.planning(el); break;
       case 'erp-production': Pages.production(el); break;
       case 'erp-quality': Pages.quality(el); break;
+      case 'erp-maintenance': Pages.maintenance(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
@@ -2489,10 +2492,12 @@ Pages.payroll = function (el) {
       html += '<td style="color:var(--accent-info)">+' + ((p.bonuses || 0) + (p.performance_bonus || 0)).toLocaleString() + '</td>';
       html += '<td style="color:' + (totalDed > 0 ? 'var(--accent-danger)' : 'var(--text-secondary)') + '">' + ((totalDed || 0) > 0 ? '-' + (totalDed || 0).toLocaleString() : '0') + '</td>';
       html += '<td style="font-weight:800;color:var(--accent-primary-hover);font-size:0.95rem">EGP ' + (p.net_salary || 0).toLocaleString() + '</td>';
-      html += '<td>' + (p.status === 'paid' ? '<span class="badge badge-success"><span class="badge-dot"></span>Paid</span>' : (p.status === 'funds_released' ? '<span class="badge badge-info"><span class="badge-dot"></span>Ready to Pay</span>' : '<span class="badge badge-warning"><span class="badge-dot"></span>Processing</span>')) + '</td>';
+      html += '<td>' + (p.status === 'paid' ? '<span class="badge badge-success"><span class="badge-dot"></span>Paid</span>' : (p.status === 'funds_accepted' ? '<span class="badge badge-info"><span class="badge-dot"></span>Ready to Pay</span>' : (p.status === 'funds_released' ? '<span class="badge badge-primary"><span class="badge-dot"></span>Awaiting HR</span>' : '<span class="badge badge-warning"><span class="badge-dot"></span>Processing</span>'))) + '</td>';
       html += '<td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-icon" data-view-slip="' + p.id + '" title="View Slip">' + icon('eye') + '</button>';
-      if (isHRManagerOrOwner && p.status === 'funds_released') {
+      if (isHRManagerOrOwner && p.status === 'funds_accepted') {
         html += '<button class="btn btn-success btn-xs" data-mark-paid="' + p.id + '">Mark Paid</button>';
+      } else if (isHRManagerOrOwner && p.status === 'funds_released') {
+        html += '<span style="color:var(--accent-warning);font-size:0.75rem;font-weight:600">Please Accept Funds</span>';
       } else if (isHRManagerOrOwner && p.status === 'processing') {
         html += '<span style="color:var(--text-muted);font-size:0.75rem">Waiting Funds</span>';
       } else if (isFinance && p.status === 'processing') {
