@@ -60,7 +60,7 @@ Pages.maintenance = function(el) {
         if (r.status === 'in_progress') sBadge = 'primary';
         if (r.status === 'resolved') sBadge = 'success';
 
-        html += '<tr><td>' + formatDate(r.created_at) + '</td><td style="font-weight:600">' + r.asset_name + '</td><td>' + r.issue_description + '</td>';
+        html += '<tr><td>' + formatDate(r.created_at) + '</td><td style="font-weight:600">' + (r.equipment_name || r.asset_name || '-') + '</td><td>' + r.issue_description + '</td>';
         html += '<td><span class="badge badge-' + (r.priority === 'high' ? 'danger' : 'warning') + '">' + r.priority.toUpperCase() + '</span></td>';
         html += '<td><span class="badge badge-' + sBadge + '">' + r.status.replace('_', ' ').toUpperCase() + '</span></td>';
         
@@ -94,7 +94,7 @@ Pages.maintenance = function(el) {
         var dColor = isOverdue ? 'color:var(--accent-danger);font-weight:bold' : '';
         
         html += '<tr><td style="' + dColor + '">' + s.scheduled_date + (isOverdue ? ' (Overdue)' : '') + '</td>';
-        html += '<td style="font-weight:600">' + s.asset_name + '</td><td>' + s.task_description + '</td><td>' + (s.assigned_to || 'Unassigned') + '</td>';
+        html += '<td style="font-weight:600">' + (s.equipment_name || s.asset_name || '-') + '</td><td>' + s.task_description + '</td><td>' + (s.assigned_to || 'Unassigned') + '</td>';
         html += '<td><span class="badge badge-' + (s.status === 'completed' ? 'success' : 'secondary') + '">' + s.status.toUpperCase() + '</span></td>';
         
         if (canEdit) {
@@ -129,7 +129,7 @@ Pages.maintenance = function(el) {
       if (!ast || !iss) return alert('Please fill in all fields');
 
       sbClient.from('maintenance_requests').insert({
-        asset_name: ast, issue_description: iss, priority: pr,
+        equipment_name: ast, issue_description: iss, priority: pr,
         requested_by: App.user.full_name, status: 'pending'
       }).then(function(r) {
         if (r.error) return alert(r.error.message);
@@ -162,7 +162,7 @@ Pages.maintenance = function(el) {
       if (!ast || !tsk || !dt) return alert('Please fill in required fields');
 
       sbClient.from('maintenance_schedules').insert({
-        asset_name: ast, task_description: tsk, scheduled_date: dt,
+        equipment_name: ast, task_description: tsk, scheduled_date: dt,
         assigned_to: tch, status: 'pending'
       }).then(function(r) {
         if (r.error) return alert(r.error.message);
