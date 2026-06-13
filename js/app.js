@@ -2532,11 +2532,20 @@ Pages.payroll = function (el) {
                 }
               });
 
-              // If approved leaves exist, they are paid days (since earnedSoFar relies on attendance check-in)
+              var fridaysCount = 0;
+              for (var fDay = 1; fDay <= lastDay; fDay++) {
+                if (new Date(Number(yy), Number(mm)-1, fDay).getDay() === 5) fridaysCount++;
+              }
+
+              // If approved leaves exist, they are paid days
               var leavePay = approvedLeaveDays * dailyRate;
               earnedSoFar += leavePay;
+              
+              // Fridays are paid days
+              earnedSoFar += (fridaysCount * dailyRate);
 
               var attendedDays = attRecords.length;
+              var paidDaysDisplay = attendedDays + fridaysCount;
               var extraB = Number(document.getElementById('pf-extra-b').value) || 0;
               var extraP = Number(document.getElementById('pf-extra-p').value) || 0;
 
@@ -2559,7 +2568,7 @@ Pages.payroll = function (el) {
               var cumulativeHtml = '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color)"><h4 style="font-weight:700;font-size:0.8rem;margin-bottom:8px">📅 Cumulative Earned Progress (Max 30 Days)</h4>';
               cumulativeHtml += '<div style="max-height:180px;overflow-y:auto;font-size:0.78rem">';
               var cumDisplay = 0;
-              for (var d = 1; d <= Math.min(attendedDays + approvedLeaveDays, 30); d++) {
+              for (var d = 1; d <= Math.min(paidDaysDisplay + approvedLeaveDays, 30); d++) {
                 cumDisplay += dailyRate; // simple estimation for display
                 var barWidth = Math.round((d / 30) * 100);
                 cumulativeHtml += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="min-width:55px;color:var(--text-muted)">Day ' + d + '</span><div style="flex:1;background:var(--bg-secondary);border-radius:4px;height:18px;overflow:hidden"><div style="width:' + barWidth + '%;height:100%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:4px"></div></div><span style="min-width:85px;text-align:right;font-weight:600">EGP ' + cumDisplay.toLocaleString() + '</span></div>';
@@ -2570,7 +2579,7 @@ Pages.payroll = function (el) {
                 '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">' +
                 '<div style="color:var(--text-secondary)">Base Salary:</div><div style="font-weight:600">EGP ' + base.toLocaleString() + '</div>' +
                 '<div style="color:var(--text-secondary)">Salary Division:</div><div style="font-weight:600">÷ 30 days = EGP ' + Math.round(dailyRate).toLocaleString() + '/day</div>' +
-                '<div style="color:var(--accent-success)">Attended / Paid Leaves:</div><div style="font-weight:600;color:var(--accent-success)">' + attendedDays + ' days / ' + approvedLeaveDays + ' days</div>' +
+                '<div style="color:var(--accent-success)">Attended / Paid Leaves:</div><div style="font-weight:600;color:var(--accent-success)">' + paidDaysDisplay + ' days / ' + approvedLeaveDays + ' days</div>' +
                 '<div style="color:var(--accent-primary)">Base Earned (Attendance):</div><div style="font-weight:600;color:var(--accent-primary)">EGP ' + earnedSoFar.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-success)">Overtime (' + otRecords.length + ' records):</div><div style="font-weight:600;color:var(--accent-success)">+EGP ' + totalOTPay.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-info)">Bonuses (' + adjRecords.filter(function (a) { return a.type === "bonus" }).length + ' approved):</div><div style="font-weight:600;color:var(--accent-info)">+EGP ' + (totalBonuses + extraB).toLocaleString() + '</div>' +
