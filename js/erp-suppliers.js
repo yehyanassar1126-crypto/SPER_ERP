@@ -279,3 +279,77 @@ window.ERPSuppliers = {
     });
   }
 };
+
+window.Pages = window.Pages || {};
+Pages['supplier-portal'] = function(el) {
+  var isSupplier = App.user && App.user.role === 'supplier_external';
+  var isAuthInternal = App.isOwner() || (App.user && (App.user.department === 'Sales' || App.user.department === 'Finance'));
+  
+  if (!isSupplier && !isAuthInternal) {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied</h2></div>';
+    return;
+  }
+
+  var supplierId = isSupplier ? App.user.supplier_id : null;
+  
+  var title = isSupplier ? 'بوابة الموردين - ' + App.user.full_name : 'بوابة الموردين (إدارة المشتريات)';
+  var html = '<div class="header-banner" style="background:linear-gradient(135deg, #1e293b, #0f172a)"><div><h1>' + title + '</h1><p>' + (isSupplier ? 'مرحباً بك' : 'عرض كافة طلبات ومعاملات الموردين') + '</p></div></div>';
+  
+  html += '<div class="stats-grid" id="sup-ext-stats" style="margin-top:-20px">Loading...</div>';
+  
+  html += '<div class="grid-2" style="margin-top:20px">';
+  html += '<div class="card"><div class="card-header"><h3>أوامر الشراء الحالية والسابقة</h3></div><div class="card-body" id="sup-ext-orders">Loading...</div></div>';
+  html += '<div class="card"><div class="card-header"><h3>كشف حساب مالي (الدفعات)</h3></div><div class="card-body" id="sup-ext-txs">Loading...</div></div>';
+  html += '</div>';
+
+  el.innerHTML = html;
+  
+  var pOrders = supplierId 
+    ? sbClient.from('supplier_orders').select('*').eq('supplier_id', supplierId).order('created_at', {ascending: false})
+    : sbClient.from('supplier_orders').select('*, suppliers(company_name)').order('created_at', {ascending: false});
+    
+  var pTxs = supplierId
+    ? sbClient.from('supplier_transactions').select('*').eq('supplier_id', supplierId).order('transaction_date', {ascending: false})
+    : sbClient.from('supplier_transactions').select('*, suppliers(company_name)').order('transaction_date', {ascending: false});
+
+  Promise.all([pOrders, pTxs]).then(function(results) {
+    var orders = results[0].data || [];
+    var txs = results[1].data || [];
+
+    var totalOrdered = orders.reduce(function(sum, o) { return sum + (o.status !== 'cancelled' ? Number(o.total_amount || 0) : 0); }, 0);
+    var totalPaid = txs.reduce(function(sum, t) { return sum + Number(t.amount || 0); }, 0);
+    var balance = totalOrdered - totalPaid;
+
+    document.getElementById('sup-ext-stats').innerHTML = 
+      '<div class="stat-card" style="--stat-color:#6366f1"><div class="stat-card-value">' + orders.length + '</div><div class="stat-card-label">عدد الطلبات</div></div>' +
+      '<div class="stat-card" style="--stat-color:#ef4444"><div class="stat-card-value">' + totalOrdered.toLocaleString() + '</div><div class="stat-card-label">إجمالي التوريدات (ج.م)</div></div>' +
+      '<div class="stat-card" style="--stat-color:#22c55e"><div class="stat-card-value">' + totalPaid.toLocaleString() + '</div><div class="stat-card-label">إجمالي المستلم (ج.م)</div></div>' +
+      '<div class="stat-card" style="--stat-color:#f59e0b"><div class="stat-card-value">' + balance.toLocaleString() + '</div><div class="stat-card-label">إجمالي ' + (isSupplier ? 'الرصيد المتبقي لك' : 'المستحقات المتبقية') + ' (ج.م)</div></div>';
+
+    // Render Orders
+    if (orders.length === 0) {
+      document.getElementById('sup-ext-orders').innerHTML = '<div class="empty-state">لا يوجد طلبات شراء.</div>';
+    } else {
+      var oHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th>' + (!isSupplier ? '<th>المورد</th>' : '') + '<th>التفاصيل</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>';
+      orders.forEach(function(o) {
+        var compName = o.suppliers ? o.suppliers.company_name : '-';
+        oHtml += '<tr><td>' + formatDate(o.created_at) + '</td>' + (!isSupplier ? '<td>' + compName + '</td>' : '') + '<td>' + o.order_details + '</td><td><strong>' + Number(o.total_amount).toLocaleString() + '</strong></td><td><span class="badge">' + o.status + '</span></td></tr>';
+      });
+      oHtml += '</tbody></table></div>';
+      document.getElementById('sup-ext-orders').innerHTML = oHtml;
+    }
+
+    // Render TXs
+    if (txs.length === 0) {
+      document.getElementById('sup-ext-txs').innerHTML = '<div class="empty-state">لا يوجد معاملات مادية بعد.</div>';
+    } else {
+      var tHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th>' + (!isSupplier ? '<th>المورد</th>' : '') + '<th>المبلغ</th><th>طريقة الدفع</th><th>تفاصيل</th></tr></thead><tbody>';
+      txs.forEach(function(t) {
+        var compName = t.suppliers ? t.suppliers.company_name : '-';
+        tHtml += '<tr><td>' + (t.transaction_date || formatDate(t.created_at)) + '</td>' + (!isSupplier ? '<td>' + compName + '</td>' : '') + '<td style="color:var(--accent-primary);font-weight:700">' + Number(t.amount).toLocaleString() + '</td><td>' + t.payment_method + '</td><td>' + (t.payment_method === 'check' ? 'حالة الشيك: ' + t.check_status : '-') + '</td></tr>';
+      });
+      tHtml += '</tbody></table></div>';
+      document.getElementById('sup-ext-txs').innerHTML = tHtml;
+    }
+  });
+};

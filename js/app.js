@@ -337,8 +337,10 @@ var App = {
             section: 'Workplace', items: [
               { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
             ]
-          },
+          }
         ];
+      } else if (App.user && App.user.role === 'supplier_external') {
+        menu = [];
       } else {
         menu = [
           { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
@@ -447,6 +449,20 @@ var App = {
 
       if (canViewMaintenance) {
         menu.push({ section: 'Maintenance (الصيانة)', items: [{ id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' }] });
+      }
+
+      var canViewSupplierPortal = App.isOwner() || (App.user && (
+        App.user.department === 'Sales' || 
+        App.user.department === 'Finance' || 
+        App.user.role === 'supplier_external'
+      ));
+
+      if (canViewSupplierPortal) {
+        menu.push({
+          section: 'Supplier Portal (بوابة الموردين)', items: [
+            { id: 'supplier-portal', label: 'Supplier Portal', icon: 'package' }
+          ]
+        });
       }
     }
 
@@ -574,6 +590,7 @@ var App = {
     }
 
     switch (App.activePage) {
+      case 'supplier-portal': Pages['supplier-portal'] && Pages['supplier-portal'](el); break;
       case 'dashboard': App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el); break;
       case 'employees': (App.isHR() || App.isManager()) ? Pages.employees(el) : Pages.empDashboard(el); break;
       case 'attendance': case 'my-attendance': Pages.attendance(el); break;
