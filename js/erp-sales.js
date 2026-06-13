@@ -22,7 +22,7 @@ window.SalesWorkflow = {
     if (status === 'Customer Approved') color = '#22c55e';
     if (status === 'Rejected By Customer' || status === 'Quality Rejected') color = '#ef4444';
     if (status === 'Production Started' || status === 'Under Quality Inspection') color = '#8b5cf6';
-    if (status === 'Production Completed' || status === 'Quality Accepted' || status === 'Ready For Delivery') color = '#10b981';
+    if (status === 'Production Completed' || status === 'Quality Accepted' || status === 'Received by Warehouse' || status === 'Ready For Delivery') color = '#10b981';
     if (status === 'Out For Delivery') color = '#0ea5e9';
     if (status === 'Delivered') color = '#14b8a6';
     return '<span style="display:inline-block;padding:4px 8px;border-radius:4px;font-size:0.75rem;background:'+color+'20;color:'+color+';font-weight:bold">' + status + '</span>';

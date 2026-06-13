@@ -473,17 +473,20 @@ Pages.inventory = function(el) {
   var items = [];
   var transactions = [];
   var matReqs = [];
+  var qualityOrders = [];
   
   function loadData() {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Inventory...</div>';
     Promise.all([
       sbClient.from('inventory_items').select('*').order('name'),
       sbClient.from('inventory_transactions').select('*').order('date', {ascending: false}).limit(100),
-      sbClient.from('material_requests').select('*').order('created_at', {ascending: false})
+      sbClient.from('material_requests').select('*').order('created_at', {ascending: false}),
+      sbClient.from('sales_workflow_orders').select('*').eq('status', 'Quality Accepted')
     ]).then(function(res) {
       items = res[0].data || [];
       transactions = res[1].data || [];
       matReqs = res[2].data || [];
+      qualityOrders = res[3] ? (res[3].data || []) : [];
       render();
     });
   }
@@ -544,6 +547,19 @@ Pages.inventory = function(el) {
 
     // Finished Goods View
     html += '<div id="view-finished" style="display:none">';
+    
+    // Quality Transfer Section
+    if (qualityOrders.length > 0 && isWarehouse) {
+      html += '<div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent-success)"><div class="card-header" style="background:rgba(16,185,129,0.05)"><div><h3 style="color:var(--accent-success)">📥 وارد من قسم الجودة (مخزن التام)</h3><p>طلبات إنتاج معتمدة من الجودة بانتظار استلام المخزن</p></div></div><div class="card-body no-pad">';
+      html += '<div class="table-container"><table class="data-table"><thead><tr><th>تاريخ الاعتماد</th><th>المنتج</th><th>الكمية المنتجة</th><th>الإجراء</th></tr></thead><tbody>';
+      qualityOrders.forEach(function(qo) {
+        var qty = qo.quantity_available !== null ? qo.quantity_available : qo.quantity_requested;
+        html += '<tr><td>' + formatDate(qo.created_at) + '</td><td><strong>' + qo.product_name + '</strong></td><td><strong style="font-size:1.1rem;color:var(--text-primary)">' + qty + '</strong></td>';
+        html += '<td><button class="btn btn-sm btn-success" onclick="window.warehouseReceiveQuality(\''+qo.id+'\')">تأكيد استلام المخزن وإرسال للتخطيط</button></td></tr>';
+      });
+      html += '</tbody></table></div></div></div>';
+    }
+
     html += '<div class="card"><div class="card-header"><div><h3>📦 مخزن تام - Finished Goods Warehouse</h3><p>' + finishedItems.length + ' products</p></div></div><div class="card-body no-pad">';
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Product Name</th><th>Category</th><th>Qty in Stock</th><th>Status</th>' + ((isWarehouse || isSalesCoord) ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
     if (finishedItems.length === 0) {
@@ -657,6 +673,12 @@ Pages.inventory = function(el) {
     html += '</tbody></table></div></div></div></div>';
 
     el.innerHTML = html;
+
+    window.warehouseReceiveQuality = function(id) {
+      if(!confirm('تأكيد استلام المنتجات من الجودة وإضافتها لمخزن التام وإعلام التخطيط؟')) return;
+      if (!window.SalesWorkflow) return alert('SalesWorkflow module missing!');
+      window.SalesWorkflow.updateStatus(id, 'Received by Warehouse', {}, loadData);
+    };
 
     // Tab switching
     var allTabs = ['tab-items','tab-finished','tab-general','tab-tx','tab-mr'];

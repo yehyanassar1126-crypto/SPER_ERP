@@ -39,7 +39,7 @@ Pages.planning = function(el) {
           actions += '<button class="btn btn-sm btn-primary" onclick="window.planReview(\''+o.id+'\', '+o.quantity_requested+')">مراجعة المخزون وتحديد المتاح</button>';
         } else if (o.status === 'Customer Approved') {
           actions += '<button class="btn btn-sm btn-warning" onclick="window.planStartProd(\''+o.id+'\')">إصدار أمر للإنتاج</button>';
-        } else if (o.status === 'Quality Accepted') {
+        } else if (o.status === 'Received by Warehouse') {
           actions += '<button class="btn btn-sm btn-success" onclick="window.planReadyDeliv(\''+o.id+'\')">إبلاغ المبيعات (جاهز للتسليم)</button>';
         } else {
           actions += '-';
