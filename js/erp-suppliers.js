@@ -68,7 +68,7 @@ window.ERPSuppliers = {
   addSupplier: function() {
     var html = '<div class="form-grid">';
     html += '<div class="form-group"><label class="form-label">اسم الشركة الموردة *</label><input type="text" id="sup-company" class="form-input"></div>';
-    html += '<div class="form-group"><label class="form-label">البريد الإلكتروني (لتسجيل الدخول) *</label><input type="email" id="sup-email" class="form-input"></div>';
+    html += '<div class="form-group"><label class="form-label">اسم المستخدم (لتسجيل الدخول) *</label><input type="text" id="sup-email" class="form-input"></div>';
     html += '<div class="form-group"><label class="form-label">كلمة المرور (للبوابة) *</label><input type="text" id="sup-password" class="form-input"></div>';
     html += '<div class="form-group"><label class="form-label">رقم الهاتف</label><input type="text" id="sup-phone" class="form-input"></div>';
     html += '<div class="form-group"><label class="form-label">اسم جهة الاتصال</label><input type="text" id="sup-contact" class="form-input"></div>';
@@ -85,7 +85,7 @@ window.ERPSuppliers = {
         var phone = document.getElementById('sup-phone').value.trim();
         var contact = document.getElementById('sup-contact').value.trim();
 
-        if (!comp || !email || !pass) return alert('يرجى ملء البيانات المطلوبة: اسم الشركة، الإيميل، وكلمة المرور');
+        if (!comp || !email || !pass) return alert('يرجى ملء البيانات المطلوبة: اسم الشركة، اسم المستخدم، وكلمة المرور');
 
         var btn = this;
         var oldTxt = btn.innerHTML;
@@ -133,7 +133,7 @@ window.ERPSuppliers = {
       var html = '<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px">';
       html += '<div style="flex:1;background:var(--bg-secondary);padding:15px;border-radius:var(--radius-md)">';
       html += '<h3 style="margin:0 0 10px;font-size:1.1rem">' + s.company_name + '</h3>';
-      html += '<p style="margin:0 0 5px;font-size:0.85rem">الإيميل: ' + s.email + '</p>';
+      html += '<p style="margin:0 0 5px;font-size:0.85rem">اسم المستخدم: ' + s.email + '</p>';
       html += '<p style="margin:0 0 5px;font-size:0.85rem">الهاتف: <span dir="ltr">' + (s.phone||'N/A') + '</span></p>';
       html += '<p style="margin:0;font-size:0.85rem">كلمة المرور المسجلة: <code>' + s.password_hash + '</code></p>';
       html += '</div>';
