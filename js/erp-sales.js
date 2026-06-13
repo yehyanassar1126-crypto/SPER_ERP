@@ -23,6 +23,7 @@ window.SalesWorkflow = {
     if (status === 'Rejected By Customer' || status === 'Quality Rejected') color = '#ef4444';
     if (status === 'Production Started' || status === 'Under Quality Inspection') color = '#8b5cf6';
     if (status === 'Production Completed' || status === 'Quality Accepted' || status === 'Ready For Delivery') color = '#10b981';
+    if (status === 'Out For Delivery') color = '#0ea5e9';
     if (status === 'Delivered') color = '#14b8a6';
     return '<span style="display:inline-block;padding:4px 8px;border-radius:4px;font-size:0.75rem;background:'+color+'20;color:'+color+';font-weight:bold">' + status + '</span>';
   }
@@ -66,7 +67,7 @@ Pages.sales = function(el) {
           actions += '<button class="btn btn-sm btn-success" onclick="window.salesApprove(\''+o.id+'\')" style="margin-bottom:4px">موافقة العميل</button><br>';
           actions += '<button class="btn btn-sm btn-danger" onclick="window.salesReject(\''+o.id+'\')">رفض العميل</button>';
         } else if (o.status === 'Ready For Delivery' || o.status === 'Ready For Customer Delivery') {
-          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesDeliver(\''+o.id+'\')">تأكيد الاستلام والتسليم</button>';
+          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesDeliver(\''+o.id+'\')">إرسال للتسليم (Out For Delivery)</button>';
         } else {
           actions += '-';
         }
@@ -134,8 +135,9 @@ Pages.sales = function(el) {
   };
 
   window.salesDeliver = function(id) {
-    var notes = prompt('الكمية المسلمة وملاحظات التسليم (اختياري):');
-    SalesWorkflow.updateStatus(id, 'Delivered', { delivery_date_actual: new Date().toISOString().split('T')[0], rejection_reason: notes }, render);
+    var notes = prompt('ملاحظات إرسال الطلبية للعميل (اختياري):');
+    if(notes === null) return;
+    SalesWorkflow.updateStatus(id, 'Out For Delivery', { delivery_date_actual: new Date().toISOString().split('T')[0], rejection_reason: notes }, render);
   };
 
   render();

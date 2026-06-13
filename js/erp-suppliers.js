@@ -287,6 +287,14 @@ window.ERPSuppliers = {
     });
   },
 
+  acceptDelivery: function(id) {
+    if(!confirm('هل أنت متأكد من استلامك لهذه الطلبية كاملة بشكل صحيح؟')) return;
+    sbClient.from('sales_workflow_orders').update({ status: 'Delivered' }).eq('id', id).then(function(res) {
+      if (res.error) return alert("حدث خطأ: " + res.error.message);
+      Pages['supplier-portal'](document.getElementById('page-content'));
+    });
+  },
+
   customerSendRequest: function() {
     var customerName = App.user.full_name;
 
@@ -379,7 +387,7 @@ Pages['supplier-portal'] = function(el) {
     if (orders.length === 0) {
       document.getElementById('sup-ext-orders').innerHTML = '<div class="empty-state">لا يوجد طلبات شراء.</div>';
     } else {
-      var oHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>تاريخ الطلب</th>' + (!isSupplier ? '<th>العميل</th>' : '') + '<th>المنتج المطلوب</th><th>الكمية المطلوبة</th><th>الكمية المتاحة/المعتمدة</th><th>تاريخ التسليم</th><th>الحالة</th><th>ملاحظات</th></tr></thead><tbody>';
+      var oHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>تاريخ الطلب</th>' + (!isSupplier ? '<th>العميل</th>' : '') + '<th>المنتج المطلوب</th><th>الكمية المطلوبة</th><th>الكمية المتاحة/المعتمدة</th><th>تاريخ التسليم</th><th>الحالة</th><th>ملاحظات</th>' + (isSupplier ? '<th>إجراءات العميل</th>' : '') + '</tr></thead><tbody>';
       orders.forEach(function(o) {
         oHtml += '<tr>';
         oHtml += '<td>' + formatDate(o.created_at) + '</td>';
@@ -390,6 +398,15 @@ Pages['supplier-portal'] = function(el) {
         oHtml += '<td>' + (o.delivery_date_requested || '-') + '</td>';
         oHtml += '<td>' + (window.SalesWorkflow ? window.SalesWorkflow.getStatusBadge(o.status) : '<span class="badge">' + o.status + '</span>') + '</td>';
         oHtml += '<td>' + (o.rejection_reason || '-') + '</td>';
+        if (isSupplier) {
+          var acts = '';
+          if (o.status === 'Out For Delivery') {
+            acts = '<button class="btn btn-sm btn-success" onclick="ERPSuppliers.acceptDelivery(\''+o.id+'\')">تأكيد الاستلام ✅</button>';
+          } else {
+            acts = '-';
+          }
+          oHtml += '<td>' + acts + '</td>';
+        }
         oHtml += '</tr>';
       });
       oHtml += '</tbody></table></div>';
