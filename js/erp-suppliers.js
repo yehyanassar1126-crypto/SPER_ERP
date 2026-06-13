@@ -287,28 +287,45 @@ window.ERPSuppliers = {
     });
   },
 
-  supplierSendRequest: function() {
+  customerSendRequest: function() {
     var supplierId = App.user.supplier_id;
     if (!supplierId) return;
+    var customerName = App.user.full_name;
 
-    var reqDetails = prompt('ما الذي ترغب في طلبه/توريده للمصنع؟ (اكتب التفاصيل والكمية)');
-    if (!reqDetails) return;
+    var b = '<div class="form-grid">';
+    b += '<div class="form-group"><label>المنتج المطلوب *</label><input type="text" id="cust-req-prod" class="form-input"></div>';
+    b += '<div class="form-group"><label>الكمية المطلوبة *</label><input type="number" id="cust-req-qty" class="form-input" min="1"></div>';
+    b += '<div class="form-group"><label>تاريخ التسليم المطلوب *</label><input type="date" id="cust-req-date" class="form-input"></div>';
+    b += '</div>';
 
-    var estAmount = prompt('التكلفة التقديرية أو الإجمالية (بالجنيه):', '0');
-    if (!estAmount || isNaN(estAmount)) return alert('يرجى إدخال رقم صحيح.');
+    App.showModal('إرسال طلب شراء جديد', b, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" onclick="ERPSuppliers.saveCustomerRequest()">إرسال الطلب</button>');
+  },
 
-    sbClient.from('supplier_orders').insert({
-      supplier_id: supplierId,
-      order_details: reqDetails,
-      total_amount: Number(estAmount),
-      status: 'pending - sent by supplier'
+  saveCustomerRequest: function() {
+    var prod = document.getElementById('cust-req-prod').value.trim();
+    var qty = document.getElementById('cust-req-qty').value;
+    var date = document.getElementById('cust-req-date').value;
+
+    if (!prod || !qty || !date) return alert('يرجى ملء جميع الحقول المطلوبة.');
+
+    var btn = document.querySelector('#app-modal .btn-primary');
+    btn.disabled = true; btn.innerHTML = 'جاري الإرسال...';
+
+    sbClient.from('sales_workflow_orders').insert({
+      customer_name: App.user.full_name,
+      product_name: prod,
+      quantity_requested: Number(qty),
+      delivery_date_requested: date,
+      status: 'New Request',
+      created_by: App.user.id
     }).then(function(res) {
       if (res.error) {
-        alert('حدث خطأ أثناء الإرسال: ' + res.error.message);
-      } else {
-        alert('تم إرسال الطلب بنجاح، سيتم مراجعته من قبل المبيعات أو الإدارة.');
-        Pages['supplier-portal'](document.getElementById('page-content'));
+        btn.disabled = false; btn.innerHTML = 'إرسال الطلب';
+        return alert('حدث خطأ أثناء الإرسال: ' + res.error.message);
       }
+      App.closeModal();
+      alert('تم إرسال الطلب بنجاح. سنقوم بمراجعته والرد عليك قريباً.');
+      Pages['supplier-portal'](document.getElementById('page-content'));
     });
   }
 };
@@ -324,27 +341,28 @@ Pages['supplier-portal'] = function(el) {
   }
 
   var supplierId = isSupplier ? App.user.supplier_id : null;
+  var customerName = isSupplier ? App.user.full_name : null;
   
-  var title = isSupplier ? 'بوابة الموردين - ' + App.user.full_name : 'بوابة الموردين (إدارة المشتريات)';
-  var html = '<div class="header-banner" style="background:linear-gradient(135deg, #1e293b, #0f172a)"><div><h1>' + title + '</h1><p>' + (isSupplier ? 'مرحباً بك' : 'عرض كافة طلبات ومعاملات الموردين') + '</p></div></div>';
+  var title = isSupplier ? 'بوابة العملاء - ' + customerName : 'بوابة العملاء (إدارة المشتريات والطلبات)';
+  var html = '<div class="header-banner" style="background:linear-gradient(135deg, #1e293b, #0f172a)"><div><h1>' + title + '</h1><p>' + (isSupplier ? 'مرحباً بك، تابع طلباتك وحساباتك هنا' : 'عرض كافة طلبات ومعاملات العملاء') + '</p></div></div>';
   
   html += '<div class="stats-grid" id="sup-ext-stats" style="margin-top:-20px">Loading...</div>';
   
   html += '<div class="grid-2" style="margin-top:20px">';
-  var ordersHeader = '<h3>أوامر الشراء الحالية والسابقة</h3>';
+  var ordersHeader = '<h3>أوامر البيع / طلباتك</h3>';
   if (isSupplier) {
-    ordersHeader += '<button class="btn btn-sm btn-primary" onclick="ERPSuppliers.supplierSendRequest()">' + icon('plus') + ' إرسال طلب جديد</button>';
+    ordersHeader += '<button class="btn btn-sm btn-primary" onclick="ERPSuppliers.customerSendRequest()">' + icon('plus') + ' طلب شراء جديد</button>';
   }
   
-  html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center">' + ordersHeader + '</div><div class="card-body" id="sup-ext-orders">Loading...</div></div>';
-  html += '<div class="card"><div class="card-header"><h3>كشف حساب مالي (الدفعات)</h3></div><div class="card-body" id="sup-ext-txs">Loading...</div></div>';
+  html += '<div class="card" style="grid-column: span 2;"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center">' + ordersHeader + '</div><div class="card-body" id="sup-ext-orders">Loading...</div></div>';
+  html += '<div class="card" style="grid-column: span 2;"><div class="card-header"><h3>كشف حساب مالي (المدفوعات)</h3></div><div class="card-body" id="sup-ext-txs">Loading...</div></div>';
   html += '</div>';
 
   el.innerHTML = html;
   
-  var pOrders = supplierId 
-    ? sbClient.from('supplier_orders').select('*').eq('supplier_id', supplierId).order('created_at', {ascending: false})
-    : sbClient.from('supplier_orders').select('*, suppliers(company_name)').order('created_at', {ascending: false});
+  var pOrders = isSupplier 
+    ? sbClient.from('sales_workflow_orders').select('*').eq('customer_name', customerName).order('created_at', {ascending: false})
+    : sbClient.from('sales_workflow_orders').select('*').order('created_at', {ascending: false});
     
   var pTxs = supplierId
     ? sbClient.from('supplier_transactions').select('*').eq('supplier_id', supplierId).order('transaction_date', {ascending: false})
@@ -354,24 +372,27 @@ Pages['supplier-portal'] = function(el) {
     var orders = results[0].data || [];
     var txs = results[1].data || [];
 
-    var totalOrdered = orders.reduce(function(sum, o) { return sum + (o.status !== 'cancelled' ? Number(o.total_amount || 0) : 0); }, 0);
-    var totalPaid = txs.reduce(function(sum, t) { return sum + Number(t.amount || 0); }, 0);
-    var balance = totalOrdered - totalPaid;
-
     document.getElementById('sup-ext-stats').innerHTML = 
-      '<div class="stat-card" style="--stat-color:#6366f1"><div class="stat-card-value">' + orders.length + '</div><div class="stat-card-label">عدد الطلبات</div></div>' +
-      '<div class="stat-card" style="--stat-color:#ef4444"><div class="stat-card-value">' + totalOrdered.toLocaleString() + '</div><div class="stat-card-label">إجمالي التوريدات (ج.م)</div></div>' +
-      '<div class="stat-card" style="--stat-color:#22c55e"><div class="stat-card-value">' + totalPaid.toLocaleString() + '</div><div class="stat-card-label">إجمالي المستلم (ج.م)</div></div>' +
-      '<div class="stat-card" style="--stat-color:#f59e0b"><div class="stat-card-value">' + balance.toLocaleString() + '</div><div class="stat-card-label">إجمالي ' + (isSupplier ? 'الرصيد المتبقي لك' : 'المستحقات المتبقية') + ' (ج.م)</div></div>';
+      '<div class="stat-card" style="--stat-color:#6366f1"><div class="stat-card-value">' + orders.length + '</div><div class="stat-card-label">إجمالي الطلبات</div></div>' +
+      '<div class="stat-card" style="--stat-color:#22c55e"><div class="stat-card-value">' + orders.filter(o => o.status === 'Delivered').length + '</div><div class="stat-card-label">طلبات تم استلامها</div></div>' +
+      '<div class="stat-card" style="--stat-color:#f59e0b"><div class="stat-card-value">' + txs.length + '</div><div class="stat-card-label">عدد الدفعات المسددة</div></div>';
 
     // Render Orders
     if (orders.length === 0) {
       document.getElementById('sup-ext-orders').innerHTML = '<div class="empty-state">لا يوجد طلبات شراء.</div>';
     } else {
-      var oHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th>' + (!isSupplier ? '<th>المورد</th>' : '') + '<th>التفاصيل</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>';
+      var oHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>تاريخ الطلب</th>' + (!isSupplier ? '<th>العميل</th>' : '') + '<th>المنتج المطلوب</th><th>الكمية المطلوبة</th><th>الكمية المتاحة/المعتمدة</th><th>تاريخ التسليم</th><th>الحالة</th><th>ملاحظات</th></tr></thead><tbody>';
       orders.forEach(function(o) {
-        var compName = o.suppliers ? o.suppliers.company_name : '-';
-        oHtml += '<tr><td>' + formatDate(o.created_at) + '</td>' + (!isSupplier ? '<td>' + compName + '</td>' : '') + '<td>' + o.order_details + '</td><td><strong>' + Number(o.total_amount).toLocaleString() + '</strong></td><td><span class="badge">' + o.status + '</span></td></tr>';
+        oHtml += '<tr>';
+        oHtml += '<td>' + formatDate(o.created_at) + '</td>';
+        if (!isSupplier) oHtml += '<td>' + o.customer_name + '</td>';
+        oHtml += '<td><strong>' + o.product_name + '</strong></td>';
+        oHtml += '<td>' + o.quantity_requested + '</td>';
+        oHtml += '<td>' + (o.quantity_available !== null ? '<span style="color:var(--accent-primary)">' + o.quantity_available + '</span>' : '-') + '</td>';
+        oHtml += '<td>' + (o.delivery_date_requested || '-') + '</td>';
+        oHtml += '<td>' + (window.SalesWorkflow ? window.SalesWorkflow.getStatusBadge(o.status) : '<span class="badge">' + o.status + '</span>') + '</td>';
+        oHtml += '<td>' + (o.rejection_reason || '-') + '</td>';
+        oHtml += '</tr>';
       });
       oHtml += '</tbody></table></div>';
       document.getElementById('sup-ext-orders').innerHTML = oHtml;
