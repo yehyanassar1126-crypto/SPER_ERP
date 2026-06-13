@@ -439,7 +439,15 @@ var App = {
       if (canViewQuality) {
         menu.push({ section: 'Quality (الجودة)', items: [{ id: 'erp-quality', label: 'QC Inspections (فحص الجودة)', icon: 'checkCircle' }] });
       }
-      menu.push({ section: 'Maintenance (الصيانة)', items: [{ id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' }] });
+      var canViewMaintenance = App.isOwner() || (App.user && (
+        App.user.department === 'Production' || App.user.role === 'hall manager' ||
+        App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician' ||
+        App.user.role === 'hr manager'
+      ));
+
+      if (canViewMaintenance) {
+        menu.push({ section: 'Maintenance (الصيانة)', items: [{ id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' }] });
+      }
     }
 
     var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>HR & ERP</p></div></div>';

@@ -9,8 +9,14 @@ Pages.maintenance = function(el) {
   // Production requests maintenance, Maintenance manages it.
   var canEdit = isOwner || isMaintenance;
   var isProduction = App.user && (App.user.department === 'Production' || App.user.role === 'hall manager');
-  var isHR = App.isHR();
-  var canViewAll = canEdit || isHR || isProduction;
+  var isHRManager = App.user && App.user.role === 'hr manager';
+  var canViewAll = canEdit || isHRManager || isProduction;
+
+  var hasAccess = isOwner || isProduction || isMaintenance || isHRManager;
+  if (!hasAccess) {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to Production, Maintenance, and HR Managers.</p></div>';
+    return;
+  }
 
   var requests = [];
   var schedules = [];
