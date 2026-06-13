@@ -1,7 +1,12 @@
 window.ERPSuppliers = {
   renderAdmin: function() {
+    var isAllowed = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Sales'));
+    if (!isAllowed) {
+      document.getElementById('page-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-danger)"><h3>🚫 Access Denied</h3><p>This module is restricted to HR, Finance, Sales, and Owner.</p></div>';
+      return;
+    }
     var html = '<div class="header-banner"><div><h1>إدارة الموردين</h1><p>إدارة بيانات الموردين وأوامر الشراء والحسابات</p></div>';
-    if (App.isHR() || App.user.role === 'planning' || App.user.role === 'sales') {
+    if (isAllowed) {
       html += '<button class="btn btn-primary" onclick="ERPSuppliers.addSupplier()">' + icon('plus') + ' إضافة مورد جديد</button>';
     }
     html += '</div>';

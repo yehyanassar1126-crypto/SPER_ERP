@@ -420,10 +420,19 @@ var App = {
       if (canViewSales) {
         menu.push({ section: 'Sales (المبيعات)', items: [{ id: 'erp-sales', label: 'Sales Orders (أوامر البيع)', icon: 'shoppingBag' }] });
       }
-      menu.push({ section: 'Supply Chain (الإمداد)', items: [
-        { id: 'erp-planning', label: 'Production Planning (تخطيط)', icon: 'calendarCheck' },
-        { id: 'erp-suppliers', label: 'Suppliers (الموردين)', icon: 'users' }
-      ]});
+      var canViewSuppliers = App.isOwner() || (App.user && (App.user.department === 'Sales' || App.user.role === 'hr manager' || App.user.department === 'Finance'));
+
+      var supplyChainItems = [];
+      if (canViewPlanning) {
+        supplyChainItems.push({ id: 'erp-planning', label: 'Production Planning (تخطيط)', icon: 'calendarCheck' });
+      }
+      if (canViewSuppliers) {
+        supplyChainItems.push({ id: 'erp-suppliers', label: 'Suppliers (الموردين)', icon: 'users' });
+      }
+
+      if (supplyChainItems.length > 0) {
+        menu.push({ section: 'Supply Chain (الإمداد)', items: supplyChainItems });
+      }
       if (canViewProduction) {
         menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
       }
