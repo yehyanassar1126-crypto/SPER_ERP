@@ -452,6 +452,10 @@ var App = {
         menu.push({ section: 'Maintenance (الصيانة)', items: [{ id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' }] });
       }
 
+      if (App.user && App.user.role !== 'supplier_external') {
+        menu.push({ section: 'Transportation (النقل والحركة)', items: [{ id: 'logistics', label: 'Vehicle Movement (حركة العربيات)', icon: 'truck' }] });
+      }
+
       var canViewSupplierPortal = App.isOwner() || (App.user && (
         App.user.department === 'Sales' || 
         App.user.department === 'Finance' || 
@@ -540,7 +544,8 @@ var App = {
       'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' },
       'erp-maintenance': { title: 'Maintenance (الصيانة)', sub: 'Equipment repairs & preventative maintenance' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
-      'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' }
+      'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
+      'logistics': { title: 'Transportation & Logistics', sub: 'Manage driver and vehicle movements' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -637,6 +642,7 @@ var App = {
       case 'erp-maintenance': Pages.maintenance(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
+      case 'logistics': Pages.logistics(el); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },
