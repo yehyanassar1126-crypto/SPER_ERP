@@ -374,7 +374,7 @@ var App = {
         });
       }
 
-      var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager'));
+      var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'sales coordinator'));
       var canViewProcurement = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
 
       if (canViewInventory || canViewProcurement) {

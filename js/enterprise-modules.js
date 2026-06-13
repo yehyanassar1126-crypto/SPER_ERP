@@ -458,10 +458,11 @@ Pages.expenses = function (el) {
 // ==========================================
 Pages.inventory = function(el) {
   var isWarehouse = App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager');
-  var canViewInventory = App.isOwner() || isWarehouse;
+  var isSalesCoord = App.user && (App.user.role === 'sales coordinator' || App.user.department === 'Sales');
+  var canViewInventory = App.isOwner() || isWarehouse || isSalesCoord;
 
   if (!canViewInventory) {
-    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Warehouse department.</p></div>';
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Warehouse and Sales departments.</p></div>';
     return;
   }
 
@@ -541,15 +542,28 @@ Pages.inventory = function(el) {
     // Finished Goods View
     html += '<div id="view-finished" style="display:none">';
     html += '<div class="card"><div class="card-header"><div><h3>📦 مخزن تام - Finished Goods Warehouse</h3><p>' + finishedItems.length + ' products</p></div></div><div class="card-body no-pad">';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Product Name</th><th>Category</th><th>Qty in Stock</th><th>Status</th></tr></thead><tbody>';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Product Name</th><th>Category</th><th>Qty in Stock</th><th>Status</th>' + ((isWarehouse || isSalesCoord) ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
     if (finishedItems.length === 0) {
-      html += '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">No finished goods yet. Products pass through Quality → here.</td></tr>';
+      html += '<tr><td colspan="' + ((isWarehouse || isSalesCoord) ? '5' : '4') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No finished goods yet. Products pass through Quality → here.</td></tr>';
     } else {
       finishedItems.forEach(function(item) {
         html += '<tr><td style="font-weight:600">' + item.name + '</td>';
         html += '<td><span class="badge badge-success">Finished Product</span></td>';
         html += '<td style="font-weight:700;font-size:1.1rem">' + item.quantity + '</td>';
-        html += '<td><span class="badge badge-success">Ready to Ship</span></td></tr>';
+        html += '<td><span class="badge badge-success">Ready to Ship</span></td>';
+        
+        if (isWarehouse || isSalesCoord) {
+          html += '<td>';
+          if (isWarehouse) {
+            html += '<button class="btn btn-xs btn-primary" onclick="dispatchFinishedGoods(\'' + item.id + '\', \'' + item.name.replace(/'/g,"\\'") + '\')">Dispatch (صرف تام)</button>';
+          }
+          if (isSalesCoord) {
+            html += '<button class="btn btn-xs btn-warning" style="margin-left:4px" onclick="requestProduction(\'' + item.name.replace(/'/g,"\\'") + '\')">Request Prod. (تخطيط)</button>';
+          }
+          html += '</td>';
+        }
+        
+        html += '</tr>';
       });
     }
     html += '</tbody></table></div></div></div></div>';
@@ -820,6 +834,76 @@ Pages.inventory = function(el) {
       if(r.error) return alert(r.error.message);
       loadData();
       showToast('Material request rejected', 'warning');
+    });
+  };
+
+  window.dispatchFinishedGoods = function(itemId, itemName) {
+    var b = '<div class="form-field"><label>Dispatch Quantity (الكمية المنصرفة) *</label><input type="number" id="fg-qty" class="form-input" min="1" value="1"></div>';
+    b += '<div class="form-field"><label>Destination Type (جهة الصرف) *</label><select id="fg-type" class="form-input">';
+    b += '<option value="عملاء (Customers)">عملاء (Customers)</option>';
+    b += '<option value="مناديب بيع (Sales Reps)">مناديب بيع (Sales Reps)</option>';
+    b += '<option value="فروع (Branches)">فروع (Branches)</option>';
+    b += '<option value="سلاسل / منصات (Amazon, Noon)">سلاسل / منصات (Amazon, Noon)</option>';
+    b += '<option value="أخرى (Other)">أخرى (Other)</option>';
+    b += '</select></div>';
+    b += '<div class="form-field"><label>Destination Details / Name (اسم العميل/الفرع/المندوب)</label><input type="text" id="fg-dest" class="form-input" placeholder="e.g. Amazon, Branch 1, Ahmed (Rep)"></div>';
+    
+    var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-fg-btn">Confirm Dispatch</button>';
+    App.showModal('Dispatch Finished Goods - ' + itemName, b, f);
+
+    document.getElementById('save-fg-btn').addEventListener('click', function() {
+      var qty = parseFloat(document.getElementById('fg-qty').value);
+      var typ = document.getElementById('fg-type').value;
+      var dest = document.getElementById('fg-dest').value.trim();
+      if (!qty || isNaN(qty) || qty <= 0) return alert('Invalid quantity');
+      
+      var notes = 'جهة الصرف: ' + typ + (dest ? ' - ' + dest : '');
+
+      sbClient.from('inventory_items').select('quantity').eq('id', itemId).single().then(function(res) {
+        if(res.error) return alert(res.error.message);
+        var curQty = res.data.quantity;
+        if(curQty < qty) return alert('Insufficient stock. Available: ' + curQty);
+        
+        sbClient.from('inventory_items').update({quantity: curQty - qty}).eq('id', itemId).then(function() {
+          sbClient.from('inventory_transactions').insert({
+            item_id: itemId, item_name: itemName,
+            transaction_type: 'out', quantity: qty,
+            processed_by: App.user.full_name,
+            notes: notes
+          }).then(function(r) {
+            App.closeModal(); loadData();
+            showToast('Goods dispatched successfully', 'success');
+          });
+        });
+      });
+    });
+  };
+
+  window.requestProduction = function(itemName) {
+    var b = '<div class="form-field"><label>Required Quantity (الكمية المطلوبة للإنتاج) *</label><input type="number" id="rp-qty" class="form-input" min="1" value="100"></div>';
+    b += '<div class="form-field"><label>Notes / Deadline (ملاحظات أو ميعاد التسليم)</label><textarea id="rp-notes" class="form-input" rows="2"></textarea></div>';
+    var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-success" id="save-rp-btn">Send to Planning</button>';
+    App.showModal('Request Production - ' + itemName, b, f);
+
+    document.getElementById('save-rp-btn').addEventListener('click', function() {
+      var qty = parseFloat(document.getElementById('rp-qty').value);
+      var notes = document.getElementById('rp-notes').value.trim();
+      if (!qty || isNaN(qty) || qty <= 0) return alert('Invalid quantity');
+
+      var itemsArr = [{ name: itemName, qty: qty, price: 0 }];
+      
+      sbClient.from('sales_orders').insert({
+        client_name: 'Warehouse Replenishment (طلب داخلي)',
+        items: JSON.stringify(itemsArr),
+        total_amount: 0,
+        status: 'sent_to_planning',
+        sales_rep: App.user.full_name,
+        notes: 'Sales Coordinator Request: ' + notes
+      }).then(function(r) {
+        if (r.error) return alert(r.error.message);
+        App.closeModal();
+        showToast('Request sent to Planning successfully', 'success');
+      });
     });
   };
 
