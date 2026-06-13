@@ -2596,9 +2596,11 @@ Pages.payroll = function (el) {
                 if (att.status === 'leave') return;
                 var dm = att.delay_minutes || 0;
                 var lateDed = 0;
-                if (dm > 360) lateDed = dailyRate * 1;
-                else if (dm > 120) lateDed = dailyRate * 0.5;
-                else if (dm > 15) lateDed = dailyRate * 0.25;
+                if (!att.delay_excused) {
+                  if (dm > 360) lateDed = dailyRate * 1;
+                  else if (dm > 120) lateDed = dailyRate * 0.5;
+                  else if (dm > 15) lateDed = dailyRate * 0.25;
+                }
                 lateDed = Math.round(lateDed);
                 var dayNet = Math.max(0, dailyRate - lateDed);
                 totalLateDeduction += lateDed;
@@ -3279,20 +3281,30 @@ Pages.allDelays = function (el) {
     html += '</div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>سجل التأخيرات العام</h3><p>' + delays.length + ' سجل تأخير</p></div><button class="btn btn-outline" id="export-delays">' + icon('download') + ' Export CSV</button></div><div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right"><thead><tr>';
-    html += '<th>الموظف</th><th>القسم</th><th>التاريخ</th><th>مدة التأخير</th><th>الخصم</th><th>الحالة</th></tr></thead><tbody>';
+    html += '<th>الموظف</th><th>القسم</th><th>التاريخ</th><th>مدة التأخير</th><th>الخصم</th><th>سبب التأخير</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>';
 
     if (delays.length === 0) {
-      html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد تأخيرات مسجلة</td></tr>';
+      html += '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد تأخيرات مسجلة</td></tr>';
     } else {
+      var lastDate = null;
       delays.forEach(function (d) {
+        if (lastDate !== d.delay_date) {
+          html += '<tr style="background:var(--bg-secondary);border-top:3px solid var(--accent-primary);border-bottom:1px solid var(--border-color)"><td colspan="8" style="font-weight:800;color:var(--text-primary);padding:10px 16px;font-size:1.05rem;">📅 سجلات يوم: ' + formatDate(d.delay_date) + '</td></tr>';
+          lastDate = d.delay_date;
+        }
+
         var hoursStr = (d.delay_minutes / 60).toFixed(1) + ' ساعة (' + d.delay_minutes + ' دقيقة)';
         html += '<tr>';
         html += '<td><div style="font-weight:bold;color:var(--text-primary)">' + (d.employee_name || 'غير معروف') + '</div></td>';
         html += '<td>' + (d.department || '-') + '</td>';
         html += '<td>' + formatDate(d.delay_date) + '</td>';
         html += '<td style="color:var(--accent-warning);font-weight:600">' + hoursStr + '</td>';
-        html += '<td style="font-weight:bold;color:var(--accent-danger)">' + d.deduction_amount + '</td>';
-        html += '<td><span class="badge badge-danger">' + d.deduction_type + '</span></td>';
+        html += '<td style="font-weight:bold;color:' + (d.delay_excused ? 'var(--text-muted)' : 'var(--accent-danger)') + '">' + (d.delay_excused ? '<s>' + d.deduction_type + '</s>' : d.deduction_type) + '</td>';
+        html += '<td>' + (d.delay_reason || '<span style="color:var(--text-muted)">لم يسجل</span>') + '</td>';
+        
+        var statusBadge = d.delay_excused ? '<span class="badge badge-success">تم الإعفاء</span>' : '<span class="badge badge-warning">خصم ساري</span>';
+        html += '<td>' + statusBadge + '</td>';
+        html += '<td><button class="btn btn-xs btn-outline" onclick="window.editDelayStatus(\'' + d.id + '\')">' + icon('edit', 12) + ' تعديل</button></td>';
         html += '</tr>';
       });
     }
@@ -3329,17 +3341,41 @@ Pages.allDelays = function (el) {
         else { deductionLabel = 'بدون خصم'; deductionFraction = 0; }
 
         return {
+          id: d.id,
           employee_name: d.employee_name || 'غير معروف',
           department: d.department || '-',
           delay_date: d.date,
           delay_minutes: d.delay_minutes,
           deduction_type: deductionLabel,
-          deduction_amount: deductionFraction ? 'يُحسب في المرتب' : '-'
+          delay_reason: d.delay_reason,
+          delay_excused: d.delay_excused
         };
       });
       render();
     }
   });
+
+  window.editDelayStatus = function(attId) {
+    var rec = delays.find(function(d) { return d.id === attId; });
+    if (!rec) return;
+
+    var body = '<div class="form-group"><label>سبب التأخير</label><input type="text" id="delay-reason" class="form-input" value="' + (rec.delay_reason || '') + '"></div>';
+    body += '<div class="form-group"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="delay-excuse" ' + (rec.delay_excused ? 'checked' : '') + '> إعفاء الموظف من الخصم (Excused)</label></div>';
+
+    App.showModal('تعديل حالة التأخير', body, {
+      label: 'حفظ التعديلات',
+      onClick: function() {
+        var r = document.getElementById('delay-reason').value;
+        var e = document.getElementById('delay-excuse').checked;
+        sbClient.from('attendance').update({ delay_reason: r, delay_excused: e }).eq('id', attId).then(function(res) {
+          if (!res.error) {
+            App.closeModal();
+            Pages.allDelays(document.getElementById('page-content')); // reload
+          }
+        });
+      }
+    });
+  };
 };
 
 // ----- MISSIONS (Employee View) -----
