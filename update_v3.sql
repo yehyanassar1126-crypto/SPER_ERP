@@ -1,5 +1,5 @@
--- Update employees table
-ALTER TABLE public.employees
+-- Update users table
+ALTER TABLE public.users
 ADD COLUMN IF NOT EXISTS insurance_salary NUMERIC(10, 2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS employee_type VARCHAR(255) DEFAULT 'General',
 ADD COLUMN IF NOT EXISTS hire_date DATE;
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.maintenance_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     equipment_name VARCHAR(255) NOT NULL,
     issue_description TEXT NOT NULL,
-    reported_by UUID REFERENCES public.employees(id),
+    reported_by UUID REFERENCES public.users(id),
     status VARCHAR(50) DEFAULT 'pending', -- pending, in_progress, resolved
     priority VARCHAR(50) DEFAULT 'medium',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS public.fleet_vehicles (
 CREATE TABLE IF NOT EXISTS public.fleet_trips (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     vehicle_id UUID REFERENCES public.fleet_vehicles(id),
-    driver_id UUID REFERENCES public.employees(id),
+    driver_id UUID REFERENCES public.users(id),
     destination VARCHAR(255) NOT NULL,
     trip_date DATE,
     status VARCHAR(50) DEFAULT 'scheduled', -- scheduled, in_progress, completed
