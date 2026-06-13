@@ -170,7 +170,7 @@ var App = {
   // ========== RENDERING ==========
   renderLogin: function () {
     document.getElementById('app').innerHTML = '<div class="login-wrapper"><div class="login-bg"></div><div class="login-card">' +
-      '<div class="login-logo"><div class="login-logo-icon">' + icon('factory', 30) + '</div><h1>Ninja Factory</h1><p>HR & Workforce Management System</p></div>' +
+      '<div class="login-logo"><img src="logo.png" alt="Logo" style="width:80px;height:80px;border-radius:50%;object-fit:cover;box-shadow:0 8px 16px rgba(0,0,0,0.4);border:2px solid rgba(99,102,241,0.5);margin-bottom:12px"><h1>Ninja Factory</h1><p>HR & Workforce Management System</p></div>' +
       '<form class="login-form" id="login-form">' +
       '<div id="login-error" class="login-error" style="display:none"></div>' +
       '<div class="form-group"><label class="form-label">Username</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="Enter your username" id="login-username" autofocus>' +
@@ -878,7 +878,11 @@ Pages.empDashboard = function (el) {
     // ===== DAILY SALARY TRACKER CALCULATION =====
     var baseSalary = user.base_salary || 0;
     var dailyRate = Math.round(baseSalary / 30);
-    var daysWorked = monthAttendance.length;
+    
+    var todayDate = new Date();
+    var dayOfMonth = todayDate.getDate();
+    var monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    var currentMonthName = monthNames[todayDate.getMonth()];
 
     // Build a map of attendance with late deduction per day
     var attDatesMap = {};
@@ -898,6 +902,15 @@ Pages.empDashboard = function (el) {
       attDatesMap[att.date] = { record: att, lateDed: lateDed, dayNet: dayNet };
     });
 
+    var fridaysPassed = 0;
+    for (var fDay = 1; fDay <= dayOfMonth; fDay++) {
+      if (new Date(todayDate.getFullYear(), todayDate.getMonth(), fDay).getDay() === 5) {
+         fridaysPassed++;
+      }
+    }
+    earnedSoFar += (fridaysPassed * dailyRate);
+    var daysWorked = monthAttendance.length + fridaysPassed;
+
     // Calculate bonuses and penalties from salary_adjustments
     var totalBonuses = 0;
     var totalPenalties = 0;
@@ -909,10 +922,6 @@ Pages.empDashboard = function (el) {
     // Net can only go negative from penalties (جزاءات)
     var netAccumulated = earnedSoFar + totalBonuses - totalPenalties;
     var salaryProgress = baseSalary > 0 ? Math.round((earnedSoFar / baseSalary) * 100) : 0;
-    var todayDate = new Date();
-    var dayOfMonth = todayDate.getDate();
-    var monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-    var currentMonthName = monthNames[todayDate.getMonth()];
 
     var html = '<div class="profile-header"><div class="profile-avatar" style="background:' + (user.avatar_color || '#6366f1') + '">' + getInitials(user.full_name) + '</div>' +
       '<div class="profile-info"><h2>Welcome back, ' + user.full_name.split(' ')[0] + '! 👋</h2><div class="profile-meta">' +
@@ -980,8 +989,11 @@ Pages.empDashboard = function (el) {
       var earnLabel = '-';
 
       if (isFriday) {
+        dayEarned = dailyRate;
+        cumulative += dayEarned;
         statusBadge = '<span style="background:rgba(99,102,241,0.1);color:#6366f1;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">إجازة رسمية</span>';
         rowBg = 'background:rgba(99,102,241,0.03);';
+        earnLabel = '<span style="color:#6366f1">+' + dayEarned.toLocaleString() + '</span>';
       } else if (attInfo) {
         dayEarned = attInfo.dayNet;
         cumulative += dayEarned;
