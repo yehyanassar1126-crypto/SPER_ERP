@@ -28,6 +28,7 @@ function calculateInsuranceDuration(startDate) {
   var start = new Date(startDate);
   var now = new Date();
   var totalDays = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+  if (totalDays < 0) totalDays = 0; // Prevent negative durations for future dates
   var years = Math.floor(totalDays / 365);
   var months = Math.floor((totalDays % 365) / 30);
   var days = totalDays % 30;
