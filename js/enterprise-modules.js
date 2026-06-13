@@ -1365,15 +1365,33 @@ Pages.pettyCash = function(el) {
 
   function loadData() {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Treasury Data...</div>';
-    sbClient.from('finance_treasury_tx').select('*, users!finance_treasury_tx_employee_id_fkey(full_name)').order('created_at', {ascending: false}).then(function(res) {
+    sbClient.from('finance_treasury_tx').select('*').order('created_at', {ascending: false}).then(function(res) {
       if (res.error && res.error.message.includes('relation "finance_treasury_tx" does not exist')) {
         renderSetup();
         return;
       }
-      if (res.error) return alert(res.error.message);
+      if (res.error) {
+        if(res.error.message.includes('relationship')) {
+          // Fallback if join was used in cache
+          return alert('Schema Error: ' + res.error.message);
+        }
+        return alert(res.error.message);
+      }
+      
       txs = res.data || [];
-      calculateTotals();
-      render();
+      
+      // Fetch users manually to avoid foreign key issues across schemas
+      sbClient.from('users').select('id, full_name').then(function(uRes) {
+        var userMap = {};
+        if (uRes.data) {
+          uRes.data.forEach(function(u) { userMap[u.id] = u.full_name; });
+        }
+        txs.forEach(function(t) {
+          t.employee_name = userMap[t.employee_id] || 'Unknown';
+        });
+        calculateTotals();
+        render();
+      });
     });
   }
 
@@ -1434,7 +1452,7 @@ Pages.pettyCash = function(el) {
     html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف</th><th>المبلغ</th><th>طريقة الصرف</th><th>البيان</th></tr></thead><tbody>';
     var pcTxs = txs.filter(function(t) { return t.type === 'petty_cash'; });
     pcTxs.forEach(function(t) {
-      var empName = t.users ? t.users.full_name : 'Unknown';
+      var empName = t.employee_name || 'Unknown';
       html += '<tr><td>' + formatDate(t.created_at) + '</td><td>' + empName + '</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td><td>' + (t.method==='safe'?'كاش':t.method) + '</td><td>' + (t.notes||'-') + '</td></tr>';
     });
     html += '</tbody></table></div></div>';
