@@ -34,10 +34,14 @@ Pages.maintenance = function(el) {
 
     var html = '<div class="toolbar" style="display:flex;justify-content:space-between;margin-bottom:24px">';
     html += '<h3>Maintenance & Facilities (إدارة الصيانة والمرافق)</h3>';
+    html += '<div style="display:flex;gap:8px">';
+    if (canEdit) {
+      html += '<button class="btn btn-outline" onclick="requestMaintPartsModal()">' + icon('package') + ' طلب قطع غيار وعدة</button>';
+    }
     if (isProduction || isOwner) {
       html += '<button class="btn btn-primary" onclick="newMaintenanceRequest()">' + icon('tool') + ' Request Maintenance (طلب صيانة)</button>';
     }
-    html += '</div>';
+    html += '</div></div>';
 
     html += '<div class="stats-grid" style="margin-bottom:24px">';
     html += _statCard('#ef4444','alertTriangle',pendingReqs.length,'Pending Requests (أعطال مسجلة)');
@@ -178,6 +182,43 @@ Pages.maintenance = function(el) {
     sbClient.from('maintenance_schedules').update({status: 'completed'}).eq('id', id).then(function(r) {
       if(r.error) return alert(r.error.message);
       loadData();
+    });
+  };
+
+  window.requestMaintPartsModal = function() {
+    var b = '<div class="form-field"><label>Item Name (اسم الصنف) *</label><input type="text" id="mpr-item" class="form-input" placeholder="e.g. مفتاح 10, رولمان بلي"></div>';
+    b += '<div class="form-field"><label>Quantity (الكمية) *</label><input type="number" id="mpr-qty" class="form-input" value="1" min="1"></div>';
+    b += '<div class="form-field"><label>Type (النوع) *</label><select id="mpr-type" class="form-input">';
+    b += '<option value="spare_part">Spare Part (قطعة غيار - تستهلك)</option>';
+    b += '<option value="tool">Tool (عُهدة / عدة - تسترجع)</option>';
+    b += '</select></div>';
+    var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-mpr">Send Request</button>';
+    App.showModal('Request Parts/Tools from Inventory', b, f);
+
+    document.getElementById('save-mpr').addEventListener('click', function() {
+      var item = document.getElementById('mpr-item').value.trim();
+      var qty = parseInt(document.getElementById('mpr-qty').value, 10);
+      var type = document.getElementById('mpr-type').value;
+      if (!item || !qty || qty <= 0) return alert('Please enter valid item and quantity');
+
+      var reqBy = 'Maintenance (' + (type === 'tool' ? 'Tool' : 'Spare Part') + ')';
+      
+      var btn = this;
+      btn.innerHTML = 'Sending...'; btn.disabled = true;
+
+      sbClient.from('material_requests').insert({
+        item_name: item,
+        quantity_needed: qty,
+        requested_by: reqBy,
+        status: 'pending'
+      }).then(function(r) {
+        if (r.error) {
+          btn.innerHTML = 'Send Request'; btn.disabled = false;
+          return alert(r.error.message);
+        }
+        App.closeModal();
+        showToast('Request sent to Inventory successfully!', 'success');
+      });
     });
   };
 

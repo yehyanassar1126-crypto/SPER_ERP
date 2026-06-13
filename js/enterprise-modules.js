@@ -491,7 +491,7 @@ Pages.inventory = function(el) {
     var rawItems = items.filter(function(i){return !i.warehouse_type || i.warehouse_type==='raw'});
     var finishedItems = items.filter(function(i){return i.warehouse_type==='finished'});
     var generalItems = items.filter(function(i){return i.warehouse_type==='general'});
-    var pendingMR = matReqs.filter(function(m){return m.status==='pending'||m.status==='approved'});
+    var pendingMR = matReqs.filter(function(m){return m.status==='pending'||m.status==='approved'||m.status==='tool_out'});
 
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<div style="display:flex; gap:8px;">';
@@ -617,7 +617,7 @@ Pages.inventory = function(el) {
 
     // Material Requests View
     html += '<div id="view-mr" style="display:none">';
-    html += '<div class="card"><div class="card-header"><div><h3>⚠️ Material Requests from Production (طلبات صرف من الإنتاج)</h3><p>' + pendingMR.length + ' pending</p></div></div><div class="card-body no-pad">';
+    html += '<div class="card"><div class="card-header"><div><h3>⚠️ Material Requests (طلبات الصرف)</h3><p>' + pendingMR.length + ' pending</p></div></div><div class="card-body no-pad">';
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Material</th><th>Qty Needed</th><th>Issued</th><th>Requested By</th><th>Status</th>';
     if(isWarehouse) html += '<th>Actions</th>';
     html += '</tr></thead><tbody>';
@@ -625,7 +625,12 @@ Pages.inventory = function(el) {
       html += '<tr><td colspan="'+(isWarehouse?7:6)+'" style="text-align:center;padding:40px;color:var(--text-muted)">No material requests</td></tr>';
     } else {
       matReqs.forEach(function(m) {
-        var sBadge = m.status==='issued'?'success':(m.status==='approved'?'info':(m.status==='rejected'?'danger':'warning'));
+        var sBadge = 'warning';
+        if(m.status === 'issued') sBadge = 'success';
+        else if(m.status === 'approved') sBadge = 'info';
+        else if(m.status === 'rejected') sBadge = 'danger';
+        else if(m.status === 'tool_out') sBadge = 'primary';
+        else if(m.status === 'returned') sBadge = 'secondary';
         html += '<tr><td>' + formatDate(m.created_at) + '</td>';
         html += '<td style="font-weight:600">' + m.item_name + '</td>';
         html += '<td style="font-weight:700">' + m.quantity_needed + '</td>';
@@ -635,8 +640,11 @@ Pages.inventory = function(el) {
         if(isWarehouse) {
           html += '<td>';
           if(m.status==='pending') {
-            html += '<button class="btn btn-xs btn-success" onclick="issueMaterial(\''+m.id+'\',\''+m.item_id+'\','+m.quantity_needed+')">✅ Issue (صرف)</button>';
+            var isTool = m.requested_by && m.requested_by.indexOf('Maintenance (Tool)') !== -1;
+            html += '<button class="btn btn-xs btn-success" onclick="issueMaterial(\''+m.id+'\',\''+m.item_id+'\','+m.quantity_needed+', ' + isTool + ')">✅ Issue (صرف)</button>';
             html += ' <button class="btn btn-xs btn-danger" onclick="rejectMaterial(\''+m.id+'\')">❌ Reject</button>';
+          } else if(m.status === 'tool_out') {
+            html += '<button class="btn btn-xs btn-primary" onclick="returnToolMaterial(\''+m.id+'\',\''+m.item_name.replace(/'/g,"\\'")+'\','+m.quantity_needed+')">🔄 Return (تم استرجاعها)</button>';
           } else { html += '<span style="font-size:0.75rem;color:var(--text-muted)">Done</span>'; }
           html += '</td>';
         }
@@ -801,30 +809,54 @@ Pages.inventory = function(el) {
     });
   };
 
-  window.issueMaterial = function(mrId, itemId, qty) {
-    if(!confirm('Issue ' + qty + ' units from Raw Warehouse to Production?')) return;
-    // Deduct from inventory
-    sbClient.from('inventory_items').select('quantity').eq('id', itemId).single().then(function(res) {
-      if(res.error || !res.data) return alert('Item not found');
-      var currentQty = res.data.quantity;
-      if(qty > currentQty) return alert('Not enough stock! Current: ' + currentQty);
-      sbClient.from('inventory_items').update({quantity: currentQty - qty}).eq('id', itemId).then(function(r) {
-        if(r.error) return alert(r.error.message);
-        // Update material request
-        sbClient.from('material_requests').update({status: 'issued', quantity_issued: qty, approved_by: App.user.full_name}).eq('id', mrId).then(function(r2) {
-          if(r2.error) return alert(r2.error.message);
-          // Log transaction
+  window.issueMaterial = function(mrId, itemId, qty, isTool) {
+    var confirmMsg = isTool ? 'Issue ' + qty + ' units as a Tool (عُهدة) to Maintenance?' : 'Issue ' + qty + ' units from Warehouse?';
+    if(!confirm(confirmMsg)) return;
+
+    var doIssue = function() {
+      var nextStatus = isTool ? 'tool_out' : 'issued';
+      sbClient.from('material_requests').update({status: nextStatus, quantity_issued: qty, approved_by: App.user.full_name}).eq('id', mrId).then(function(r2) {
+        if(r2.error) return alert(r2.error.message);
+        
+        if(itemId && itemId !== 'null' && itemId !== 'undefined') {
           var item = items.find(function(i){return i.id===itemId});
           sbClient.from('inventory_transactions').insert([{
             item_id: itemId, item_name: item ? item.name : 'Unknown',
             transaction_type: 'out', quantity: qty,
-            requested_by: 'Production', processed_by: App.user.full_name
+            requested_by: isTool ? 'Maintenance' : 'Production', processed_by: App.user.full_name
           }]).then(function() {
             loadData();
-            showToast('Material issued to Production successfully', 'success');
+            showToast('Issued successfully', 'success');
           });
+        } else {
+          loadData();
+          showToast('Issued successfully', 'success');
+        }
+      });
+    };
+
+    if(itemId && itemId !== 'null' && itemId !== 'undefined') {
+      sbClient.from('inventory_items').select('quantity').eq('id', itemId).single().then(function(res) {
+        if(res.error || !res.data) return alert('Item not found');
+        var currentQty = res.data.quantity;
+        if(qty > currentQty) return alert('Not enough stock! Current: ' + currentQty);
+        sbClient.from('inventory_items').update({quantity: currentQty - qty}).eq('id', itemId).then(function(r) {
+          if(r.error) return alert(r.error.message);
+          doIssue();
         });
       });
+    } else {
+      doIssue();
+    }
+  };
+
+  window.returnToolMaterial = function(mrId, itemName, qty) {
+    if(!confirm('Mark ' + itemName + ' as returned to the warehouse?')) return;
+    
+    sbClient.from('material_requests').update({status: 'returned', approved_by: App.user.full_name}).eq('id', mrId).then(function(r) {
+      if(r.error) return alert(r.error.message);
+      loadData();
+      showToast('Tool marked as returned!', 'success');
     });
   };
 
