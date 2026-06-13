@@ -439,6 +439,12 @@ var App = {
       if (canViewProduction) {
         menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
       }
+      
+      var canViewEngineering = App.isOwner() || (App.user && (App.user.department === 'Engineering' || App.user.role === 'engineering manager' || App.user.role === 'engineer' || App.user.role === 'technical office'));
+      if (canViewEngineering) {
+        menu.push({ section: 'Engineering (الإدارة الهندسية)', items: [{ id: 'engineering', label: 'Projects & Designs', icon: 'edit3' }] });
+      }
+      
       if (canViewQuality) {
         menu.push({ section: 'Quality (الجودة)', items: [{ id: 'erp-quality', label: 'QC Inspections (فحص الجودة)', icon: 'checkCircle' }] });
       }
@@ -542,6 +548,7 @@ var App = {
       'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
       'erp-production': { title: 'Production (الإنتاج)', sub: 'Manufacturing & material requests' },
       'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' },
+      'engineering': { title: 'Engineering (الإدارة الهندسية)', sub: 'Technical specs & supervision' },
       'erp-maintenance': { title: 'Maintenance (الصيانة)', sub: 'Equipment repairs & preventative maintenance' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
@@ -639,6 +646,7 @@ var App = {
       case 'erp-planning': Pages.planning(el); break;
       case 'erp-production': Pages.production(el); break;
       case 'erp-quality': Pages.quality(el); break;
+      case 'engineering': Pages.engineering(el); break;
       case 'erp-maintenance': Pages.maintenance(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
