@@ -59,7 +59,7 @@ var App = {
 
   // ========== AUTH ==========
   login: function (username, password) {
-
+    App.activePage = null;
     // Supabase mode
     sbClient.from('users').select('*').eq('username', username).single().then(function (res) {
       if (res.error || !res.data || res.data.password_hash !== password) {
@@ -97,6 +97,7 @@ var App = {
 
   logout: function () {
     App.user = null;
+    App.activePage = null;
     localStorage.removeItem('hr_portal_user');
     App.notifications = [];
     App.renderLogin();
