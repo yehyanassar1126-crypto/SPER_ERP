@@ -69,9 +69,11 @@ window.ERPSuppliers = {
     html += '<div class="form-group"><label class="form-label">اسم جهة الاتصال</label><input type="text" id="sup-contact" class="form-input"></div>';
     html += '</div>';
 
-    App.showModal('إضافة مورد جديد', html, {
-      label: 'حفظ وإضافة',
-      onClick: function() {
+    var footerHtml = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="save-new-supplier">حفظ وإضافة</button>';
+
+    App.showModal('إضافة مورد جديد', html, footerHtml);
+
+    document.getElementById('save-new-supplier').addEventListener('click', function() {
         var comp = document.getElementById('sup-company').value.trim();
         var email = document.getElementById('sup-email').value.trim();
         var pass = document.getElementById('sup-password').value.trim();
@@ -80,7 +82,7 @@ window.ERPSuppliers = {
 
         if (!comp || !email || !pass) return alert('يرجى ملء البيانات المطلوبة: اسم الشركة، الإيميل، وكلمة المرور');
 
-        var btn = document.querySelector('.modal-footer .btn-primary');
+        var btn = this;
         var oldTxt = btn.innerHTML;
         btn.innerHTML = 'جاري الحفظ...'; btn.disabled = true;
 
@@ -96,7 +98,6 @@ window.ERPSuppliers = {
             ERPSuppliers.loadSuppliers();
           }
         });
-      }
     });
   },
 
