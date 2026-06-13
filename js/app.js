@@ -62,8 +62,28 @@ var App = {
 
     // Supabase mode
     sbClient.from('users').select('*').eq('username', username).single().then(function (res) {
-      if (res.error || !res.data) { App.showLoginError('Invalid credentials'); return; }
-      if (res.data.password_hash !== password) { App.showLoginError('Invalid credentials'); return; }
+      if (res.error || !res.data || res.data.password_hash !== password) {
+        // Try Supplier Login
+        sbClient.from('suppliers').select('*').eq('email', username).single().then(function (sRes) {
+          if (sRes.error || !sRes.data || sRes.data.password_hash !== password) {
+            App.showLoginError('Invalid credentials');
+            return;
+          }
+          // Supplier Login Success
+          App.user = {
+            id: sRes.data.id,
+            supplier_id: sRes.data.id,
+            username: sRes.data.email,
+            full_name: sRes.data.company_name,
+            role: 'supplier_external',
+            department: 'External Supplier'
+          };
+          localStorage.setItem('hr_portal_user', JSON.stringify(App.user));
+          App.renderApp();
+        });
+        return;
+      }
+      
       var userData = Object.assign({}, res.data);
       delete userData.password_hash;
       App.user = userData;
@@ -222,185 +242,194 @@ var App = {
 
   // ========== SIDEBAR ==========
   renderSidebar: function () {
-    var isHR = App.isHR();
-    var isManager = App.isManager();
-    var menu;
-    if (isHR) {
+    var menu = [];
+    if (App.user.role === 'supplier_external') {
       menu = [
-        {
-          section: 'Overview', items: [
-            { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' },
-            ...(App.user && App.user.role === 'owner' ? [] : [{ id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }])
-          ]
-        },
-        {
-          section: 'Management', items: [
-            { id: 'employees', label: 'Employees', icon: 'users' },
-            { id: 'attendance', label: 'Attendance', icon: 'calendarCheck' },
-            { id: 'all-delays', label: 'Delays Log', icon: 'alertTriangle' },
-            { id: 'all-missions', label: 'Missions', icon: 'briefcase' },
-            { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
-            { id: 'shifts', label: 'Shift Management', icon: 'clock' },
-            { id: 'overtime', label: 'Overtime', icon: 'timer' },
-            ...(App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }] : []),
-            { id: 'hr-adjustments', label: 'Salary Adjustments', icon: 'fileText' },
-            { id: 'recruitment', label: 'Recruitment', icon: 'userCheck' },
-            { id: 'documents', label: 'Documents', icon: 'fileText' },
-            { id: 'performance', label: 'Performance', icon: 'trendingUp' },
-            { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
-            { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
-            { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
-            { id: 'expenses', label: 'Expenses', icon: 'receipt' },
-            { id: 'complaints', label: 'Disciplinary & Grievances', icon: 'gavel' },
-            { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
-          ]
-        },
-        { section: 'Communication', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
-        {
-          section: 'Workplace', items: [
-            { id: 'org-directory', label: 'Company Directory', icon: 'users' },
-            { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' },
-            ...(App.user && App.user.role === 'hr' ? [{ id: 'my-salary', label: 'My Salary', icon: 'dollarSign' }] : [])
-          ]
-        },
-        {
-          section: 'Analytics', items: [
-            { id: 'reports', label: 'Reports', icon: 'barChart' },
-            { id: 'audit-log', label: 'Audit Log', icon: 'fileText' },
-            { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
-          ]
-        },
-      ];
-    } else if (isManager) {
-      menu = [
-        {
-          section: 'Overview', items: [
-            { id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' },
-            { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
-          ]
-        },
-        {
-          section: 'Team Management', items: [
-            { id: 'employees', label: 'Employees', icon: 'users' },
-            { id: 'team-adjustments', label: 'Team Adjustments', icon: 'fileText' },
-          ]
-        },
-        {
-          section: 'My Info', items: [
-            { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
-            { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' },
-            { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
-            { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
-            { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
-            { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
-            { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
-            { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
-            { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
-            { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
-            { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
-          ]
-        },
-        {
-          section: 'Other', items: [
-            { id: 'announcements', label: 'Announcements', icon: 'megaphone' },
-            { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
-          ]
-        },
-        {
-          section: 'Workplace', items: [
-            { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
-          ]
-        },
+        { section: 'بوابة الموردين', items: [
+          { id: 'supplier-portal', label: 'لوحة تحكم المورد', icon: 'truck' }
+        ]}
       ];
     } else {
-      menu = [
-        { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
-        {
-          section: 'My Info', items: [
-            { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
-            { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' },
-            { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
-            { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
-            { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
-            { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
-            { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
-            { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
-            { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
-            { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
-            { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
-          ]
-        },
-        { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
-        {
-          section: 'Workplace', items: [
-            { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
-          ]
-        },
-      ];
-    }
-
-    if (App.isOwner()) {
-      menu.unshift({
-        section: 'ERP Control', items: [
-          { id: 'owner-dashboard', label: 'Owner Dashboard (لوحة المالك)', icon: 'globe' }
-        ]
-      });
-    }
-
-    var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager'));
-    var canViewProcurement = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
-
-    if (canViewInventory || canViewProcurement) {
-      var opItems = [];
-      if (canViewInventory) opItems.push({ id: 'inventory', label: 'Inventory (المخازن)', icon: 'package' });
-      if (canViewProcurement) opItems.push({ id: 'purchase-requests', label: 'Purchase Requests (طلبات الشراء)', icon: 'shoppingCart' });
-      
-      menu.push({
-        section: 'Operations & Logistics', items: opItems
-      });
-    }
-
-    var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance') || (App.user && App.user.role === 'hr manager');
-    if (canViewFinance || canViewProcurement) {
-      var finItems = [];
-      finItems.push({ id: 'petty-cash', label: 'Petty Cash (العهد والتسويات)', icon: 'dollarSign' });
-      if (canViewFinance) {
-        finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
-        finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
+      var isHR = App.isHR();
+      var isManager = App.isManager();
+      if (isHR) {
+        menu = [
+          {
+            section: 'Overview', items: [
+              { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' },
+              ...(App.user && App.user.role === 'owner' ? [] : [{ id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }])
+            ]
+          },
+          {
+            section: 'Management', items: [
+              { id: 'employees', label: 'Employees', icon: 'users' },
+              { id: 'attendance', label: 'Attendance', icon: 'calendarCheck' },
+              { id: 'all-delays', label: 'Delays Log', icon: 'alertTriangle' },
+              { id: 'all-missions', label: 'Missions', icon: 'briefcase' },
+              { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
+              { id: 'shifts', label: 'Shift Management', icon: 'clock' },
+              { id: 'overtime', label: 'Overtime', icon: 'timer' },
+              ...(App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }] : []),
+              { id: 'hr-adjustments', label: 'Salary Adjustments', icon: 'fileText' },
+              { id: 'recruitment', label: 'Recruitment', icon: 'userCheck' },
+              { id: 'documents', label: 'Documents', icon: 'fileText' },
+              { id: 'performance', label: 'Performance', icon: 'trendingUp' },
+              { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
+              { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
+              { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
+              { id: 'expenses', label: 'Expenses', icon: 'receipt' },
+              { id: 'complaints', label: 'Disciplinary & Grievances', icon: 'gavel' },
+              { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
+            ]
+          },
+          { section: 'Communication', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
+          {
+            section: 'Workplace', items: [
+              { id: 'org-directory', label: 'Company Directory', icon: 'users' },
+              { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' },
+              ...(App.user && App.user.role === 'hr' ? [{ id: 'my-salary', label: 'My Salary', icon: 'dollarSign' }] : [])
+            ]
+          },
+          {
+            section: 'Analytics', items: [
+              { id: 'reports', label: 'Reports', icon: 'barChart' },
+              { id: 'audit-log', label: 'Audit Log', icon: 'fileText' },
+              { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
+            ]
+          },
+        ];
+      } else if (isManager) {
+        menu = [
+          {
+            section: 'Overview', items: [
+              { id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' },
+              { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
+            ]
+          },
+          {
+            section: 'Team Management', items: [
+              { id: 'employees', label: 'Employees', icon: 'users' },
+              { id: 'team-adjustments', label: 'Team Adjustments', icon: 'fileText' },
+            ]
+          },
+          {
+            section: 'My Info', items: [
+              { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
+              { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' },
+              { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
+              { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
+              { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
+              { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
+              { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
+              { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
+              { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
+              { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
+              { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
+            ]
+          },
+          {
+            section: 'Other', items: [
+              { id: 'announcements', label: 'Announcements', icon: 'megaphone' },
+              { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
+            ]
+          },
+          {
+            section: 'Workplace', items: [
+              { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
+            ]
+          },
+        ];
+      } else {
+        menu = [
+          { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
+          {
+            section: 'My Info', items: [
+              { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
+              { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' },
+              { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
+              { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
+              { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
+              { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
+              { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
+              { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
+              { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
+              { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
+              { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
+            ]
+          },
+          { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
+          {
+            section: 'Workplace', items: [
+              { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
+            ]
+          },
+        ];
       }
 
-      // Avoid duplicate "Petty Cash" section if both Finance and Procurement
-      menu.push({
-        section: 'Finance & Accounting', items: finItems
-      });
-    }
+      if (App.isOwner()) {
+        menu.unshift({
+          section: 'ERP Control', items: [
+            { id: 'owner-dashboard', label: 'Owner Dashboard (لوحة المالك)', icon: 'globe' }
+          ]
+        });
+      }
 
-    var canViewIT = App.isManager() || App.isHR() || App.isOwner() || (App.user && App.user.department === 'IT');
-    if (canViewIT) {
-      menu.push({
-        section: 'IT & Support', items: [
-          { id: 'it-tickets', label: 'IT Support (الدعم الفني)', icon: 'cpu' }
-        ]
-      });
-    }
+      var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager'));
+      var canViewProcurement = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
 
-    // ERP Departments
-    var canViewSales = App.isOwner() || (App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager'));
-    var canViewPlanning = App.isOwner() || (App.user && (App.user.department === 'Planning' || App.user.role === 'planning manager'));
-    var canViewProduction = App.isOwner() || (App.user && (App.user.department === 'Production' || App.user.role === 'hall manager'));
-    var canViewQuality = App.isOwner() || (App.user && (App.user.department === 'Quality' || App.user.role === 'qc inspector' || App.user.role === 'quality manager'));
+      if (canViewInventory || canViewProcurement) {
+        var opItems = [];
+        if (canViewInventory) opItems.push({ id: 'inventory', label: 'Inventory (المخازن)', icon: 'package' });
+        if (canViewProcurement) opItems.push({ id: 'purchase-requests', label: 'Purchase Requests (طلبات الشراء)', icon: 'shoppingCart' });
+        
+        menu.push({
+          section: 'Operations & Logistics', items: opItems
+        });
+      }
 
-    if (canViewSales) {
-      menu.push({ section: 'Sales (المبيعات)', items: [{ id: 'erp-sales', label: 'Sales Orders (أوامر البيع)', icon: 'shoppingBag' }] });
-    }
-    if (canViewPlanning) {
-      menu.push({ section: 'Planning (التخطيط)', items: [{ id: 'erp-planning', label: 'Production Planning (تخطيط الإنتاج)', icon: 'calendar' }] });
-    }
-    if (canViewProduction) {
-      menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
-    }
-    if (canViewQuality) {
-      menu.push({ section: 'Quality (الجودة)', items: [{ id: 'erp-quality', label: 'QC Inspections (فحص الجودة)', icon: 'checkCircle' }] });
+      var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance') || (App.user && App.user.role === 'hr manager');
+      if (canViewFinance || canViewProcurement) {
+        var finItems = [];
+        finItems.push({ id: 'petty-cash', label: 'Petty Cash (العهد والتسويات)', icon: 'dollarSign' });
+        if (canViewFinance) {
+          finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
+          finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
+        }
+
+        // Avoid duplicate "Petty Cash" section if both Finance and Procurement
+        menu.push({
+          section: 'Finance & Accounting', items: finItems
+        });
+      }
+
+      var canViewIT = App.isManager() || App.isHR() || App.isOwner() || (App.user && App.user.department === 'IT');
+      if (canViewIT) {
+        menu.push({
+          section: 'IT & Support', items: [
+            { id: 'it-tickets', label: 'IT Support (الدعم الفني)', icon: 'cpu' }
+          ]
+        });
+      }
+
+      // ERP Departments
+      var canViewSales = App.isOwner() || (App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager'));
+      var canViewPlanning = App.isOwner() || (App.user && (App.user.department === 'Planning' || App.user.role === 'planning manager'));
+      var canViewProduction = App.isOwner() || (App.user && (App.user.department === 'Production' || App.user.role === 'hall manager'));
+      var canViewQuality = App.isOwner() || (App.user && (App.user.department === 'Quality' || App.user.role === 'qc inspector' || App.user.role === 'quality manager'));
+
+      if (canViewSales) {
+        menu.push({ section: 'Sales (المبيعات)', items: [{ id: 'erp-sales', label: 'Sales Orders (أوامر البيع)', icon: 'shoppingBag' }] });
+      }
+      menu.push({ section: 'Supply Chain (الإمداد)', items: [
+        { id: 'erp-planning', label: 'Production Planning (تخطيط)', icon: 'calendarCheck' },
+        { id: 'erp-suppliers', label: 'Suppliers (الموردين)', icon: 'users' }
+      ]});
+      if (canViewProduction) {
+        menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
+      }
+      if (canViewQuality) {
+        menu.push({ section: 'Quality (الجودة)', items: [{ id: 'erp-quality', label: 'QC Inspections (فحص الجودة)', icon: 'checkCircle' }] });
+      }
     }
 
     var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>HR & ERP</p></div></div>';
@@ -472,7 +501,9 @@ var App = {
       'erp-sales': { title: 'Sales (المبيعات)', sub: 'Sales orders & client management' },
       'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
       'erp-production': { title: 'Production (الإنتاج)', sub: 'Manufacturing & material requests' },
-      'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' }
+      'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' },
+      'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
+      'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -517,6 +548,12 @@ var App = {
   // ========== PAGE ROUTER ==========
   renderPage: function () {
     var el = document.getElementById('page-content');
+    if (App.user && App.user.role === 'supplier_external') {
+      App.activePage = App.activePage || 'supplier-portal';
+    } else {
+      App.activePage = App.activePage || 'dashboard';
+    }
+
     switch (App.activePage) {
       case 'dashboard': App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el); break;
       case 'employees': (App.isHR() || App.isManager()) ? Pages.employees(el) : Pages.empDashboard(el); break;
@@ -556,9 +593,11 @@ var App = {
       case 'payroll-funding': Pages.payrollFunding(el); break;
       case 'it-tickets': Pages.itTickets(el); break;
       case 'erp-sales': Pages.sales(el); break;
-      case 'erp-planning': Pages.planning(el); break;
-      case 'erp-production': Pages.production(el); break;
-      case 'erp-quality': Pages.quality(el); break;
+      case 'erp-planning': ERPPlanning.render(); break;
+      case 'erp-production': ERPProduction.render(); break;
+      case 'erp-quality': ERPQuality.render(); break;
+      case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
+      case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
     }
   },
