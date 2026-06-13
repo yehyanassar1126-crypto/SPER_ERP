@@ -1402,7 +1402,7 @@ Pages.pettyCash = function(el) {
     var html = '<div style="padding:40px; text-align:center;"><h2>⚠️ جدول الخزنة غير موجود</h2>';
     html += '<p>أرجو نسخ هذا الكود وتشغيله في SQL Editor في Supabase لتفعيل الخزنة والعهد:</p>';
     html += '<textarea style="width:100%; height:250px; text-align:left; direction:ltr;" readonly>' + sql + '</textarea>';
-    html += '<button class="btn btn-primary" onclick="window.Pages.pettyCash(document.getElementById(\\'page-content\\'))" style="margin-top:20px">تحديث الصفحة بعد الإضافة</button></div>';
+    html += '<button class="btn btn-primary" onclick="window.Pages.pettyCash(document.getElementById(\'page-content\'))" style="margin-top:20px">تحديث الصفحة بعد الإضافة</button></div>';
     el.innerHTML = html;
   }
 
@@ -1448,7 +1448,7 @@ Pages.pettyCash = function(el) {
       html += '<td><span class="badge badge-'+(t.status==='completed'?'success':'warning')+'">' + (t.status==='completed'?'تم التحصيل':'تحت التحصيل') + '</span></td>';
       html += '<td>';
       if(t.status !== 'completed') {
-        html += '<button class="btn btn-sm btn-success" onclick="window.trClearCheck(\\''+t.id+'\\', '+t.amount+')">تأكيد تحصيل الشيك وإضافته للبنك</button>';
+        html += '<button class="btn btn-sm btn-success" onclick="window.trClearCheck(\''+t.id+'\', '+t.amount+')">تأكيد تحصيل الشيك وإضافته للبنك</button>';
       } else {
         html += '-';
       }
