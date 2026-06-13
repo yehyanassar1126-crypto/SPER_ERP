@@ -97,7 +97,7 @@ window.ERPSuppliers = {
         }).then(function(res) {
           btn.innerHTML = oldTxt; btn.disabled = false;
           if (res.error) {
-            alert('حدث خطأ. قد يكون الإيميل مسجل مسبقاً.');
+            alert('حدث خطأ: ' + res.error.message);
           } else {
             App.closeModal();
             ERPSuppliers.loadSuppliers();
