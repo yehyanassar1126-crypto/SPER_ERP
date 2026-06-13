@@ -295,6 +295,23 @@ window.ERPSuppliers = {
     });
   },
 
+  customerApproveQuantity: function(id) {
+    if(!confirm('هل أنت متأكد من الموافقة على الكمية المتاحة؟ سيتم إرسال الموافقة للمصنع لبدء الإنتاج.')) return;
+    sbClient.from('sales_workflow_orders').update({ status: 'Customer Approved' }).eq('id', id).then(function(res) {
+      if (res.error) return alert("حدث خطأ: " + res.error.message);
+      Pages['supplier-portal'](document.getElementById('page-content'));
+    });
+  },
+
+  customerRejectQuantity: function(id) {
+    var reason = prompt('يرجى كتابة سبب الرفض (اختياري):');
+    if(reason === null) return;
+    sbClient.from('sales_workflow_orders').update({ status: 'Rejected By Customer', rejection_reason: reason }).eq('id', id).then(function(res) {
+      if (res.error) return alert("حدث خطأ: " + res.error.message);
+      Pages['supplier-portal'](document.getElementById('page-content'));
+    });
+  },
+
   customerSendRequest: function() {
     var customerName = App.user.full_name;
 
@@ -401,9 +418,12 @@ Pages['supplier-portal'] = function(el) {
         if (isSupplier) {
           var acts = '';
           if (o.status === 'Out For Delivery') {
-            acts = '<button class="btn btn-sm btn-success" onclick="ERPSuppliers.acceptDelivery(\''+o.id+'\')">تأكيد الاستلام ✅</button>';
+            acts += '<button class="btn btn-sm btn-success" onclick="ERPSuppliers.acceptDelivery(\''+o.id+'\')">تأكيد الاستلام ✅</button>';
+          } else if (o.status === 'Waiting Customer Approval') {
+            acts += '<button class="btn btn-sm btn-success" onclick="ERPSuppliers.customerApproveQuantity(\''+o.id+'\')" style="margin-bottom:4px">موافق على الكمية</button><br>';
+            acts += '<button class="btn btn-sm btn-danger" onclick="ERPSuppliers.customerRejectQuantity(\''+o.id+'\')">رفض الطلب</button>';
           } else {
-            acts = '-';
+            acts += '-';
           }
           oHtml += '<td>' + acts + '</td>';
         }
