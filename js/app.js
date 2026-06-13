@@ -170,7 +170,7 @@ var App = {
   // ========== RENDERING ==========
   renderLogin: function () {
     document.getElementById('app').innerHTML = '<div class="login-wrapper"><div class="login-bg"></div><div class="login-card">' +
-      '<div class="login-logo"><div class="login-logo-icon">' + icon('factory', 30) + '</div><h1>Smart Factory</h1><p>HR & Workforce Management System</p></div>' +
+      '<div class="login-logo"><div class="login-logo-icon">' + icon('factory', 30) + '</div><h1>Ninja Factory</h1><p>HR & Workforce Management System</p></div>' +
       '<form class="login-form" id="login-form">' +
       '<div id="login-error" class="login-error" style="display:none"></div>' +
       '<div class="form-group"><label class="form-label">Username</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="Enter your username" id="login-username" autofocus>' +
@@ -403,7 +403,7 @@ var App = {
       menu.push({ section: 'Quality (الجودة)', items: [{ id: 'erp-quality', label: 'QC Inspections (فحص الجودة)', icon: 'checkCircle' }] });
     }
 
-    var html = '<div class="sidebar-header"><div class="sidebar-logo">' + icon('factory', 20) + '</div><div class="sidebar-brand"><h2>Smart Factory</h2><p>HR Management</p></div></div>';
+    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:40px;height:40px;border-radius:8px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;padding:2px;"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 24);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>HR & ERP</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
       html += '<div class="sidebar-section"><div class="sidebar-section-title">' + section.section + '</div>';
@@ -877,7 +877,7 @@ Pages.empDashboard = function (el) {
 
     // ===== DAILY SALARY TRACKER CALCULATION =====
     var baseSalary = user.base_salary || 0;
-    var dailyRate = Math.round(baseSalary / 26);
+    var dailyRate = Math.round(baseSalary / 30);
     var daysWorked = monthAttendance.length;
 
     // Build a map of attendance with late deduction per day
@@ -1722,7 +1722,7 @@ Pages.qrCheckin = function (el) {
             // Auto late deduction notification
             if (delayMin > 15) {
               var baseSalary = user.base_salary || 0;
-              var dailyRate26 = Math.round(baseSalary / 26);
+              var dailyRate30 = Math.round(baseSalary / 30);
               var deductionFraction = 0;
               var deductionLabel = '';
               if (delayMin > 360) { // > 6 hours
@@ -1735,7 +1735,7 @@ Pages.qrCheckin = function (el) {
                 deductionFraction = 0.25;
                 deductionLabel = 'ربع يوم (تأخير أكثر من ربع ساعة)';
               }
-              var deductionAmount = Math.round(dailyRate26 * deductionFraction);
+              var deductionAmount = Math.round(dailyRate30 * deductionFraction);
               // Save late deduction as a permanent salary_adjustments record in the DB
               var currentMonth = new Date().toISOString().substring(0, 7);
               sbClient.from('salary_adjustments').insert([{
@@ -1759,7 +1759,7 @@ Pages.qrCheckin = function (el) {
                 user_id: user.id,
                 type: 'late_deduction',
                 title: '⚠️ تم خصم ' + deductionLabel,
-                message: 'تأخرت ' + formatDelay(delayMin) + ' عن موعد الوردية. تم خصم ' + deductionAmount + ' ج.م (' + deductionLabel + ') من راتبك. (المرتب ÷ 26 يوم = ' + dailyRate26 + ' ج.م/يوم). تم تسجيل الخصم في سجل المرتبات.'
+                message: 'تأخرت ' + formatDelay(delayMin) + ' عن موعد الوردية. تم خصم ' + deductionAmount + ' ج.م (' + deductionLabel + ') من راتبك. (المرتب ÷ 30 يوم = ' + dailyRate30 + ' ج.م/يوم). تم تسجيل الخصم في سجل المرتبات.'
               });
               showToast('⚠️ تأخير ' + formatDelay(delayMin) + ' — تم خصم ' + deductionLabel + ' = ' + deductionAmount + ' ج.م (محفوظ في الداتا بيز)', 'warning');
             } else if (delayMin > 0) {
@@ -1778,7 +1778,7 @@ Pages.qrCheckin = function (el) {
                 var missingMinutes = Math.round((8 - actualHours) * 60);
                 var baseSal = Number(user.base_salary) || 0;
                 if (baseSal > 0 && missingMinutes > 0) {
-                  var minuteRate = (baseSal / 26 / 8 / 60);
+                  var minuteRate = (baseSal / 30 / 8 / 60);
                   var penaltyAmount = (missingMinutes * minuteRate).toFixed(2);
 
                   sbClient.from('salary_adjustments').insert({
@@ -2487,9 +2487,9 @@ Pages.payroll = function (el) {
               var attRecords = results[2].data || [];
               var leaveRecords = results[3].data || [];
 
-              var dailyRate = Math.round(base / 26);
+              var dailyRate = Math.round(base / 30);
 
-              // Calculate overtime pay: (base/26/8) * hours * rate
+              // Calculate overtime pay: (base/30/8) * hours * rate
               var hourlyRate = dailyRate / 8;
               var totalOTPay = 0;
               otRecords.forEach(function (ot) { totalOTPay += hourlyRate * (ot.hours || 0) * (ot.rate || 1.5); });
@@ -2556,12 +2556,12 @@ Pages.payroll = function (el) {
               };
 
               // Build cumulative daily salary breakdown
-              var cumulativeHtml = '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color)"><h4 style="font-weight:700;font-size:0.8rem;margin-bottom:8px">📅 Cumulative Earned Progress (Max 26 Days)</h4>';
+              var cumulativeHtml = '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color)"><h4 style="font-weight:700;font-size:0.8rem;margin-bottom:8px">📅 Cumulative Earned Progress (Max 30 Days)</h4>';
               cumulativeHtml += '<div style="max-height:180px;overflow-y:auto;font-size:0.78rem">';
               var cumDisplay = 0;
-              for (var d = 1; d <= Math.min(attendedDays + approvedLeaveDays, 26); d++) {
+              for (var d = 1; d <= Math.min(attendedDays + approvedLeaveDays, 30); d++) {
                 cumDisplay += dailyRate; // simple estimation for display
-                var barWidth = Math.round((d / 26) * 100);
+                var barWidth = Math.round((d / 30) * 100);
                 cumulativeHtml += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="min-width:55px;color:var(--text-muted)">Day ' + d + '</span><div style="flex:1;background:var(--bg-secondary);border-radius:4px;height:18px;overflow:hidden"><div style="width:' + barWidth + '%;height:100%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:4px"></div></div><span style="min-width:85px;text-align:right;font-weight:600">EGP ' + cumDisplay.toLocaleString() + '</span></div>';
               }
               cumulativeHtml += '</div></div>';
@@ -2569,7 +2569,7 @@ Pages.payroll = function (el) {
               resultDiv.innerHTML = '<h4 style="font-weight:700;margin-bottom:12px;font-size:0.9rem">📊 Salary Breakdown - ' + empName + '</h4>' +
                 '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">' +
                 '<div style="color:var(--text-secondary)">Base Salary:</div><div style="font-weight:600">EGP ' + base.toLocaleString() + '</div>' +
-                '<div style="color:var(--text-secondary)">Salary Division:</div><div style="font-weight:600">÷ 26 days = EGP ' + Math.round(dailyRate).toLocaleString() + '/day</div>' +
+                '<div style="color:var(--text-secondary)">Salary Division:</div><div style="font-weight:600">÷ 30 days = EGP ' + Math.round(dailyRate).toLocaleString() + '/day</div>' +
                 '<div style="color:var(--accent-success)">Attended / Paid Leaves:</div><div style="font-weight:600;color:var(--accent-success)">' + attendedDays + ' days / ' + approvedLeaveDays + ' days</div>' +
                 '<div style="color:var(--accent-primary)">Base Earned (Attendance):</div><div style="font-weight:600;color:var(--accent-primary)">EGP ' + earnedSoFar.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-success)">Overtime (' + otRecords.length + ' records):</div><div style="font-weight:600;color:var(--accent-success)">+EGP ' + totalOTPay.toLocaleString() + '</div>' +
@@ -2672,7 +2672,7 @@ Pages.payroll = function (el) {
         var p = payroll.find(function (x) { return x.id === this.getAttribute('data-view-slip'); }.bind(this));
         if (!p) return;
         var body = '<div style="padding:24px;background:var(--bg-tertiary);border-radius:var(--radius-lg);border:1px solid var(--border-color)">';
-        body += '<div style="text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border-color)"><h2 style="font-size:1.2rem;font-weight:800;margin-bottom:4px">Smart Factory</h2><p style="color:var(--text-tertiary);font-size:0.82rem">Salary Slip - ' + p.month + '</p><p style="color:var(--text-tertiary);font-size:0.82rem">' + p.employee_name + ' — ' + p.department + '</p></div>';
+        body += '<div style="text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border-color)"><h2 style="font-size:1.2rem;font-weight:800;margin-bottom:4px">Ninja Factory</h2><p style="color:var(--text-tertiary);font-size:0.82rem">Salary Slip - ' + p.month + '</p><p style="color:var(--text-tertiary);font-size:0.82rem">' + p.employee_name + ' — ' + p.department + '</p></div>';
         body += '<h4 style="font-size:0.8rem;font-weight:700;color:var(--accent-success);margin-bottom:12px">EARNINGS</h4><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">';
         [['Base Salary', p.base_salary || 0], ['Overtime Pay', p.overtime_pay || 0], ['Bonuses', p.bonuses || 0], ['Performance Bonus', p.performance_bonus || 0]].forEach(function (item) {
           body += '<div style="display:flex;justify-content:space-between;font-size:0.88rem"><span style="color:var(--text-secondary)">' + item[0] + '</span><span style="font-weight:600">EGP ' + (item[1] || 0).toLocaleString() + '</span></div>';
@@ -3092,7 +3092,7 @@ Pages['my-delays'] = function (el) {
 
   var attendanceWithDelay = [];
   var baseSalary = App.user.base_salary || 0;
-  var dailyRate26 = Math.round(baseSalary / 26);
+  var dailyRate30 = Math.round(baseSalary / 30);
 
   function render() {
     var html = '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
@@ -3118,7 +3118,7 @@ Pages['my-delays'] = function (el) {
         else if (delayMin > 15) { deductionFraction = 0.25; deductionLabel = 'خصم ربع يوم'; }
         else { deductionLabel = 'تأخير مسموح (أقل من 15 دقيقة)'; }
 
-        var deductionAmount = Math.round(dailyRate26 * deductionFraction);
+        var deductionAmount = Math.round(dailyRate30 * deductionFraction);
         var hoursStr = (delayMin / 60).toFixed(1) + ' ساعة (' + delayMin + ' دقيقة)';
 
         html += '<tr>';
@@ -3376,8 +3376,8 @@ Pages.missions = function (el) {
                 if (diffMs > 0) {
                   diffHours = diffMs / 3600000;
                   var baseSalary = App.user.base_salary || 0;
-                  var dailyRate26 = baseSalary / 26;
-                  var hourlyRate = dailyRate26 / shift.hours;
+                  var dailyRate30 = baseSalary / 30;
+                  var hourlyRate = dailyRate30 / shift.hours;
                   // Calculate 1.5x for overtime
                   overTimeAmount = Math.round(diffHours * hourlyRate * 1.5);
                 }
