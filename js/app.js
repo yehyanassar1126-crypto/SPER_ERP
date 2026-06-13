@@ -1527,22 +1527,35 @@ Pages.attendance = function (el) {
     html += '<input type="date" class="filter-select" id="att-date" value="' + dateFilter + '"><select class="filter-select" id="att-status"><option value=""' + (statusFilter === '' ? ' selected' : '') + '>All Status</option><option value="present"' + (statusFilter === 'present' ? ' selected' : '') + '>Present</option><option value="checked_in"' + (statusFilter === 'checked_in' ? ' selected' : '') + '>Checked In</option><option value="absent"' + (statusFilter === 'absent' ? ' selected' : '') + '>Absent</option><option value="leave"' + (statusFilter === 'leave' ? ' selected' : '') + '>Leave (اجازة)</option></select>';
     html += '<button class="btn btn-outline" id="att-export">' + icon('download') + ' Export</button></div>';
 
-    var colCount = 7;
-    if (isHR) colCount += 2;
-    if (canEdit) colCount += 1;
+    var colCount = 9; // Date, CheckIn, CheckOut, Shift, WorkingHours, Delay, EarlyLeave, Overtime, Status
+    if (isHR) colCount += 2; // Employee, Dept
+    if (canEdit) colCount += 1; // Actions
 
     html += '<div class="card"><div class="card-header"><div><h3>' + (isHR ? 'Attendance Records (سجل الحضور)' : 'My Attendance History') + '</h3><p>' + data.length + ' records</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
     if (isHR) html += '<th>Employee</th><th>Department</th>';
-    html += '<th>Date</th><th>Check In</th><th>Check Out</th><th>Shift</th><th>Working Hours</th><th>Delay</th><th>Status</th>';
+    html += '<th>Date</th><th>Check In</th><th>Check Out</th><th>Shift</th><th>Working Hours</th><th>Delay</th><th>Early Leave</th><th>Overtime</th><th>Status</th>';
     if (canEdit) html += '<th>Actions (إجراءات)</th>';
     html += '</tr></thead><tbody>';
+    
+    var lastDate = null;
     data.sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).forEach(function (r) {
+      if (lastDate !== r.date) {
+        html += '<tr style="background:var(--bg-secondary);border-top:3px solid var(--accent-primary);border-bottom:1px solid var(--border-color)"><td colspan="' + colCount + '" style="font-weight:800;color:var(--text-primary);padding:10px 16px;font-size:1.05rem;">📅 سجلات يوم: ' + formatDate(r.date) + '</td></tr>';
+        lastDate = r.date;
+      }
+
       html += '<tr>';
       if (isHR) html += '<td style="color:var(--text-primary);font-weight:500">' + r.employee_name + '</td><td>' + r.department + '</td>';
       html += '<td>' + formatDate(r.date) + '</td><td>' + formatTime(r.check_in) + '</td><td>' + formatTime(r.check_out) + '</td>';
       html += '<td><span class="shift-badge shift-' + r.shift + '">' + icon('clock', 11) + ' ' + r.shift + '</span></td>';
       html += '<td>' + (r.working_hours ? r.working_hours + 'h' : '—') + '</td>';
-      html += '<td>' + (r.status === 'leave' ? '—' : (r.delay_minutes > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + icon('alertTriangle') + ' ' + formatDelay(r.delay_minutes) + '</span>' : '<span style="color:var(--accent-success)">On time</span>')) + '</td>';
+      html += '<td>' + (r.status === 'leave' ? '—' : (r.delay_minutes > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + icon('alertTriangle') + ' ' + formatDelay(r.delay_minutes) + '</span>' : '<span style="color:var(--text-muted)">0m</span>')) + '</td>';
+      
+      var earlyL = r.early_departure_minutes || 0;
+      var otH = r.overtime_hours || 0;
+      html += '<td>' + (earlyL > 0 ? '<span style="color:var(--accent-danger);font-weight:600">' + earlyL + 'm</span>' : '<span style="color:var(--text-muted)">0m</span>') + '</td>';
+      html += '<td>' + (otH > 0 ? '<span style="color:var(--accent-info);font-weight:600">+' + otH + 'h</span>' : '<span style="color:var(--text-muted)">0h</span>') + '</td>';
+
       var badge = r.status === 'present' ? 'badge-success' : r.status === 'checked_in' ? 'badge-info' : r.status === 'leave' ? 'badge-warning' : 'badge-danger';
       var statusText = r.status === 'leave' ? 'Leave (اجازة)' : r.status.replace('_', ' ');
       html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + statusText + '</span></td>';
