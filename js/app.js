@@ -1474,6 +1474,7 @@ Pages.employees = function (el) {
               if (!isNaN(num) && num > maxNum) maxNum = num;
             }
           });
+          var nextEmpId = 'EMP-' + (maxNum + 1).toString().padStart(3, '0');
           var hireMonth = new Date(form.hire_date || new Date()).getMonth() + 1;
           var calculatedLeaveBalance = (12 - hireMonth + 1) * 2; // 2 days per remaining month in the year
 
