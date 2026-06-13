@@ -2579,7 +2579,9 @@ Pages.payroll = function (el) {
                 '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.85rem">' +
                 '<div style="color:var(--text-secondary)">Base Salary:</div><div style="font-weight:600">EGP ' + base.toLocaleString() + '</div>' +
                 '<div style="color:var(--text-secondary)">Salary Division:</div><div style="font-weight:600">÷ 30 days = EGP ' + Math.round(dailyRate).toLocaleString() + '/day</div>' +
-                '<div style="color:var(--accent-success)">Attended / Paid Leaves:</div><div style="font-weight:600;color:var(--accent-success)">' + paidDaysDisplay + ' days / ' + approvedLeaveDays + ' days</div>' +
+                '<div style="color:var(--accent-success)">Attended Days:</div><div style="font-weight:600;color:var(--accent-success)">' + attendedDays + ' days</div>' +
+                '<div style="color:var(--accent-success)">Fridays (Paid Holiday):</div><div style="font-weight:600;color:var(--accent-success)">' + fridaysCount + ' days</div>' +
+                '<div style="color:var(--accent-info)">Approved Leaves:</div><div style="font-weight:600;color:var(--accent-info)">' + approvedLeaveDays + ' days</div>' +
                 '<div style="color:var(--accent-primary)">Base Earned (Attendance):</div><div style="font-weight:600;color:var(--accent-primary)">EGP ' + earnedSoFar.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-success)">Overtime (' + otRecords.length + ' records):</div><div style="font-weight:600;color:var(--accent-success)">+EGP ' + totalOTPay.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-info)">Bonuses (' + adjRecords.filter(function (a) { return a.type === "bonus" }).length + ' approved):</div><div style="font-weight:600;color:var(--accent-info)">+EGP ' + (totalBonuses + extraB).toLocaleString() + '</div>' +
