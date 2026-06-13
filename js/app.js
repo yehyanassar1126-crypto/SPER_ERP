@@ -2537,12 +2537,12 @@ Pages.payroll = function (el) {
                 if (new Date(Number(yy), Number(mm)-1, fDay).getDay() === 5) fridaysCount++;
               }
 
-              // If approved leaves exist, they are paid days
-              var leavePay = approvedLeaveDays * dailyRate;
-              earnedSoFar += leavePay;
-              
-              // Fridays are paid days
-              earnedSoFar += (fridaysCount * dailyRate);
+              // Calculate absence explicitly
+              var expectedWorkDays = lastDay - fridaysCount;
+              var missingWorkDays = Math.max(0, expectedWorkDays - (attRecords.length + approvedLeaveDays));
+              var calculatedAbsenceDeductions = Math.round(missingWorkDays * dailyRate);
+
+              var earnedSoFar = base; // Start from full 30 days base
 
               var attendedDays = attRecords.length;
               var paidDaysDisplay = attendedDays + fridaysCount;
@@ -2550,9 +2550,8 @@ Pages.payroll = function (el) {
               var extraP = Number(document.getElementById('pf-extra-p').value) || 0;
 
               var totalEarnings = earnedSoFar + totalOTPay + totalBonuses + extraB;
-              var totalDeductions = totalPenalties + extraP;
+              var totalDeductions = totalPenalties + extraP + totalLateDeduction + calculatedAbsenceDeductions;
               var net = totalEarnings - totalDeductions;
-
 
               calcData = {
                 employee_id: empId, employee_name: empName, department: empDept,
@@ -2560,7 +2559,7 @@ Pages.payroll = function (el) {
                 overtime_pay: totalOTPay, bonuses: totalBonuses + extraB,
                 performance_bonus: 0,
                 penalties: totalPenalties + extraP,
-                late_deductions: totalLateDeduction, absence_deductions: 0,
+                late_deductions: totalLateDeduction, absence_deductions: calculatedAbsenceDeductions,
                 net_salary: net, status: 'processing'
               };
 
@@ -2582,11 +2581,12 @@ Pages.payroll = function (el) {
                 '<div style="color:var(--accent-success)">Attended Days:</div><div style="font-weight:600;color:var(--accent-success)">' + attendedDays + ' days</div>' +
                 '<div style="color:var(--accent-success)">Fridays (Paid Holiday):</div><div style="font-weight:600;color:var(--accent-success)">' + fridaysCount + ' days</div>' +
                 '<div style="color:var(--accent-info)">Approved Leaves:</div><div style="font-weight:600;color:var(--accent-info)">' + approvedLeaveDays + ' days</div>' +
-                '<div style="color:var(--accent-primary)">Base Earned (Attendance):</div><div style="font-weight:600;color:var(--accent-primary)">EGP ' + earnedSoFar.toLocaleString() + '</div>' +
+                '<div style="color:var(--accent-primary)">Base Salary (30 Days):</div><div style="font-weight:600;color:var(--accent-primary)">EGP ' + base.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-success)">Overtime (' + otRecords.length + ' records):</div><div style="font-weight:600;color:var(--accent-success)">+EGP ' + totalOTPay.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-info)">Bonuses (' + adjRecords.filter(function (a) { return a.type === "bonus" }).length + ' approved):</div><div style="font-weight:600;color:var(--accent-info)">+EGP ' + (totalBonuses + extraB).toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-danger)">Penalties:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + (totalPenalties + extraP).toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-warning)">⏰ Late Deductions:</div><div style="font-weight:600;color:var(--accent-warning)">-EGP ' + totalLateDeduction.toLocaleString() + '</div>' +
+                '<div style="color:var(--accent-danger)">🚫 Absence Deductions:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + calculatedAbsenceDeductions.toLocaleString() + ' (' + missingWorkDays + ' days)</div>' +
                 '</div>' +
                 '<div style="border-top:2px solid var(--accent-primary);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;font-size:1rem">NET SALARY</span><span style="font-weight:900;font-size:1.3rem;color:var(--accent-primary-hover)">EGP ' + net.toLocaleString() + '</span></div>' +
                 cumulativeHtml;
