@@ -285,6 +285,31 @@ window.ERPSuppliers = {
         document.getElementById('sup-ext-txs').innerHTML = tHtml;
       }
     });
+  },
+
+  supplierSendRequest: function() {
+    var supplierId = App.user.supplier_id;
+    if (!supplierId) return;
+
+    var reqDetails = prompt('ما الذي ترغب في طلبه/توريده للمصنع؟ (اكتب التفاصيل والكمية)');
+    if (!reqDetails) return;
+
+    var estAmount = prompt('التكلفة التقديرية أو الإجمالية (بالجنيه):', '0');
+    if (!estAmount || isNaN(estAmount)) return alert('يرجى إدخال رقم صحيح.');
+
+    sbClient.from('supplier_orders').insert({
+      supplier_id: supplierId,
+      order_details: reqDetails,
+      total_amount: Number(estAmount),
+      status: 'pending - sent by supplier'
+    }).then(function(res) {
+      if (res.error) {
+        alert('حدث خطأ أثناء الإرسال: ' + res.error.message);
+      } else {
+        alert('تم إرسال الطلب بنجاح، سيتم مراجعته من قبل المبيعات أو الإدارة.');
+        Pages['supplier-portal'](document.getElementById('page-content'));
+      }
+    });
   }
 };
 
@@ -306,7 +331,12 @@ Pages['supplier-portal'] = function(el) {
   html += '<div class="stats-grid" id="sup-ext-stats" style="margin-top:-20px">Loading...</div>';
   
   html += '<div class="grid-2" style="margin-top:20px">';
-  html += '<div class="card"><div class="card-header"><h3>أوامر الشراء الحالية والسابقة</h3></div><div class="card-body" id="sup-ext-orders">Loading...</div></div>';
+  var ordersHeader = '<h3>أوامر الشراء الحالية والسابقة</h3>';
+  if (isSupplier) {
+    ordersHeader += '<button class="btn btn-sm btn-primary" onclick="ERPSuppliers.supplierSendRequest()">' + icon('plus') + ' إرسال طلب جديد</button>';
+  }
+  
+  html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center">' + ordersHeader + '</div><div class="card-body" id="sup-ext-orders">Loading...</div></div>';
   html += '<div class="card"><div class="card-header"><h3>كشف حساب مالي (الدفعات)</h3></div><div class="card-body" id="sup-ext-txs">Loading...</div></div>';
   html += '</div>';
 

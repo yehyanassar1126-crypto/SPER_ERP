@@ -458,9 +458,10 @@ var App = {
       ));
 
       if (canViewSupplierPortal) {
+        var menuLabel = (App.user && App.user.role === 'supplier_external') ? 'لوحة تحكم المورد' : 'Supplier Portal';
         menu.push({
           section: 'Supplier Portal (بوابة الموردين)', items: [
-            { id: 'supplier-portal', label: 'Supplier Portal', icon: 'package' }
+            { id: 'supplier-portal', label: menuLabel, icon: 'layoutDashboard' }
           ]
         });
       }
