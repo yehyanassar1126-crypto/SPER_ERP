@@ -27,7 +27,15 @@ CREATE TABLE IF NOT EXISTS logistics_movements (
 ALTER TABLE logistics_drivers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE logistics_movements ENABLE ROW LEVEL SECURITY;
 
--- Allow selection and insertion
+-- Drop policies if they exist to prevent errors on multiple runs
+DROP POLICY IF EXISTS "logistics_drivers_view" ON logistics_drivers;
+DROP POLICY IF EXISTS "logistics_drivers_insert" ON logistics_drivers;
+DROP POLICY IF EXISTS "logistics_drivers_update" ON logistics_drivers;
+DROP POLICY IF EXISTS "logistics_movements_view" ON logistics_movements;
+DROP POLICY IF EXISTS "logistics_movements_insert" ON logistics_movements;
+DROP POLICY IF EXISTS "logistics_movements_update" ON logistics_movements;
+
+-- Allow selection, insertion, and update
 CREATE POLICY "logistics_drivers_view" ON logistics_drivers FOR SELECT USING (true);
 CREATE POLICY "logistics_drivers_insert" ON logistics_drivers FOR INSERT WITH CHECK (true);
 CREATE POLICY "logistics_drivers_update" ON logistics_drivers FOR UPDATE USING (true);
