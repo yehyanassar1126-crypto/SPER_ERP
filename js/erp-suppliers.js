@@ -11,7 +11,7 @@ window.ERPSuppliers = {
     html += '<div class="card" style="margin-top:20px"><div class="card-header"><h3>قائمة الموردين</h3></div>';
     html += '<div class="card-body" id="suppliers-list">Loading...</div></div>';
     
-    document.getElementById('main-content').innerHTML = html;
+    document.getElementById('page-content').innerHTML = html;
     this.loadSuppliers();
   },
 
@@ -228,7 +228,7 @@ window.ERPSuppliers = {
     html += '<div class="card"><div class="card-header"><h3>كشف حساب مالي (الدفعات)</h3></div><div class="card-body" id="sup-ext-txs">Loading...</div></div>';
     html += '</div>';
 
-    document.getElementById('main-content').innerHTML = html;
+    document.getElementById('page-content').innerHTML = html;
     
     Promise.all([
       sbClient.from('supplier_orders').select('*').eq('supplier_id', supplierId).order('created_at', {ascending: false}),

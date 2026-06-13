@@ -593,9 +593,9 @@ var App = {
       case 'payroll-funding': Pages.payrollFunding(el); break;
       case 'it-tickets': Pages.itTickets(el); break;
       case 'erp-sales': Pages.sales(el); break;
-      case 'erp-planning': ERPPlanning.render(); break;
-      case 'erp-production': ERPProduction.render(); break;
-      case 'erp-quality': ERPQuality.render(); break;
+      case 'erp-planning': Pages.planning(el); break;
+      case 'erp-production': Pages.production(el); break;
+      case 'erp-quality': Pages.quality(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
       default: App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el);
