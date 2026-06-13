@@ -6,10 +6,11 @@ Pages.maintenance = function(el) {
   var isMaintenance = App.user && (App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician');
   var isManager = App.isManager();
   
-  // Everyone except HR can request maintenance, but only Maintenance dept/Owner can manage it.
+  // Production requests maintenance, Maintenance manages it.
   var canEdit = isOwner || isMaintenance;
+  var isProduction = App.user && (App.user.department === 'Production' || App.user.role === 'hall manager');
   var isHR = App.isHR();
-  var canViewAll = canEdit || isHR;
+  var canViewAll = canEdit || isHR || isProduction;
 
   var requests = [];
   var schedules = [];
@@ -33,7 +34,7 @@ Pages.maintenance = function(el) {
 
     var html = '<div class="toolbar" style="display:flex;justify-content:space-between;margin-bottom:24px">';
     html += '<h3>Maintenance & Facilities (إدارة الصيانة والمرافق)</h3>';
-    if (!isHR) {
+    if (isProduction || isOwner) {
       html += '<button class="btn btn-primary" onclick="newMaintenanceRequest()">' + icon('tool') + ' Request Maintenance (طلب صيانة)</button>';
     }
     html += '</div>';
