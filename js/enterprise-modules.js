@@ -1454,7 +1454,7 @@ Pages.itTickets = function(el) {
   function render() {
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<h3>IT Support Tickets (طلبات الدعم الفني)</h3>';
-    if (!isIT || true) {
+    if (true) {
       html += '<button class="btn btn-primary" onclick="newItTicketModal()">' + icon('plus') + ' Request IT Support</button>';
     }
     html += '</div>';
