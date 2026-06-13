@@ -1366,7 +1366,8 @@ Pages.employees = function (el) {
     availableShifts.forEach(function (s) { body += '<option value="' + s.key + '"' + (currentShift === s.key ? ' selected' : '') + '>' + s.label + '</option>'; });
     body += '</select></div><div class="form-field"><label>Hire Date</label><input type="date" id="ef-hire" value="' + (emp ? (emp.hire_date || '') : '') + '"></div></div>';
     var monthValStr = new Date().toISOString().substring(0, 7) + '-01';
-    body += '<div class="form-row"><div class="form-field"><label>Insurance Start Date <span style="color:var(--text-muted);font-size:0.75rem">(leave blank = no insurance)</span></label><input type="date" id="ef-ins" value="' + (emp ? (emp.insurance_start || '') : monthValStr) + '"></div><div></div></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Insurance Start Date <span style="color:var(--text-muted);font-size:0.75rem">(leave blank = no insurance)</span></label><input type="date" id="ef-ins" value="' + (emp ? (emp.insurance_start || '') : monthValStr) + '"></div>';
+    body += '<div class="form-field"><label>Insurance Salary (EGP) <span style="color:var(--text-muted);font-size:0.75rem">(المرتب التأميني)</span></label><input type="number" id="ef-ins-salary" value="' + (emp ? (emp.insurance_salary || 0) : 0) + '"></div></div>';
 
     if (myLevel >= 5) {
       var p = emp ? (emp.permissions || {}) : {};
@@ -1428,6 +1429,7 @@ Pages.employees = function (el) {
         hire_date: document.getElementById('ef-hire').value,
         insurance_start: insVal || null,
         insurance_active: dailyChecked ? false : hasInsurance,
+        insurance_salary: Number(document.getElementById('ef-ins-salary').value || 0),
         documents_complete: (emp ? emp.documents_complete : false)
       };
 
