@@ -440,7 +440,8 @@ var App = {
         menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
       }
       
-      var canViewEngineering = App.isOwner() || (App.user && (App.user.department === 'Engineering' || App.user.role === 'engineering manager' || App.user.role === 'engineer' || App.user.role === 'technical office'));
+      // All employees can see engineering and upload drawings (approval restricted to engineering roles)
+      var canViewEngineering = App.user && App.user.role !== 'supplier_external';
       if (canViewEngineering) {
         menu.push({ section: 'Engineering (الإدارة الهندسية)', items: [{ id: 'engineering', label: 'Projects & Designs', icon: 'edit3' }] });
       }
