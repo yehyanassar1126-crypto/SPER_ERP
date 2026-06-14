@@ -59,6 +59,34 @@ window.ERPEngineering = {
                </div>`;
       html += '</div>';
 
+      // --- Workflow Pipeline ---
+      let stages = [
+        { key: 'planning',    label: 'Planning',     ar: 'التخطيط',         color: '#f59e0b', depts: ['HR (توفير الكوادر)', 'Finance (اعتماد الميزانية)', 'Procurement (تسعير المواد)'] },
+        { key: 'designing',   label: 'Designing',    ar: 'التصميم',         color: '#6366f1', depts: ['Quality (مراجعة المواصفات)', 'Technical Office (الرسومات)'] },
+        { key: 'in_progress', label: 'In Progress',  ar: 'التنفيذ',         color: '#3b82f6', depts: ['Production (خطوط الإنتاج)', 'Warehouse (المواد والخامات)', 'Maintenance (المعدات)'] },
+        { key: 'supervision', label: 'Supervision',  ar: 'الإشراف الفني',   color: '#8b5cf6', depts: ['Quality (فحص وتفتيش)', 'Maintenance (دعم فني)'] },
+        { key: 'completed',   label: 'Completed',    ar: 'التسليم',         color: '#10b981', depts: ['Finance (توريد وتسوية)', 'HR (إغلاق المشروع)'] }
+      ];
+      
+      html += '<div style="margin-bottom:28px;">';
+      html += '<h3 style="font-size:1.1rem; font-weight:700; margin-bottom:14px;">Project Workflow (مراحل المشروع) <span style="font-size:0.8rem; font-weight:400; color:var(--text-muted)">& Department Dependencies</span></h3>';
+      html += '<div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px;">';
+      stages.forEach(function(s, i) {
+        let stageProjects = projects.filter(p => (p.status || 'planning') === s.key);
+        let count = stageProjects.length;
+        let deptsHtml = s.depts.map(d => '<span style="display:block; font-size:0.72rem; margin-bottom:2px; opacity:0.85">• ' + d + '</span>').join('');
+        html += '<div style="background:var(--bg-card); border-radius:var(--radius-md); border:1px solid var(--border-color); border-top:3px solid ' + s.color + '; padding:12px; position:relative;">';
+        if (i < 4) html += '<div style="position:absolute; right:-10px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:1rem; z-index:1;">→</div>';
+        html += '<div style="font-weight:700; font-size:0.85rem; color:' + s.color + '; margin-bottom:2px;">' + (i+1) + '. ' + s.label + '</div>';
+        html += '<div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:8px;">' + s.ar + '</div>';
+        html += '<div style="font-size:1.3rem; font-weight:800; color:var(--text-primary); margin-bottom:8px;">' + count + ' <span style="font-size:0.7rem; font-weight:400; color:var(--text-muted)">projects</span></div>';
+        html += '<div style="border-top:1px dashed var(--border-color); padding-top:6px; margin-top:4px;">';
+        html += '<div style="font-size:0.7rem; color:var(--text-muted); font-weight:600; margin-bottom:4px;">Linked Departments:</div>';
+        html += deptsHtml;
+        html += '</div></div>';
+      });
+      html += '</div></div>';
+      
       // --- Projects Table ---
       html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">';
       html += '<h3 style="font-size:1.3rem; font-weight:700;">Engineering Projects (المشاريع الهندسية)</h3>';
