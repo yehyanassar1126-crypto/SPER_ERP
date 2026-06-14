@@ -194,10 +194,11 @@ Pages.maintenance = function(el) {
   window.requestMaintPartsModal = function() {
     var b = '<div class="form-field"><label>Item Name (اسم الصنف) *</label><input type="text" id="mpr-item" class="form-input" placeholder="e.g. مفتاح 10, رولمان بلي"></div>';
     b += '<div class="form-field"><label>Quantity (الكمية) *</label><input type="number" id="mpr-qty" class="form-input" value="1" min="1"></div>';
-    b += '<div class="form-field"><label>Type (النوع) *</label><select id="mpr-type" class="form-input">';
+    b += '<div class="form-field"><label>Type (النوع) *</label><select id="mpr-type" class="form-input" onchange="document.getElementById(\'mpr-machine-wrap\').style.display=this.value===\'spare_part\'?\'block\':\'none\'">';
     b += '<option value="spare_part">Spare Part (قطعة غيار - تستهلك)</option>';
     b += '<option value="tool">Tool (عُهدة / عدة - تسترجع)</option>';
     b += '</select></div>';
+    b += '<div class="form-field" id="mpr-machine-wrap"><label>Machine/Asset (المعدة المرتبطة) *</label><input type="text" id="mpr-mach" class="form-input" placeholder="e.g. ماكينة التعبئة"></div>';
     var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-mpr">Send Request</button>';
     App.showModal('Request Parts/Tools from Inventory', b, f);
 
@@ -205,26 +206,38 @@ Pages.maintenance = function(el) {
       var item = document.getElementById('mpr-item').value.trim();
       var qty = parseInt(document.getElementById('mpr-qty').value, 10);
       var type = document.getElementById('mpr-type').value;
-      if (!item || !qty || qty <= 0) return alert('Please enter valid item and quantity');
-
-      var reqBy = 'Maintenance (' + (type === 'tool' ? 'Tool' : 'Spare Part') + ')';
+      var mach = document.getElementById('mpr-mach').value.trim();
       
+      if (!item || !qty || qty <= 0) return alert('Please enter valid item and quantity');
+      if (type === 'spare_part' && !mach) return alert('Please specify the machine/asset for the spare part');
+
       var btn = this;
       btn.innerHTML = 'Sending...'; btn.disabled = true;
 
-      sbClient.from('material_requests').insert({
-        item_name: item,
-        quantity_needed: qty,
-        requested_by: reqBy,
-        status: 'pending'
-      }).then(function(r) {
-        if (r.error) {
-          btn.innerHTML = 'Send Request'; btn.disabled = false;
-          return alert(r.error.message);
-        }
-        App.closeModal();
-        showToast('Request sent to Inventory successfully!', 'success');
-      });
+      if (type === 'spare_part') {
+        sbClient.from('spare_parts_requests').insert({
+          requested_by: App.user.id,
+          requested_by_name: App.user.full_name,
+          department: App.user.department,
+          machine_or_vehicle: mach,
+          item_name: item,
+          requested_quantity: qty,
+          status: 'pending_approval'
+        }).then(function(r) {
+          if (r.error) { btn.innerHTML = 'Send Request'; btn.disabled = false; return alert(r.error.message); }
+          App.closeModal(); showToast('Spare Part request sent to Spare Parts Lifecycle!', 'success');
+        });
+      } else {
+        sbClient.from('material_requests').insert({
+          item_name: item,
+          quantity_needed: qty,
+          requested_by: 'Maintenance (Tool)',
+          status: 'pending'
+        }).then(function(r) {
+          if (r.error) { btn.innerHTML = 'Send Request'; btn.disabled = false; return alert(r.error.message); }
+          App.closeModal(); showToast('Tool request sent to Inventory successfully!', 'success');
+        });
+      }
     });
   };
 

@@ -1,3 +1,4 @@
+window.Pages = window.Pages || {};
 window.ERPLogistics = {
   renderLogistics: function(el) {
     el.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span><p>Loading Logistics...</p></div>';

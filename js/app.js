@@ -456,8 +456,20 @@ var App = {
 
       if (canViewMaintenance) {
         menu.push({ section: 'Maintenance (الصيانة)', items: [
-          { id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' },
-          { id: 'spare-parts', label: 'Spare Parts (دورة قطع الغيار)', icon: 'settings' }
+          { id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' }
+        ]});
+      }
+
+      var canViewSpareParts = App.isOwner() || (App.user && (
+        App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician' ||
+        App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' ||
+        App.user.department === 'Quality' || App.user.role === 'quality manager' ||
+        App.user.role === 'hr manager' || App.user.department === 'Logistics'
+      ));
+
+      if (canViewSpareParts) {
+        menu.push({ section: 'Spare Parts (قطع الغيار)', items: [
+          { id: 'spare-parts', label: 'Spare Parts Lifecycle (دورة قطع الغيار)', icon: 'settings' }
         ]});
       }
 
