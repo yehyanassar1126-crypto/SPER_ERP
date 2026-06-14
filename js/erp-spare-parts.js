@@ -215,7 +215,6 @@ Pages.spareParts = function(el) {
       if (!item || !mach) return alert('الرجاء إدخال اسم القطعة والمعدة/السيارة');
 
       sbClient.from('spare_parts_requests').insert({
-        requested_by: App.user.id,
         requested_by_name: App.user.full_name,
         department: App.user.department,
         machine_or_vehicle: mach,
@@ -248,8 +247,7 @@ Pages.spareParts = function(el) {
       sbClient.from('spare_parts_requests').update({
         status: 'issued',
         new_part_number: newNum,
-        issued_at: new Date().toISOString(),
-        issued_by: App.user.id
+        issued_at: new Date().toISOString()
       }).eq('id', id).then(function(res) {
         if(res.error) return alert(res.error.message);
         App.closeModal(); loadData(); showToast('تم صرف القطعة من المخزن', 'success');
@@ -268,8 +266,7 @@ Pages.spareParts = function(el) {
       sbClient.from('spare_parts_requests').update({
         status: 'damaged_returned',
         old_part_number: oldNum,
-        returned_at: new Date().toISOString(),
-        received_by: App.user.id
+        returned_at: new Date().toISOString()
       }).eq('id', id).then(function(res) {
         if(res.error) return alert(res.error.message);
         App.closeModal(); loadData(); showToast('تم استلام القطعة التالفة وسيتم تحويلها للجودة', 'success');
@@ -304,7 +301,6 @@ Pages.spareParts = function(el) {
       sbClient.from('spare_parts_requests').update({
         status: 'quality_checked',
         quality_checked_at: new Date().toISOString(),
-        quality_checked_by: App.user.id,
         life_time_percentage: lt,
         damage_type: dtype,
         is_natural_wear: nat,

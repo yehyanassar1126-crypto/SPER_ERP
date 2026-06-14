@@ -216,7 +216,6 @@ Pages.maintenance = function(el) {
 
       if (type === 'spare_part') {
         sbClient.from('spare_parts_requests').insert({
-          requested_by: App.user.id,
           requested_by_name: App.user.full_name,
           department: App.user.department,
           machine_or_vehicle: mach,
