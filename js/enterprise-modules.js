@@ -1102,6 +1102,7 @@ Pages.purchaseRequests = function(el) {
         if(req.status === 'approved') { statusColor = 'info'; statusIcon = 'check'; }
         if(req.status === 'rejected') { statusColor = 'danger'; statusIcon = 'x'; }
         if(req.status === 'quotation_requested') { statusColor = 'primary'; statusIcon = 'fileText'; }
+        if(req.status === 'pending_finance') { statusColor = 'warning'; statusIcon = 'dollarSign'; }
         if(req.status === 'purchased') { statusColor = 'success'; statusIcon = 'checkCheck'; }
 
         if(req.status === 'pending_warehouse') { statusColor = 'secondary'; statusIcon = 'package'; }
@@ -1135,6 +1136,8 @@ Pages.purchaseRequests = function(el) {
              html += '<button class="btn btn-xs btn-warning" onclick="reviewQuotesModal(\'' + req.id + '\', \'' + req.item_id + '\')">Review Quotes</button>';
           } else if (req.status === 'quotation_requested') {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">Awaiting Manager</span>';
+          } else if (req.status === 'pending_finance') {
+             html += '<span style="color:var(--text-muted);font-size:0.8rem">Pending Finance Settlement</span>';
           } else if (req.status === 'purchased') {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">Sent to Finance / Purchasing</span>';
              if (isProcurementMgr || isProcurementSpec) {
@@ -1274,7 +1277,7 @@ Pages.purchaseRequests = function(el) {
     if(confirm('Approve this quote and request EGP ' + price + ' petty cash?')) {
       sbClient.from('purchase_orders').delete().eq('request_id', reqId).neq('id', orderId).then(function() {
         sbClient.from('purchase_orders').update({petty_cash_amount: price}).eq('id', orderId).then(function() {
-          sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function() {
+          sbClient.from('purchase_requests').update({status: 'pending_finance'}).eq('id', reqId).then(function() {
              
              // Update inventory item if it exists
              if (itemId && itemId !== 'null' && itemId !== 'undefined') {
@@ -1284,12 +1287,12 @@ Pages.purchaseRequests = function(el) {
                 }).eq('id', itemId).then(function() {
                   App.closeModal();
                   loadData();
-                  showToast('Quote approved & price updated. Sent to Finance.', 'success');
+                  showToast('Quote approved & price updated. Sent to Finance for settlement.', 'success');
                 });
              } else {
                 App.closeModal();
                 loadData();
-                showToast('Quote approved. Sent to Finance for Petty Cash.', 'success');
+                showToast('Quote approved. Sent to Finance for settlement.', 'success');
              }
 
           });
@@ -1454,26 +1457,26 @@ Pages.pettyCash = function(el) {
         return;
       }
       if (res.error) {
-        if(res.error.message.includes('relationship')) {
-          // Fallback if join was used in cache
-          return alert('Schema Error: ' + res.error.message);
-        }
+        if(res.error.message.includes('relationship')) return alert('Schema Error: ' + res.error.message);
         return alert(res.error.message);
       }
-      
       txs = res.data || [];
       
-      // Fetch users manually to avoid foreign key issues across schemas
-      sbClient.from('users').select('id, full_name, department').then(function(uRes) {
+      Promise.all([
+        sbClient.from('users').select('id, full_name, department'),
+        sbClient.from('purchase_requests').select('*, purchase_orders(*)').eq('status', 'pending_finance')
+      ]).then(function(uRes) {
         var userMap = {};
-        var allUsers = uRes.data || [];
+        var allUsers = uRes[0].data || [];
+        var pendingReqs = uRes[1].data || [];
+        
         allUsers.forEach(function(u) { userMap[u.id] = u; });
         txs.forEach(function(t) {
           t.employee_name = userMap[t.employee_id] ? userMap[t.employee_id].full_name : 'Unknown';
           t.employee_dept = userMap[t.employee_id] ? userMap[t.employee_id].department : 'Unknown';
         });
         calculateTotals();
-        render(allUsers);
+        render(allUsers, pendingReqs);
       });
     });
   }
@@ -1486,7 +1489,7 @@ Pages.pettyCash = function(el) {
       if (t.type === 'deposit') {
         if (t.method === 'bank') bankTotal += amt;
         if (t.method === 'safe') safeTotal += amt;
-      } else if (t.type === 'petty_cash') {
+      } else if (t.type === 'petty_cash' || t.type === 'expense') {
         if (t.method === 'bank') bankTotal -= amt;
         if (t.method === 'safe') safeTotal -= amt;
       } else if (t.type === 'transfer') {
@@ -1507,7 +1510,7 @@ Pages.pettyCash = function(el) {
     el.innerHTML = html;
   }
 
-  function render(allUsers) {
+  function render(allUsers, pendingReqs) {
     var isProcurementOnly = isProcManager || isProcEmp;
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<h3>Treasury & Petty Cash (الخزنة والعهد)</h3>';
@@ -1516,6 +1519,7 @@ Pages.pettyCash = function(el) {
       html += '<button class="btn btn-outline" id="tab-treasury" style="border-color:var(--accent-primary);color:var(--accent-primary)">🏦 الخزنة والبنك</button>';
       html += '<button class="btn btn-ghost" id="tab-petty">💸 العهد (Petty Cash)</button>';
       html += '<button class="btn btn-ghost" id="tab-checks">📑 الشيكات تحت التحصيل</button>';
+      html += '<button class="btn btn-ghost" id="tab-finance-req">🛒 تسويات الشراء (' + (pendingReqs ? pendingReqs.length : 0) + ')</button>';
     } else {
       html += '<button class="btn btn-outline" id="tab-petty" style="border-color:var(--accent-primary);color:var(--accent-primary)">💸 العهد (Petty Cash)</button>';
     }
@@ -1590,10 +1594,52 @@ Pages.pettyCash = function(el) {
     html += '</tbody></table></div></div>';
     } // End if (!isProcurementOnly)
 
+    if (!isProcurementOnly) {
+      html += '<div id="view-finance-req" style="display:none">';
+      html += '<h3>تسويات طلبات الشراء المعتمدة</h3>';
+      html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>الصنف</th><th>مبلغ الشراء</th><th>الموظف الموكل</th><th>رصيد عهدته</th><th>إجراءات الحسابات</th></tr></thead><tbody>';
+      
+      if (!pendingReqs || pendingReqs.length === 0) {
+        html += '<tr><td colspan="6" style="text-align:center;padding:20px">لا توجد طلبات في انتظار التسوية</td></tr>';
+      } else {
+        pendingReqs.forEach(function(req) {
+          // Find if there is an approved quote for this request
+          var approvedOrder = (req.purchase_orders || []).find(function(o) { return Number(o.petty_cash_amount) > 0; });
+          var reqAmt = approvedOrder ? Number(approvedOrder.petty_cash_amount) : 0;
+          
+          // Let's assume requested_by is full name, find their ID
+          var empObj = allUsers.find(function(u) { return u.full_name === req.requested_by; });
+          var empId = empObj ? empObj.id : null;
+          
+          // Calculate advance balance
+          var empAdvance = 0;
+          if (empId) {
+            empAdvance = txs.filter(function(t) { return t.type === 'petty_cash' && t.employee_id === empId; })
+                            .reduce(function(sum, t) { return sum + Number(t.amount); }, 0);
+          }
+
+          html += '<tr>';
+          html += '<td>' + formatDate(req.created_at) + '</td>';
+          html += '<td>' + req.item_name + '</td>';
+          html += '<td style="font-weight:bold;color:var(--accent-primary)">EGP ' + reqAmt + '</td>';
+          html += '<td>' + (req.requested_by || 'غير محدد') + '</td>';
+          html += '<td style="font-weight:bold;color:' + (empAdvance >= reqAmt ? 'var(--accent-success)' : 'var(--accent-danger)') + '">EGP ' + empAdvance + '</td>';
+          
+          html += '<td><div style="display:flex;gap:5px">';
+          if (empAdvance > 0) {
+            html += '<button class="btn btn-sm btn-primary" onclick="window.trSettlePurchase(\'' + req.id + '\', ' + reqAmt + ', \'' + empId + '\', true)">خصم من العهدة</button>';
+          }
+          html += '<button class="btn btn-sm btn-success" onclick="window.trSettlePurchase(\'' + req.id + '\', ' + reqAmt + ', \'' + (empId||'') + '\', false)">صرف كاش مستقل</button>';
+          html += '</div></td></tr>';
+        });
+      }
+      html += '</tbody></table></div></div>';
+    }
+
     el.innerHTML = html;
 
-    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-petty','tab-checks'];
-    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-petty','view-checks'];
+    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-petty','tab-checks', 'tab-finance-req'];
+    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-petty','view-checks', 'view-finance-req'];
     allTabs.forEach(function(tid, idx) {
       var tabBtn = document.getElementById(tid);
       if(tabBtn) {
@@ -1669,6 +1715,29 @@ Pages.pettyCash = function(el) {
       if(res.error) return alert(res.error.message);
       sbClient.from('finance_treasury_tx').insert({ type: 'check_clearance', method: 'bank', amount: amt, notes: 'تحصيل شيك', created_by: App.user.id }).then(function(r) {
         loadData();
+      });
+    });
+  };
+
+  window.trSettlePurchase = function(reqId, amt, empId, isDeduction) {
+    var msg = isDeduction ? 'هل أنت متأكد من تسوية طلب الشراء بخصم ' + amt + ' من عهدة الموظف؟' : 'هل أنت متأكد من صرف ' + amt + ' كاش لطلب الشراء هذا؟';
+    if (!confirm(msg)) return;
+    
+    var txObj = {
+      amount: isDeduction ? -amt : amt,
+      employee_id: empId || App.user.id,
+      notes: 'تسوية طلب شراء #' + reqId.split('-')[0],
+      created_by: App.user.id,
+      type: isDeduction ? 'petty_cash' : 'expense',
+      method: isDeduction ? 'settlement' : 'safe'
+    };
+
+    sbClient.from('finance_treasury_tx').insert(txObj).then(function(res) {
+      if(res.error) return alert(res.error.message);
+      sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r) {
+         if(r.error) return alert(r.error.message);
+         loadData();
+         showToast('تمت التسوية بنجاح', 'success');
       });
     });
   };
