@@ -474,6 +474,7 @@ Pages.inventory = function(el) {
   var transactions = [];
   var matReqs = [];
   var qualityOrders = [];
+  var sparePartsReqs = [];
   
   function loadData() {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Inventory...</div>';
@@ -481,12 +482,14 @@ Pages.inventory = function(el) {
       sbClient.from('inventory_items').select('*').order('name'),
       sbClient.from('inventory_transactions').select('*').order('date', {ascending: false}).limit(100),
       sbClient.from('material_requests').select('*').order('created_at', {ascending: false}),
-      sbClient.from('sales_workflow_orders').select('*').eq('status', 'Quality Accepted')
+      sbClient.from('sales_workflow_orders').select('*').eq('status', 'Quality Accepted'),
+      sbClient.from('spare_parts_requests').select('*').order('created_at', {ascending: false})
     ]).then(function(res) {
       items = res[0].data || [];
       transactions = res[1].data || [];
       matReqs = res[2].data || [];
       qualityOrders = res[3] ? (res[3].data || []) : [];
+      sparePartsReqs = res[4] ? (res[4].data || []) : [];
       render();
     });
   }
@@ -496,6 +499,7 @@ Pages.inventory = function(el) {
     var finishedItems = items.filter(function(i){return i.warehouse_type==='finished'});
     var generalItems = items.filter(function(i){return i.warehouse_type==='general'});
     var pendingMR = matReqs.filter(function(m){return m.status==='pending'||m.status==='approved'||m.status==='tool_out'});
+    var pendingSpare = sparePartsReqs.filter(function(r){return r.status==='approved'||r.status==='issued'});
 
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<div style="display:flex; gap:8px;">';
@@ -505,10 +509,10 @@ Pages.inventory = function(el) {
       html += '<button class="btn btn-sm btn-ghost" id="tab-general">📦 مخزن عام (General)</button>';
       html += '<button class="btn btn-sm btn-ghost" id="tab-tx">Transactions (حركة المخزون)</button>';
       if(pendingMR.length>0) html += '<button class="btn btn-sm btn-ghost" id="tab-mr" style="color:var(--accent-warning)">⚠️ Material Requests ('+pendingMR.length+')</button>';
+      if(isWarehouse && pendingSpare.length>0) html += '<button class="btn btn-sm btn-ghost" id="tab-spare" style="color:var(--accent-primary)">⚙️ قطع الغيار ('+pendingSpare.length+')</button>';
     }
     html += '</div>';
-    
-    if (isWarehouse) {
+        if (isWarehouse) {
       html += '<div>';
       html += '<button class="btn btn-outline" id="btn-request-purchase" onclick="warehousePurchaseRequestModal()" style="margin-right:10px; border-color:#3b82f6; color:#3b82f6; display:none;">' + icon('shoppingCart') + ' Request Purchase (طلب شراء)</button>';
       html += '<button class="btn btn-primary" onclick="newInventoryItemModal()" style="margin-right:10px">' + icon('plus') + ' Add New Item</button>';
@@ -517,25 +521,44 @@ Pages.inventory = function(el) {
     }
     html += '</div>';
 
+    // Helper: get average life_time_percentage from quality-checked spare parts for a given item name
+    function getItemLifeTime(itemName) {
+      var matches = sparePartsReqs.filter(function(r) {
+        return r.status === 'quality_checked' && r.item_name && r.life_time_percentage &&
+               r.item_name.toLowerCase().trim() === itemName.toLowerCase().trim();
+      });
+      if (matches.length === 0) return null;
+      var avg = matches.reduce(function(s, r) { return s + Number(r.life_time_percentage); }, 0) / matches.length;
+      return { avg: Math.round(avg), count: matches.length };
+    }
+
     // Raw Items View
     html += '<div id="view-items">';
     html += '<div class="card"><div class="card-header"><div><h3>📦 مخزن خام - Raw Materials Warehouse</h3><p>' + rawItems.length + ' items</p></div></div><div class="card-body no-pad">';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Item Name</th><th>Category</th><th>Current Qty</th><th>Min Qty</th><th>Alert</th></tr></thead><tbody>';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Item Name</th><th>Category</th><th>Current Qty</th><th>Min Qty</th><th>Life Time %</th><th>Alert</th></tr></thead><tbody>';
     
     if (rawItems.length === 0) {
-      html += '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">No raw materials.</td></tr>';
+      html += '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No raw materials.</td></tr>';
     } else {
       rawItems.forEach(function(item) {
         var isLow = item.quantity <= item.min_quantity;
         var rowStyle = isLow ? 'background:rgba(245,158,11,0.05)' : '';
+        var lt = getItemLifeTime(item.name);
         html += '<tr style="' + rowStyle + '">';
         html += '<td style="font-weight:600">' + item.name + '</td>';
         html += '<td><span class="badge badge-info">' + item.category + '</span></td>';
         html += '<td style="font-weight:700; font-size:1.1rem; color:' + (isLow ? 'var(--accent-danger)' : 'var(--text-primary)') + '">' + item.quantity + '</td>';
         html += '<td>' + item.min_quantity + '</td>';
         
+        if (lt) {
+          var ltColor = lt.avg >= 75 ? 'var(--accent-success)' : lt.avg >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
+          html += '<td><span style="color:' + ltColor + ';font-weight:700;font-size:1.1rem">' + lt.avg + '%</span><small style="color:var(--text-muted)"> (' + lt.count + ' فحص)</small></td>';
+        } else {
+          html += '<td><span style="color:var(--text-muted);font-size:0.8rem">لا يوجد بيانات</span></td>';
+        }
+        
         if (isLow) {
-          html += '<td><span class="badge badge-danger">?? Low Stock</span></td>';
+          html += '<td><span class="badge badge-danger">⚠️ Low Stock</span></td>';
         } else {
           html += '<td><span class="badge badge-success">OK</span></td>';
         }
@@ -590,19 +613,27 @@ Pages.inventory = function(el) {
     // General Goods View
     html += '<div id="view-general" style="display:none">';
     html += '<div class="card"><div class="card-header"><div><h3>📦 مخزن عام - General Warehouse</h3><p>' + generalItems.length + ' items</p></div></div><div class="card-body no-pad">';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Item Name</th><th>Category</th><th>Current Qty</th><th>Min Qty</th><th>Alert</th></tr></thead><tbody>';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Item Name</th><th>Category</th><th>Current Qty</th><th>Min Qty</th><th>Life Time %</th><th>Alert</th></tr></thead><tbody>';
     
     if (generalItems.length === 0) {
-      html += '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">No general items.</td></tr>';
+      html += '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No general items.</td></tr>';
     } else {
       generalItems.forEach(function(item) {
         var isLow = item.quantity <= item.min_quantity;
         var rowStyle = isLow ? 'background:rgba(245,158,11,0.05)' : '';
+        var lt = getItemLifeTime(item.name);
         html += '<tr style="' + rowStyle + '">';
         html += '<td style="font-weight:600">' + item.name + '</td>';
         html += '<td><span class="badge badge-info">' + item.category + '</span></td>';
         html += '<td style="font-weight:700; font-size:1.1rem; color:' + (isLow ? 'var(--accent-danger)' : 'var(--text-primary)') + '">' + item.quantity + '</td>';
         html += '<td>' + item.min_quantity + '</td>';
+        
+        if (lt) {
+          var ltColor = lt.avg >= 75 ? 'var(--accent-success)' : lt.avg >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
+          html += '<td><span style="color:' + ltColor + ';font-weight:700;font-size:1.1rem">' + lt.avg + '%</span><small style="color:var(--text-muted)"> (' + lt.count + ' فحص)</small></td>';
+        } else {
+          html += '<td><span style="color:var(--text-muted);font-size:0.8rem">لا يوجد بيانات</span></td>';
+        }
         
         if (isLow) {
           html += '<td><span class="badge badge-danger">⚠️ Low Stock</span></td>';
@@ -672,6 +703,52 @@ Pages.inventory = function(el) {
     }
     html += '</tbody></table></div></div></div></div>';
 
+    // ---- Spare Parts Pending View (Warehouse) ----
+    if (isWarehouse) {
+      html += '<div id="view-spare" style="display:none">';
+      html += '<div class="card"><div class="card-header"><div><h3>⚙️ طلبات صرف قطع الغيار</h3><p>الطلبات المعتمدة والمنتظر استرجاع التالفة</p></div></div><div class="card-body no-pad">';
+      html += '<div class="table-container"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف / القسم</th><th>المعدة</th><th>القطعة</th><th>الحالة</th><th>آخر فحص جودة لها</th><th>الإجراء</th></tr></thead><tbody>';
+
+      var spareToShow = sparePartsReqs.filter(function(r) { return r.status === 'approved' || r.status === 'issued' || r.status === 'damaged_returned'; });
+      if (spareToShow.length === 0) {
+        html += '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">لا توجد طلبات معلقة لقطع الغيار</td></tr>';
+      } else {
+        spareToShow.forEach(function(r) {
+          // Find last quality check for same item name
+          var lastQC = sparePartsReqs.filter(function(x) {
+            return x.item_name === r.item_name && x.status === 'quality_checked' && x.life_time_percentage;
+          }).sort(function(a, b) { return new Date(b.quality_checked_at) - new Date(a.quality_checked_at); })[0];
+
+          var stBadge = r.status === 'approved' ? '<span class="badge badge-info">معتمد (في انتظار الصرف)</span>' :
+                        r.status === 'issued' ? '<span class="badge badge-primary">تم الصرف (في انتظار التالف)</span>' :
+                        '<span class="badge badge-warning">تم استلام التالف (في انتظار الجودة)</span>';
+
+          var lastQCHtml = lastQC ?
+            '<span style="color:var(--accent-' + (lastQC.life_time_percentage >= 75 ? 'success' : lastQC.life_time_percentage >= 50 ? 'warning' : 'danger') + ');font-weight:bold">' + lastQC.life_time_percentage + '% عمر</span> <small style="color:var(--text-muted)">(' + (lastQC.is_natural_wear ? 'طبيعي' : 'سوء استخدام') + ')</small>' :
+            '<span style="color:var(--text-muted);font-size:0.8rem">لا يوجد سجل سابق</span>';
+
+          html += '<tr>';
+          html += '<td>' + formatDate(r.created_at) + '</td>';
+          html += '<td>' + r.requested_by_name + '<br><small>' + (r.department || '') + '</small></td>';
+          html += '<td style="font-weight:600">' + (r.machine_or_vehicle || '-') + '</td>';
+          html += '<td>' + r.item_name + ' <small>(كمية: ' + r.requested_quantity + ')</small></td>';
+          html += '<td>' + stBadge + '</td>';
+          html += '<td>' + lastQCHtml + '</td>';
+          html += '<td>';
+          if (r.status === 'approved') {
+            html += '<button class="btn btn-sm btn-info" onclick="window.whIssueSpare(\'' + r.id + '\')">صرف القطعة الجديدة</button>';
+          } else if (r.status === 'issued') {
+            html += '<button class="btn btn-sm btn-warning" onclick="window.whReceiveSpare(\'' + r.id + '\')">استلام التالف</button>';
+          } else {
+            html += '<span style="color:var(--text-muted);font-size:0.8rem">تم - في انتظار الجودة</span>';
+          }
+          html += '</td>';
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table></div></div></div></div>';
+    }
+
     el.innerHTML = html;
 
     window.warehouseReceiveQuality = function(id) {
@@ -681,8 +758,8 @@ Pages.inventory = function(el) {
     };
 
     // Tab switching
-    var allTabs = ['tab-items','tab-finished','tab-general','tab-tx','tab-mr'];
-    var allViews = ['view-items','view-finished','view-general','view-tx','view-mr'];
+    var allTabs = ['tab-items','tab-finished','tab-general','tab-tx','tab-mr','tab-spare'];
+    var allViews = ['view-items','view-finished','view-general','view-tx','view-mr','view-spare'];
     function switchTab(activeTab, activeView) {
       allTabs.forEach(function(t) { var e=document.getElementById(t); if(e){e.className='btn btn-sm btn-ghost';e.style.borderColor='transparent';e.style.color='inherit';} });
       allViews.forEach(function(v) { var e=document.getElementById(v); if(e) e.style.display='none'; });
@@ -699,6 +776,38 @@ Pages.inventory = function(el) {
       else if (activeTab === 'tab-general') window.currentWarehouseTab = 'general';
     }
     allTabs.forEach(function(t,i) { var e=document.getElementById(t); if(e) e.addEventListener('click', function(){switchTab(t,allViews[i]);}); });
+
+    // Spare Parts actions
+    window.whIssueSpare = function(id) {
+      var body = '<div class="form-field"><label>رقم تسلسل القطعة الجديدة (المنصرفة) *</label><input type="text" id="wh-sp-new-num" class="form-input"></div>';
+      body += '<p style="color:var(--accent-warning);font-size:0.9rem">لن يتم إغلاق العملية إلا بعد استلام القطعة التالفة القديمة.</p>';
+      App.showModal('صرف القطعة الجديدة', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-info" id="wh-sp-issue-save">صرف القطعة</button>');
+      document.getElementById('wh-sp-issue-save').onclick = function() {
+        var newNum = document.getElementById('wh-sp-new-num').value;
+        if (!newNum) return alert('أدخل رقم القطعة الجديدة');
+        sbClient.from('spare_parts_requests').update({
+          status: 'issued', new_part_number: newNum, issued_at: new Date().toISOString(), issued_by: App.user.id
+        }).eq('id', id).then(function(res) {
+          if(res.error) return alert(res.error.message);
+          App.closeModal(); loadData(); showToast('تم صرف القطعة بنجاح', 'success');
+        });
+      };
+    };
+
+    window.whReceiveSpare = function(id) {
+      var body = '<div class="form-field"><label>رقم القطعة التالفة (المرتجعة) *</label><input type="text" id="wh-sp-old-num" class="form-input"></div>';
+      App.showModal('استلام القطعة التالفة', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-warning" id="wh-sp-rec-save">تأكيد الاستلام</button>');
+      document.getElementById('wh-sp-rec-save').onclick = function() {
+        var oldNum = document.getElementById('wh-sp-old-num').value;
+        if (!oldNum) return alert('أدخل رقم القطعة التالفة');
+        sbClient.from('spare_parts_requests').update({
+          status: 'damaged_returned', old_part_number: oldNum, returned_at: new Date().toISOString(), received_by: App.user.id
+        }).eq('id', id).then(function(res) {
+          if(res.error) return alert(res.error.message);
+          App.closeModal(); loadData(); showToast('تم استلام التالف وتحويله للجودة', 'success');
+        });
+      };
+    };
   }
 
   window.newInventoryItemModal = function() {
