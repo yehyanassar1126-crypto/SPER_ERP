@@ -727,7 +727,7 @@ Pages.ownerDashboard = function (el) {
     html += '<div class="grid-3" style="gap: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">';
 
     // HR Module
-    html += '<div onclick="App.navigateTo(\'reports\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#6366f1\'; this.style.boxShadow=\'0 12px 30px rgba(99,102,241,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'employees\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#6366f1\'; this.style.boxShadow=\'0 12px 30px rgba(99,102,241,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(99,102,241,0.1); color: #6366f1; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('users', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Human Resources (HR)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Workforce management, attendance tracking, payroll, and employee requests.</p>';
@@ -735,7 +735,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Inventory Module
-    html += '<div onclick="App.navigateTo(\'inventory\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f59e0b\'; this.style.boxShadow=\'0 12px 30px rgba(245,158,11,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'inventory\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f59e0b\'; this.style.boxShadow=\'0 12px 30px rgba(245,158,11,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(245,158,11,0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('package', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Warehouse (المخازن)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Monitor stock levels, inventory transactions, and supply shortages.</p>';
@@ -743,7 +743,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Procurement Module
-    html += '<div onclick="App.navigateTo(\'purchase-requests\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#3b82f6\'; this.style.boxShadow=\'0 12px 30px rgba(59,130,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'purchase-requests\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#3b82f6\'; this.style.boxShadow=\'0 12px 30px rgba(59,130,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(59,130,246,0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('shoppingCart', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Procurement (المشتريات)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Manage purchase requests, supplier quotations, and purchase orders.</p>';
@@ -751,7 +751,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Finance Module
-    html += '<div onclick="App.navigateTo(\'petty-cash\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#10b981\'; this.style.boxShadow=\'0 12px 30px rgba(16,185,129,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'petty-cash\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#10b981\'; this.style.boxShadow=\'0 12px 30px rgba(16,185,129,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(16,185,129,0.1); color: #10b981; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('dollarSign', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Finance (الحسابات)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Handle petty cash advances, settlements, payroll integration, and general ledger.</p>';
@@ -759,7 +759,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // IT Module
-    html += '<div onclick="App.navigateTo(\'it-support\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#8b5cf6\'; this.style.boxShadow=\'0 12px 30px rgba(139,92,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'it-tickets\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#8b5cf6\'; this.style.boxShadow=\'0 12px 30px rgba(139,92,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(139,92,246,0.1); color: #8b5cf6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('monitor', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">IT Support</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Manage system infrastructure, employee support tickets, and hardware maintenance.</p>';
@@ -767,7 +767,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Production Module
-    html += '<div onclick="App.navigateTo(\'erp-production\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#06b6d4\'; this.style.boxShadow=\'0 12px 30px rgba(6,182,212,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'erp-production\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#06b6d4\'; this.style.boxShadow=\'0 12px 30px rgba(6,182,212,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(6,182,212,0.1); color: #06b6d4; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('settings', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Production (الإنتاج)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Oversee factory lines, production orders, and daily output tracking.</p>';
@@ -775,7 +775,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Sales Module
-    html += '<div onclick="App.navigateTo(\'erp-sales\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f43f5e\'; this.style.boxShadow=\'0 12px 30px rgba(244,63,94,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'erp-sales\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f43f5e\'; this.style.boxShadow=\'0 12px 30px rgba(244,63,94,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(244,63,94,0.1); color: #f43f5e; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('shoppingBag', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Sales (المبيعات)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Monitor client orders, revenue, contracts, and product deliveries.</p>';
@@ -783,7 +783,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Planning Module
-    html += '<div onclick="App.navigateTo(\'erp-planning\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#8b5cf6\'; this.style.boxShadow=\'0 12px 30px rgba(139,92,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'erp-planning\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#8b5cf6\'; this.style.boxShadow=\'0 12px 30px rgba(139,92,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(139,92,246,0.1); color: #8b5cf6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('calendar', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Planning (التخطيط)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Strategic planning, resource allocation, and factory timeline scheduling.</p>';
@@ -791,7 +791,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Quality Module
-    html += '<div onclick="App.navigateTo(\'erp-quality\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#14b8a6\'; this.style.boxShadow=\'0 12px 30px rgba(20,184,166,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'erp-quality\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#14b8a6\'; this.style.boxShadow=\'0 12px 30px rgba(20,184,166,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(20,184,166,0.1); color: #14b8a6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('checkCircle', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Quality (الجودة)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">QC inspections, defect tracking, and factory standard compliance.</p>';
@@ -799,7 +799,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Engineering Module
-    html += '<div onclick="App.navigateTo(\'engineering\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#3b82f6\'; this.style.boxShadow=\'0 12px 30px rgba(59,130,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'engineering\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#3b82f6\'; this.style.boxShadow=\'0 12px 30px rgba(59,130,246,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(59,130,246,0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('edit3', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Engineering (الهندسية)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Engineering projects, design approvals, technical specs, and supervision workflow.</p>';
@@ -807,7 +807,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Maintenance Module
-    html += '<div onclick="App.navigateTo(\'erp-maintenance\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f97316\'; this.style.boxShadow=\'0 12px 30px rgba(249,115,22,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'erp-maintenance\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f97316\'; this.style.boxShadow=\'0 12px 30px rgba(249,115,22,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(249,115,22,0.1); color: #f97316; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('tool', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Maintenance (الصيانة)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Equipment repairs, preventative maintenance schedules, and breakdown tracking.</p>';
@@ -815,7 +815,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Logistics Module
-    html += '<div onclick="App.navigateTo(\'logistics\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#0ea5e9\'; this.style.boxShadow=\'0 12px 30px rgba(14,165,233,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'logistics\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#0ea5e9\'; this.style.boxShadow=\'0 12px 30px rgba(14,165,233,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(14,165,233,0.1); color: #0ea5e9; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('mapPin', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Logistics & Transport (النقل)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Track vehicle movements, driver assignments, and trip destinations.</p>';
