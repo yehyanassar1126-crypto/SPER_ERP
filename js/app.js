@@ -1424,6 +1424,7 @@ Pages.employees = function (el) {
     if (myLevel >= 2) roleOptions += '<option value="warehouse manager" ' + (emp && emp.role === 'warehouse manager' ? 'selected' : '') + '>Warehouse Manager (أمين مخزن)</option>';
     if (myLevel >= 4) roleOptions += '<option value="engineering manager" ' + (emp && emp.role === 'engineering manager' ? 'selected' : '') + '>Engineering Manager (مدير هندسي)</option>';
     if (myLevel >= 2) roleOptions += '<option value="engineer" ' + (emp && emp.role === 'engineer' ? 'selected' : '') + '>Engineer (مهندس)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="spare parts inspector" ' + (emp && emp.role === 'spare parts inspector' ? 'selected' : '') + '>Spare Parts Inspector (مراقب قطع غيار)</option>';
     if (myLevel >= 2) roleOptions += '<option value="technical office" ' + (emp && emp.role === 'technical office' ? 'selected' : '') + '>Technical Office (مكتب فني)</option>';
     if (myLevel >= 2) roleOptions += '<option value="it" ' + (emp && emp.role === 'it' ? 'selected' : '') + '>IT Support (دعم فني)</option>';
     if (myLevel >= 2) roleOptions += '<option value="employee" ' + (!emp || emp.role === 'employee' ? 'selected' : '') + '>Employee (موظف)</option>';
@@ -1447,6 +1448,7 @@ Pages.employees = function (el) {
       'Operations & Maintenance Manager (مدير العمليات والصيانة)', 'Facilities Manager (مدير إدارة المرافق)',
       'Civil Engineer (مهندس مدني)', 'Electrical Engineer (مهندس كهرباء)',
       'Mechanical Engineer (مهندس ميكانيكا)', 'Technical Office Engineer (مهندس مكتب فني)',
+      'Spare Parts Inspector (مراقب قطع غيار)',
       'IT Support (دعم فني)',
       'Logistics Manager (مدير حركة/نقل)', 'Driver (سائق)',
       'Safety & Security Officer (أمن وسلامة)', 'Secretary (سكرتارية)',

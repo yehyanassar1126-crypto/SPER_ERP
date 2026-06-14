@@ -5,7 +5,7 @@ Pages.spareParts = function(el) {
   var isHR = App.isHR();
   var isManager = App.isManager();
   
-  var isQuality = App.user && App.user.department === 'Quality';
+  var isSparePartsInspector = App.user && App.user.role === 'spare parts inspector' && App.user.department === 'Engineering';
   var isWarehouse = App.user && App.user.department === 'Warehouse';
   var isMaintenance = App.user && App.user.department === 'Maintenance';
   var isLogistics = App.user && App.user.department === 'Logistics';
@@ -13,7 +13,7 @@ Pages.spareParts = function(el) {
   var canRequest = true; // Any employee could potentially request, but mostly Maintenance/Logistics
   var canApprove = isManager || isOwner || isHR || isWarehouse;
   var canIssue = isWarehouse || isOwner;
-  var canCheckQuality = isQuality || isOwner;
+  var canCheckQuality = isSparePartsInspector || isOwner;
 
   var requests = [];
 
@@ -44,7 +44,7 @@ Pages.spareParts = function(el) {
     html += '<h3>Spare Parts Lifecycle (دورة قطع الغيار)</h3>';
     html += '<div style="display:flex; gap:10px">';
     html += '<button class="btn btn-outline" id="tab-reqs" style="border-color:var(--accent-primary);color:var(--accent-primary)">🔄 طلبات ومتابعة القطع</button>';
-    if (isOwner || isManager || isHR || isQuality) {
+    if (isOwner || isManager || isHR || isSparePartsInspector) {
       html += '<button class="btn btn-ghost" id="tab-reports">📊 تقارير الجودة والاستهلاك</button>';
     }
     html += '<button class="btn btn-primary" onclick="window.spNewRequest()">' + icon('plus') + ' طلب قطعة غيار</button>';
@@ -60,7 +60,7 @@ Pages.spareParts = function(el) {
 
     requests.forEach(function(req) {
       // Filter visibility based on role if needed. Let's allow view of own requests, or department's, or all if mgr/warehouse/quality
-      if (!isOwner && !isHR && !isWarehouse && !isQuality && !isManager) {
+      if (!isOwner && !isHR && !isWarehouse && !isSparePartsInspector && !isManager) {
         if (req.requested_by !== App.user.id) return; // Regular employee sees only theirs
       }
 
@@ -99,7 +99,7 @@ Pages.spareParts = function(el) {
     html += '</tbody></table></div></div>';
 
     // ---- TAB 2: Reports ----
-    if (isOwner || isManager || isHR || isQuality) {
+    if (isOwner || isManager || isHR || isSparePartsInspector) {
       html += '<div id="view-reports" style="display:none">';
       html += renderReports();
       html += '</div>';
