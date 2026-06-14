@@ -1710,8 +1710,10 @@ Pages.pettyCash = function(el) {
 // MODULE 11: IT Tickets & Support
 // ==========================================
 Pages.itTickets = function(el) {
-  var canEdit = App.user && (App.user.department === 'IT' || App.isOwner());
-  var canViewAll = canEdit || App.isHR();
+  var isIT = App.user && (App.user.department === 'IT' || App.user.role === 'it support' || App.user.role === 'it manager');
+  var canEdit = isIT; // Only IT can edit/control
+  var canControl = isIT; // Only IT can update ticket status
+  var canViewAll = isIT || App.isOwner() || (App.user && App.user.role === 'hr manager');
   var tickets = [];
 
   function loadData() {
@@ -1736,11 +1738,11 @@ Pages.itTickets = function(el) {
     }
     html += '</div>';
 
-    html += '<div class="card"><div class="card-header"><div><h3>IT Requests</h3><p>Manage hardware, software, and network issues</p></div></div><div class="card-body no-pad">';
-    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Employee</th><th>Department</th><th>Issue Type</th><th>Description</th><th>Priority</th><th>Status</th>' + (canEdit ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header"><div><h3>IT Requests</h3><p>Manage hardware, software, and network issues' + (!canControl && canViewAll ? ' <span style="color:var(--accent-warning);font-size:0.8rem">(Read-Only)</span>' : '') + '</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Employee</th><th>Department</th><th>Issue Type</th><th>Description</th><th>Priority</th><th>Status</th>' + (canControl ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
     
     if (tickets.length === 0) {
-      html += '<tr><td colspan="' + (canEdit ? '8' : '7') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No IT tickets found.</td></tr>';
+      html += '<tr><td colspan="' + (canControl ? '8' : '7') + '" style="text-align:center;padding:40px;color:var(--text-muted)">No IT tickets found.</td></tr>';
     } else {
       tickets.forEach(function(t) {
         var statusColor = 'warning'; var statusIcon = 'alertCircle';
