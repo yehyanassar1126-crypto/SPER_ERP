@@ -1380,6 +1380,9 @@ Pages.employees = function (el) {
     if (myLevel >= 3) roleOptions += '<option value="procurement manager" ' + (emp && emp.role === 'procurement manager' ? 'selected' : '') + '>Procurement Manager (مدير مشتروات)</option>';
     if (myLevel >= 2) roleOptions += '<option value="procurement specialist" ' + (emp && emp.role === 'procurement specialist' ? 'selected' : '') + '>Procurement Specialist (أخصائي مشتروات)</option>';
     if (myLevel >= 2) roleOptions += '<option value="warehouse manager" ' + (emp && emp.role === 'warehouse manager' ? 'selected' : '') + '>Warehouse Manager (أمين مخزن)</option>';
+    if (myLevel >= 4) roleOptions += '<option value="engineering manager" ' + (emp && emp.role === 'engineering manager' ? 'selected' : '') + '>Engineering Manager (مدير هندسي)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="engineer" ' + (emp && emp.role === 'engineer' ? 'selected' : '') + '>Engineer (مهندس)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="technical office" ' + (emp && emp.role === 'technical office' ? 'selected' : '') + '>Technical Office (مكتب فني)</option>';
     if (myLevel >= 2) roleOptions += '<option value="it" ' + (emp && emp.role === 'it' ? 'selected' : '') + '>IT Support (دعم فني)</option>';
     if (myLevel >= 2) roleOptions += '<option value="employee" ' + (!emp || emp.role === 'employee' ? 'selected' : '') + '>Employee (موظف)</option>';
 
@@ -1398,6 +1401,10 @@ Pages.employees = function (el) {
       'Quality Manager (مدير جودة)', 'QA Inspector (مراقب جودة)',
       'Sales Manager (مدير مبيعات)', 'Sales Representative (مندوب مبيعات)',
       'Planning Manager (مدير تخطيط)', 'Planning Specialist (أخصائي تخطيط)',
+      'Engineering Manager (مدير الإدارة الهندسية)', 'Engineering Projects Manager (مدير المشاريع الهندسية)',
+      'Operations & Maintenance Manager (مدير العمليات والصيانة)', 'Facilities Manager (مدير إدارة المرافق)',
+      'Civil Engineer (مهندس مدني)', 'Electrical Engineer (مهندس كهرباء)',
+      'Mechanical Engineer (مهندس ميكانيكا)', 'Technical Office Engineer (مهندس مكتب فني)',
       'IT Support (دعم فني)',
       'Logistics Manager (مدير حركة/نقل)', 'Driver (سائق)',
       'Safety & Security Officer (أمن وسلامة)', 'Secretary (سكرتارية)',
