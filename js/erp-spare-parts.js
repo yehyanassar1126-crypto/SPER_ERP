@@ -45,7 +45,7 @@ Pages.spareParts = function(el) {
     html += '<div style="display:flex; gap:10px">';
     html += '<button class="btn btn-outline" id="tab-reqs" style="border-color:var(--accent-primary);color:var(--accent-primary)">🔄 طلبات ومتابعة القطع</button>';
     if (isOwner || isManager || isHR || isSparePartsInspector) {
-      html += '<button class="btn btn-ghost" id="tab-reports">📊 تقارير الجودة والاستهلاك</button>';
+      html += '<button class="btn btn-ghost" id="tab-reports">📊 تقارير الاستهلاك والفحص</button>';
     }
     html += '<button class="btn btn-primary" onclick="window.spNewRequest()">' + icon('plus') + ' طلب قطعة غيار</button>';
     html += '</div></div>';
@@ -69,7 +69,7 @@ Pages.spareParts = function(el) {
       if (req.status === 'pending_approval') { statusColor = 'warning'; statusText = 'في انتظار الاعتماد'; }
       if (req.status === 'approved') { statusColor = 'info'; statusText = 'معتمد (في انتظار الصرف)'; }
       if (req.status === 'issued') { statusColor = 'primary'; statusText = 'تم الصرف (في انتظار التالف)'; }
-      if (req.status === 'damaged_returned') { statusColor = 'secondary'; statusText = 'تم تسليم التالف (في انتظار الجودة)'; }
+      if (req.status === 'damaged_returned') { statusColor = 'secondary'; statusText = 'تم تسليم التالف (في انتظار الفحص)'; }
       if (req.status === 'quality_checked') { statusColor = 'success'; statusText = 'تم الفحص والاغلاق'; }
 
       html += '<tr>';
@@ -87,7 +87,7 @@ Pages.spareParts = function(el) {
       } else if (req.status === 'issued' && canIssue) {
         html += '<button class="btn btn-sm btn-warning" onclick="window.spReceiveDamaged(\'' + req.id + '\')">استلام التالف</button>';
       } else if (req.status === 'damaged_returned' && canCheckQuality) {
-        html += '<button class="btn btn-sm btn-primary" onclick="window.spQualityCheck(\'' + req.id + '\')">فحص الجودة</button>';
+        html += '<button class="btn btn-sm btn-primary" onclick="window.spQualityCheck(\'' + req.id + '\')">فحص القطعة</button>';
       } else if (req.status === 'quality_checked') {
         html += '<button class="btn btn-sm btn-ghost" onclick="window.spViewDetails(\'' + req.id + '\')">عرض التفاصيل</button>';
       } else {
@@ -181,7 +181,7 @@ Pages.spareParts = function(el) {
     html += '</tbody></table></div></div>';
     html += '</div>';
 
-    html += '<div class="card"><div class="card-header"><h3>سجل الفحص والجودة المفصل</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>القطعة</th><th>المعدة/السيارة</th><th>تاريخ الفحص</th><th>العمر %</th><th>طبيعي/سوء استخدام</th><th>قابلة للإصلاح</th><th>سبب التلف</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header"><h3>سجل الفحص التفصيلي</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>القطعة</th><th>المعدة/السيارة</th><th>تاريخ الفحص</th><th>العمر %</th><th>طبيعي/سوء استخدام</th><th>قابلة للإصلاح</th><th>سبب التلف</th></tr></thead><tbody>';
     completedReqs.forEach(function(r) {
       html += '<tr>';
       html += '<td>' + r.item_name + '</td>';
@@ -286,9 +286,9 @@ Pages.spareParts = function(el) {
     body += '</div>';
 
     body += '<div class="form-field"><label>سبب التلف المفصل</label><textarea id="sp-reas" class="form-input" rows="2"></textarea></div>';
-    body += '<div class="form-field"><label>ملاحظات الجودة</label><textarea id="sp-notes" class="form-input" rows="2"></textarea></div>';
+    body += '<div class="form-field"><label>الملاحظات الفنية</label><textarea id="sp-notes" class="form-input" rows="2"></textarea></div>';
 
-    App.showModal('فحص جودة القطعة التالفة', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="sp-qc-save">حفظ تقرير الجودة وإغلاق العملية</button>', true);
+    App.showModal('فحص القطعة التالفة', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="sp-qc-save">حفظ تقرير الفحص وإغلاق العملية</button>', true);
     
     document.getElementById('sp-qc-save').onclick = function() {
       var lt = document.getElementById('sp-lt').value;
@@ -309,7 +309,19 @@ Pages.spareParts = function(el) {
         quality_notes: notes
       }).eq('id', id).then(function(res) {
         if(res.error) return alert(res.error.message);
-        App.closeModal(); loadData(); showToast('تم إغلاق العملية واعتماد تقرير الجودة', 'success');
+        
+        sbClient.from('spare_parts_requests').select('item_name').eq('id', id).single().then(function(spRes) {
+          if(spRes.error || !spRes.data) return;
+          var itemName = spRes.data.item_name;
+          sbClient.from('spare_parts_requests').select('life_time_percentage').eq('status', 'quality_checked').ilike('item_name', itemName).then(function(allChecks) {
+            if(allChecks.error || !allChecks.data || allChecks.data.length === 0) return;
+            var totalLife = allChecks.data.reduce(function(sum, r) { return sum + Number(r.life_time_percentage || 0); }, 0);
+            var avgLife = Math.round(totalLife / allChecks.data.length);
+            sbClient.from('inventory_items').update({ life_time_percentage: avgLife }).ilike('name', itemName).then(function() {});
+          });
+        });
+
+        App.closeModal(); loadData(); showToast('تم إغلاق العملية واعتماد التقرير الفني', 'success');
       });
     };
   };
@@ -327,14 +339,14 @@ Pages.spareParts = function(el) {
     body += '<div><b>رقم التالف:</b> ' + (req.old_part_number || '-') + '</div>';
     body += '</div>';
 
-    body += '<h4 style="color:var(--accent-primary)">تقرير الجودة</h4>';
+    body += '<h4 style="color:var(--accent-primary)">تقرير الفحص الفني</h4>';
     body += '<div class="grid-2">';
     body += '<div><b>العمر التشغيلي:</b> ' + (req.life_time_percentage || 0) + '%</div>';
     body += '<div><b>طبيعة التلف:</b> ' + (req.is_natural_wear ? '<span style="color:var(--accent-success)">طبيعي</span>' : '<span style="color:var(--accent-danger)">سوء استخدام</span>') + '</div>';
     body += '<div><b>قابل للإصلاح:</b> ' + (req.is_repairable ? 'نعم' : 'لا') + '</div>';
     body += '<div><b>نوع التلف:</b> ' + (req.damage_type || '-') + '</div>';
     body += '<div style="grid-column: span 2"><b>سبب التلف:</b> ' + (req.damage_reason || '-') + '</div>';
-    body += '<div style="grid-column: span 2"><b>ملاحظات الجودة:</b> ' + (req.quality_notes || '-') + '</div>';
+    body += '<div style="grid-column: span 2"><b>الملاحظات الفنية:</b> ' + (req.quality_notes || '-') + '</div>';
     body += '</div>';
 
     body += '</div>';

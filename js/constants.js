@@ -14,7 +14,9 @@ var SHIFTS = {
   morning: { label: 'Morning Shift', start: '08:00', end: '16:00', hours: 8,  system: '3-shift' },
   evening: { label: 'Evening Shift', start: '16:00', end: '00:00', hours: 8,  system: '3-shift' },
   // Night shift shared: 8h in 3-shift, 12h in 2-shift
-  night:   { label: 'Night Shift',   start: '00:00', end: '08:00', hours: 8,  system: '3-shift' }
+  night:   { label: 'Night Shift',   start: '00:00', end: '08:00', hours: 8,  system: '3-shift' },
+  // Administrative shift
+  admin:   { label: 'Admin Shift',   start: '09:00', end: '17:00', hours: 8,  system: '3-shift' }
 };
 
 // Helper to get the correct night shift config based on system
@@ -39,7 +41,8 @@ function getShiftsForSystem(system) {
   return [
     { key: 'morning', label: 'Morning Shift (08:00 - 16:00)' },
     { key: 'evening', label: 'Evening Shift (16:00 - 00:00)' },
-    { key: 'night',   label: 'Night Shift (00:00 - 08:00)' }
+    { key: 'night',   label: 'Night Shift (00:00 - 08:00)' },
+    { key: 'admin',   label: 'Admin Shift (09:00 - 17:00)' }
   ];
 }
 

@@ -1508,15 +1508,39 @@ Pages.employees = function (el) {
     document.getElementById('ef-shift-system').addEventListener('change', function () {
       var sys = this.value;
       var shiftSelect = document.getElementById('ef-shift');
+      var currentVal = shiftSelect.value;
       var shifts = getShiftsForSystem(sys);
       shiftSelect.innerHTML = '';
       shifts.forEach(function (s) {
         var opt = document.createElement('option');
         opt.value = s.key;
         opt.textContent = s.label;
+        if (s.key === currentVal) opt.selected = true;
         shiftSelect.appendChild(opt);
       });
     });
+
+    function autoSetShift() {
+      var r = document.getElementById('ef-role').value;
+      var d = document.getElementById('ef-dept').value;
+      var adminRoles = ['owner', 'hr manager', 'manager', 'department head', 'procurement manager', 'engineering manager', 'hr'];
+      var adminDepts = ['Administration', 'HR', 'Finance', 'Secretariat', 'Sales'];
+      var shiftSys = document.getElementById('ef-shift-system');
+      var shiftVal = document.getElementById('ef-shift');
+      
+      if (adminRoles.indexOf(r) !== -1 || adminDepts.indexOf(d) !== -1) {
+        if (shiftSys.value === '3-shift' && !emp) {
+          shiftVal.value = 'admin';
+        }
+      } else {
+        if (shiftSys.value === '3-shift' && shiftVal.value === 'admin' && !emp) {
+          shiftVal.value = 'morning';
+        }
+      }
+    }
+    document.getElementById('ef-role').addEventListener('change', autoSetShift);
+    document.getElementById('ef-dept').addEventListener('change', autoSetShift);
+    if (!emp) setTimeout(autoSetShift, 100);
 
     document.getElementById('emp-save-btn').addEventListener('click', function () {
       var insVal = document.getElementById('ef-ins').value;
@@ -1887,7 +1911,7 @@ Pages.qrCheckin = function (el) {
 
             delayMin = 0;
             var roleLC = (user.role || '').toLowerCase();
-            var isManagement = ['owner', 'hr', 'hr manager'].indexOf(roleLC) !== -1;
+            var isManagement = ['owner'].indexOf(roleLC) !== -1;
 
             if (isManagement) {
               // Management is completely exempt from delays

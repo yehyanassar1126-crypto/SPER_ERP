@@ -12,28 +12,9 @@ Pages.quality = function(el) {
   }
 
   function render() {
-    var html = '<div class="header-banner"><div><h1>إدارة الجودة (Quality Control)</h1><p>فحص المنتجات التامة وقطع الغيار المسترجعة</p></div></div>';
-    html += '<div style="display:flex;gap:10px;margin-top:20px;margin-bottom:10px;">';
-    html += '<button class="btn btn-outline" id="tab-q-prod" style="border-color:var(--accent-primary);color:var(--accent-primary)">📦 فحص المنتجات التامة</button>';
-    html += '<button class="btn btn-ghost" id="tab-q-spare">⚙️ فحص قطع الغيار التالفة</button>';
-    html += '</div>';
-    html += '<div id="quality-content">Loading Products...</div>';
-    html += '<div id="quality-spare-content" style="display:none">Loading Spare Parts...</div>';
+    var html = '<div class="header-banner"><div><h1>إدارة الجودة (Quality Control)</h1><p>فحص المنتجات التامة</p></div></div>';
+    html += '<div id="quality-content" style="margin-top:20px;">Loading Products...</div>';
     el.innerHTML = html;
-
-    // Tabs logic
-    document.getElementById('tab-q-prod').onclick = function() {
-      this.className = 'btn btn-outline'; this.style.borderColor = 'var(--accent-primary)'; this.style.color = 'var(--accent-primary)';
-      document.getElementById('tab-q-spare').className = 'btn btn-ghost'; document.getElementById('tab-q-spare').style.borderColor = 'transparent'; document.getElementById('tab-q-spare').style.color = 'inherit';
-      document.getElementById('quality-content').style.display = 'block';
-      document.getElementById('quality-spare-content').style.display = 'none';
-    };
-    document.getElementById('tab-q-spare').onclick = function() {
-      this.className = 'btn btn-outline'; this.style.borderColor = 'var(--accent-primary)'; this.style.color = 'var(--accent-primary)';
-      document.getElementById('tab-q-prod').className = 'btn btn-ghost'; document.getElementById('tab-q-prod').style.borderColor = 'transparent'; document.getElementById('tab-q-prod').style.color = 'inherit';
-      document.getElementById('quality-content').style.display = 'none';
-      document.getElementById('quality-spare-content').style.display = 'block';
-    };
 
     if (!window.SalesWorkflow) return alert('SalesWorkflow module missing!');
 
@@ -76,41 +57,6 @@ Pages.quality = function(el) {
       });
       tHtml += '</tbody></table></div>';
       document.getElementById('quality-content').innerHTML = tHtml;
-    });
-
-    // Fetch Spare Parts for QC
-    sbClient.from('spare_parts_requests').select('*').order('created_at', {ascending: false}).then(function(res) {
-      if (res.error) {
-        document.getElementById('quality-spare-content').innerHTML = '<div class="alert alert-danger">Error loading spare parts</div>';
-        return;
-      }
-      var sReqs = res.data || [];
-      var qcReqs = sReqs.filter(function(r) { return r.status === 'damaged_returned' || r.status === 'quality_checked'; });
-      
-      if (qcReqs.length === 0) {
-        document.getElementById('quality-spare-content').innerHTML = '<div class="empty-state">لا يوجد قطع غيار بانتظار فحص الجودة</div>';
-        return;
-      }
-
-      var sHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>القطعة</th><th>رقم التالف</th><th>واردة من</th><th>تاريخ الاستلام</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody>';
-      qcReqs.forEach(function(r) {
-        sHtml += '<tr>';
-        sHtml += '<td><strong style="color:var(--accent-primary)">' + r.item_name + '</strong></td>';
-        sHtml += '<td>' + (r.old_part_number || '-') + '</td>';
-        sHtml += '<td>' + (r.machine_or_vehicle || '-') + '</td>';
-        sHtml += '<td>' + formatDate(r.returned_at || r.created_at) + '</td>';
-        
-        if (r.status === 'quality_checked') {
-          sHtml += '<td><span class="badge badge-success">تم الفحص</span></td>';
-          sHtml += '<td>' + (r.life_time_percentage || 0) + '% العمر - ' + (r.is_natural_wear?'طبيعي':'سوء استخدام') + '</td>';
-        } else {
-          sHtml += '<td><span class="badge badge-warning">بانتظار الفحص</span></td>';
-          sHtml += '<td><button class="btn btn-sm btn-primary" onclick="window.qualSpareCheck(\'' + r.id + '\')">فحص وتقييم التالف</button></td>';
-        }
-        sHtml += '</tr>';
-      });
-      sHtml += '</tbody></table></div>';
-      document.getElementById('quality-spare-content').innerHTML = sHtml;
     });
   }
 
