@@ -1352,10 +1352,14 @@ Pages.purchaseRequests = function(el) {
 Pages.pettyCash = function(el) {
   var isFinance = App.user && App.user.department === 'Finance';
   var isOwner = App.isOwner();
-  var isAllowed = isFinance || isOwner || (App.user && App.user.role === 'hr manager');
+  var isHRManager = App.user && App.user.role === 'hr manager';
+  var isProcManager = App.user && App.user.department === 'Procurement' && (App.user.role === 'procurement manager' || App.user.role === 'manager');
+  var isProcEmp = App.user && App.user.department === 'Procurement' && !isProcManager;
+
+  var isAllowed = isFinance || isOwner || isHRManager || isProcManager || isProcEmp;
 
   if (!isAllowed) {
-    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to Finance and Owner.</p></div>';
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to Finance, Procurement, and Management.</p></div>';
     return;
   }
 
@@ -1381,16 +1385,16 @@ Pages.pettyCash = function(el) {
       txs = res.data || [];
       
       // Fetch users manually to avoid foreign key issues across schemas
-      sbClient.from('users').select('id, full_name').then(function(uRes) {
+      sbClient.from('users').select('id, full_name, department').then(function(uRes) {
         var userMap = {};
-        if (uRes.data) {
-          uRes.data.forEach(function(u) { userMap[u.id] = u.full_name; });
-        }
+        var allUsers = uRes.data || [];
+        allUsers.forEach(function(u) { userMap[u.id] = u; });
         txs.forEach(function(t) {
-          t.employee_name = userMap[t.employee_id] || 'Unknown';
+          t.employee_name = userMap[t.employee_id] ? userMap[t.employee_id].full_name : 'Unknown';
+          t.employee_dept = userMap[t.employee_id] ? userMap[t.employee_id].department : 'Unknown';
         });
         calculateTotals();
-        render();
+        render(allUsers);
       });
     });
   }
@@ -1424,40 +1428,72 @@ Pages.pettyCash = function(el) {
     el.innerHTML = html;
   }
 
-  function render() {
+  function render(allUsers) {
+    var isProcurementOnly = isProcManager || isProcEmp;
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<h3>Treasury & Petty Cash (الخزنة والعهد)</h3>';
     html += '<div style="display:flex; gap:10px">';
-    html += '<button class="btn btn-outline" id="tab-treasury" style="border-color:var(--accent-primary);color:var(--accent-primary)">🏦 الخزنة والبنك</button>';
-    html += '<button class="btn btn-ghost" id="tab-petty">💸 العهد (Petty Cash)</button>';
-    html += '<button class="btn btn-ghost" id="tab-checks">📑 الشيكات تحت التحصيل</button>';
+    if (!isProcurementOnly) {
+      html += '<button class="btn btn-outline" id="tab-treasury" style="border-color:var(--accent-primary);color:var(--accent-primary)">🏦 الخزنة والبنك</button>';
+      html += '<button class="btn btn-ghost" id="tab-petty">💸 العهد (Petty Cash)</button>';
+      html += '<button class="btn btn-ghost" id="tab-checks">📑 الشيكات تحت التحصيل</button>';
+    } else {
+      html += '<button class="btn btn-outline" id="tab-petty" style="border-color:var(--accent-primary);color:var(--accent-primary)">💸 العهد (Petty Cash)</button>';
+    }
     html += '</div></div>';
 
-    html += '<div style="display:flex; gap:20px; margin-bottom:20px;">';
-    html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي البنك</h4><h2 style="color:var(--accent-primary)">EGP ' + bankTotal.toLocaleString() + '</h2></div></div>';
-    html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي الخزنة (كاش)</h4><h2 style="color:var(--accent-success)">EGP ' + safeTotal.toLocaleString() + '</h2></div></div>';
-    html += '</div>';
+    if (!isProcurementOnly) {
+      html += '<div style="display:flex; gap:20px; margin-bottom:20px;">';
+      html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي البنك</h4><h2 style="color:var(--accent-primary)">EGP ' + bankTotal.toLocaleString() + '</h2></div></div>';
+      html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي الخزنة (كاش)</h4><h2 style="color:var(--accent-success)">EGP ' + safeTotal.toLocaleString() + '</h2></div></div>';
+      html += '</div>';
 
-    html += '<div id="view-treasury">';
-    html += '<div style="margin-bottom:15px"><button class="btn btn-success" onclick="window.trAddFunds()">' + icon('plus') + ' إيداع رصيد</button> <button class="btn btn-warning" style="margin-left:8px" onclick="window.trTransfer()">' + icon('refreshCw') + ' تحويل بين الحسابات</button></div>';
-    html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الطريقة</th><th>ملاحظات</th></tr></thead><tbody>';
-    var trTxs = txs.filter(function(t) { return t.type !== 'petty_cash' && t.type !== 'check_clearance' && t.method !== 'check'; });
-    trTxs.forEach(function(t) {
-      html += '<tr><td>' + formatDate(t.created_at) + '</td><td><span class="badge badge-info">' + (t.type==='deposit' ? 'إيداع' : 'تحويل') + '</span></td><td style="font-weight:bold">' + t.amount + '</td><td>' + (t.method==='safe'?'كاش':t.method) + (t.transfer_to ? ' ➡️ '+(t.transfer_to==='safe'?'كاش':t.transfer_to) : '') + '</td><td>' + (t.notes||'-') + '</td></tr>';
+      html += '<div id="view-treasury">';
+      html += '<div style="margin-bottom:15px"><button class="btn btn-success" onclick="window.trAddFunds()">' + icon('plus') + ' إيداع رصيد</button> <button class="btn btn-warning" style="margin-left:8px" onclick="window.trTransfer()">' + icon('refreshCw') + ' تحويل بين الحسابات</button></div>';
+      html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الطريقة</th><th>ملاحظات</th></tr></thead><tbody>';
+      var trTxs = txs.filter(function(t) { return t.type !== 'petty_cash' && t.type !== 'check_clearance' && t.method !== 'check'; });
+      trTxs.forEach(function(t) {
+        html += '<tr><td>' + formatDate(t.created_at) + '</td><td><span class="badge badge-info">' + (t.type==='deposit' ? 'إيداع' : 'تحويل') + '</span></td><td style="font-weight:bold">' + t.amount + '</td><td>' + (t.method==='safe'?'كاش':t.method) + (t.transfer_to ? ' ➡️ '+(t.transfer_to==='safe'?'كاش':t.transfer_to) : '') + '</td><td>' + (t.notes||'-') + '</td></tr>';
+      });
+      html += '</tbody></table></div></div>';
+    }
+
+    html += '<div id="view-petty" style="display:' + (isProcurementOnly ? 'block' : 'none') + '">';
+    
+    if (isProcManager) {
+      // Show all procurement employees and their advance status
+      var procUsers = allUsers.filter(function(u) { return u.department === 'Procurement'; });
+      html += '<div class="card" style="margin-bottom:20px"><div class="card-header"><h3>حالة العهد لموظفي المشتريات</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الموظف</th><th>استلم عهدة؟</th><th>إجمالي العهد</th></tr></thead><tbody>';
+      procUsers.forEach(function(pu) {
+        var userAdvances = txs.filter(function(t) { return t.type === 'petty_cash' && t.employee_id === pu.id; });
+        var totalAdvances = userAdvances.reduce(function(sum, t) { return sum + Number(t.amount); }, 0);
+        html += '<tr><td>' + pu.full_name + '</td><td>' + (totalAdvances > 0 ? '<span class="badge badge-success">نعم</span>' : '<span class="badge badge-danger">لا</span>') + '</td><td style="font-weight:bold">EGP ' + totalAdvances + '</td></tr>';
+      });
+      html += '</tbody></table></div></div>';
+    }
+
+    if (!isProcurementOnly) {
+      html += '<div style="margin-bottom:15px"><button class="btn btn-primary" onclick="window.trIssuePetty()">' + icon('dollarSign') + ' إصدار عهدة لموظف</button></div>';
+    }
+    
+    html += '<h3>تفاصيل حركات العهد</h3><div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف</th><th>المبلغ</th><th>طريقة الصرف</th><th>البيان</th></tr></thead><tbody>';
+    
+    var pcTxs = txs.filter(function(t) { 
+      if (t.type !== 'petty_cash') return false;
+      if (isProcEmp) return t.employee_id === App.user.id;
+      if (isProcManager) return t.employee_dept === 'Procurement';
+      return true;
     });
-    html += '</tbody></table></div></div>';
-
-    html += '<div id="view-petty" style="display:none">';
-    html += '<div style="margin-bottom:15px"><button class="btn btn-primary" onclick="window.trIssuePetty()">' + icon('dollarSign') + ' إصدار عهدة لموظف</button></div>';
-    html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف</th><th>المبلغ</th><th>طريقة الصرف</th><th>البيان</th></tr></thead><tbody>';
-    var pcTxs = txs.filter(function(t) { return t.type === 'petty_cash'; });
+    
+    if(pcTxs.length === 0) html += '<tr><td colspan="5" style="text-align:center;padding:20px">لا يوجد عهد</td></tr>';
     pcTxs.forEach(function(t) {
       var empName = t.employee_name || 'Unknown';
       html += '<tr><td>' + formatDate(t.created_at) + '</td><td>' + empName + '</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td><td>' + (t.method==='safe'?'كاش':t.method) + '</td><td>' + (t.notes||'-') + '</td></tr>';
     });
     html += '</tbody></table></div></div>';
 
-    html += '<div id="view-checks" style="display:none">';
+    if (!isProcurementOnly) {
+      html += '<div id="view-checks" style="display:none">';
     html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>ملاحظات</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>';
     var chTxs = txs.filter(function(t) { return t.method === 'check'; });
     if(chTxs.length === 0) html += '<tr><td colspan="5" style="text-align:center;padding:20px">لا يوجد شيكات</td></tr>';
@@ -1476,8 +1512,8 @@ Pages.pettyCash = function(el) {
 
     el.innerHTML = html;
 
-    var allTabs = ['tab-treasury','tab-petty','tab-checks'];
-    var allViews = ['view-treasury','view-petty','view-checks'];
+    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-petty','tab-checks'];
+    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-petty','view-checks'];
     allTabs.forEach(function(tid, idx) {
       var tabBtn = document.getElementById(tid);
       if(tabBtn) {

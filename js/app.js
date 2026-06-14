@@ -440,8 +440,7 @@ var App = {
         menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
       }
       
-      // All employees can see engineering and upload drawings (approval restricted to engineering roles)
-      var canViewEngineering = App.user && App.user.role !== 'supplier_external';
+      var canViewEngineering = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Engineering' || App.user.role === 'engineering manager' || App.user.role === 'engineer' || App.user.role === 'technical office'));
       if (canViewEngineering) {
         menu.push({ section: 'Engineering (الإدارة الهندسية)', items: [{ id: 'engineering', label: 'Projects & Designs', icon: 'edit3' }] });
       }
@@ -456,10 +455,14 @@ var App = {
       ));
 
       if (canViewMaintenance) {
-        menu.push({ section: 'Maintenance (الصيانة)', items: [{ id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' }] });
+        menu.push({ section: 'Maintenance (الصيانة)', items: [
+          { id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' },
+          { id: 'spare-parts', label: 'Spare Parts (دورة قطع الغيار)', icon: 'settings' }
+        ]});
       }
 
-      if (App.user && App.user.role !== 'supplier_external') {
+      var canViewLogistics = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Logistics' || App.user.role === 'logistics manager' || App.user.role === 'driver'));
+      if (canViewLogistics) {
         menu.push({ section: 'Transportation (النقل والحركة)', items: [{ id: 'logistics', label: 'Vehicle Movement (حركة العربيات)', icon: 'truck' }] });
       }
 
@@ -551,6 +554,7 @@ var App = {
       'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' },
       'engineering': { title: 'Engineering (الإدارة الهندسية)', sub: 'Technical specs & supervision' },
       'erp-maintenance': { title: 'Maintenance (الصيانة)', sub: 'Equipment repairs & preventative maintenance' },
+      'spare-parts': { title: 'Spare Parts Lifecycle (دورة قطع الغيار)', sub: 'Manage spare parts requests, returns, and quality checks' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
       'logistics': { title: 'Transportation & Logistics', sub: 'Manage driver and vehicle movements' }
@@ -649,6 +653,7 @@ var App = {
       case 'erp-quality': Pages.quality(el); break;
       case 'engineering': Pages.engineering(el); break;
       case 'erp-maintenance': Pages.maintenance(el); break;
+      case 'spare-parts': Pages.spareParts(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
       case 'logistics': Pages.logistics(el); break;
