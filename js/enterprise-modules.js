@@ -521,15 +521,11 @@ Pages.inventory = function(el) {
     }
     html += '</div>';
 
-    // Helper: get average life_time_percentage from quality-checked spare parts for a given item name
-    function getItemLifeTime(itemName) {
-      var matches = sparePartsReqs.filter(function(r) {
-        return r.status === 'quality_checked' && r.item_name && r.life_time_percentage &&
-               r.item_name.toLowerCase().trim() === itemName.toLowerCase().trim();
-      });
-      if (matches.length === 0) return null;
-      var avg = matches.reduce(function(s, r) { return s + Number(r.life_time_percentage); }, 0) / matches.length;
-      return { avg: Math.round(avg), count: matches.length };
+    // Helper: render life_time_percentage badge from DB column
+    function lifeTimeBadge(lt) {
+      if (lt === null || lt === undefined) return '<span style="color:var(--text-muted);font-size:0.8rem">لا يوجد بيانات</span>';
+      var ltColor = lt >= 75 ? 'var(--accent-success)' : lt >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
+      return '<span style="color:' + ltColor + ';font-weight:700;font-size:1.1rem">' + Math.round(lt) + '%</span>';
     }
 
     // Raw Items View
@@ -543,30 +539,17 @@ Pages.inventory = function(el) {
       rawItems.forEach(function(item) {
         var isLow = item.quantity <= item.min_quantity;
         var rowStyle = isLow ? 'background:rgba(245,158,11,0.05)' : '';
-        var lt = getItemLifeTime(item.name);
         html += '<tr style="' + rowStyle + '">';
         html += '<td style="font-weight:600">' + item.name + '</td>';
         html += '<td><span class="badge badge-info">' + item.category + '</span></td>';
         html += '<td style="font-weight:700; font-size:1.1rem; color:' + (isLow ? 'var(--accent-danger)' : 'var(--text-primary)') + '">' + item.quantity + '</td>';
         html += '<td>' + item.min_quantity + '</td>';
-        
-        if (lt) {
-          var ltColor = lt.avg >= 75 ? 'var(--accent-success)' : lt.avg >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
-          html += '<td><span style="color:' + ltColor + ';font-weight:700;font-size:1.1rem">' + lt.avg + '%</span><small style="color:var(--text-muted)"> (' + lt.count + ' فحص)</small></td>';
-        } else {
-          html += '<td><span style="color:var(--text-muted);font-size:0.8rem">لا يوجد بيانات</span></td>';
-        }
-        
-        if (isLow) {
-          html += '<td><span class="badge badge-danger">⚠️ Low Stock</span></td>';
-        } else {
-          html += '<td><span class="badge badge-success">OK</span></td>';
-        }
-        
+        html += '<td>' + lifeTimeBadge(item.life_time_percentage) + '</td>';
+        html += '<td>' + (isLow ? '<span class="badge badge-danger">⚠️ Low Stock</span>' : '<span class="badge badge-success">OK</span>') + '</td>';
         html += '</tr>';
       });
     }
-    html += '</tbody></table></div></div></div></div>';
+    html += '</tbody></table></div></div></div></div>';;
 
     // Finished Goods View
     html += '<div id="view-finished" style="display:none">';
@@ -621,26 +604,13 @@ Pages.inventory = function(el) {
       generalItems.forEach(function(item) {
         var isLow = item.quantity <= item.min_quantity;
         var rowStyle = isLow ? 'background:rgba(245,158,11,0.05)' : '';
-        var lt = getItemLifeTime(item.name);
         html += '<tr style="' + rowStyle + '">';
         html += '<td style="font-weight:600">' + item.name + '</td>';
         html += '<td><span class="badge badge-info">' + item.category + '</span></td>';
         html += '<td style="font-weight:700; font-size:1.1rem; color:' + (isLow ? 'var(--accent-danger)' : 'var(--text-primary)') + '">' + item.quantity + '</td>';
         html += '<td>' + item.min_quantity + '</td>';
-        
-        if (lt) {
-          var ltColor = lt.avg >= 75 ? 'var(--accent-success)' : lt.avg >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
-          html += '<td><span style="color:' + ltColor + ';font-weight:700;font-size:1.1rem">' + lt.avg + '%</span><small style="color:var(--text-muted)"> (' + lt.count + ' فحص)</small></td>';
-        } else {
-          html += '<td><span style="color:var(--text-muted);font-size:0.8rem">لا يوجد بيانات</span></td>';
-        }
-        
-        if (isLow) {
-          html += '<td><span class="badge badge-danger">⚠️ Low Stock</span></td>';
-        } else {
-          html += '<td><span class="badge badge-success">OK</span></td>';
-        }
-        
+        html += '<td>' + lifeTimeBadge(item.life_time_percentage) + '</td>';
+        html += '<td>' + (isLow ? '<span class="badge badge-danger">⚠️ Low Stock</span>' : '<span class="badge badge-success">OK</span>') + '</td>';
         html += '</tr>';
       });
     }

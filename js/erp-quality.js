@@ -161,7 +161,34 @@ Pages.quality = function(el) {
         quality_notes: notes
       }).eq('id', id).then(function(res) {
         if(res.error) return alert(res.error.message);
-        App.closeModal(); render(); showToast('تم إضافة فحص الجودة لقطعة الغيار بنجاح', 'success');
+
+        // Auto-update life_time_percentage in inventory_items for this item name
+        // 1. Get the spare part request to know item_name
+        sbClient.from('spare_parts_requests').select('item_name').eq('id', id).single().then(function(spRes) {
+          if(spRes.error || !spRes.data) return;
+          var itemName = spRes.data.item_name;
+
+          // 2. Fetch all completed quality checks for this item to recalculate average
+          sbClient.from('spare_parts_requests')
+            .select('life_time_percentage')
+            .eq('status', 'quality_checked')
+            .ilike('item_name', itemName)
+            .then(function(allChecks) {
+              if(allChecks.error || !allChecks.data || allChecks.data.length === 0) return;
+              var totalLife = allChecks.data.reduce(function(sum, r) { return sum + Number(r.life_time_percentage || 0); }, 0);
+              var avgLife = Math.round(totalLife / allChecks.data.length);
+
+              // 3. Update inventory_items where name matches
+              sbClient.from('inventory_items')
+                .update({ life_time_percentage: avgLife })
+                .ilike('name', itemName)
+                .then(function() {
+                  // Done silently
+                });
+            });
+        });
+
+        App.closeModal(); render(); showToast('تم إضافة فحص الجودة وتحديث نسبة العمر في المخزن', 'success');
       });
     };
   };
