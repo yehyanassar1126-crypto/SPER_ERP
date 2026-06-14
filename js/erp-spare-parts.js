@@ -11,7 +11,7 @@ Pages.spareParts = function(el) {
   var isLogistics = App.user && App.user.department === 'Logistics';
 
   var canRequest = true; // Any employee could potentially request, but mostly Maintenance/Logistics
-  var canApprove = isManager || isOwner || isHR;
+  var canApprove = isManager || isOwner || isHR || isWarehouse;
   var canIssue = isWarehouse || isOwner;
   var canCheckQuality = isQuality || isOwner;
 
