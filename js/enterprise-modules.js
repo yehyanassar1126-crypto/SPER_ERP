@@ -1509,6 +1509,7 @@ Pages.pettyCash = function(el) {
       html += '</td></tr>';
     });
     html += '</tbody></table></div></div>';
+    } // End if (!isProcurementOnly)
 
     el.innerHTML = html;
 
