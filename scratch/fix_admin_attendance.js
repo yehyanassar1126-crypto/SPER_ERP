@@ -22,8 +22,7 @@ async function run() {
 
   const { data: attendance, error: attErr } = await sbClient.from('attendance')
     .select('*')
-    .in('employee_id', adminUserIds)
-    .gte('date', '2026-06-01');
+    .in('employee_id', adminUserIds);
 
   if (attErr) { console.error(attErr); return; }
 

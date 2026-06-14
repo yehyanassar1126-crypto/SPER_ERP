@@ -393,7 +393,82 @@ const ARABIC_DICT = {
   "Warehouse Type": "نوع المخزن",
 
   "Procurement": "المشتريات",
-  "Purchase Requests": "طلبات الشراء"
+  "Purchase Requests": "طلبات الشراء",
+
+  // Shifts & Scheduling
+  "Admin Shift": "الشيفت الإداري",
+  "Admin Shift (09:00 - 17:00)": "الشيفت الإداري (09:00 - 17:00)",
+  "Morning Shift": "الوردية الصباحية",
+  "Evening Shift": "الوردية المسائية",
+  "Night Shift": "الوردية الليلية",
+  "Day Shift": "وردية النهار",
+  "Shift System *": "نظام الورديات *",
+
+  // Spare Parts Inspector
+  "Spare Parts Inspector": "مراقب قطع غيار",
+  "Spare Parts Inspector (مراقب قطع غيار)": "مراقب قطع غيار",
+  "spare parts inspector": "مراقب قطع غيار",
+  "Spare Parts Lifecycle (دورة قطع الغيار)": "دورة قطع الغيار",
+  "Inspection Reports": "تقارير الفحص",
+  "Technical Notes": "الملاحظات الفنية",
+  "Technical Report": "التقرير الفني",
+  "Damage Type": "نوع التلف",
+  "Natural Wear": "تلف طبيعي",
+  "Misuse": "سوء استخدام",
+  "Manufacturing Defect": "عيب تصنيع",
+  "Life Time %": "نسبة العمر التشغيلي %",
+  "Repairable": "قابل للإصلاح",
+  "Not Repairable": "غير قابل للإصلاح (إعدام)",
+  "Damage Reason": "سبب التلف",
+  "Inspect Part": "فحص القطعة",
+  "Inspection Closed": "تم الفحص والإغلاق",
+  "Awaiting Inspection": "في انتظار الفحص",
+
+  // Treasury & Petty Cash
+  "Treasury & Petty Cash": "الخزنة والعهد",
+  "Bank Balance": "رصيد البنك",
+  "Safe Balance": "رصيد الخزنة",
+  "Deposit": "إيداع",
+  "Transfer": "تحويل",
+  "Issue Petty Cash": "صرف عهدة",
+  "Purchase Settlements": "تسويات الشراء",
+  "Deduct from Advance": "خصم من العهدة",
+  "Independent Cash": "صرف كاش مستقل",
+  "Employee Advance Balance": "رصيد عهدة الموظف",
+  "Pending Finance": "في انتظار تسوية الحسابات",
+  "Settlement": "تسوية",
+
+  // Purchase Workflow Statuses
+  "pending_approval": "في انتظار الاعتماد",
+  "approved": "معتمد",
+  "pending_finance": "في انتظار تسوية الحسابات",
+  "purchased": "تم الشراء",
+  "issued": "تم الصرف",
+  "damaged_returned": "تم تسليم التالف",
+  "quality_checked": "تم الفحص والإغلاق",
+
+  // Roles
+  "owner": "المالك / المدير العام",
+  "hr manager": "مدير موارد بشرية",
+  "manager": "مدير إدارة",
+  "supervisor": "مشرف",
+  "procurement manager": "مدير مشتروات",
+  "procurement specialist": "أخصائي مشتروات",
+  "warehouse manager": "أمين مخزن",
+  "engineering manager": "مدير هندسي",
+  "engineer": "مهندس",
+  "technical office": "مكتب فني",
+  "it": "دعم فني",
+
+  // Quality (Products only)
+  "Quality Control": "الجودة",
+  "Product Inspection": "فحص المنتجات التامة",
+  "Accept": "مطابق",
+  "Not Accept": "غير مطابق",
+
+  // Engineering
+  "Engineering (الإدارة الهندسية)": "الإدارة الهندسية",
+  "Projects & Designs": "المشاريع والرسومات"
 };
 
 // Set Arabic as default language
