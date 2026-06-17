@@ -67,28 +67,30 @@ Pages.sales = function(el) {
 
       var tHtml = '<div class="table-responsive"><table class="data-table"><thead><tr>'
         + '<th>تاريخ الطلب</th><th>اسم العميل</th><th>المنتج المطلوب</th>'
-        + '<th>الكمية المطلوبة</th><th>الكمية المتاحة</th>'
-        + '<th>قرار العميل</th><th>تاريخ التسليم المطلوب</th>'
+        + '<th>الكمية</th><th>السعر الإجمالي</th><th>المدفوع</th><th>المتبقي</th>'
+        + '<th>طريقة السداد</th>'
+        + '<th>تاريخ التسليم</th>'
         + '<th>الحالة</th><th>إجراءات</th>'
         + '</tr></thead><tbody>';
 
       orders.forEach(function(o) {
+        var totalAmt = o.total_amount || 0;
+        var paidAmt = o.paid_amount || 0;
+        var remainingAmt = o.remaining_amount || totalAmt;
+        var payMethodMap = { 'cash': 'نقدي', 'check': 'شيك', 'bank': 'تحويل بنكي', 'credit': 'آجل' };
+        var pm = o.payment_method ? payMethodMap[o.payment_method] || o.payment_method : '-';
+
         tHtml += '<tr>';
         tHtml += '<td>' + formatDate(o.created_at) + '</td>';
         tHtml += '<td><strong>' + o.customer_name + '</strong></td>';
         tHtml += '<td>' + o.product_name + '</td>';
-        tHtml += '<td>' + o.quantity_requested + '</td>';
-        tHtml += '<td>' + (o.quantity_available !== null ? '<span style="color:var(--accent-primary);font-weight:bold">' + o.quantity_available + '</span>' : '-') + '</td>';
+        tHtml += '<td>مطلوب: ' + o.quantity_requested + '<br>متاح: ' + (o.quantity_available !== null ? '<span style="color:var(--accent-primary);font-weight:bold">' + o.quantity_available + '</span>' : '-') + '</td>';
+        tHtml += '<td><strong style="color:var(--accent-primary)">EGP ' + totalAmt + '</strong></td>';
+        tHtml += '<td><strong style="color:var(--accent-success)">EGP ' + paidAmt + '</strong></td>';
+        tHtml += '<td><strong style="color:var(--accent-danger)">EGP ' + remainingAmt + '</strong></td>';
+        tHtml += '<td><span class="badge badge-info">' + pm + '</span></td>';
 
-        // Customer decision column
-        var decisionBadge = '-';
-        if (o.customer_decision === 'partial') {
-          decisionBadge = '<span style="padding:3px 8px;border-radius:4px;background:#22c55e20;color:#22c55e;font-size:0.75rem;font-weight:bold">✅ جزئي + انتظار</span>';
-        } else if (o.customer_decision === 'full_wait') {
-          decisionBadge = '<span style="padding:3px 8px;border-radius:4px;background:#3b82f620;color:#3b82f6;font-size:0.75rem;font-weight:bold">⏳ انتظار الكمية كاملة</span>';
-        }
-        tHtml += '<td>' + decisionBadge + '</td>';
-
+        // Customer decision column removed to save space, integrated into actions/status if needed
         tHtml += '<td>' + (o.delivery_date_requested || '-') + '</td>';
         tHtml += '<td>' + SalesWorkflow.getStatusBadge(o.status) + '</td>';
 
@@ -133,18 +135,26 @@ Pages.sales = function(el) {
     b += '<div class="form-group"><label>اسم العميل *</label><input type="text" id="so-cust" class="form-input"></div>';
     b += '<div class="form-group"><label>المنتج المطلوب *</label><input type="text" id="so-prod" class="form-input"></div>';
     b += '<div class="form-group"><label>الكمية المطلوبة *</label><input type="number" id="so-qty" class="form-input" min="1"></div>';
-    b += '<div class="form-group"><label>تاريخ التسليم المطلوب *</label><input type="date" id="so-date" class="form-input"></div>';
+    b += '<div class="form-group"><label>سعر الوحدة (EGP) *</label><input type="number" id="so-price" class="form-input" min="0"></div>';
+    b += '<div class="form-group"><label>طريقة السداد *</label><select id="so-paymethod" class="form-input"><option value="cash">نقدي (Cash)</option><option value="check">شيك (Cheque)</option><option value="bank">تحويل بنكي (Bank Transfer)</option><option value="credit">آجل (Credit)</option></select></div>';
+    b += '<div class="form-group"><label>تاريخ الاستحقاق / الدفع (Due Date)</label><input type="date" id="so-due" class="form-input"></div>';
+    b += '<div class="form-group" style="grid-column: span 2;"><label>تاريخ التسليم المطلوب للعميل *</label><input type="date" id="so-date" class="form-input"></div>';
     b += '</div>';
-    App.showModal('إنشاء طلب عميل جديد', b, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" onclick="window.saveSalesOrder()">حفظ وإرسال للتخطيط</button>');
+    App.showModal('إنشاء فاتورة / طلب مبيعات', b, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" onclick="window.saveSalesOrder()">حفظ وإرسال للتخطيط</button>');
   };
 
   window.saveSalesOrder = function() {
     var cust = document.getElementById('so-cust').value.trim();
     var prod = document.getElementById('so-prod').value.trim();
     var qty = document.getElementById('so-qty').value;
+    var price = document.getElementById('so-price').value;
+    var paymethod = document.getElementById('so-paymethod').value;
+    var duedate = document.getElementById('so-due').value;
     var date = document.getElementById('so-date').value;
 
-    if (!cust || !prod || !qty || !date) return alert('يرجى إدخال جميع البيانات');
+    if (!cust || !prod || !qty || !price || !date) return alert('يرجى إدخال جميع البيانات الأساسية والمالية');
+
+    var totalAmt = Number(qty) * Number(price);
 
     var btn = document.querySelector('.modal-footer .btn-primary');
     if (btn) { btn.disabled = true; btn.innerHTML = 'جاري الإرسال...'; }
@@ -155,6 +165,12 @@ Pages.sales = function(el) {
       quantity_requested: Number(qty),
       delivery_date_requested: date,
       status: 'New Request',
+      total_amount: totalAmt,
+      paid_amount: 0,
+      remaining_amount: totalAmt,
+      payment_method: paymethod,
+      due_date: duedate || null,
+      payment_status: 'unpaid',
       created_by: App.user.id
     }).then(function(res) {
       if (res.error) {

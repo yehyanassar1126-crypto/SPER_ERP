@@ -1523,12 +1523,17 @@ Pages.pettyCash = function(el) {
       Promise.all([
         sbClient.from('users').select('id, full_name, department'),
         sbClient.from('purchase_requests').select('*, purchase_orders(*)').eq('status', 'pending_finance'),
-        sbClient.from('sales_workflow_orders').select('*').eq('status', 'Pending Payment')
+        sbClient.from('sales_workflow_orders').select('*').order('created_at', {ascending: false}),
+        sbClient.from('supplier_orders').select('*, suppliers(company_name)').order('created_at', {ascending: false}),
+        sbClient.from('finance_payments').select('*').order('payment_date', {ascending: false})
       ]).then(function(uRes) {
         var userMap = {};
         var allUsers = uRes[0].data || [];
         var pendingReqs = uRes[1].data || [];
-        var pendingSales = uRes[2] ? (uRes[2].data || []) : [];
+        var allSales = uRes[2] ? (uRes[2].data || []) : [];
+        var allPurchases = uRes[3] ? (uRes[3].data || []) : [];
+        var allPayments = uRes[4] ? (uRes[4].data || []) : [];
+        var pendingSales = allSales.filter(function(s) { return s.status === 'Pending Payment' || (s.remaining_amount > 0 && s.status !== 'Delivered'); });
         
         allUsers.forEach(function(u) { userMap[u.id] = u; });
         txs.forEach(function(t) {
@@ -1536,7 +1541,7 @@ Pages.pettyCash = function(el) {
           t.employee_dept = userMap[t.employee_id] ? userMap[t.employee_id].department : 'Unknown';
         });
         calculateTotals();
-        render(allUsers, pendingReqs, pendingSales);
+        render(allUsers, pendingReqs, pendingSales, allSales, allPurchases, allPayments);
       });
     });
   }
@@ -1570,17 +1575,19 @@ Pages.pettyCash = function(el) {
     el.innerHTML = html;
   }
 
-  function render(allUsers, pendingReqs, pendingSales) {
+  function render(allUsers, pendingReqs, pendingSales, allSales, allPurchases, allPayments) {
     var isProcurementOnly = isProcManager || isProcEmp;
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<h3>Treasury & Petty Cash (الخزنة والعهد)</h3>';
     html += '<div style="display:flex; gap:10px">';
     if (!isProcurementOnly) {
       html += '<button class="btn btn-outline" id="tab-treasury" style="border-color:var(--accent-primary);color:var(--accent-primary)">🏦 الخزنة والبنك</button>';
+      html += '<button class="btn btn-ghost" id="tab-sales-payments">💳 مبيعات بانتظار التحصيل (' + (pendingSales ? pendingSales.length : 0) + ')</button>';
+      html += '<button class="btn btn-ghost" id="tab-finance-req">🛒 تسويات الشراء (' + (pendingReqs ? pendingReqs.length : 0) + ')</button>';
+      html += '<button class="btn btn-ghost" id="tab-balances">👥 حسابات العملاء والموردين</button>';
+      html += '<button class="btn btn-ghost" id="tab-reports">📊 التقارير المالية</button>';
       html += '<button class="btn btn-ghost" id="tab-petty">💸 العهد (Petty Cash)</button>';
       html += '<button class="btn btn-ghost" id="tab-checks">📑 الشيكات تحت التحصيل</button>';
-      html += '<button class="btn btn-ghost" id="tab-finance-req">🛒 تسويات الشراء (' + (pendingReqs ? pendingReqs.length : 0) + ')</button>';
-      html += '<button class="btn btn-ghost" id="tab-sales-payments">💳 مدفوعات المبيعات (' + (pendingSales ? pendingSales.length : 0) + ')</button>';
     } else {
       html += '<button class="btn btn-outline" id="tab-petty" style="border-color:var(--accent-primary);color:var(--accent-primary)">💸 العهد (Petty Cash)</button>';
     }
@@ -1720,14 +1727,71 @@ Pages.pettyCash = function(el) {
           html += '<td><button class="btn btn-sm btn-success" onclick="window.trReceiveSalesPayment(\'' + ps.id + '\', \'' + ps.customer_name + '\')">تأكيد استلام المبلغ</button></td></tr>';
         });
         html += '</tbody></table></div>';
-      }
-      html += '</div></div></div>';
+      // --- Balances View ---
+      var custMap = {}, suppMap = {};
+      allSales.forEach(function(s) {
+        var n = s.customer_name;
+        if(!custMap[n]) custMap[n] = {name:n, invoices:0, total:0, paid:0, remaining:0, unpaid_count:0};
+        custMap[n].invoices++;
+        custMap[n].total += (s.total_amount || 0);
+        custMap[n].paid += (s.paid_amount || 0);
+        custMap[n].remaining += ((s.total_amount||0) - (s.paid_amount||0));
+        if(s.payment_status !== 'paid') custMap[n].unpaid_count++;
+      });
+      allPurchases.forEach(function(p) {
+        var n = (p.suppliers && p.suppliers.company_name) ? p.suppliers.company_name : 'مورد غير معروف';
+        if(!suppMap[n]) suppMap[n] = {name:n, invoices:0, total:0, paid:0, remaining:0, unpaid_count:0};
+        suppMap[n].invoices++;
+        suppMap[n].total += (p.total_amount || 0);
+        suppMap[n].paid += (p.paid_amount || 0);
+        suppMap[n].remaining += ((p.total_amount||0) - (p.paid_amount||0));
+        if(p.payment_status !== 'paid') suppMap[n].unpaid_count++;
+      });
+
+      html += '<div id="view-balances" style="display:none">';
+      html += '<div style="display:flex; gap:20px;">';
+      
+      // Customers
+      html += '<div class="card" style="flex:1"><div class="card-header"><h3>👥 حسابات العملاء</h3></div><div class="card-body no-pad"><div class="table-responsive"><table class="data-table"><thead><tr><th>العميل</th><th>مبيعات</th><th>مدفوع</th><th>مديونية</th><th>فواتير متأخرة</th></tr></thead><tbody>';
+      Object.values(custMap).forEach(function(c) {
+        html += '<tr><td><strong>' + c.name + '</strong></td><td>' + c.total + '</td><td style="color:var(--accent-success)">' + c.paid + '</td><td style="color:var(--accent-danger);font-weight:bold">' + c.remaining + '</td><td>' + c.unpaid_count + '</td></tr>';
+      });
+      if(Object.keys(custMap).length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد بيانات</td></tr>';
+      html += '</tbody></table></div></div></div>';
+
+      // Suppliers
+      html += '<div class="card" style="flex:1"><div class="card-header"><h3>🏢 حسابات الموردين</h3></div><div class="card-body no-pad"><div class="table-responsive"><table class="data-table"><thead><tr><th>المورد</th><th>مشتريات</th><th>مسدد</th><th>مستحقات (علينا)</th><th>فواتير متأخرة</th></tr></thead><tbody>';
+      Object.values(suppMap).forEach(function(s) {
+        html += '<tr><td><strong>' + s.name + '</strong></td><td>' + s.total + '</td><td style="color:var(--accent-success)">' + s.paid + '</td><td style="color:var(--accent-danger);font-weight:bold">' + s.remaining + '</td><td>' + s.unpaid_count + '</td></tr>';
+      });
+      if(Object.keys(suppMap).length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد بيانات</td></tr>';
+      html += '</tbody></table></div></div></div>';
+
+      html += '</div></div>'; // end view-balances
+
+      // --- Reports View ---
+      html += '<div id="view-reports" style="display:none">';
+      html += '<div class="card"><div class="card-header"><h3>📊 التقارير المالية (سجل المدفوعات)</h3></div><div class="card-body no-pad">';
+      html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>طريقة السداد</th><th>المبلغ</th><th>مرجع</th><th>بواسطة</th></tr></thead><tbody>';
+      allPayments.forEach(function(pmt) {
+        var uName = allUsers.find(function(u){return u.id === pmt.created_by;});
+        uName = uName ? uName.full_name : '-';
+        html += '<tr><td>' + formatDate(pmt.payment_date) + '</td>';
+        html += '<td><span class="badge badge-' + (pmt.invoice_type==='sales'?'success':'warning') + '">' + (pmt.invoice_type==='sales'?'مبيعات (تحصيل)':'مشتريات (سداد)') + '</span></td>';
+        html += '<td>' + pmt.payment_method + '</td>';
+        html += '<td><strong>EGP ' + pmt.amount + '</strong></td>';
+        html += '<td>' + (pmt.reference_number || '-') + '</td>';
+        html += '<td>' + uName + '</td></tr>';
+      });
+      if(allPayments.length === 0) html += '<tr><td colspan="6" style="text-align:center">لا يوجد بيانات</td></tr>';
+      html += '</tbody></table></div>';
+      html += '</div></div></div>'; // end view-reports
     }
 
     el.innerHTML = html;
 
-    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-petty','tab-checks', 'tab-finance-req', 'tab-sales-payments'];
-    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-petty','view-checks', 'view-finance-req', 'view-sales-payments'];
+    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-petty','tab-checks', 'tab-finance-req', 'tab-sales-payments', 'tab-balances', 'tab-reports'];
+    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-petty','view-checks', 'view-finance-req', 'view-sales-payments', 'view-balances', 'view-reports'];
     allTabs.forEach(function(tid, idx) {
       var tabBtn = document.getElementById(tid);
       if(tabBtn) {
@@ -1742,24 +1806,60 @@ Pages.pettyCash = function(el) {
   }
 
   window.trReceiveSalesPayment = function(id, customerName) {
-    var amtStr = prompt('كم المبلغ الذي تم استلامه من العميل (' + customerName + ')؟');
-    if (amtStr === null) return;
-    var amt = Number(amtStr);
-    if (!amt || amt <= 0) return alert('مبلغ غير صحيح');
+    sbClient.from('sales_workflow_orders').select('total_amount, paid_amount, remaining_amount, payment_status').eq('id', id).single().then(function(sRes) {
+      if (sRes.error) return alert('خطأ في جلب بيانات الفاتورة');
+      var o = sRes.data;
+      var remaining = o.remaining_amount || o.total_amount || 0;
+      
+      var b = '<div class="form-grid">';
+      b += '<div class="form-group"><label>إجمالي الفاتورة</label><input type="text" class="form-input" disabled value="EGP ' + (o.total_amount||0) + '"></div>';
+      b += '<div class="form-group"><label>المتبقي سداده</label><input type="text" class="form-input" disabled value="EGP ' + remaining + '"></div>';
+      b += '<div class="form-group"><label>المبلغ المستلم (EGP) *</label><input type="number" id="pay-amt" class="form-input" value="' + remaining + '" max="' + remaining + '"></div>';
+      b += '<div class="form-group"><label>طريقة الدفع *</label><select id="pay-method" class="form-input"><option value="cash">نقدي (خزنة)</option><option value="bank">تحويل بنكي</option><option value="check">شيك</option></select></div>';
+      b += '<div class="form-group" style="grid-column: span 2;"><label>رقم المرجع (رقم الشيك أو التحويل)</label><input type="text" id="pay-ref" class="form-input"></div>';
+      b += '</div>';
 
-    var method = confirm('هل تم الاستلام كاش في الخزنة؟ (اضغط Cancel إذا تم إيداع بنكي)') ? 'safe' : 'bank';
-    
-    // Add to treasury
-    sbClient.from('finance_treasury_tx').insert({
-      type: 'deposit', method: method, amount: amt, notes: 'متحصلات مبيعات - أوردر للعميل ' + customerName, created_by: App.user.id
-    }).then(function(res) {
-      if(res.error) return alert(res.error.message);
-      // Update sales order status
-      if (window.SalesWorkflow) {
-        window.SalesWorkflow.updateStatus(id, 'Paid - Awaiting Pickup', { total_amount: amt }, loadData);
-      } else {
-        sbClient.from('sales_workflow_orders').update({status: 'Paid - Awaiting Pickup', total_amount: amt}).eq('id', id).then(loadData);
-      }
+      App.showModal('تسجيل دفعة للعميل: ' + customerName, b, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-success" id="pay-save">حفظ الدفعة</button>');
+
+      document.getElementById('pay-save').onclick = function() {
+        var amt = Number(document.getElementById('pay-amt').value);
+        var method = document.getElementById('pay-method').value;
+        var ref = document.getElementById('pay-ref').value;
+
+        if (!amt || amt <= 0 || amt > remaining) return alert('مبلغ غير صحيح');
+
+        var btn = document.getElementById('pay-save');
+        btn.disabled = true; btn.innerHTML = 'جاري الحفظ...';
+
+        var newPaid = (o.paid_amount || 0) + amt;
+        var newRemaining = (o.total_amount || 0) - newPaid;
+        var newPayStatus = newRemaining <= 0 ? 'paid' : 'partial';
+
+        // 1. Insert into finance_payments
+        sbClient.from('finance_payments').insert({
+          invoice_type: 'sales', invoice_id: id, amount: amt, payment_method: method, reference_number: ref, created_by: App.user.id
+        }).then(function() {
+          // 2. Add to treasury (if cash or bank)
+          var trMethod = method === 'cash' ? 'safe' : method;
+          var trStatus = method === 'check' ? 'pending_clearance' : 'completed';
+          sbClient.from('finance_treasury_tx').insert({
+            type: 'deposit', method: trMethod, amount: amt, notes: 'دفعة من العميل ' + customerName + (ref ? ' - مرجع: ' + ref : ''), status: trStatus, created_by: App.user.id
+          }).then(function() {
+            // 3. Update Sales Order
+            var updateData = {
+              paid_amount: newPaid,
+              remaining_amount: newRemaining,
+              payment_status: newPayStatus
+            };
+            if (newPayStatus === 'paid') updateData.status = 'Paid - Awaiting Pickup';
+
+            sbClient.from('sales_workflow_orders').update(updateData).eq('id', id).then(function() {
+              App.closeModal();
+              loadData();
+            });
+          });
+        });
+      };
     });
   };
 
