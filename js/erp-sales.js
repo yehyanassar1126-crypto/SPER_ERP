@@ -112,7 +112,10 @@ Pages.sales = function(el) {
         } else if (o.status === 'Ready For Delivery' || o.status === 'Ready For Customer Delivery' || o.status === 'Received by Warehouse') {
           actions += '<button class="btn btn-sm btn-primary" onclick="window.salesTransferToFinance(\'' + o.id + '\')">💳 تحويل للحسابات (للدفع)</button>';
         } else if (o.status === 'Pending Payment') {
+          actions += '<div style="display:flex;flex-direction:column;gap:4px">';
           actions += '<span style="color:var(--accent-warning);font-size:0.8rem">⏳ بانتظار الدفع في الحسابات</span>';
+          actions += '<button class="btn btn-sm btn-outline" style="border-color:var(--accent-primary);color:var(--accent-primary)" onclick="window.salesEditPrice(\'' + o.id + '\', ' + (o.total_amount || 0) + ', ' + (o.paid_amount || 0) + ')">✏️ تعديل المبلغ / السعر</button>';
+          actions += '</div>';
         } else if (o.status === 'Paid - Awaiting Pickup') {
           actions += '<button class="btn btn-sm btn-success" onclick="window.salesDeliver(\'' + o.id + '\')">📦 تسليم للعميل (تم الدفع)</button>';
         } else if (o.status === 'Delivered') {
@@ -249,6 +252,27 @@ Pages.sales = function(el) {
   window.salesTransferToFinance = function(id) {
     if (!confirm('تأكيد تبليغ العميل وتحويل الأوردر للحسابات للدفع؟')) return;
     SalesWorkflow.updateStatus(id, 'Pending Payment', {}, render);
+  };
+
+  window.salesEditPrice = function(id, currentAmt, paidAmt) {
+    var newAmt = prompt("المبلغ الإجمالي الجديد للفاتورة:", currentAmt);
+    if (!newAmt || isNaN(newAmt)) return;
+    newAmt = Number(newAmt);
+    if (newAmt < paidAmt) return alert("خطأ: المبلغ الإجمالي الجديد أقل من المبلغ المدفوع بالفعل (" + paidAmt + ")");
+
+    var payMethod = prompt("طريقة السداد (نقدي cash / شيك check / بنك bank / آجل credit):", "cash");
+    if (!payMethod) return;
+
+    sbClient.from('sales_workflow_orders').update({
+      total_amount: newAmt,
+      remaining_amount: newAmt - paidAmt,
+      payment_method: payMethod,
+      payment_status: paidAmt >= newAmt ? 'paid' : (paidAmt > 0 ? 'partial' : 'unpaid')
+    }).eq('id', id).then(function(res) {
+      if (res.error) return alert("خطأ: " + res.error.message);
+      showToast('تم تعديل المبلغ وطريقة السداد بنجاح', 'success');
+      render();
+    });
   };
 
   render();

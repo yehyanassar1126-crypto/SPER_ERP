@@ -1818,10 +1818,10 @@ Pages.pettyCash = function(el) {
   }
 
   window.trReceiveSalesPayment = function(id, customerName) {
-    sbClient.from('sales_workflow_orders').select('total_amount, paid_amount, remaining_amount, payment_status').eq('id', id).single().then(function(sRes) {
-      if (sRes.error) return alert('خطأ في جلب بيانات الفاتورة');
+    sbClient.from('sales_workflow_orders').select('*').eq('id', id).single().then(function(sRes) {
+      if (sRes.error) return alert('خطأ في جلب بيانات الفاتورة: ' + sRes.error.message);
       var o = sRes.data;
-      var remaining = o.remaining_amount || o.total_amount || 0;
+      var remaining = o.remaining_amount !== undefined ? o.remaining_amount : (o.total_amount || 0);
       
       var b = '<div class="form-grid">';
       b += '<div class="form-group"><label>إجمالي الفاتورة</label><input type="text" class="form-input" disabled value="EGP ' + (o.total_amount||0) + '"></div>';
