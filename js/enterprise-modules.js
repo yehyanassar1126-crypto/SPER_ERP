@@ -483,7 +483,7 @@ Pages.inventory = function(el) {
       sbClient.from('inventory_items').select('*').order('name'),
       sbClient.from('inventory_transactions').select('*').order('date', {ascending: false}).limit(100),
       sbClient.from('material_requests').select('*').order('created_at', {ascending: false}),
-      sbClient.from('sales_workflow_orders').select('*').eq('status', 'Pending Warehouse FG'),
+      sbClient.from('sales_workflow_orders').select('*').in('status', ['Pending Warehouse FG', 'Pending Warehouse Delivery Approval', 'Ready for Customer Pickup from Factory']),
       sbClient.from('spare_parts_requests').select('*').order('created_at', {ascending: false}),
       sbClient.from('raw_material_receipts').select('*').eq('status', 'pending_warehouse')
     ]).then(function(res) {
@@ -578,14 +578,40 @@ Pages.inventory = function(el) {
     // Finished Goods View
     html += '<div id="view-finished" style="display:none">';
     
+    var qOrders = qualityOrders.filter(function(o) { return o.status === 'Pending Warehouse FG'; });
+    var deliveryApprovals = qualityOrders.filter(function(o) { return o.status === 'Pending Warehouse Delivery Approval'; });
+    var readyPickups = qualityOrders.filter(function(o) { return o.status === 'Ready for Customer Pickup from Factory'; });
+
     // Quality Transfer Section
-    if (qualityOrders.length > 0 && isWarehouse) {
+    if (qOrders.length > 0 && isWarehouse) {
       html += '<div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent-success)"><div class="card-header" style="background:rgba(16,185,129,0.05)"><div><h3 style="color:var(--accent-success)">📥 وارد من قسم الجودة (مخزن التام)</h3><p>طلبات إنتاج معتمدة من الجودة بانتظار استلام المخزن</p></div></div><div class="card-body no-pad">';
       html += '<div class="table-container"><table class="data-table"><thead><tr><th>تاريخ الاعتماد</th><th>المنتج</th><th>الكمية المنتجة</th><th>الإجراء</th></tr></thead><tbody>';
-      qualityOrders.forEach(function(qo) {
+      qOrders.forEach(function(qo) {
         var qty = qo.quantity_available !== null ? qo.quantity_available : qo.quantity_requested;
         html += '<tr><td>' + formatDate(qo.created_at) + '</td><td><strong>' + qo.product_name + '</strong></td><td><strong style="font-size:1.1rem;color:var(--text-primary)">' + qty + '</strong></td>';
         html += '<td><button class="btn btn-sm btn-success" onclick="window.warehouseReceiveQuality(\''+qo.id+'\')">تأكيد استلام المخزن وإرسال للتخطيط</button></td></tr>';
+      });
+      html += '</tbody></table></div></div></div>';
+    }
+
+    // Delivery Approvals Section
+    if (deliveryApprovals.length > 0 && isWarehouse) {
+      html += '<div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent-warning)"><div class="card-header" style="background:rgba(245,158,11,0.05)"><div><h3 style="color:var(--accent-warning)">⏳ مراجعة المخزن لتسليم العميل</h3><p>طلبات تم الدفع لها وتنتظر موافقة أمين المخزن على التسليم النهائي</p></div></div><div class="card-body no-pad">';
+      html += '<div class="table-container"><table class="data-table"><thead><tr><th>تاريخ الطلب</th><th>العميل</th><th>المنتج</th><th>الكمية</th><th>الإجراء</th></tr></thead><tbody>';
+      deliveryApprovals.forEach(function(da) {
+        html += '<tr><td>' + formatDate(da.created_at) + '</td><td><strong>' + da.customer_name + '</strong></td><td>' + da.product_name + '</td><td><strong style="font-size:1.1rem;color:var(--text-primary)">' + da.quantity_requested + '</strong></td>';
+        html += '<td><div style="display:flex;gap:4px;"><button class="btn btn-sm btn-success" onclick="window.warehouseApproveDelivery(\''+da.id+'\')">موافق على التسليم</button><button class="btn btn-sm btn-danger" onclick="window.warehouseRejectDelivery(\''+da.id+'\')">رفض</button></div></td></tr>';
+      });
+      html += '</tbody></table></div></div></div>';
+    }
+
+    // Ready Pickups Section
+    if (readyPickups.length > 0 && isWarehouse) {
+      html += '<div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent-primary)"><div class="card-header" style="background:rgba(59,130,246,0.05)"><div><h3 style="color:var(--accent-primary)">📦 طلبات جاهزة للاستلام من المصنع</h3><p>طلبات معتمدة وتنتظر حضور العميل لاستلامها</p></div></div><div class="card-body no-pad">';
+      html += '<div class="table-container"><table class="data-table"><thead><tr><th>تاريخ الطلب</th><th>العميل</th><th>المنتج</th><th>الكمية</th><th>الإجراء</th></tr></thead><tbody>';
+      readyPickups.forEach(function(rp) {
+        html += '<tr><td>' + formatDate(rp.created_at) + '</td><td><strong>' + rp.customer_name + '</strong></td><td>' + rp.product_name + '</td><td><strong style="font-size:1.1rem;color:var(--text-primary)">' + rp.quantity_requested + '</strong></td>';
+        html += '<td><button class="btn btn-sm btn-primary" onclick="window.warehouseConfirmCustomerPickup(\''+rp.id+'\', \'' + rp.product_name + '\', ' + rp.quantity_requested + ')">تأكيد استلام العميل (تسليم نهائي)</button></td></tr>';
       });
       html += '</tbody></table></div></div></div>';
     }
@@ -744,6 +770,65 @@ Pages.inventory = function(el) {
     }
 
     el.innerHTML = html;
+
+    window.warehouseApproveDelivery = function(id) {
+      if(!confirm('هل أنت متأكد من جاهزية الأوردر للاستلام ومطابقته للجودة والكمية؟')) return;
+      sbClient.from('sales_workflow_orders').update({
+        status: 'Ready for Customer Pickup from Factory'
+      }).eq('id', id).then(function(res) {
+        if(res.error) return alert(res.error.message);
+        showToast('تم اعتماد التسليم من المخزن. بانتظار استلام العميل.', 'success');
+        loadData();
+      });
+    };
+
+    window.warehouseRejectDelivery = function(id) {
+      var reason = prompt('يرجى إدخال سبب عدم الموافقة على تسليم الأوردر (نقص كمية، مشكلة جودة...):');
+      if (!reason) return;
+      sbClient.from('sales_workflow_orders').update({
+        status: 'Rejected By Warehouse',
+        warehouse_rejection_reason: reason
+      }).eq('id', id).then(function(res) {
+        if(res.error) return alert(res.error.message);
+        showToast('تم إيقاف التسليم وتسجيل السبب.', 'warning');
+        loadData();
+      });
+    };
+
+    window.warehouseConfirmCustomerPickup = function(id, productName, qty) {
+      var b = '<div class="form-grid">';
+      b += '<div class="form-group"><label>اسم المستلم (العميل أو المندوب) *</label><input type="text" id="rcv-name" class="form-input"></div>';
+      b += '<div class="form-group"><label>رقم الهوية / التفويض</label><input type="text" id="rcv-id" class="form-input"></div>';
+      b += '</div>';
+      App.showModal('تأكيد الاستلام النهائي وتسليم البضاعة', b, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="btn-confirm-pickup">تأكيد التسليم وخصم المخزون</button>');
+      
+      document.getElementById('btn-confirm-pickup').onclick = function() {
+        var rcvName = document.getElementById('rcv-name').value;
+        var rcvId = document.getElementById('rcv-id').value;
+        if (!rcvName) return alert('يرجى إدخال اسم المستلم');
+        
+        var btn = document.getElementById('btn-confirm-pickup');
+        btn.disabled = true; btn.innerHTML = 'جاري التنفيذ...';
+
+        sbClient.from('inventory_items').select('id, quantity').ilike('name', '%' + productName + '%').single().then(function(invRes) {
+          if (!invRes.error && invRes.data) {
+            var newQty = invRes.data.quantity - qty;
+            sbClient.from('inventory_items').update({quantity: newQty}).eq('id', invRes.data.id).then(function() {});
+          }
+          sbClient.from('sales_workflow_orders').update({
+            status: 'Delivered',
+            receiver_name: rcvName,
+            receiver_id_number: rcvId,
+            receive_time: new Date().toISOString()
+          }).eq('id', id).then(function(res) {
+            App.closeModal();
+            if(res.error) return alert(res.error.message);
+            showToast('تم التسليم للعميل وخصم الكمية من المخزون بنجاح!', 'success');
+            loadData();
+          });
+        });
+      };
+    };
 
     window.warehouseReceiveQuality = function(id) {
       if(!confirm('تأكيد استلام المنتجات من الجودة وإضافتها لمخزن التام وإعلام التخطيط؟')) return;
@@ -1863,7 +1948,7 @@ Pages.pettyCash = function(el) {
               remaining_amount: newRemaining,
               payment_status: newPayStatus
             };
-            if (newPayStatus === 'paid') updateData.status = 'Paid - Awaiting Pickup';
+            if (newPayStatus === 'paid') updateData.status = 'Pending Warehouse Delivery Approval';
 
             sbClient.from('sales_workflow_orders').update(updateData).eq('id', id).then(function() {
               App.closeModal();
