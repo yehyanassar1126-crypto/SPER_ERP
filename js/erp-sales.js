@@ -210,5 +210,19 @@ Pages.sales = function(el) {
     }, render);
   };
 
+  window.salesAcceptExternalOrder = function(id) {
+    if (!confirm('هل توافق على هذا الطلب ليتم إرساله إلى التخطيط؟')) return;
+    SalesWorkflow.updateStatus(id, 'New Request', null, render);
+  };
+
+  window.salesRejectExternalOrder = function(id) {
+    var reason = prompt('يرجى إدخال سبب رفض الطلب (ستظهر للعميل):');
+    if (reason === null) return;
+    SalesWorkflow.updateStatus(id, 'Rejected By Customer', {
+      rejection_reason: reason,
+      customer_decision: 'rejected_by_sales'
+    }, render);
+  };
+
   render();
 };
