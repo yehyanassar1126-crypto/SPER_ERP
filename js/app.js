@@ -1523,8 +1523,8 @@ Pages.employees = function (el) {
     function autoSetShift() {
       var r = document.getElementById('ef-role').value;
       var d = document.getElementById('ef-dept').value;
-      var adminRoles = ['owner', 'hr manager', 'manager', 'department head', 'procurement manager', 'engineering manager', 'hr'];
-      var adminDepts = ['Administration', 'HR', 'Finance', 'Secretariat', 'Sales'];
+      var adminRoles = ['hr manager', 'hr', 'procurement manager'];
+      var adminDepts = ['HR', 'Finance', 'Sales', 'Procurement'];
       var shiftSys = document.getElementById('ef-shift-system');
       var shiftVal = document.getElementById('ef-shift');
       
