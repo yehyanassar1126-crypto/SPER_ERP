@@ -54,7 +54,10 @@ Pages.planning = function(el) {
         } else if (o.status === 'Received by Warehouse') {
           actions = '<button class="btn btn-sm btn-success" onclick="window.planReadyDeliv(\'' + o.id + '\')">📦 إبلاغ المبيعات (جاهز)</button>';
         } else if (o.status === 'Raw Material Shortage - Purchase Requested') {
-          actions = '<span style="color:var(--accent-warning);font-size:0.8rem">⏳ انتظار وصول الخامات</span>';
+          actions = '<div style="display:flex;flex-direction:column;gap:4px">';
+          actions += '<span style="color:var(--accent-warning);font-size:0.8rem">⏳ انتظار الخامات</span>';
+          actions += '<button class="btn btn-sm btn-primary" onclick="window.planStartProd(\'' + o.id + '\')">🔄 الخامات وصلت (إصدار أمر إنتاج)</button>';
+          actions += '</div>';
         } else {
           actions = '<span style="color:var(--text-muted);font-size:0.8rem">-</span>';
         }
