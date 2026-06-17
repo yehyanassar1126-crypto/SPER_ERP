@@ -18,6 +18,7 @@ window.SalesWorkflow = {
   getStatusBadge: function(status) {
     var color = '#64748b';
     var labels = {
+      'Pending Sales Review': { color: '#f59e0b', label: 'بانتظار مراجعة المبيعات' },
       'New Request': { color: '#3b82f6', label: 'طلب جديد' },
       'Under Planning Review': { color: '#3b82f6', label: 'مراجعة التخطيط' },
       'Waiting Customer Approval': { color: '#f59e0b', label: 'انتظار موافقة العميل' },
@@ -90,7 +91,12 @@ Pages.sales = function(el) {
         tHtml += '<td>' + SalesWorkflow.getStatusBadge(o.status) + '</td>';
 
         var actions = '';
-        if (o.status === 'Waiting Customer Approval') {
+        if (o.status === 'Pending Sales Review') {
+          actions += '<div style="display:flex;flex-direction:column;gap:4px">';
+          actions += '<button class="btn btn-sm btn-success" onclick="window.salesAcceptExternalOrder(\'' + o.id + '\')">✅ قبول</button>';
+          actions += '<button class="btn btn-sm btn-danger" onclick="window.salesReject(\'' + o.id + '\')">❌ رفض</button>';
+          actions += '</div>';
+        } else if (o.status === 'Waiting Customer Approval') {
           // Show partial qty info from planning
           var planInfo = o.planning_notes ? '<div style="font-size:0.75rem;color:var(--accent-warning);margin-bottom:6px">📋 ' + o.planning_notes + '</div>' : '';
           actions += planInfo;
