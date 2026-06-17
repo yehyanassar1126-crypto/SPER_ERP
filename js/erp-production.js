@@ -106,7 +106,7 @@ Pages.production = function(el) {
 
   window.prodWithdrawRaw = function(id, productName) {
     sbClient.from('inventory_items').select('id, name, quantity').in('category', ['Raw Material', 'Supplies', 'Chemicals']).order('name').then(function(res) {
-      if (res.error) return alert('خطأ في جلب بيانات المخزن');
+      if (res.error) return alert('خطأ في جلب بيانات المخزن: ' + res.error.message);
       var items = res.data || [];
       var b = '<div class="form-grid">';
       b += '<div class="form-group" style="grid-column:span 2"><label>المادة الخام المراد سحبها</label><select id="wd-item" class="form-input">';

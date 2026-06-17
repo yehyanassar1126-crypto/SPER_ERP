@@ -1589,465 +1589,164 @@ Pages.pettyCash = function(el) {
   var isHRManager = App.user && App.user.role === 'hr manager';
   var isProcManager = App.user && App.user.department === 'Procurement' && (App.user.role === 'procurement manager' || App.user.role === 'manager');
   var isProcEmp = App.user && App.user.department === 'Procurement' && !isProcManager;
+  var isChiefAcc = App.user && App.user.role === 'chief accountant';
+  var isCFO = App.user && App.user.role === 'cfo';
 
-  var isAllowed = isFinance || isOwner || isHRManager || isProcManager || isProcEmp;
+  var isAllowed = isFinance || isOwner || isHRManager || isProcManager || isProcEmp || isChiefAcc || isCFO;
 
   if (!isAllowed) {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to Finance, Procurement, and Management.</p></div>';
     return;
   }
 
+  var safes = [], banks = [], clients = [], suppliers = [], invoices = [];
+  var journalEntries = [], costCenters = [], assets = [], taxes = [];
   var txs = [];
-  var bankTotal = 0;
-  var safeTotal = 0;
 
   function loadData() {
-    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Treasury Data...</div>';
-    sbClient.from('finance_treasury_tx').select('*').order('created_at', {ascending: false}).then(function(res) {
-      if (res.error && res.error.message.includes('relation "finance_treasury_tx" does not exist')) {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)"><span class="spinner"></span> Loading Comprehensive Finance Data...</div>';
+    
+    Promise.all([
+      sbClient.from('finance_safes').select('*'),
+      sbClient.from('finance_bank_accounts').select('*'),
+      sbClient.from('finance_clients').select('*'),
+      sbClient.from('finance_suppliers').select('*'),
+      sbClient.from('finance_invoices').select('*'),
+      sbClient.from('finance_journal_entries').select('*, finance_journal_lines(*)'),
+      sbClient.from('finance_cost_centers').select('*'),
+      sbClient.from('finance_fixed_assets').select('*'),
+      sbClient.from('finance_taxes').select('*'),
+      sbClient.from('finance_treasury_tx').select('*').order('created_at', {ascending: false})
+    ]).then(function(res) {
+      if (res[0].error && res[0].error.message.includes('relation "finance_safes" does not exist')) {
         renderSetup();
         return;
       }
-      if (res.error) {
-        if(res.error.message.includes('relationship')) return alert('Schema Error: ' + res.error.message);
-        return alert(res.error.message);
-      }
-      txs = res.data || [];
       
-      Promise.all([
-        sbClient.from('users').select('id, full_name, department'),
-        sbClient.from('purchase_requests').select('*, purchase_orders(*)').eq('status', 'pending_finance'),
-        sbClient.from('sales_workflow_orders').select('*').order('created_at', {ascending: false}),
-        sbClient.from('supplier_orders').select('*, suppliers(company_name)').order('created_at', {ascending: false}),
-        sbClient.from('finance_payments').select('*').order('payment_date', {ascending: false})
-      ]).then(function(uRes) {
-        var userMap = {};
-        var allUsers = uRes[0].data || [];
-        var pendingReqs = uRes[1].data || [];
-        var allSales = uRes[2] ? (uRes[2].data || []) : [];
-        var allPurchases = uRes[3] ? (uRes[3].data || []) : [];
-        var allPayments = uRes[4] ? (uRes[4].data || []) : [];
-        var pendingSales = allSales.filter(function(s) { return s.status === 'Pending Payment' || (s.remaining_amount > 0 && s.status !== 'Delivered'); });
-        
-        allUsers.forEach(function(u) { userMap[u.id] = u; });
-        txs.forEach(function(t) {
-          t.employee_name = userMap[t.employee_id] ? userMap[t.employee_id].full_name : 'Unknown';
-          t.employee_dept = userMap[t.employee_id] ? userMap[t.employee_id].department : 'Unknown';
-        });
-        calculateTotals();
-        render(allUsers, pendingReqs, pendingSales, allSales, allPurchases, allPayments);
-      });
-    });
-  }
-
-  function calculateTotals() {
-    bankTotal = 0;
-    safeTotal = 0;
-    txs.forEach(function(t) {
-      var amt = Number(t.amount);
-      if (t.type === 'deposit') {
-        if (t.method === 'bank') bankTotal += amt;
-        if (t.method === 'safe') safeTotal += amt;
-      } else if (t.type === 'petty_cash' || t.type === 'expense') {
-        if (t.method === 'bank') bankTotal -= amt;
-        if (t.method === 'safe') safeTotal -= amt;
-      } else if (t.type === 'transfer') {
-        if (t.method === 'bank' && t.transfer_to === 'safe') { bankTotal -= amt; safeTotal += amt; }
-        if (t.method === 'safe' && t.transfer_to === 'bank') { safeTotal -= amt; bankTotal += amt; }
-      } else if (t.type === 'check_clearance') {
-        bankTotal += amt;
-      }
+      safes = res[0].data || [];
+      banks = res[1].data || [];
+      clients = res[2].data || [];
+      suppliers = res[3].data || [];
+      invoices = res[4].data || [];
+      journalEntries = res[5].data || [];
+      costCenters = res[6].data || [];
+      assets = res[7].data || [];
+      taxes = res[8].data || [];
+      txs = res[9].data || [];
+      
+      render();
+    }).catch(function(err) {
+      el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--accent-danger)">Error: ' + err.message + '</div>';
     });
   }
 
   function renderSetup() {
-    var sql = "CREATE TABLE finance_treasury_tx (\\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\\n  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,\\n  type text NOT NULL,\\n  amount numeric NOT NULL,\\n  method text NOT NULL,\\n  transfer_to text,\\n  status text DEFAULT 'completed',\\n  employee_id uuid REFERENCES auth.users(id),\\n  notes text,\\n  created_by uuid REFERENCES auth.users(id)\\n);\\nALTER TABLE finance_treasury_tx ENABLE ROW LEVEL SECURITY;\\nCREATE POLICY \"Enable all\" ON finance_treasury_tx FOR ALL USING (true) WITH CHECK (true);";
-    var html = '<div style="padding:40px; text-align:center;"><h2>⚠️ جدول الخزنة غير موجود</h2>';
-    html += '<p>أرجو نسخ هذا الكود وتشغيله في SQL Editor في Supabase لتفعيل الخزنة والعهد:</p>';
-    html += '<textarea style="width:100%; height:250px; text-align:left; direction:ltr;" readonly>' + sql + '</textarea>';
-    html += '<button class="btn btn-primary" onclick="window.Pages.pettyCash(document.getElementById(\'page-content\'))" style="margin-top:20px">تحديث الصفحة بعد الإضافة</button></div>';
-    el.innerHTML = html;
+    el.innerHTML = '<div style="padding:40px; text-align:center;"><h2>⚠️ جدول الحسابات غير موجود</h2><p>يجب تشغيل setup_accounting.sql في قاعدة البيانات.</p></div>';
   }
 
-  function render(allUsers, pendingReqs, pendingSales, allSales, allPurchases, allPayments) {
+  function render() {
     var isProcurementOnly = isProcManager || isProcEmp;
+    
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
-    html += '<h3>Treasury & Petty Cash (الخزنة والعهد)</h3>';
-    html += '<div style="display:flex; gap:10px">';
+    html += '<h3>Comprehensive Financial Suite (الإدارة المالية الشاملة)</h3>';
+    html += '<div style="display:flex; gap:10px; flex-wrap:wrap;">';
+    
     if (!isProcurementOnly) {
-      html += '<button class="btn btn-outline" id="tab-treasury" style="border-color:var(--accent-primary);color:var(--accent-primary)">🏦 الخزنة والبنك</button>';
-      html += '<button class="btn btn-ghost" id="tab-sales-payments">💳 مبيعات بانتظار التحصيل (' + (pendingSales ? pendingSales.length : 0) + ')</button>';
-      html += '<button class="btn btn-ghost" id="tab-finance-req">🛒 تسويات الشراء (' + (pendingReqs ? pendingReqs.length : 0) + ')</button>';
-      html += '<button class="btn btn-ghost" id="tab-balances">👥 حسابات العملاء والموردين</button>';
-      html += '<button class="btn btn-ghost" id="tab-reports">📊 التقارير المالية</button>';
-      html += '<button class="btn btn-ghost" id="tab-petty">💸 العهد (Petty Cash)</button>';
-      html += '<button class="btn btn-ghost" id="tab-checks">📑 الشيكات تحت التحصيل</button>';
+      html += '<button class="btn btn-outline" id="tab-treasury" style="border-color:var(--accent-primary);color:var(--accent-primary)">🏦 Treasury (الخزائن والبنوك)</button>';
+      html += '<button class="btn btn-ghost" id="tab-ap-ar">🧾 AP/AR (العملاء والموردين)</button>';
+      html += '<button class="btn btn-ghost" id="tab-journal">📝 Journal (القيود)</button>';
+      html += '<button class="btn btn-ghost" id="tab-assets">🏢 Assets (الأصول)</button>';
+      html += '<button class="btn btn-ghost" id="tab-taxes">⚖️ Taxes (الضرائب)</button>';
+      html += '<button class="btn btn-ghost" id="tab-petty">💸 Petty Cash (العهد)</button>';
+      if (isOwner || isChiefAcc || isCFO) {
+        html += '<button class="btn btn-ghost" id="tab-reports">📊 Financial Reports</button>';
+        html += '<button class="btn btn-ghost" id="tab-closing">🔒 Period Closing</button>';
+      }
     } else {
-      html += '<button class="btn btn-outline" id="tab-petty" style="border-color:var(--accent-primary);color:var(--accent-primary)">💸 العهد (Petty Cash)</button>';
+      html += '<button class="btn btn-outline" id="tab-petty" style="border-color:var(--accent-primary);color:var(--accent-primary)">💸 Petty Cash (العهد)</button>';
     }
+    
     html += '</div></div>';
 
-    if (!isProcurementOnly) {
-      html += '<div style="display:flex; gap:20px; margin-bottom:20px;">';
-      html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي البنك</h4><h2 style="color:var(--accent-primary)">EGP ' + bankTotal.toLocaleString() + '</h2></div></div>';
-      html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي الخزنة (كاش)</h4><h2 style="color:var(--accent-success)">EGP ' + safeTotal.toLocaleString() + '</h2></div></div>';
-      html += '</div>';
+    // 1. Treasury View
+    html += '<div id="view-treasury" style="display:' + (isProcurementOnly ? 'none' : 'block') + '">';
+    html += '<div style="display:flex; gap:20px; margin-bottom:20px;">';
+    var totalSafe = safes.reduce((a,b)=>a+Number(b.balance),0);
+    var totalBank = banks.reduce((a,b)=>a+Number(b.balance),0);
+    html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي الخزائن</h4><h2 style="color:var(--accent-success)">EGP ' + totalSafe.toLocaleString() + '</h2></div></div>';
+    html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي البنوك</h4><h2 style="color:var(--accent-primary)">EGP ' + totalBank.toLocaleString() + '</h2></div></div>';
+    html += '</div>';
+    html += '</div>';
 
-      html += '<div id="view-treasury">';
-      html += '<div style="margin-bottom:15px"><button class="btn btn-success" onclick="window.trAddFunds()">' + icon('plus') + ' إيداع رصيد</button> <button class="btn btn-warning" style="margin-left:8px" onclick="window.trTransfer()">' + icon('refreshCw') + ' تحويل بين الحسابات</button></div>';
-      html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الطريقة</th><th>ملاحظات</th></tr></thead><tbody>';
-      var trTxs = txs.filter(function(t) { return t.type !== 'petty_cash' && t.type !== 'check_clearance' && t.method !== 'check'; });
-      trTxs.forEach(function(t) {
-        html += '<tr><td>' + formatDate(t.created_at) + '</td><td><span class="badge badge-info">' + (t.type==='deposit' ? 'إيداع' : 'تحويل') + '</span></td><td style="font-weight:bold">' + t.amount + '</td><td>' + (t.method==='safe'?'كاش':t.method) + (t.transfer_to ? ' ➡️ '+(t.transfer_to==='safe'?'كاش':t.transfer_to) : '') + '</td><td>' + (t.notes||'-') + '</td></tr>';
-      });
-      html += '</tbody></table></div></div>';
-    }
+    // 2. AP/AR View
+    html += '<div id="view-ap-ar" style="display:none">';
+    html += '<div style="display:flex; gap:20px;">';
+    html += '<div class="card" style="flex:1"><div class="card-header"><h3>العملاء (Accounts Receivable)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>العميل</th><th>الرصيد</th></tr></thead><tbody>';
+    clients.forEach(c => { html += '<tr><td>'+c.name+'</td><td>'+c.balance+'</td></tr>'; });
+    html += '</tbody></table></div></div>';
+    html += '<div class="card" style="flex:1"><div class="card-header"><h3>الموردين (Accounts Payable)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>المورد</th><th>الرصيد</th></tr></thead><tbody>';
+    suppliers.forEach(s => { html += '<tr><td>'+s.name+'</td><td>'+s.balance+'</td></tr>'; });
+    html += '</tbody></table></div></div>';
+    html += '</div></div>';
 
+    // 3. Journal View
+    html += '<div id="view-journal" style="display:none">';
+    html += '<div class="card"><div class="card-header"><h3>Journal Entries (القيود اليومية)</h3></div><div class="card-body no-pad">';
+    html += '<table class="data-table"><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>البيان</th><th>إجمالي مدين</th><th>إجمالي دائن</th><th>الحالة</th></tr></thead><tbody>';
+    journalEntries.forEach(j => {
+      html += '<tr><td>'+(j.entry_number||'-')+'</td><td>'+formatDate(j.entry_date)+'</td><td>'+(j.description||'-')+'</td><td>'+j.total_debit+'</td><td>'+j.total_credit+'</td><td>'+j.status+'</td></tr>';
+    });
+    if(journalEntries.length === 0) html += '<tr><td colspan="6" style="text-align:center">لا يوجد قيود</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    // 4. Assets
+    html += '<div id="view-assets" style="display:none">';
+    html += '<div class="card"><div class="card-header"><h3>Fixed Assets (الأصول الثابتة)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الأصل</th><th>الكود</th><th>تاريخ الشراء</th><th>القيمة الحالية</th><th>الحالة</th></tr></thead><tbody>';
+    assets.forEach(a => { html += '<tr><td>'+a.name+'</td><td>'+(a.asset_code||'-')+'</td><td>'+(a.purchase_date||'-')+'</td><td>'+a.current_value+'</td><td>'+a.status+'</td></tr>'; });
+    if(assets.length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد أصول مسجلة</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    // 5. Taxes
+    html += '<div id="view-taxes" style="display:none">';
+    html += '<div class="card"><div class="card-header"><h3>Taxes (الضرائب)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>نوع الضريبة</th><th>الفترة</th><th>المبلغ الخاضع</th><th>قيمة الضريبة</th><th>الحالة</th></tr></thead><tbody>';
+    taxes.forEach(t => { html += '<tr><td>'+t.tax_type+'</td><td>'+(t.period||'-')+'</td><td>'+t.taxable_amount+'</td><td>'+t.tax_amount+'</td><td>'+t.status+'</td></tr>'; });
+    if(taxes.length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد ضرائب مسجلة</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    // 6. Petty Cash
     html += '<div id="view-petty" style="display:' + (isProcurementOnly ? 'block' : 'none') + '">';
-    
-    if (isProcManager) {
-      // Show all procurement employees and their advance status
-      var procUsers = allUsers.filter(function(u) { return u.department === 'Procurement'; });
-      html += '<div class="card" style="margin-bottom:20px"><div class="card-header"><h3>حالة العهد لموظفي المشتريات</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الموظف</th><th>استلم عهدة؟</th><th>إجمالي العهد</th></tr></thead><tbody>';
-      procUsers.forEach(function(pu) {
-        var userAdvances = txs.filter(function(t) { return t.type === 'petty_cash' && t.employee_id === pu.id; });
-        var totalAdvances = userAdvances.reduce(function(sum, t) { return sum + Number(t.amount); }, 0);
-        html += '<tr><td>' + pu.full_name + '</td><td>' + (totalAdvances > 0 ? '<span class="badge badge-success">نعم</span>' : '<span class="badge badge-danger">لا</span>') + '</td><td style="font-weight:bold">EGP ' + totalAdvances + '</td></tr>';
-      });
-      html += '</tbody></table></div></div>';
-    }
+    html += '<div class="card"><div class="card-header"><h3>Petty Cash & Advances (العهد والسلف)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>طريقة الصرف</th><th>المبلغ</th></tr></thead><tbody>';
+    var pcTxs = txs.filter(t => t.type === 'petty_cash');
+    pcTxs.forEach(t => { html += '<tr><td>'+formatDate(t.created_at)+'</td><td>'+t.type+'</td><td>'+t.method+'</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td></tr>'; });
+    if(pcTxs.length===0) html += '<tr><td colspan="4" style="text-align:center">لا يوجد عهد</td></tr>';
+    html += '</tbody></table></div></div></div>';
 
-    if (!isProcurementOnly) {
-      html += '<div style="margin-bottom:15px"><button class="btn btn-primary" onclick="window.trIssuePetty()">' + icon('dollarSign') + ' إصدار عهدة لموظف</button></div>';
-    }
-    
-    html += '<h3>تفاصيل حركات العهد</h3><div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف</th><th>المبلغ</th><th>طريقة الصرف</th><th>البيان</th></tr></thead><tbody>';
-    
-    var pcTxs = txs.filter(function(t) { 
-      if (t.type !== 'petty_cash') return false;
-      if (isProcEmp) return t.employee_id === App.user.id;
-      if (isProcManager) return t.employee_dept === 'Procurement';
-      return true;
-    });
-    
-    if(pcTxs.length === 0) html += '<tr><td colspan="5" style="text-align:center;padding:20px">لا يوجد عهد</td></tr>';
-    pcTxs.forEach(function(t) {
-      var empName = t.employee_name || 'Unknown';
-      html += '<tr><td>' + formatDate(t.created_at) + '</td><td>' + empName + '</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td><td>' + (t.method==='safe'?'كاش':t.method) + '</td><td>' + (t.notes||'-') + '</td></tr>';
-    });
-    html += '</tbody></table></div></div>';
+    // 7. Reports
+    html += '<div id="view-reports" style="display:none">';
+    html += '<div class="card"><div class="card-body" style="text-align:center; padding:60px; color:var(--text-muted)"><h3>Financial Reports Integration with AI</h3><p>Use the AI Mind to generate comprehensive balance sheets and income statements.</p></div></div></div>';
 
-    if (!isProcurementOnly) {
-      html += '<div id="view-checks" style="display:none">';
-    html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>ملاحظات</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>';
-    var chTxs = txs.filter(function(t) { return t.method === 'check'; });
-    if(chTxs.length === 0) html += '<tr><td colspan="5" style="text-align:center;padding:20px">لا يوجد شيكات</td></tr>';
-    chTxs.forEach(function(t) {
-      html += '<tr><td>' + formatDate(t.created_at) + '</td><td style="font-weight:bold">' + t.amount + '</td><td>' + (t.notes||'-') + '</td>';
-      html += '<td><span class="badge badge-'+(t.status==='completed'?'success':'warning')+'">' + (t.status==='completed'?'تم التحصيل':'تحت التحصيل') + '</span></td>';
-      html += '<td>';
-      if(t.status !== 'completed') {
-        html += '<button class="btn btn-sm btn-success" onclick="window.trClearCheck(\''+t.id+'\', '+t.amount+')">تأكيد تحصيل الشيك وإضافته للبنك</button>';
-      } else {
-        html += '-';
-      }
-      html += '</td></tr>';
-    });
-    html += '</tbody></table></div></div>';
-    } // End if (!isProcurementOnly)
-
-    if (!isProcurementOnly) {
-      html += '<div id="view-finance-req" style="display:none">';
-      html += '<h3>تسويات طلبات الشراء المعتمدة</h3>';
-      html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>الصنف</th><th>مبلغ الشراء</th><th>الموظف الموكل</th><th>رصيد عهدته</th><th>إجراءات الحسابات</th></tr></thead><tbody>';
-      
-      if (!pendingReqs || pendingReqs.length === 0) {
-        html += '<tr><td colspan="6" style="text-align:center;padding:20px">لا توجد طلبات في انتظار التسوية</td></tr>';
-      } else {
-        pendingReqs.forEach(function(req) {
-          // Find if there is an approved quote for this request
-          var approvedOrder = (req.purchase_orders || []).find(function(o) { return Number(o.petty_cash_amount) > 0; });
-          var reqAmt = approvedOrder ? Number(approvedOrder.petty_cash_amount) : 0;
-          
-          // Let's assume requested_by is full name, find their ID
-          var empObj = allUsers.find(function(u) { return u.full_name === req.requested_by; });
-          var empId = empObj ? empObj.id : null;
-          
-          // Calculate advance balance
-          var empAdvance = 0;
-          if (empId) {
-            empAdvance = txs.filter(function(t) { return t.type === 'petty_cash' && t.employee_id === empId; })
-                            .reduce(function(sum, t) { return sum + Number(t.amount); }, 0);
-          }
-
-          html += '<tr>';
-          html += '<td>' + formatDate(req.created_at) + '</td>';
-          html += '<td>' + req.item_name + '</td>';
-          html += '<td style="font-weight:bold;color:var(--accent-primary)">EGP ' + reqAmt + '</td>';
-          html += '<td>' + (req.requested_by || 'غير محدد') + '</td>';
-          html += '<td style="font-weight:bold;color:' + (empAdvance >= reqAmt ? 'var(--accent-success)' : 'var(--accent-danger)') + '">EGP ' + empAdvance + '</td>';
-          
-          html += '<td><div style="display:flex;gap:5px">';
-          if (empAdvance > 0) {
-            html += '<button class="btn btn-sm btn-primary" onclick="window.trSettlePurchase(\'' + req.id + '\', ' + reqAmt + ', \'' + empId + '\', true)">خصم من العهدة</button>';
-          }
-          html += '<button class="btn btn-sm btn-success" onclick="window.trSettlePurchase(\'' + req.id + '\', ' + reqAmt + ', \'' + (empId||'') + '\', false)">صرف كاش مستقل</button>';
-          html += '</div></td></tr>';
-        });
-      }
-      html += '</tbody></table></div></div>';
-    }
-
-    if (!isProcurementOnly) {
-      html += '<div id="view-sales-payments" style="display:none">';
-      html += '<div class="card"><div class="card-header"><h3>💳 مدفوعات المبيعات بانتظار التحصيل</h3></div><div class="card-body no-pad">';
-      if (!pendingSales || pendingSales.length === 0) {
-        html += '<div class="empty-state">لا توجد مدفوعات معلقة حالياً</div>';
-      } else {
-        html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>العميل</th><th>المنتج</th><th>الكمية</th><th>المبلغ المطلوب</th><th>إجراءات الحسابات</th></tr></thead><tbody>';
-        pendingSales.forEach(function(ps) {
-          // Calculate amount: assume a fixed price or let Finance enter it if total_amount is null
-          var reqAmt = ps.total_amount || 0; 
-          html += '<tr>';
-          html += '<td>' + formatDate(ps.created_at) + '</td>';
-          html += '<td><strong>' + ps.customer_name + '</strong></td>';
-          html += '<td>' + ps.product_name + '</td>';
-          html += '<td>' + ps.quantity_requested + '</td>';
-          if (reqAmt > 0) {
-            html += '<td style="font-weight:bold;color:var(--accent-primary)">EGP ' + reqAmt + '</td>';
-          } else {
-            html += '<td><span style="color:var(--text-muted);font-size:0.8rem">غير محدد (سيتم إدخاله عند الاستلام)</span></td>';
-          }
-          html += '<td><button class="btn btn-sm btn-success" onclick="window.trReceiveSalesPayment(\'' + ps.id + '\', \'' + ps.customer_name + '\')">تأكيد استلام المبلغ</button></td></tr>';
-        });
-        html += '</tbody></table></div>';
-      }
-      html += '</div></div></div>';
-
-      // --- Balances View ---
-      var custMap = {}, suppMap = {};
-      allSales.forEach(function(s) {
-        var n = s.customer_name;
-        if(!custMap[n]) custMap[n] = {name:n, invoices:0, total:0, paid:0, remaining:0, unpaid_count:0};
-        custMap[n].invoices++;
-        custMap[n].total += (s.total_amount || 0);
-        custMap[n].paid += (s.paid_amount || 0);
-        custMap[n].remaining += ((s.total_amount||0) - (s.paid_amount||0));
-        if(s.payment_status !== 'paid') custMap[n].unpaid_count++;
-      });
-      allPurchases.forEach(function(p) {
-        var n = (p.suppliers && p.suppliers.company_name) ? p.suppliers.company_name : 'مورد غير معروف';
-        if(!suppMap[n]) suppMap[n] = {name:n, invoices:0, total:0, paid:0, remaining:0, unpaid_count:0};
-        suppMap[n].invoices++;
-        suppMap[n].total += (p.total_amount || 0);
-        suppMap[n].paid += (p.paid_amount || 0);
-        suppMap[n].remaining += ((p.total_amount||0) - (p.paid_amount||0));
-        if(p.payment_status !== 'paid') suppMap[n].unpaid_count++;
-      });
-
-      html += '<div id="view-balances" style="display:none">';
-      html += '<div style="display:flex; gap:20px;">';
-      
-      // Customers
-      html += '<div class="card" style="flex:1"><div class="card-header"><h3>👥 حسابات العملاء</h3></div><div class="card-body no-pad"><div class="table-responsive"><table class="data-table"><thead><tr><th>العميل</th><th>مبيعات</th><th>مدفوع</th><th>مديونية</th><th>فواتير متأخرة</th></tr></thead><tbody>';
-      Object.values(custMap).forEach(function(c) {
-        html += '<tr><td><strong>' + c.name + '</strong></td><td>' + c.total + '</td><td style="color:var(--accent-success)">' + c.paid + '</td><td style="color:var(--accent-danger);font-weight:bold">' + c.remaining + '</td><td>' + c.unpaid_count + '</td></tr>';
-      });
-      if(Object.keys(custMap).length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد بيانات</td></tr>';
-      html += '</tbody></table></div></div></div>';
-
-      // Suppliers
-      html += '<div class="card" style="flex:1"><div class="card-header"><h3>🏢 حسابات الموردين</h3></div><div class="card-body no-pad"><div class="table-responsive"><table class="data-table"><thead><tr><th>المورد</th><th>مشتريات</th><th>مسدد</th><th>مستحقات (علينا)</th><th>فواتير متأخرة</th></tr></thead><tbody>';
-      Object.values(suppMap).forEach(function(s) {
-        html += '<tr><td><strong>' + s.name + '</strong></td><td>' + s.total + '</td><td style="color:var(--accent-success)">' + s.paid + '</td><td style="color:var(--accent-danger);font-weight:bold">' + s.remaining + '</td><td>' + s.unpaid_count + '</td></tr>';
-      });
-      if(Object.keys(suppMap).length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد بيانات</td></tr>';
-      html += '</tbody></table></div></div></div>';
-
-      html += '</div></div>'; // end view-balances
-
-      // --- Reports View ---
-      html += '<div id="view-reports" style="display:none">';
-      html += '<div class="card"><div class="card-header"><h3>📊 التقارير المالية (سجل المدفوعات)</h3></div><div class="card-body no-pad">';
-      html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>طريقة السداد</th><th>المبلغ</th><th>مرجع</th><th>بواسطة</th></tr></thead><tbody>';
-      allPayments.forEach(function(pmt) {
-        var uName = allUsers.find(function(u){return u.id === pmt.created_by;});
-        uName = uName ? uName.full_name : '-';
-        html += '<tr><td>' + formatDate(pmt.payment_date) + '</td>';
-        html += '<td><span class="badge badge-' + (pmt.invoice_type==='sales'?'success':'warning') + '">' + (pmt.invoice_type==='sales'?'مبيعات (تحصيل)':'مشتريات (سداد)') + '</span></td>';
-        html += '<td>' + pmt.payment_method + '</td>';
-        html += '<td><strong>EGP ' + pmt.amount + '</strong></td>';
-        html += '<td>' + (pmt.reference_number || '-') + '</td>';
-        html += '<td>' + uName + '</td></tr>';
-      });
-      if(allPayments.length === 0) html += '<tr><td colspan="6" style="text-align:center">لا يوجد بيانات</td></tr>';
-      html += '</tbody></table></div>';
-      html += '</div></div></div>'; // end view-reports
-    }
+    // 8. Closing
+    html += '<div id="view-closing" style="display:none">';
+    html += '<div class="card"><div class="card-body" style="text-align:center; padding:60px; color:var(--text-muted)"><h3>Financial Period Closing</h3><button class="btn btn-danger">Close Current Month</button></div></div></div>';
 
     el.innerHTML = html;
 
-    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-petty','tab-checks', 'tab-finance-req', 'tab-sales-payments', 'tab-balances', 'tab-reports'];
-    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-petty','view-checks', 'view-finance-req', 'view-sales-payments', 'view-balances', 'view-reports'];
-    allTabs.forEach(function(tid, idx) {
-      var tabBtn = document.getElementById(tid);
-      if(tabBtn) {
-        tabBtn.addEventListener('click', function() {
-          allTabs.forEach(function(t) { var b=document.getElementById(t); if(b){ b.className='btn btn-ghost'; b.style.color='inherit'; b.style.borderColor='transparent'; } });
+    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-ap-ar','tab-journal','tab-assets','tab-taxes','tab-petty','tab-reports','tab-closing'];
+    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-ap-ar','view-journal','view-assets','view-taxes','view-petty','view-reports','view-closing'];
+    
+    allTabs.forEach((tid, idx) => {
+      var btn = document.getElementById(tid);
+      if(btn) {
+        btn.addEventListener('click', function() {
+          allTabs.forEach(t => { var b=document.getElementById(t); if(b){b.className='btn btn-ghost';b.style.color='inherit';b.style.borderColor='transparent';} });
           this.className='btn btn-outline'; this.style.color='var(--accent-primary)'; this.style.borderColor='var(--accent-primary)';
-          allViews.forEach(function(v) { var vEl=document.getElementById(v); if(vEl) vEl.style.display='none'; });
-          document.getElementById(allViews[idx]).style.display='block';
+          allViews.forEach(v => { var vEl=document.getElementById(v); if(vEl) vEl.style.display='none'; });
+          var target = document.getElementById(allViews[idx]);
+          if(target) target.style.display='block';
         });
       }
     });
   }
-
-  window.trReceiveSalesPayment = function(id, customerName) {
-    sbClient.from('sales_workflow_orders').select('*').eq('id', id).single().then(function(sRes) {
-      if (sRes.error) return alert('خطأ في جلب بيانات الفاتورة: ' + sRes.error.message);
-      var o = sRes.data;
-      var remaining = o.remaining_amount !== undefined ? o.remaining_amount : (o.total_amount || 0);
-      
-      var b = '<div class="form-grid">';
-      b += '<div class="form-group"><label>إجمالي الفاتورة</label><input type="text" class="form-input" disabled value="EGP ' + (o.total_amount||0) + '"></div>';
-      b += '<div class="form-group"><label>المتبقي سداده</label><input type="text" class="form-input" disabled value="EGP ' + remaining + '"></div>';
-      b += '<div class="form-group"><label>المبلغ المستلم (EGP) *</label><input type="number" id="pay-amt" class="form-input" value="' + remaining + '" max="' + remaining + '"></div>';
-      b += '<div class="form-group"><label>طريقة الدفع *</label><select id="pay-method" class="form-input"><option value="cash">نقدي (خزنة)</option><option value="bank">تحويل بنكي</option><option value="check">شيك</option></select></div>';
-      b += '<div class="form-group" style="grid-column: span 2;"><label>رقم المرجع (رقم الشيك أو التحويل)</label><input type="text" id="pay-ref" class="form-input"></div>';
-      b += '</div>';
-
-      App.showModal('تسجيل دفعة للعميل: ' + customerName, b, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-success" id="pay-save">حفظ الدفعة</button>');
-
-      document.getElementById('pay-save').onclick = function() {
-        var amt = Number(document.getElementById('pay-amt').value);
-        var method = document.getElementById('pay-method').value;
-        var ref = document.getElementById('pay-ref').value;
-
-        if (!amt || amt <= 0 || amt > remaining) return alert('مبلغ غير صحيح');
-
-        var btn = document.getElementById('pay-save');
-        btn.disabled = true; btn.innerHTML = 'جاري الحفظ...';
-
-        var newPaid = (o.paid_amount || 0) + amt;
-        var newRemaining = (o.total_amount || 0) - newPaid;
-        var newPayStatus = newRemaining <= 0 ? 'paid' : 'partial';
-
-        // 1. Insert into finance_payments
-        sbClient.from('finance_payments').insert({
-          invoice_type: 'sales', invoice_id: id, amount: amt, payment_method: method, reference_number: ref, created_by: App.user.id
-        }).then(function() {
-          // 2. Add to treasury (if cash or bank)
-          var trMethod = method === 'cash' ? 'safe' : method;
-          var trStatus = method === 'check' ? 'pending_clearance' : 'completed';
-          sbClient.from('finance_treasury_tx').insert({
-            type: 'deposit', method: trMethod, amount: amt, notes: 'دفعة من العميل ' + customerName + (ref ? ' - مرجع: ' + ref : ''), status: trStatus, created_by: App.user.id
-          }).then(function() {
-            // 3. Update Sales Order
-            var updateData = {
-              paid_amount: newPaid,
-              remaining_amount: newRemaining,
-              payment_status: newPayStatus
-            };
-            if (newPayStatus === 'paid') updateData.status = 'Pending Warehouse Delivery Approval';
-
-            sbClient.from('sales_workflow_orders').update(updateData).eq('id', id).then(function() {
-              App.closeModal();
-              loadData();
-            });
-          });
-        });
-      };
-    });
-  };
-
-  window.trAddFunds = function() {
-    var body = '<div class="form-field"><label>طريقة الإيداع *</label><select id="tr-m" class="form-input"><option value="safe">كاش (في الخزنة)</option><option value="bank">تحويل بنكي</option><option value="check">شيك</option></select></div>';
-    body += '<div class="form-field"><label>المبلغ (EGP) *</label><input type="number" id="tr-a" class="form-input" min="1"></div>';
-    body += '<div class="form-field"><label>ملاحظات (اختياري)</label><input type="text" id="tr-n" class="form-input"></div>';
-    App.showModal('إيداع رصيد (Add Funds)', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-success" id="tr-s1">حفظ الإيداع</button>');
-    document.getElementById('tr-s1').onclick = function() {
-      var m = document.getElementById('tr-m').value;
-      var a = parseFloat(document.getElementById('tr-a').value);
-      var n = document.getElementById('tr-n').value;
-      if(!a) return alert('ادخل المبلغ');
-      var status = m === 'check' ? 'pending_clearance' : 'completed';
-      sbClient.from('finance_treasury_tx').insert({ type: 'deposit', method: m, amount: a, notes: n, status: status, created_by: App.user.id }).then(function(res) {
-        if(res.error) return alert(res.error.message); App.closeModal(); loadData();
-      });
-    };
-  };
-
-  window.trTransfer = function() {
-    var body = '<div class="form-field"><label>من حساب *</label><select id="tr-f" class="form-input"><option value="bank">البنك</option><option value="safe">الخزنة (كاش)</option></select></div>';
-    body += '<div class="form-field"><label>إلى حساب *</label><select id="tr-t" class="form-input"><option value="safe">الخزنة (كاش)</option><option value="bank">البنك</option></select></div>';
-    body += '<div class="form-field"><label>المبلغ (EGP) *</label><input type="number" id="tr-a2" class="form-input" min="1"></div>';
-    App.showModal('تحويل بين الحسابات', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-warning" id="tr-s2">تأكيد التحويل</button>');
-    document.getElementById('tr-s2').onclick = function() {
-      var f = document.getElementById('tr-f').value; var t = document.getElementById('tr-t').value;
-      var a = parseFloat(document.getElementById('tr-a2').value);
-      if(f === t) return alert('لا يمكن التحويل لنفس الحساب');
-      if(!a) return alert('ادخل المبلغ');
-      sbClient.from('finance_treasury_tx').insert({ type: 'transfer', method: f, transfer_to: t, amount: a, created_by: App.user.id }).then(function(res) {
-        if(res.error) return alert(res.error.message); App.closeModal(); loadData();
-      });
-    };
-  };
-
-  window.trIssuePetty = function() {
-    sbClient.from('users').select('id, full_name').then(function(res) {
-      var users = res.data || [];
-      var body = '<div class="form-field"><label>الموظف *</label><select id="tr-e" class="form-input">';
-      users.forEach(function(u){ body += '<option value="'+u.id+'">'+u.full_name+'</option>'; });
-      body += '</select></div>';
-      body += '<div class="form-field"><label>مبلغ العهدة (EGP) *</label><input type="number" id="tr-a3" class="form-input" min="1"></div>';
-      body += '<div class="form-field"><label>طريقة الصرف *</label><select id="tr-m2" class="form-input"><option value="safe">كاش (من الخزنة)</option><option value="bank">تحويل بنكي</option></select></div>';
-      body += '<div class="form-field"><label>البيان / سبب العهدة</label><input type="text" id="tr-n2" class="form-input"></div>';
-      App.showModal('إصدار عهدة', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="tr-s3">صرف العهدة</button>');
-      document.getElementById('tr-s3').onclick = function() {
-        var e = document.getElementById('tr-e').value;
-        var a = parseFloat(document.getElementById('tr-a3').value);
-        var m = document.getElementById('tr-m2').value;
-        var n = document.getElementById('tr-n2').value;
-        if(!a) return alert('ادخل المبلغ');
-        sbClient.from('finance_treasury_tx').insert({ type: 'petty_cash', method: m, amount: a, employee_id: e, notes: n, created_by: App.user.id }).then(function(res) {
-          if(res.error) return alert(res.error.message); App.closeModal(); loadData();
-        });
-      };
-    });
-  };
-
-  window.trClearCheck = function(id, amt) {
-    if(!confirm('تأكيد تحصيل الشيك بمبلغ ' + amt + ' وإضافته لرصيد البنك؟')) return;
-    sbClient.from('finance_treasury_tx').update({status: 'completed'}).eq('id', id).then(function(res) {
-      if(res.error) return alert(res.error.message);
-      sbClient.from('finance_treasury_tx').insert({ type: 'check_clearance', method: 'bank', amount: amt, notes: 'تحصيل شيك', created_by: App.user.id }).then(function(r) {
-        loadData();
-      });
-    });
-  };
-
-  window.trSettlePurchase = function(reqId, amt, empId, isDeduction) {
-    var msg = isDeduction ? 'هل أنت متأكد من تسوية طلب الشراء بخصم ' + amt + ' من عهدة الموظف؟' : 'هل أنت متأكد من صرف ' + amt + ' كاش لطلب الشراء هذا؟';
-    if (!confirm(msg)) return;
-    
-    var txObj = {
-      amount: isDeduction ? -amt : amt,
-      employee_id: empId || App.user.id,
-      notes: 'تسوية طلب شراء #' + reqId.split('-')[0],
-      created_by: App.user.id,
-      type: isDeduction ? 'petty_cash' : 'expense',
-      method: isDeduction ? 'settlement' : 'safe'
-    };
-
-    sbClient.from('finance_treasury_tx').insert(txObj).then(function(res) {
-      if(res.error) return alert(res.error.message);
-      sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r) {
-         if(r.error) return alert(r.error.message);
-         loadData();
-         showToast('تمت التسوية بنجاح', 'success');
-      });
-    });
-  };
 
   loadData();
 };

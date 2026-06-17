@@ -393,7 +393,7 @@ var App = {
       var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance') || (App.user && App.user.role === 'hr manager');
       if (canViewFinance || canViewProcurement) {
         var finItems = [];
-        finItems.push({ id: 'petty-cash', label: 'Treasury & Petty Cash (الخزنة والعهد)', icon: 'dollarSign' });
+        finItems.push({ id: 'petty-cash', label: 'Financial Suite (الإدارة المالية)', icon: 'dollarSign' });
         if (canViewFinance) {
           finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
           finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
@@ -440,7 +440,7 @@ var App = {
         menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
       }
       
-      var canViewEngineering = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Engineering' || App.user.role === 'engineering manager' || App.user.role === 'engineer' || App.user.role === 'technical office'));
+      var canViewEngineering = App.isOwner() || (App.user && (App.user.role === 'hr manager' || (App.user.department === 'Engineering' && App.user.role !== 'spare parts inspector') || App.user.role === 'engineering manager' || App.user.role === 'engineer' || App.user.role === 'technical office'));
       if (canViewEngineering) {
         menu.push({ section: 'Engineering (الإدارة الهندسية)', items: [{ id: 'engineering', label: 'Projects & Designs', icon: 'edit3' }] });
       }
@@ -464,7 +464,7 @@ var App = {
         App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician' ||
         App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' ||
         App.user.department === 'Quality' || App.user.role === 'quality manager' ||
-        App.user.role === 'hr manager' || App.user.department === 'Logistics'
+        App.user.role === 'hr manager' || App.user.department === 'Logistics' || App.user.role === 'spare parts inspector'
       ));
 
       if (canViewSpareParts) {
@@ -556,7 +556,7 @@ var App = {
       'offboarding': { title: 'Offboarding', sub: 'Manage employee exit process' },
       'inventory': { title: 'Inventory (المخازن)', sub: 'Warehouse Management' },
       'purchase-requests': { title: 'Material Requests (طلبات صرف وشراء)', sub: 'Warehouse and Procurement workflows' },
-      'petty-cash': { title: 'Treasury & Petty Cash (الخزنة والعهد)', sub: 'Manage bank, safe balances and cash advances' },
+      'petty-cash': { title: 'Financial Suite (الإدارة المالية الشاملة)', sub: 'Manage treasury, AP/AR, assets, and more' },
       'it-tickets': { title: 'IT Support (الدعم الفني)', sub: 'Technical support and issue tracking' },
       'payroll-funding': { title: 'Payroll Funding (صرف المرتبات)', sub: 'Release salary funds for HR' },
       'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' },

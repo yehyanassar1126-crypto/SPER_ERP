@@ -275,41 +275,97 @@ Pages.spareParts = function(el) {
   };
 
   window.spQualityCheck = function(id) {
-    var body = '<div class="grid-2">';
-    body += '<div class="form-field"><label>نسبة العمر التشغيلي (Life Time %) *</label><select id="sp-lt" class="form-input"><option value="100">100% (انتهى عمرها بالكامل)</option><option value="75">75% (استهلاك مرتفع)</option><option value="50">50% (استهلاك متوسط)</option><option value="25">25% (تلف مبكر)</option><option value="10">أقل من 25% (عيب/سوء استخدام)</option></select></div>';
-    body += '<div class="form-field"><label>نوع التلف *</label><input type="text" id="sp-dmg-type" class="form-input" placeholder="كسر، احتراق، تآكل..."></div>';
+    var req = requests.find(function(r) { return r.id === id; });
+    var partInfo = req ? ('<b>' + req.item_name + '</b> — المعدة: <b>' + (req.machine_or_vehicle || '-') + '</b>') : '';
+
+    var body = '<div style="background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:12px;padding:16px;margin-bottom:20px;direction:rtl">';
+    body += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:22px">🔍</span><h4 style="margin:0">تقرير فحص القطعة التالفة</h4></div>';
+    body += '<div style="color:var(--text-secondary);font-size:0.9rem">' + partInfo + '</div>';
     body += '</div>';
-    
+
+    // Life percentage slider
+    body += '<div class="form-field" style="margin-bottom:20px">';
+    body += '<label style="font-weight:700">نسبة العمر المتبقي في القطعة (Remaining Life %) *</label>';
+    body += '<div style="display:flex;align-items:center;gap:16px;margin-top:8px">';
+    body += '<input type="range" id="sp-lt" min="0" max="100" value="50" style="flex:1;accent-color:var(--accent-primary)" oninput="document.getElementById(\'sp-lt-val\').textContent=this.value+\'%\';var c=this.value>=70?\'var(--accent-success)\':this.value>=40?\'var(--accent-warning)\':\'var(--accent-danger)\';document.getElementById(\'sp-lt-val\').style.color=c;document.getElementById(\'sp-lt-bar\').style.width=this.value+\'%\';document.getElementById(\'sp-lt-bar\').style.background=c">';
+    body += '<span id="sp-lt-val" style="font-size:1.5rem;font-weight:900;min-width:60px;text-align:center;color:var(--accent-warning)">50%</span>';
+    body += '</div>';
+    body += '<div style="height:8px;background:var(--bg-tertiary);border-radius:99px;margin-top:6px;overflow:hidden"><div id="sp-lt-bar" style="height:100%;width:50%;background:var(--accent-warning);border-radius:99px;transition:all 0.3s"></div></div>';
+    body += '<div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted);margin-top:4px"><span>0% تالفة تماماً</span><span>100% جديدة</span></div>';
+    body += '</div>';
+
     body += '<div class="grid-2">';
-    body += '<div class="form-field"><label>طبيعة التلف *</label><select id="sp-nat" class="form-input"><option value="true">تلف طبيعي (Natural Wear)</option><option value="false">سوء استخدام (Misuse)</option></select></div>';
-    body += '<div class="form-field"><label>إمكانية الإصلاح *</label><select id="sp-rep" class="form-input"><option value="false">لا (إعدام)</option><option value="true">نعم (قابلة للإصلاح)</option></select></div>';
+    // Damage category
+    body += '<div class="form-field"><label>تصنيف التلف *</label><select id="sp-dmg-cat" class="form-input" onchange="var sub=document.getElementById(\'sp-dmg-type\');var v=this.value;sub.value=\'\';if(v===\'mechanical\')sub.placeholder=\'كسر، تآكل، تشقق، اهتراء...\';else if(v===\'electrical\')sub.placeholder=\'احتراق، ماس كهربائي، تلف عازل...\';else if(v===\'thermal\')sub.placeholder=\'انصهار، تشوه حراري...\';else if(v===\'chemical\')sub.placeholder=\'صدأ، تآكل كيميائي...\';else sub.placeholder=\'اكتب تفاصيل التلف...\';">';
+    body += '<option value="mechanical">⚙️ ميكانيكي (Mechanical)</option>';
+    body += '<option value="electrical">⚡ كهربائي (Electrical)</option>';
+    body += '<option value="thermal">🔥 حراري (Thermal)</option>';
+    body += '<option value="chemical">🧪 كيميائي (Chemical)</option>';
+    body += '<option value="misuse">⚠️ سوء استخدام (Misuse)</option>';
+    body += '<option value="manufacturing">🏭 عيب تصنيع (Manufacturing Defect)</option>';
+    body += '<option value="other">📋 أخرى</option>';
+    body += '</select></div>';
+    // Damage sub-type
+    body += '<div class="form-field"><label>وصف التلف بالتحديد *</label><input type="text" id="sp-dmg-type" class="form-input" placeholder="كسر، احتراق، تآكل..."></div>';
     body += '</div>';
 
-    body += '<div class="form-field"><label>سبب التلف المفصل</label><textarea id="sp-reas" class="form-input" rows="2"></textarea></div>';
-    body += '<div class="form-field"><label>الملاحظات الفنية</label><textarea id="sp-notes" class="form-input" rows="2"></textarea></div>';
+    body += '<div class="grid-2">';
+    body += '<div class="form-field"><label>طبيعة التلف *</label><select id="sp-nat" class="form-input"><option value="true">✅ تلف طبيعي (Natural Wear)</option><option value="false">❌ سوء استخدام (Misuse)</option></select></div>';
+    body += '<div class="form-field"><label>إمكانية الإصلاح *</label><select id="sp-rep" class="form-input" onchange="document.getElementById(\'sp-repair-cost-row\').style.display=this.value===\'true\'?\'block\':\'none\'"><option value="false">🚫 لا (إعدام / Scrap)</option><option value="true">🔧 نعم (قابلة للإصلاح)</option></select></div>';
+    body += '</div>';
 
-    App.showModal('فحص القطعة التالفة', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="sp-qc-save">حفظ تقرير الفحص وإغلاق العملية</button>', true);
-    
+    // Repair cost (shows only if repairable)
+    body += '<div id="sp-repair-cost-row" style="display:none"><div class="form-field"><label>تكلفة الإصلاح التقديرية (EGP)</label><input type="number" id="sp-repair-cost" class="form-input" placeholder="0" min="0"></div></div>';
+
+    body += '<div class="form-field"><label>سبب التلف الجذري (Root Cause) *</label><textarea id="sp-reas" class="form-input" rows="2" placeholder="مثال: عدم تشحيم المحامل بانتظام أدى لاحتكاك زائد وتآكل السطح الداخلي"></textarea></div>';
+    body += '<div class="form-field"><label>التوصية الفنية</label><select id="sp-recommend" class="form-input">';
+    body += '<option value="scrap">إعدام القطعة (Scrap)</option>';
+    body += '<option value="repair_internal">إصلاح داخلي في الورشة</option>';
+    body += '<option value="repair_external">إرسال لمورد خارجي للإصلاح</option>';
+    body += '<option value="reuse">إعادة استخدام في معدة أخرى</option>';
+    body += '<option value="investigate">يحتاج تحقيق إضافي</option>';
+    body += '</select></div>';
+    body += '<div class="form-field"><label>ملاحظات فنية إضافية</label><textarea id="sp-notes" class="form-input" rows="2"></textarea></div>';
+
+    App.showModal('📋 تقرير فحص القطعة التالفة', body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="sp-qc-save">✅ حفظ التقرير وإغلاق العملية</button>', true);
+
     document.getElementById('sp-qc-save').onclick = function() {
       var lt = document.getElementById('sp-lt').value;
+      var dmgCat = document.getElementById('sp-dmg-cat').value;
       var dtype = document.getElementById('sp-dmg-type').value;
       var nat = document.getElementById('sp-nat').value === 'true';
       var rep = document.getElementById('sp-rep').value === 'true';
+      var repairCost = document.getElementById('sp-repair-cost') ? document.getElementById('sp-repair-cost').value : '';
       var reas = document.getElementById('sp-reas').value;
+      var recommend = document.getElementById('sp-recommend').value;
       var notes = document.getElementById('sp-notes').value;
+
+      if (!dtype) return alert('الرجاء إدخال وصف التلف');
+      if (!reas) return alert('الرجاء إدخال سبب التلف الجذري');
+
+      var fullNotes = 'التصنيف: ' + dmgCat + ' | التوصية: ' + recommend;
+      if (repairCost) fullNotes += ' | تكلفة إصلاح تقديرية: ' + repairCost + ' EGP';
+      if (notes) fullNotes += '\n' + notes;
+
+      var btn = document.getElementById('sp-qc-save');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> جاري الحفظ...';
 
       sbClient.from('spare_parts_requests').update({
         status: 'quality_checked',
         quality_checked_at: new Date().toISOString(),
+        quality_checked_by_name: App.user.full_name,
         life_time_percentage: lt,
         damage_type: dtype,
+        damage_category: dmgCat,
         is_natural_wear: nat,
         is_repairable: rep,
+        repair_cost_estimate: repairCost ? Number(repairCost) : null,
         damage_reason: reas,
-        quality_notes: notes
+        recommendation: recommend,
+        quality_notes: fullNotes
       }).eq('id', id).then(function(res) {
-        if(res.error) return alert(res.error.message);
-        
+        if(res.error) { btn.disabled = false; btn.innerHTML = '✅ حفظ التقرير وإغلاق العملية'; return alert(res.error.message); }
+
         sbClient.from('spare_parts_requests').select('item_name').eq('id', id).single().then(function(spRes) {
           if(spRes.error || !spRes.data) return;
           var itemName = spRes.data.item_name;
@@ -330,28 +386,77 @@ Pages.spareParts = function(el) {
     var req = requests.find(function(r) { return r.id === id; });
     if (!req) return;
 
+    var lifeColor = (req.life_time_percentage || 0) >= 70 ? 'var(--accent-success)' : (req.life_time_percentage || 0) >= 40 ? 'var(--accent-warning)' : 'var(--accent-danger)';
+
     var body = '<div style="line-height:1.8; direction:rtl">';
-    body += '<div class="grid-2" style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px">';
+    body += '<div class="grid-2" style="margin-bottom:15px; border-bottom:1px solid var(--border-color); padding-bottom:15px">';
     body += '<div><b>الموظف:</b> ' + req.requested_by_name + '</div>';
     body += '<div><b>المعدة/السيارة:</b> ' + (req.machine_or_vehicle || '-') + '</div>';
     body += '<div><b>القطعة:</b> ' + req.item_name + '</div>';
     body += '<div><b>رقم القطعة الجديدة:</b> ' + (req.new_part_number || '-') + '</div>';
     body += '<div><b>رقم التالف:</b> ' + (req.old_part_number || '-') + '</div>';
+    body += '<div><b>الفاحص:</b> ' + (req.quality_checked_by_name || '-') + '</div>';
     body += '</div>';
 
-    body += '<h4 style="color:var(--accent-primary)">تقرير الفحص الفني</h4>';
+    body += '<h4 style="color:var(--accent-primary);margin-bottom:12px">📋 تقرير الفحص الفني</h4>';
+
+    // Life bar
+    body += '<div style="margin-bottom:16px">';
+    body += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span><b>العمر المتبقي:</b></span><span style="font-size:1.4rem;font-weight:900;color:' + lifeColor + '">' + (req.life_time_percentage || 0) + '%</span></div>';
+    body += '<div style="height:10px;background:var(--bg-tertiary);border-radius:99px;overflow:hidden"><div style="height:100%;width:' + (req.life_time_percentage || 0) + '%;background:' + lifeColor + ';border-radius:99px"></div></div>';
+    body += '</div>';
+
+    var catLabels = {mechanical:'⚙️ ميكانيكي',electrical:'⚡ كهربائي',thermal:'🔥 حراري',chemical:'🧪 كيميائي',misuse:'⚠️ سوء استخدام',manufacturing:'🏭 عيب تصنيع',other:'📋 أخرى'};
+    var recLabels = {scrap:'إعدام',repair_internal:'إصلاح داخلي',repair_external:'إصلاح خارجي',reuse:'إعادة استخدام',investigate:'تحقيق إضافي'};
+
     body += '<div class="grid-2">';
-    body += '<div><b>العمر التشغيلي:</b> ' + (req.life_time_percentage || 0) + '%</div>';
-    body += '<div><b>طبيعة التلف:</b> ' + (req.is_natural_wear ? '<span style="color:var(--accent-success)">طبيعي</span>' : '<span style="color:var(--accent-danger)">سوء استخدام</span>') + '</div>';
-    body += '<div><b>قابل للإصلاح:</b> ' + (req.is_repairable ? 'نعم' : 'لا') + '</div>';
-    body += '<div><b>نوع التلف:</b> ' + (req.damage_type || '-') + '</div>';
-    body += '<div style="grid-column: span 2"><b>سبب التلف:</b> ' + (req.damage_reason || '-') + '</div>';
+    body += '<div><b>تصنيف التلف:</b> ' + (catLabels[req.damage_category] || req.damage_category || '-') + '</div>';
+    body += '<div><b>وصف التلف:</b> ' + (req.damage_type || '-') + '</div>';
+    body += '<div><b>طبيعة التلف:</b> ' + (req.is_natural_wear ? '<span style="color:var(--accent-success)">✅ طبيعي</span>' : '<span style="color:var(--accent-danger)">❌ سوء استخدام</span>') + '</div>';
+    body += '<div><b>قابل للإصلاح:</b> ' + (req.is_repairable ? '🔧 نعم' : '🚫 لا (إعدام)') + '</div>';
+    body += '<div><b>التوصية:</b> ' + (recLabels[req.recommendation] || req.recommendation || '-') + '</div>';
+    body += '<div><b>تكلفة إصلاح تقديرية:</b> ' + (req.repair_cost_estimate ? req.repair_cost_estimate + ' EGP' : '-') + '</div>';
+    body += '<div style="grid-column: span 2"><b>سبب التلف الجذري:</b> ' + (req.damage_reason || '-') + '</div>';
     body += '<div style="grid-column: span 2"><b>الملاحظات الفنية:</b> ' + (req.quality_notes || '-') + '</div>';
     body += '</div>';
-
     body += '</div>';
 
-    App.showModal('تفاصيل عملية الاستبدال', body, '<button class="btn btn-outline" onclick="App.closeModal()">إغلاق</button>');
+    App.showModal('تفاصيل عملية الاستبدال', body, '<button class="btn btn-outline" onclick="App.closeModal()">إغلاق</button> <button class="btn btn-primary" onclick="window.spPrintReport(\'' + id + '\')">' + icon('printer', 14) + ' طباعة التقرير</button>');
+  };
+
+  window.spPrintReport = function(id) {
+    var req = requests.find(function(r) { return r.id === id; });
+    if (!req) return;
+    var catLabels = {mechanical:'ميكانيكي',electrical:'كهربائي',thermal:'حراري',chemical:'كيميائي',misuse:'سوء استخدام',manufacturing:'عيب تصنيع',other:'أخرى'};
+    var recLabels = {scrap:'إعدام القطعة',repair_internal:'إصلاح داخلي',repair_external:'إصلاح خارجي',reuse:'إعادة استخدام',investigate:'تحقيق إضافي'};
+    var dateStr = req.quality_checked_at ? new Date(req.quality_checked_at).toLocaleDateString('ar-EG') : '-';
+
+    var html = '<html dir="rtl"><head><title>تقرير فحص قطعة تالفة</title>';
+    html += '<style>@page{margin:20mm}body{font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;color:#333}';
+    html += '.header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #333;padding-bottom:12px;margin-bottom:20px}';
+    html += '.title{font-size:22px;font-weight:bold;text-align:center;margin-bottom:20px}';
+    html += 'table{width:100%;border-collapse:collapse;margin-bottom:20px}th,td{border:1px solid #333;padding:10px;text-align:right}';
+    html += 'th{background:#f0f0f0;font-weight:bold}.bar{height:14px;border-radius:7px;background:#eee}.bar-fill{height:100%;border-radius:7px}';
+    html += '.sig{display:flex;justify-content:space-around;margin-top:50px;text-align:center}.sig div{width:200px;border-top:1px solid #333;padding-top:8px}';
+    html += '</style></head><body>';
+    html += '<div class="header"><div style="font-size:28px;font-weight:bold">Ninja Factory</div><div>تقرير فحص فني - قطع غيار<br>التاريخ: ' + dateStr + '</div></div>';
+    html += '<div class="title">تقرير فحص القطعة التالفة</div>';
+    html += '<table><tr><th>القطعة</th><td>' + req.item_name + '</td><th>المعدة/السيارة</th><td>' + (req.machine_or_vehicle||'-') + '</td></tr>';
+    html += '<tr><th>الموظف الطالب</th><td>' + req.requested_by_name + '</td><th>القسم</th><td>' + (req.department||'-') + '</td></tr>';
+    html += '<tr><th>رقم القطعة الجديدة</th><td>' + (req.new_part_number||'-') + '</td><th>رقم القطعة التالفة</th><td>' + (req.old_part_number||'-') + '</td></tr></table>';
+    html += '<div class="title" style="font-size:18px">نتائج الفحص</div>';
+    html += '<table><tr><th>العمر المتبقي</th><td><b>' + (req.life_time_percentage||0) + '%</b></td><th>تصنيف التلف</th><td>' + (catLabels[req.damage_category]||'-') + '</td></tr>';
+    html += '<tr><th>وصف التلف</th><td>' + (req.damage_type||'-') + '</td><th>طبيعة التلف</th><td>' + (req.is_natural_wear ? 'طبيعي' : 'سوء استخدام') + '</td></tr>';
+    html += '<tr><th>قابل للإصلاح</th><td>' + (req.is_repairable ? 'نعم' : 'لا') + '</td><th>تكلفة إصلاح تقديرية</th><td>' + (req.repair_cost_estimate ? req.repair_cost_estimate + ' EGP' : '-') + '</td></tr>';
+    html += '<tr><th>التوصية</th><td colspan="3"><b>' + (recLabels[req.recommendation]||'-') + '</b></td></tr>';
+    html += '<tr><th>سبب التلف الجذري</th><td colspan="3">' + (req.damage_reason||'-') + '</td></tr>';
+    html += '<tr><th>ملاحظات فنية</th><td colspan="3">' + (req.quality_notes||'-') + '</td></tr></table>';
+    html += '<div class="sig"><div>الفاحص: ' + (req.quality_checked_by_name||'-') + '</div><div>مدير الصيانة</div><div>مدير المخازن</div></div>';
+    html += '</body></html>';
+
+    var w = window.open('','_blank');
+    w.document.write(html); w.document.close();
+    setTimeout(function(){w.print();},500);
   };
 
   loadData();

@@ -24,12 +24,15 @@ CREATE TABLE IF NOT EXISTS spare_parts_requests (
   
   -- Quality Check
   quality_checked_at timestamp with time zone,
-  quality_checked_by uuid REFERENCES auth.users(id),
+  quality_checked_by_name text,
   life_time_percentage numeric,
+  damage_category text,
   damage_reason text,
   damage_type text,
   is_natural_wear boolean,
   is_repairable boolean,
+  repair_cost_estimate numeric,
+  recommendation text,
   quality_notes text
 );
 
