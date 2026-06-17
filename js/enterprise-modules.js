@@ -475,21 +475,24 @@ Pages.inventory = function(el) {
   var matReqs = [];
   var qualityOrders = [];
   var sparePartsReqs = [];
-  
+  var rawPending = [];
+
   function loadData() {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Inventory...</div>';
     Promise.all([
       sbClient.from('inventory_items').select('*').order('name'),
       sbClient.from('inventory_transactions').select('*').order('date', {ascending: false}).limit(100),
       sbClient.from('material_requests').select('*').order('created_at', {ascending: false}),
-      sbClient.from('sales_workflow_orders').select('*').eq('status', 'Quality Accepted'),
-      sbClient.from('spare_parts_requests').select('*').order('created_at', {ascending: false})
+      sbClient.from('sales_workflow_orders').select('*').eq('status', 'Pending Warehouse FG'),
+      sbClient.from('spare_parts_requests').select('*').order('created_at', {ascending: false}),
+      sbClient.from('raw_material_receipts').select('*').eq('status', 'pending_warehouse')
     ]).then(function(res) {
       items = res[0].data || [];
       transactions = res[1].data || [];
       matReqs = res[2].data || [];
       qualityOrders = res[3] ? (res[3].data || []) : [];
       sparePartsReqs = res[4] ? (res[4].data || []) : [];
+      rawPending = res[5] ? (res[5].data || []) : [];
       render();
     });
   }
@@ -530,6 +533,18 @@ Pages.inventory = function(el) {
 
     // Raw Items View
     html += '<div id="view-items">';
+
+    // Incoming Raw Materials Section
+    if (rawPending.length > 0 && isWarehouse) {
+      html += '<div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent-warning)"><div class="card-header" style="background:rgba(245,158,11,0.05)"><div><h3 style="color:var(--accent-warning)">📥 وارد من قسم الجودة (مخزن الخام)</h3><p>خامات تم استلامها واعتمادها بانتظار استلام المخزن</p></div></div><div class="card-body no-pad">';
+      html += '<div class="table-container"><table class="data-table"><thead><tr><th>تاريخ الاعتماد</th><th>الخامة</th><th>الكمية المقبولة</th><th>الإجراء</th></tr></thead><tbody>';
+      rawPending.forEach(function(rp) {
+        html += '<tr><td>' + formatDate(rp.qc_date || rp.created_at) + '</td><td><strong>' + rp.item_name + '</strong></td><td><strong style="font-size:1.1rem;color:var(--text-primary)">' + rp.quantity_accepted + '</strong></td>';
+        html += '<td><button class="btn btn-sm btn-success" onclick="window.warehouseReceiveRaw(\''+rp.id+'\',\''+rp.item_name+'\','+rp.quantity_accepted+')">تأكيد استلام المخزن</button></td></tr>';
+      });
+      html += '</tbody></table></div></div></div>';
+    }
+
     html += '<div class="card"><div class="card-header"><div><h3>📦 مخزن خام - Raw Materials Warehouse</h3><p>' + rawItems.length + ' items</p></div></div><div class="card-body no-pad">';
     html += '<div class="table-container"><table class="data-table"><thead><tr><th>Item Name</th><th>Category</th><th>Current Qty</th><th>Min Qty</th><th>Life Time %</th><th>Alert</th></tr></thead><tbody>';
     
@@ -724,7 +739,50 @@ Pages.inventory = function(el) {
     window.warehouseReceiveQuality = function(id) {
       if(!confirm('تأكيد استلام المنتجات من الجودة وإضافتها لمخزن التام وإعلام التخطيط؟')) return;
       if (!window.SalesWorkflow) return alert('SalesWorkflow module missing!');
-      window.SalesWorkflow.updateStatus(id, 'Received by Warehouse', {}, loadData);
+      
+      // Get order details to update inventory
+      sbClient.from('sales_workflow_orders').select('product_name, quantity_available').eq('id', id).single().then(function(r) {
+        if (!r.error && r.data) {
+          var qty = r.data.quantity_available || 0;
+          sbClient.from('inventory_items').select('id, quantity').ilike('name', r.data.product_name).then(function(inv) {
+            if (inv.data && inv.data.length > 0) {
+              sbClient.from('inventory_items').update({ quantity: (inv.data[0].quantity || 0) + qty }).eq('id', inv.data[0].id).then(function() {});
+            } else {
+              sbClient.from('inventory_items').insert({
+                name: r.data.product_name,
+                category: 'Finished Good',
+                quantity: qty,
+                min_quantity: 0,
+                warehouse_type: 'finished'
+              }).then(function() {});
+            }
+          });
+        }
+        window.SalesWorkflow.updateStatus(id, 'Received by Warehouse', {}, loadData);
+      });
+    };
+
+    window.warehouseReceiveRaw = function(id, itemName, acceptedQty) {
+      if(!confirm('تأكيد استلام ' + acceptedQty + ' من الخامة (' + itemName + ') وإضافتها للمخزن؟')) return;
+      
+      sbClient.from('inventory_items').select('id, quantity').ilike('name', itemName).then(function(invRes) {
+        if (invRes.data && invRes.data.length > 0) {
+          var item = invRes.data[0];
+          sbClient.from('inventory_items').update({ quantity: (item.quantity || 0) + acceptedQty }).eq('id', item.id).then(function() {});
+        } else {
+          sbClient.from('inventory_items').insert({
+            name: itemName,
+            category: 'Raw Material',
+            quantity: acceptedQty,
+            min_quantity: 5,
+            warehouse_type: 'raw'
+          }).then(function() {});
+        }
+        
+        sbClient.from('raw_material_receipts').update({ status: 'warehouse_received' }).eq('id', id).then(function(res) {
+          if (!res.error) loadData();
+        });
+      });
     };
 
     // Tab switching
@@ -1464,11 +1522,13 @@ Pages.pettyCash = function(el) {
       
       Promise.all([
         sbClient.from('users').select('id, full_name, department'),
-        sbClient.from('purchase_requests').select('*, purchase_orders(*)').eq('status', 'pending_finance')
+        sbClient.from('purchase_requests').select('*, purchase_orders(*)').eq('status', 'pending_finance'),
+        sbClient.from('sales_workflow_orders').select('*').eq('status', 'Pending Payment')
       ]).then(function(uRes) {
         var userMap = {};
         var allUsers = uRes[0].data || [];
         var pendingReqs = uRes[1].data || [];
+        var pendingSales = uRes[2] ? (uRes[2].data || []) : [];
         
         allUsers.forEach(function(u) { userMap[u.id] = u; });
         txs.forEach(function(t) {
@@ -1476,7 +1536,7 @@ Pages.pettyCash = function(el) {
           t.employee_dept = userMap[t.employee_id] ? userMap[t.employee_id].department : 'Unknown';
         });
         calculateTotals();
-        render(allUsers, pendingReqs);
+        render(allUsers, pendingReqs, pendingSales);
       });
     });
   }
@@ -1510,7 +1570,7 @@ Pages.pettyCash = function(el) {
     el.innerHTML = html;
   }
 
-  function render(allUsers, pendingReqs) {
+  function render(allUsers, pendingReqs, pendingSales) {
     var isProcurementOnly = isProcManager || isProcEmp;
     var html = '<div class="toolbar" style="display:flex; justify-content:space-between; margin-bottom: 24px;">';
     html += '<h3>Treasury & Petty Cash (الخزنة والعهد)</h3>';
@@ -1520,6 +1580,7 @@ Pages.pettyCash = function(el) {
       html += '<button class="btn btn-ghost" id="tab-petty">💸 العهد (Petty Cash)</button>';
       html += '<button class="btn btn-ghost" id="tab-checks">📑 الشيكات تحت التحصيل</button>';
       html += '<button class="btn btn-ghost" id="tab-finance-req">🛒 تسويات الشراء (' + (pendingReqs ? pendingReqs.length : 0) + ')</button>';
+      html += '<button class="btn btn-ghost" id="tab-sales-payments">💳 مدفوعات المبيعات (' + (pendingSales ? pendingSales.length : 0) + ')</button>';
     } else {
       html += '<button class="btn btn-outline" id="tab-petty" style="border-color:var(--accent-primary);color:var(--accent-primary)">💸 العهد (Petty Cash)</button>';
     }
@@ -1636,10 +1697,37 @@ Pages.pettyCash = function(el) {
       html += '</tbody></table></div></div>';
     }
 
+    if (!isProcurementOnly) {
+      html += '<div id="view-sales-payments" style="display:none">';
+      html += '<div class="card"><div class="card-header"><h3>💳 مدفوعات المبيعات بانتظار التحصيل</h3></div><div class="card-body no-pad">';
+      if (!pendingSales || pendingSales.length === 0) {
+        html += '<div class="empty-state">لا توجد مدفوعات معلقة حالياً</div>';
+      } else {
+        html += '<div class="table-responsive"><table class="data-table"><thead><tr><th>التاريخ</th><th>العميل</th><th>المنتج</th><th>الكمية</th><th>المبلغ المطلوب</th><th>إجراءات الحسابات</th></tr></thead><tbody>';
+        pendingSales.forEach(function(ps) {
+          // Calculate amount: assume a fixed price or let Finance enter it if total_amount is null
+          var reqAmt = ps.total_amount || 0; 
+          html += '<tr>';
+          html += '<td>' + formatDate(ps.created_at) + '</td>';
+          html += '<td><strong>' + ps.customer_name + '</strong></td>';
+          html += '<td>' + ps.product_name + '</td>';
+          html += '<td>' + ps.quantity_requested + '</td>';
+          if (reqAmt > 0) {
+            html += '<td style="font-weight:bold;color:var(--accent-primary)">EGP ' + reqAmt + '</td>';
+          } else {
+            html += '<td><span style="color:var(--text-muted);font-size:0.8rem">غير محدد (سيتم إدخاله عند الاستلام)</span></td>';
+          }
+          html += '<td><button class="btn btn-sm btn-success" onclick="window.trReceiveSalesPayment(\'' + ps.id + '\', \'' + ps.customer_name + '\')">تأكيد استلام المبلغ</button></td></tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+      html += '</div></div></div>';
+    }
+
     el.innerHTML = html;
 
-    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-petty','tab-checks', 'tab-finance-req'];
-    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-petty','view-checks', 'view-finance-req'];
+    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-petty','tab-checks', 'tab-finance-req', 'tab-sales-payments'];
+    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-petty','view-checks', 'view-finance-req', 'view-sales-payments'];
     allTabs.forEach(function(tid, idx) {
       var tabBtn = document.getElementById(tid);
       if(tabBtn) {
@@ -1652,6 +1740,28 @@ Pages.pettyCash = function(el) {
       }
     });
   }
+
+  window.trReceiveSalesPayment = function(id, customerName) {
+    var amtStr = prompt('كم المبلغ الذي تم استلامه من العميل (' + customerName + ')؟');
+    if (amtStr === null) return;
+    var amt = Number(amtStr);
+    if (!amt || amt <= 0) return alert('مبلغ غير صحيح');
+
+    var method = confirm('هل تم الاستلام كاش في الخزنة؟ (اضغط Cancel إذا تم إيداع بنكي)') ? 'safe' : 'bank';
+    
+    // Add to treasury
+    sbClient.from('finance_treasury_tx').insert({
+      type: 'deposit', method: method, amount: amt, notes: 'متحصلات مبيعات - أوردر للعميل ' + customerName, created_by: App.user.id
+    }).then(function(res) {
+      if(res.error) return alert(res.error.message);
+      // Update sales order status
+      if (window.SalesWorkflow) {
+        window.SalesWorkflow.updateStatus(id, 'Paid - Awaiting Pickup', { total_amount: amt }, loadData);
+      } else {
+        sbClient.from('sales_workflow_orders').update({status: 'Paid - Awaiting Pickup', total_amount: amt}).eq('id', id).then(loadData);
+      }
+    });
+  };
 
   window.trAddFunds = function() {
     var body = '<div class="form-field"><label>طريقة الإيداع *</label><select id="tr-m" class="form-input"><option value="safe">كاش (في الخزنة)</option><option value="bank">تحويل بنكي</option><option value="check">شيك</option></select></div>';

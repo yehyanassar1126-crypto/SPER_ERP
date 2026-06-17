@@ -34,6 +34,8 @@ window.SalesWorkflow = {
       'Production Completed': { color: '#10b981', label: 'اكتمل الإنتاج' },
       'Received by Warehouse': { color: '#10b981', label: 'استلمه المخزن' },
       'Ready For Delivery': { color: '#10b981', label: 'جاهز للتسليم' },
+      'Pending Payment': { color: '#f59e0b', label: 'بانتظار الدفع (حسابات)' },
+      'Paid - Awaiting Pickup': { color: '#3b82f6', label: 'تم الدفع (بانتظار الاستلام)' },
       'Out For Delivery': { color: '#0ea5e9', label: 'خرج للتسليم' },
       'Delivered': { color: '#14b8a6', label: 'تم التسليم' },
     };
@@ -105,8 +107,12 @@ Pages.sales = function(el) {
           actions += '<button class="btn btn-sm btn-primary" onclick="window.salesCustomerFullWait(\'' + o.id + '\')">⏳ ينتظر الكامل</button>';
           actions += '<button class="btn btn-sm btn-danger" onclick="window.salesReject(\'' + o.id + '\')">❌ رفض</button>';
           actions += '</div>';
-        } else if (o.status === 'Ready For Delivery' || o.status === 'Ready For Customer Delivery') {
-          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesDeliver(\'' + o.id + '\')">🚚 إرسال للتسليم</button>';
+        } else if (o.status === 'Ready For Delivery' || o.status === 'Ready For Customer Delivery' || o.status === 'Received by Warehouse') {
+          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesTransferToFinance(\'' + o.id + '\')">💳 تحويل للحسابات (للدفع)</button>';
+        } else if (o.status === 'Pending Payment') {
+          actions += '<span style="color:var(--accent-warning);font-size:0.8rem">⏳ بانتظار الدفع في الحسابات</span>';
+        } else if (o.status === 'Paid - Awaiting Pickup') {
+          actions += '<button class="btn btn-sm btn-success" onclick="window.salesDeliver(\'' + o.id + '\')">📦 تسليم للعميل (تم الدفع)</button>';
         } else if (o.status === 'Delivered') {
           actions += '<span style="color:var(--accent-success);font-weight:bold">✅ تم التسليم</span>';
         } else {
@@ -222,6 +228,11 @@ Pages.sales = function(el) {
       rejection_reason: reason,
       customer_decision: 'rejected_by_sales'
     }, render);
+  };
+
+  window.salesTransferToFinance = function(id) {
+    if (!confirm('تأكيد تبليغ العميل وتحويل الأوردر للحسابات للدفع؟')) return;
+    SalesWorkflow.updateStatus(id, 'Pending Payment', {}, render);
   };
 
   render();

@@ -222,25 +222,9 @@ Pages.quality = function(el) {
       }).eq('id', id).then(function(res) {
         if (res.error) { btn.disabled = false; btn.innerHTML = 'حفظ نتيجة الفحص'; return alert(res.error.message); }
 
-        // If passed or conditional — add accepted quantity to inventory
+        // If passed or conditional — send to Warehouse for confirmation
         if (result !== 'failed' && accepted > 0) {
-          // Try to find existing item in inventory
-          sbClient.from('inventory_items').select('id, quantity').ilike('name', itemName).then(function(invRes) {
-            if (invRes.data && invRes.data.length > 0) {
-              // Update existing
-              var item = invRes.data[0];
-              sbClient.from('inventory_items').update({ quantity: (item.quantity || 0) + accepted }).eq('id', item.id).then(function() {});
-            } else {
-              // Create new inventory entry
-              sbClient.from('inventory_items').insert({
-                name: itemName,
-                category: 'Raw Material',
-                quantity: accepted,
-                min_quantity: 5,
-                warehouse_type: 'raw'
-              }).then(function() {});
-            }
-          });
+          sbClient.from('raw_material_receipts').update({ status: 'pending_warehouse' }).eq('id', id).then(function() {});
         }
 
         App.closeModal();
@@ -258,29 +242,12 @@ Pages.quality = function(el) {
     var notes = prompt('ملاحظات الفحص (اختياري):');
     if (notes === null) return;
     // Accept: move to finished goods inventory + notify warehouse
-    SalesWorkflow.updateStatus(id, 'Quality Accepted', {
+    SalesWorkflow.updateStatus(id, 'Pending Warehouse FG', {
       rejection_reason: 'مطابق للمواصفات' + (notes ? ' — ' + notes : '')
     }, function() {
-      // Add to finished goods inventory
-      sbClient.from('sales_workflow_orders').select('product_name, quantity_available').eq('id', id).single().then(function(r) {
-        if (!r.error && r.data) {
-          var qty = r.data.quantity_available || 0;
-          sbClient.from('inventory_items').select('id, quantity').ilike('name', r.data.product_name).then(function(inv) {
-            if (inv.data && inv.data.length > 0) {
-              sbClient.from('inventory_items').update({ quantity: (inv.data[0].quantity || 0) + qty }).eq('id', inv.data[0].id).then(function() {});
-            } else {
-              sbClient.from('inventory_items').insert({
-                name: r.data.product_name,
-                category: 'Finished Good',
-                quantity: qty,
-                min_quantity: 0,
-                warehouse_type: 'finished'
-              }).then(function() {});
-            }
-          });
-        }
-      });
-      render();
+      // Inventory insertion is now handled by Warehouse
+      App.closeModal();
+      renderFinishedGoodsQC();
       showToast('تم اعتماد الجودة وإضافة المنتج لمخزون المنتج التام ✅', 'success');
     });
   };
