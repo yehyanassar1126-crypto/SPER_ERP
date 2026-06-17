@@ -394,6 +394,13 @@ const ARABIC_DICT = {
 
   "Procurement": "المشتريات",
   "Purchase Requests": "طلبات الشراء",
+  "Raw Material Receipt": "استلام مواد خام",
+  "Pending QC": "بانتظار فحص الجودة",
+  "Conditional Acceptance": "مقبول بشروط",
+  "Customer Decision": "قرار العميل",
+  "Partial Delivery": "تسليم جزئي",
+  "Full Wait": "انتظار كامل",
+  "Purchase Settlements": "تسويات الشراء",
 
   // Shifts & Scheduling
   "Admin Shift": "الشيفت الإداري",

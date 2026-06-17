@@ -2125,7 +2125,14 @@ Pages.leaves = function (el) {
     var reqBtn = document.getElementById('req-leave-btn');
     if (reqBtn) reqBtn.addEventListener('click', function () {
       var body = '<div class="form-row"><div class="form-field"><label>Leave Type</label><select id="lf-type">';
-      LEAVE_TYPES.forEach(function (t) { body += '<option value="' + t + '">' + t + '</option>'; });
+      var leaveTranslations = {
+        'Annual': 'إجازة سنوية',
+        'Sick': 'إجازة مرضية',
+        'Emergency': 'إجازة عارضة',
+        'Unpaid': 'إجازة بدون راتب',
+        'Maternity/Paternity': 'إجازة وضع/أبوة'
+      };
+      LEAVE_TYPES.forEach(function (t) { body += '<option value="' + t + '">' + (leaveTranslations[t] || t) + '</option>'; });
       body += '</select></div></div><div class="form-row"><div class="form-field"><label>Start Date</label><input type="date" id="lf-start"></div><div class="form-field"><label>End Date</label><input type="date" id="lf-end"></div></div>';
       body += '<div class="form-field" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="lf-half" style="width:18px;height:18px"><label for="lf-half" style="margin:0;cursor:pointer">Half Day (نصف يوم)</label></div>';
       body += '<div class="form-field" style="margin-bottom:0"><label>Reason</label><textarea id="lf-reason" placeholder="Explain the reason for your leave..."></textarea></div>';
