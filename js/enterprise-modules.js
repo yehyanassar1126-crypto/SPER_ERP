@@ -487,6 +487,12 @@ Pages.inventory = function(el) {
       sbClient.from('spare_parts_requests').select('*').order('created_at', {ascending: false}),
       sbClient.from('raw_material_receipts').select('*').eq('status', 'pending_warehouse')
     ]).then(function(res) {
+      var err = res.find(function(r) { return r && r.error; });
+      if (err) {
+        console.error(err.error);
+        el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--accent-danger)"><h2>Error Loading Inventory</h2><p>' + err.error.message + '</p></div>';
+        return;
+      }
       items = res[0].data || [];
       transactions = res[1].data || [];
       matReqs = res[2].data || [];
@@ -494,6 +500,9 @@ Pages.inventory = function(el) {
       sparePartsReqs = res[4] ? (res[4].data || []) : [];
       rawPending = res[5] ? (res[5].data || []) : [];
       render();
+    }).catch(function(err) {
+      console.error(err);
+      el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--accent-danger)"><h2>Error Loading Inventory</h2><p>' + err.message + '</p></div>';
     });
   }
 
@@ -1727,6 +1736,9 @@ Pages.pettyCash = function(el) {
           html += '<td><button class="btn btn-sm btn-success" onclick="window.trReceiveSalesPayment(\'' + ps.id + '\', \'' + ps.customer_name + '\')">تأكيد استلام المبلغ</button></td></tr>';
         });
         html += '</tbody></table></div>';
+      }
+      html += '</div></div></div>';
+
       // --- Balances View ---
       var custMap = {}, suppMap = {};
       allSales.forEach(function(s) {
