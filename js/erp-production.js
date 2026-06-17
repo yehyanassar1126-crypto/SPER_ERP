@@ -105,7 +105,7 @@ Pages.production = function(el) {
   };
 
   window.prodWithdrawRaw = function(id, productName) {
-    sbClient.from('inventory_items').select('id, name, quantity').eq('type', 'raw_material').order('name').then(function(res) {
+    sbClient.from('inventory_items').select('id, name, quantity').in('category', ['Raw Material', 'Supplies', 'Chemicals']).order('name').then(function(res) {
       if (res.error) return alert('خطأ في جلب بيانات المخزن');
       var items = res.data || [];
       var b = '<div class="form-grid">';
