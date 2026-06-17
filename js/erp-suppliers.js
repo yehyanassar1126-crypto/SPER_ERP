@@ -1,24 +1,169 @@
 window.ERPSuppliers = {
   renderAdmin: function() {
-    var isAllowed = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Sales'));
+    var isAllowed = App.isOwner() || (App.user && (
+      App.user.role === 'hr manager' ||
+      App.user.department === 'Finance' ||
+      App.user.department === 'Sales' ||
+      App.user.department === 'Procurement' ||
+      App.user.role === 'procurement manager' ||
+      App.user.role === 'procurement specialist'
+    ));
     if (!isAllowed) {
-      document.getElementById('page-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-danger)"><h3>🚫 Access Denied</h3><p>This module is restricted to HR, Finance, Sales, and Owner.</p></div>';
+      document.getElementById('page-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-danger)"><h3>🚫 Access Denied</h3><p>This module is restricted to Procurement, Finance, Sales, and Owner.</p></div>';
       return;
     }
-    var html = '<div class="header-banner"><div><h1>إدارة الموردين</h1><p>إدارة بيانات الموردين وأوامر الشراء والحسابات</p></div>';
+
+    var isProcurement = App.isOwner() || (App.user && (
+      App.user.department === 'Procurement' ||
+      App.user.role === 'procurement manager' ||
+      App.user.role === 'procurement specialist'
+    ));
+
+    var html = '<div class="header-banner"><div><h1>إدارة الموردين والمشتريات</h1><p>بيانات الموردين • استلام المواد الخام • إرسال للجودة</p></div>';
     if (isAllowed) {
       html += '<button class="btn btn-primary" onclick="ERPSuppliers.addSupplier()">' + icon('plus') + ' إضافة مورد جديد</button>';
     }
     html += '</div>';
 
+    // Tabs
+    html += '<div class="tabs-container" style="margin:16px 0">';
+    html += '<button class="tab-btn active" id="tab-suppliers" onclick="ERPSuppliers.switchTab(\'suppliers\')">🏭 الموردين</button>';
+    if (isProcurement) {
+      html += '<button class="tab-btn" id="tab-receipts" onclick="ERPSuppliers.switchTab(\'receipts\')">📦 استلام مواد خام</button>';
+    }
+    html += '</div>';
+
     html += '<div class="stats-grid" id="supplier-stats">Loading...</div>';
-    
-    html += '<div class="card" style="margin-top:20px"><div class="card-header"><h3>قائمة الموردين</h3></div>';
+    html += '<div class="card" style="margin-top:20px"><div class="card-header"><h3 id="tab-title">قائمة الموردين</h3></div>';
     html += '<div class="card-body" id="suppliers-list">Loading...</div></div>';
-    
+
     document.getElementById('page-content').innerHTML = html;
+    ERPSuppliers._currentTab = 'suppliers';
     this.loadSuppliers();
   },
+
+  switchTab: function(tab) {
+    ERPSuppliers._currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    var btn = document.getElementById('tab-' + tab);
+    if (btn) btn.classList.add('active');
+
+    if (tab === 'suppliers') {
+      document.getElementById('tab-title').textContent = 'قائمة الموردين';
+      ERPSuppliers.loadSuppliers();
+    } else if (tab === 'receipts') {
+      document.getElementById('tab-title').textContent = 'استلام المواد الخام من الموردين';
+      ERPSuppliers.loadReceipts();
+    }
+  },
+
+  // ===== RAW MATERIAL RECEIPTS =====
+  loadReceipts: function() {
+    var listEl = document.getElementById('suppliers-list');
+    listEl.innerHTML = 'Loading...';
+
+    sbClient.from('raw_material_receipts').select('*').order('received_at', { ascending: false }).then(function(res) {
+      var receipts = res.data || [];
+
+      var statsEl = document.getElementById('supplier-stats');
+      statsEl.innerHTML =
+        '<div class="stat-card" style="--stat-color:#f59e0b"><div class="stat-card-value">' + receipts.filter(function(r) { return r.status === 'pending_qc'; }).length + '</div><div class="stat-card-label">بانتظار فحص الجودة</div></div>' +
+        '<div class="stat-card" style="--stat-color:#22c55e"><div class="stat-card-value">' + receipts.filter(function(r) { return r.status === 'passed'; }).length + '</div><div class="stat-card-label">مقبولة في المخزن</div></div>' +
+        '<div class="stat-card" style="--stat-color:#ef4444"><div class="stat-card-value">' + receipts.filter(function(r) { return r.status === 'failed'; }).length + '</div><div class="stat-card-label">مرفوضة (إرجاع)</div></div>';
+
+      var html = '<div style="display:flex;justify-content:flex-end;margin-bottom:12px">'
+        + '<button class="btn btn-primary" onclick="ERPSuppliers.registerReceipt()">' + icon('plus') + ' تسجيل استلام مواد خام</button>'
+        + '</div>';
+
+      if (receipts.length === 0) {
+        html += '<div class="empty-state">لا توجد عمليات استلام مسجلة</div>';
+      } else {
+        html += '<div class="table-responsive"><table class="data-table"><thead><tr>'
+          + '<th>اسم المادة</th><th>المورد</th><th>الكمية المستلمة</th><th>الوحدة</th>'
+          + '<th>تاريخ الاستلام</th><th>المستلم</th><th>حالة الفحص</th>'
+          + '</tr></thead><tbody>';
+
+        receipts.forEach(function(r) {
+          var statusColors = { pending_qc: '#f59e0b', passed: '#22c55e', failed: '#ef4444', conditional: '#f97316' };
+          var statusLabels = { pending_qc: '⏳ بانتظار فحص الجودة', passed: '✅ مقبول', failed: '❌ مرفوض (إرجاع)', conditional: '⚠️ مقبول بشروط' };
+          var c = statusColors[r.status] || '#64748b';
+          var l = statusLabels[r.status] || r.status;
+          html += '<tr>';
+          html += '<td><strong>' + r.item_name + '</strong></td>';
+          html += '<td>' + (r.supplier_name || '-') + '</td>';
+          html += '<td><strong>' + r.quantity_received + '</strong></td>';
+          html += '<td>' + (r.unit || 'قطعة') + '</td>';
+          html += '<td>' + formatDate(r.received_at) + '</td>';
+          html += '<td>' + (r.received_by || '-') + '</td>';
+          html += '<td><span style="padding:3px 10px;border-radius:4px;font-size:0.8rem;font-weight:bold;background:' + c + '20;color:' + c + '">' + l + '</span></td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+
+      listEl.innerHTML = html;
+    });
+  },
+
+  registerReceipt: function() {
+    sbClient.from('suppliers').select('id, company_name').order('company_name').then(function(res) {
+      var suppliers = res.data || [];
+      var supplierOptions = suppliers.map(function(s) {
+        return '<option value="' + s.company_name + '">' + s.company_name + '</option>';
+      }).join('');
+
+      var body = '<div class="form-field"><label>اسم المادة الخام *</label><input type="text" id="rcv-item" class="form-input" placeholder="مثال: بولي بروبلين خام"></div>';
+      body += '<div class="form-row">';
+      body += '<div class="form-field"><label>المورد *</label><select id="rcv-supplier" class="form-input"><option value="">-- اختر مورد --</option>' + supplierOptions + '<option value="__other__">أخرى (اكتب يدوي)</option></select></div>';
+      body += '<div class="form-field" id="rcv-supplier-manual-container" style="display:none"><label>اسم المورد (يدوي)</label><input type="text" id="rcv-supplier-manual" class="form-input"></div>';
+      body += '</div>';
+      body += '<div class="form-row">';
+      body += '<div class="form-field"><label>الكمية المستلمة *</label><input type="number" id="rcv-qty" class="form-input" min="0.01" step="0.01"></div>';
+      body += '<div class="form-field"><label>الوحدة</label><select id="rcv-unit" class="form-input"><option>طن</option><option>كجم</option><option>متر</option><option>لتر</option><option>قطعة</option><option>كرتون</option></select></div>';
+      body += '</div>';
+      body += '<div class="form-field"><label>ملاحظات الاستلام</label><textarea id="rcv-notes" class="form-input" rows="2"></textarea></div>';
+
+      App.showModal('📦 تسجيل استلام مواد خام من مورد', body,
+        '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button>'
+        + '<button class="btn btn-primary" id="rcv-save">تسجيل الاستلام وإرسال للجودة</button>');
+
+      document.getElementById('rcv-supplier').onchange = function() {
+        var isOther = this.value === '__other__';
+        document.getElementById('rcv-supplier-manual-container').style.display = isOther ? 'block' : 'none';
+      };
+
+      document.getElementById('rcv-save').onclick = function() {
+        var item = document.getElementById('rcv-item').value.trim();
+        var supSelect = document.getElementById('rcv-supplier').value;
+        var supManual = document.getElementById('rcv-supplier-manual').value.trim();
+        var supplier = supSelect === '__other__' ? supManual : supSelect;
+        var qty = parseFloat(document.getElementById('rcv-qty').value);
+        var unit = document.getElementById('rcv-unit').value;
+        var notes = document.getElementById('rcv-notes').value;
+
+        if (!item || !supplier || !qty || qty <= 0) return alert('يرجى إدخال اسم المادة والمورد والكمية');
+
+        var btn = document.getElementById('rcv-save');
+        btn.disabled = true; btn.innerHTML = 'جاري التسجيل...';
+
+        sbClient.from('raw_material_receipts').insert({
+          item_name: item,
+          supplier_name: supplier,
+          quantity_received: qty,
+          unit: unit,
+          received_by: App.user.full_name,
+          status: 'pending_qc',
+          qc_notes: notes || null
+        }).then(function(r) {
+          if (r.error) { btn.disabled = false; btn.innerHTML = 'تسجيل الاستلام وإرسال للجودة'; return alert(r.error.message); }
+          App.closeModal();
+          ERPSuppliers.loadReceipts();
+          showToast('تم تسجيل الاستلام وإرساله لقسم الجودة للفحص 📦', 'success');
+        });
+      };
+    });
+  },
+
 
   loadSuppliers: function() {
     sbClient.from('suppliers').select('*').order('created_at', {ascending: false}).then(function(res) {
