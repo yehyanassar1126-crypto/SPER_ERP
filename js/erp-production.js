@@ -48,8 +48,10 @@ Pages.production = function(el) {
 
         var actions = '';
         if (o.status === 'Production Started') {
-          actions = '<button class="btn btn-sm btn-success" onclick="window.prodComplete(\'' + o.id + '\')">'
-            + '✅ انتهى الإنتاج (إرسال للجودة)</button>';
+          actions = '<div style="display:flex;flex-direction:column;gap:4px">'
+            + '<button class="btn btn-sm btn-outline" style="border-color:var(--accent-primary);color:var(--accent-primary)" onclick="window.prodWithdrawRaw(\'' + o.id + '\', \'' + o.product_name + '\')">📦 سحب مواد خام من المخزن</button>'
+            + '<button class="btn btn-sm btn-success" onclick="window.prodComplete(\'' + o.id + '\')">✅ انتهى الإنتاج (إرسال للجودة)</button>'
+            + '</div>';
         } else if (o.status === 'Quality Rejected') {
           actions = '<div style="display:flex;flex-direction:column;gap:4px">'
             + '<button class="btn btn-sm btn-warning" onclick="window.prodRework(\'' + o.id + '\')">🔄 إعادة تشغيل</button>'
@@ -99,6 +101,44 @@ Pages.production = function(el) {
     SalesWorkflow.updateStatus(id, 'Production Completed', { rejection_reason: 'هالك — قرار إعدام من الجودة' }, function() {
       render();
       showToast('تم تسجيل الكمية كهالك', 'error');
+    });
+  };
+
+  window.prodWithdrawRaw = function(id, productName) {
+    sbClient.from('inventory_items').select('id, name, quantity').eq('type', 'raw_material').order('name').then(function(res) {
+      if (res.error) return alert('خطأ في جلب بيانات المخزن');
+      var items = res.data || [];
+      var b = '<div class="form-grid">';
+      b += '<div class="form-group" style="grid-column:span 2"><label>المادة الخام المراد سحبها</label><select id="wd-item" class="form-input">';
+      items.forEach(function(it) {
+        b += '<option value="' + it.id + '" data-qty="' + (it.quantity||0) + '">' + it.name + ' (متاح: ' + (it.quantity||0) + ')</option>';
+      });
+      b += '</select></div>';
+      b += '<div class="form-group"><label>الكمية المسحوبة</label><input type="number" id="wd-qty" class="form-input" min="1" step="0.1"></div>';
+      b += '</div>';
+
+      App.showModal('سحب خامات لتشغيل: ' + productName, b, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="wd-save">تأكيد السحب</button>');
+
+      document.getElementById('wd-save').onclick = function() {
+        var sel = document.getElementById('wd-item');
+        var itemId = sel.value;
+        var availQty = Number(sel.options[sel.selectedIndex].getAttribute('data-qty'));
+        var qty = Number(document.getElementById('wd-qty').value);
+
+        if (!qty || qty <= 0) return alert('الكمية غير صحيحة');
+        if (qty > availQty) return alert('الكمية المسحوبة أكبر من المتاح في المخزن (' + availQty + ')');
+
+        var btn = document.getElementById('wd-save');
+        btn.disabled = true; btn.innerHTML = 'جاري السحب...';
+
+        sbClient.from('inventory_items').update({
+          quantity: availQty - qty
+        }).eq('id', itemId).then(function(upRes) {
+          if (upRes.error) return alert(upRes.error.message);
+          App.closeModal();
+          showToast('تم سحب الكمية من المخزن بنجاح', 'success');
+        });
+      };
     });
   };
 

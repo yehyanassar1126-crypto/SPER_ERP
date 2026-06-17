@@ -434,9 +434,33 @@ window.ERPSuppliers = {
 
   acceptDelivery: function(id) {
     if(!confirm('هل أنت متأكد من استلامك لهذه الطلبية كاملة بشكل صحيح؟')) return;
-    sbClient.from('sales_workflow_orders').update({ status: 'Delivered' }).eq('id', id).then(function(res) {
-      if (res.error) return alert("حدث خطأ: " + res.error.message);
-      Pages['supplier-portal'](document.getElementById('page-content'));
+    
+    // 1. Get the sales order
+    sbClient.from('sales_workflow_orders').select('*').eq('id', id).single().then(function(sRes) {
+      if (sRes.error) return alert("خطأ في جلب الطلب: " + sRes.error.message);
+      var order = sRes.data;
+      var qtyToDeduct = order.quantity_available || order.quantity_requested || 0;
+      
+      // 2. Find the inventory item (finished good)
+      sbClient.from('inventory_items').select('id, quantity').ilike('name', order.product_name).single().then(function(invRes) {
+        if (!invRes.error && invRes.data) {
+          var newQty = (invRes.data.quantity || 0) - qtyToDeduct;
+          // 3. Deduct from inventory
+          sbClient.from('inventory_items').update({ quantity: newQty }).eq('id', invRes.data.id).then(function() {
+            // 4. Update order status
+            sbClient.from('sales_workflow_orders').update({ status: 'Delivered' }).eq('id', id).then(function(updateRes) {
+              if (updateRes.error) return alert("حدث خطأ: " + updateRes.error.message);
+              Pages['supplier-portal'](document.getElementById('page-content'));
+            });
+          });
+        } else {
+          // If not found in inventory, just update status
+          sbClient.from('sales_workflow_orders').update({ status: 'Delivered' }).eq('id', id).then(function(updateRes) {
+            if (updateRes.error) return alert("حدث خطأ: " + updateRes.error.message);
+            Pages['supplier-portal'](document.getElementById('page-content'));
+          });
+        }
+      });
     });
   },
 
