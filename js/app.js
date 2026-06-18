@@ -60,6 +60,11 @@ var App = {
   // ========== AUTH ==========
   login: function (username, password) {
     App.activePage = null;
+    // QR Station shortcut
+    if (username === 'qr' && password === '1234') {
+      window.location.href = 'qr.html';
+      return;
+    }
     // Supabase mode
     sbClient.from('users').select('*').eq('username', username).single().then(function (res) {
       if (res.error || !res.data || res.data.password_hash !== password) {
