@@ -262,8 +262,7 @@ var App = {
         menu = [
           {
             section: 'Overview', items: [
-              { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' },
-              ...(App.user && App.user.role === 'owner' ? [] : [{ id: 'hr-qr-generator', label: 'QR Generator (HR)', icon: 'qrCode' }])
+              { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' }
             ]
           },
           {
@@ -294,7 +293,6 @@ var App = {
             section: 'Workplace', items: [
               { id: 'org-directory', label: 'Company Directory', icon: 'users' },
               { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' },
-              ...(App.user && App.user.role === 'hr' ? [{ id: 'my-salary', label: 'My Salary', icon: 'dollarSign' }] : [])
             ]
           },
           {
@@ -305,10 +303,18 @@ var App = {
             ]
           },
           {
-            section: 'My HR Profile', items: [
-              { id: 'hr-personal', label: 'My HR Profile', icon: 'user' },
-              { id: 'scan-checkin', label: 'Check-In (حضور)', icon: 'logIn' },
-              { id: 'scan-checkout', label: 'Check-Out (انصراف)', icon: 'logOut' }
+            section: 'My Info (بياناتي)', items: [
+              { id: 'my-attendance', label: 'My Attendance (حضوري)', icon: 'calendarCheck' },
+              { id: 'scan-checkin', label: 'Check-In (تسجيل حضور)', icon: 'logIn' },
+              { id: 'scan-checkout', label: 'Check-Out (تسجيل انصراف)', icon: 'logOut' },
+              { id: 'my-leaves', label: 'My Leaves (إجازاتي)', icon: 'calendarDays' },
+              { id: 'my-salary', label: 'My Salary (مرتبي)', icon: 'dollarSign' },
+              { id: 'my-overtime', label: 'My Overtime (الأوفرتايم)', icon: 'timer' },
+              { id: 'my-loans', label: 'My Loans (سلفياتي)', icon: 'creditCard' },
+              { id: 'my-medical', label: 'Medical Needs (طلبات طبية)', icon: 'heart' },
+              { id: 'my-delays', label: 'My Delays (تأخيراتي)', icon: 'alertTriangle' },
+              { id: 'my-missions', label: 'My Missions (مأمورياتي)', icon: 'briefcase' },
+              { id: 'my-expenses', label: 'My Expenses (مصروفاتي)', icon: 'receipt' },
             ]
           },
         ];
