@@ -183,7 +183,7 @@
 
     <div class="qr-card">
       <div class="qr-wrapper" id="qr-container"></div>
-      <div class="status"><span class="status-dot"></span> QR Active — Refreshes every 30s</div>
+      <div class="status"><span class="status-dot"></span> QR Active — Refreshes every 10s</div>
       <div class="timer">
         <span>⏱️</span>
         <span>Next refresh in <strong id="countdown">30</strong>s</span>
@@ -258,7 +258,7 @@
     }
 
     // ===== QR GENERATION =====
-    var REFRESH = 30;
+    var REFRESH = 10;
     var countdown = REFRESH;
     var qrStarted = false;
 
