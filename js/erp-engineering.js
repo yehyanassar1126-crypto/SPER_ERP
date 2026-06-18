@@ -117,10 +117,8 @@ window.ERPEngineering = {
           html += '<td style="padding:12px">';
           // ALL employees can upload drawings
           html += '<button class="btn btn-sm btn-outline upload-drawing" data-id="' + p.id + '">' + icon('upload', 14) + ' Upload Drawing</button> ';
-          // Only engineering roles can view/update project details
-          if (isEngineeringRole) {
-            html += '<button class="btn btn-sm btn-outline view-project" data-id="' + p.id + '">' + icon('eye', 14) + ' View</button>';
-          }
+          // Everyone can view, but only relevant departments can approve
+          html += '<button class="btn btn-sm btn-outline view-project" data-id="' + p.id + '">' + icon('eye', 14) + ' View & Approve</button>';
           html += '</td>';
           html += '</tr>';
         });
@@ -286,36 +284,179 @@ window.ERPEngineering = {
         });
       });
       
-      // View/Update Project status (engineering roles only)
+      // View/Approve Project status (all departments)
       document.querySelectorAll('.view-project').forEach(function(btn) {
         btn.addEventListener('click', function() {
           let id = this.getAttribute('data-id');
           let proj = projects.find(p => p.id === id);
           if (!proj) return;
+          
+          let approvals = proj.workflow_approvals || {};
+          let currentStatus = proj.status || 'planning';
+          
+          let requiredDeptsMap = {
+            'planning': ['HR', 'Finance', 'Procurement'],
+            'designing': ['Quality', 'Engineering'],
+            'in_progress': ['Production', 'Warehouse', 'Maintenance'],
+            'supervision': ['Quality', 'Maintenance'],
+            'completed': [] // No approvals needed here
+          };
+          
+          let required = requiredDeptsMap[currentStatus] || [];
+          let currentApprovals = approvals[currentStatus] || {};
+          
           let modalHtml = `
             <div style="margin-bottom:16px;"><strong>Type:</strong> ${(proj.project_type || 'other').toUpperCase()}</div>
             <div style="margin-bottom:16px;"><strong>Description / Loads:</strong><br>${proj.description || '-'}</div>
             <div style="margin-bottom:16px;"><strong>Technical Specs:</strong><br>${proj.technical_specs || '-'}</div>
-            <div class="form-group"><label class="form-label">Update Status</label>
-              <select class="form-input" id="update-status-${id}">
-                <option value="planning" ${proj.status==='planning'?'selected':''}>Planning</option>
-                <option value="designing" ${proj.status==='designing'?'selected':''}>Designing</option>
-                <option value="in_progress" ${proj.status==='in_progress'?'selected':''}>In Progress</option>
-                <option value="supervision" ${proj.status==='supervision'?'selected':''}>Technical Supervision</option>
-                <option value="completed" ${proj.status==='completed'?'selected':''}>Completed</option>
-              </select>
-            </div>
+            
+            <div style="margin-top:24px; padding:16px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-secondary);">
+              <h4 style="margin:0 0 12px 0; font-size:1.1rem">Current Phase Approvals: <span style="color:var(--accent-primary)">${currentStatus.toUpperCase()}</span></h4>
           `;
-          let footer = '<button class="btn btn-outline" id="close-proj-view">Close</button><button class="btn btn-primary" id="save-proj-status">Update Status</button>';
-          App.showModal(proj.title, modalHtml, footer);
-          document.getElementById('close-proj-view').addEventListener('click', App.closeModal);
-          document.getElementById('save-proj-status').addEventListener('click', function() {
-            let newStatus = document.getElementById('update-status-' + id).value;
-            sbClient.from('engineering_projects').update({ status: newStatus }).eq('id', id).then(function() {
-              App.closeModal();
-              App.navigate('engineering');
+          
+          if (currentStatus === 'completed') {
+            modalHtml += '<div style="color:#10b981; font-weight:bold;">Project is fully completed.</div>';
+          } else {
+            let myDeptMatch = null;
+            let allApproved = true;
+            
+            modalHtml += '<div style="display:grid; gap:8px;">';
+            required.forEach(dept => {
+              let isApproved = currentApprovals[dept] === true;
+              if (!isApproved) allApproved = false;
+              
+              let statusText = isApproved ? '<span style="color:#10b981; font-weight:bold;">✓ Approved</span>' : '<span style="color:#f59e0b">⏳ Pending</span>';
+              modalHtml += `<div style="display:flex; justify-content:space-between; padding:8px; background:var(--bg-card); border-radius:4px;">
+                <span style="font-weight:600">${dept}</span>
+                ${statusText}
+              </div>`;
+              
+              // Map App.user.department/role to required dept
+              let userDept = App.user.department || '';
+              let userRole = App.user.role || '';
+              
+              if (dept === 'HR' && (userDept === 'HR' || userRole === 'hr manager')) myDeptMatch = dept;
+              if (dept === 'Finance' && (userDept === 'Finance' || userRole.includes('accountant') || userRole === 'owner')) myDeptMatch = dept;
+              if (dept === 'Procurement' && (userDept === 'Procurement' || userRole === 'purchasing manager' || userRole === 'owner')) myDeptMatch = dept;
+              if (dept === 'Quality' && (userDept === 'Quality' || userRole.includes('quality'))) myDeptMatch = dept;
+              if (dept === 'Engineering' && (userDept === 'Engineering' || userRole.includes('engineer') || userRole === 'owner' || userRole === 'technical office')) myDeptMatch = dept;
+              if (dept === 'Production' && (userDept === 'Production' || userRole.includes('manager') || userRole === 'owner')) myDeptMatch = dept;
+              if (dept === 'Warehouse' && (userDept === 'Warehouse' || userRole.includes('warehouse'))) myDeptMatch = dept;
+              if (dept === 'Maintenance' && (userDept === 'Maintenance' || userRole.includes('maintenance') || userRole === 'technician')) myDeptMatch = dept;
+              if (App.isOwner()) myDeptMatch = dept; // Owner can approve anything
             });
-          });
+            modalHtml += '</div>';
+            
+            if (myDeptMatch && currentApprovals[myDeptMatch] !== true) {
+               modalHtml += `<div style="margin-top:16px; text-align:center;">
+                  <button class="btn btn-primary" id="btn-approve-phase" style="width:100%; background:#10b981;">${icon('checkCircle')} Approve as ${myDeptMatch}</button>
+               </div>`;
+            } else if (myDeptMatch && currentApprovals[myDeptMatch] === true) {
+               modalHtml += `<div style="margin-top:16px; text-align:center; color:#10b981; font-weight:bold;">You have already approved this phase.</div>`;
+            } else {
+               modalHtml += `<div style="margin-top:16px; text-align:center; font-size:0.85rem; color:var(--text-muted);">You do not have permission to approve the remaining departments.</div>`;
+            }
+          }
+          modalHtml += '</div>';
+          
+          // Allow engineering admin to manually override
+          if (isEngineeringRole || App.isOwner()) {
+            modalHtml += `
+              <div class="form-group" style="margin-top:24px; border-top:1px solid var(--border-color); padding-top:16px;">
+                <label class="form-label" style="color:var(--text-muted); font-size:0.8rem">Manual Override (Admin Only)</label>
+                <div style="display:flex; gap:8px;">
+                  <select class="form-input" id="update-status-${id}" style="flex:1">
+                    <option value="planning" ${proj.status==='planning'?'selected':''}>Planning</option>
+                    <option value="designing" ${proj.status==='designing'?'selected':''}>Designing</option>
+                    <option value="in_progress" ${proj.status==='in_progress'?'selected':''}>In Progress</option>
+                    <option value="supervision" ${proj.status==='supervision'?'selected':''}>Technical Supervision</option>
+                    <option value="completed" ${proj.status==='completed'?'selected':''}>Completed</option>
+                  </select>
+                  <button class="btn btn-outline" id="save-proj-status">Force Status</button>
+                </div>
+              </div>
+            `;
+          }
+          
+          let footer = '<button class="btn btn-outline" id="close-proj-view">Close</button>';
+          App.showModal(proj.title, modalHtml, footer);
+          
+          document.getElementById('close-proj-view').addEventListener('click', App.closeModal);
+          
+          let btnApprove = document.getElementById('btn-approve-phase');
+          if (btnApprove) {
+            btnApprove.addEventListener('click', function() {
+              this.disabled = true;
+              this.innerHTML = '<span class="spinner"></span> Processing...';
+              
+              // Get current approvals
+              let newApprovals = JSON.parse(JSON.stringify(approvals));
+              if (!newApprovals[currentStatus]) newApprovals[currentStatus] = {};
+              
+              // Determine my dept (already mapped in UI loop above, we can just recalculate or pass it. We use the logic again for safety)
+              let myDept = null;
+              required.forEach(dept => {
+                let userDept = App.user.department || '';
+                let userRole = App.user.role || '';
+                if (App.isOwner()) {
+                   if (newApprovals[currentStatus][dept] !== true) myDept = dept; // Approve the first pending one if owner
+                } else {
+                  if (dept === 'HR' && (userDept === 'HR' || userRole === 'hr manager')) myDept = dept;
+                  if (dept === 'Finance' && (userDept === 'Finance' || userRole.includes('accountant'))) myDept = dept;
+                  if (dept === 'Procurement' && (userDept === 'Procurement' || userRole === 'purchasing manager')) myDept = dept;
+                  if (dept === 'Quality' && (userDept === 'Quality' || userRole.includes('quality'))) myDept = dept;
+                  if (dept === 'Engineering' && (userDept === 'Engineering' || userRole.includes('engineer') || userRole === 'technical office')) myDept = dept;
+                  if (dept === 'Production' && (userDept === 'Production' || userRole.includes('manager'))) myDept = dept;
+                  if (dept === 'Warehouse' && (userDept === 'Warehouse' || userRole.includes('warehouse'))) myDept = dept;
+                  if (dept === 'Maintenance' && (userDept === 'Maintenance' || userRole.includes('maintenance') || userRole === 'technician')) myDept = dept;
+                }
+              });
+              
+              if (myDept) {
+                newApprovals[currentStatus][myDept] = true;
+              }
+              
+              // Check if all are approved now
+              let allReqApproved = true;
+              required.forEach(d => {
+                if (newApprovals[currentStatus][d] !== true) allReqApproved = false;
+              });
+              
+              let newStatus = currentStatus;
+              if (allReqApproved) {
+                let stageOrder = ['planning', 'designing', 'in_progress', 'supervision', 'completed'];
+                let idx = stageOrder.indexOf(currentStatus);
+                if (idx < stageOrder.length - 1) {
+                  newStatus = stageOrder[idx + 1];
+                }
+              }
+              
+              sbClient.from('engineering_projects').update({ 
+                status: newStatus,
+                workflow_approvals: newApprovals
+              }).eq('id', id).then(function() {
+                if (allReqApproved && newStatus !== currentStatus) {
+                  alert('All departments approved! Project advanced to ' + newStatus.toUpperCase());
+                } else {
+                  alert('Your department approval was recorded.');
+                }
+                App.closeModal();
+                App.navigate('engineering');
+              });
+            });
+          }
+          
+          let btnForce = document.getElementById('save-proj-status');
+          if (btnForce) {
+            btnForce.addEventListener('click', function() {
+              let overrideStatus = document.getElementById('update-status-' + id).value;
+              sbClient.from('engineering_projects').update({ status: overrideStatus }).eq('id', id).then(function() {
+                App.closeModal();
+                App.navigate('engineering');
+              });
+            });
+          }
+          
         });
       });
       

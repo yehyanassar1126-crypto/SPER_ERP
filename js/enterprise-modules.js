@@ -1723,11 +1723,29 @@ Pages.pettyCash = function(el) {
 
     // 7. Reports
     html += '<div id="view-reports" style="display:none">';
-    html += '<div class="card"><div class="card-body" style="text-align:center; padding:60px; color:var(--text-muted)"><h3>Financial Reports Integration with AI</h3><p>Use the AI Mind to generate comprehensive balance sheets and income statements.</p></div></div></div>';
+    html += '<div class="card"><div class="card-header"><h3>Financial Reports & Analytics (التقارير المالية)</h3></div>';
+    html += '<div class="card-body">';
+    html += '<div class="form-row" style="margin-bottom:20px;">';
+    html += '<div class="form-field" style="flex:2;"><label>Report Type (نوع التقرير)</label>';
+    html += '<select id="report-type" class="form-input">';
+    html += '<option value="income">Income Statement (قائمة الدخل)</option>';
+    html += '<option value="balance">Balance Sheet (الميزانية العمومية)</option>';
+    html += '<option value="trial">Trial Balance (ميزان المراجعة)</option>';
+    html += '<option value="apar">AP/AR Summary (أرصدة العملاء والموردين)</option>';
+    html += '<option value="taxes">Taxes Summary (تقرير الضرائب)</option>';
+    html += '</select></div>';
+    html += '<div class="form-field" style="flex:1;"><label>From (من)</label><input type="date" id="report-from" class="form-input"></div>';
+    html += '<div class="form-field" style="flex:1;"><label>To (إلى)</label><input type="date" id="report-to" class="form-input"></div>';
+    html += '<div class="form-field" style="flex:1; display:flex; align-items:flex-end;"><button class="btn btn-primary" id="btn-generate-report" style="width:100%">' + icon('barChart') + ' Generate</button></div>';
+    html += '</div>';
+    html += '<div id="report-output" style="min-height:300px; border:1px dashed var(--border-color); padding:20px; border-radius:8px; background:var(--bg-tertiary); text-align:center; color:var(--text-muted);">';
+    html += 'Select a report type and click Generate to view results.';
+    html += '</div>';
+    html += '</div></div></div>';
 
     // 8. Closing
     html += '<div id="view-closing" style="display:none">';
-    html += '<div class="card"><div class="card-body" style="text-align:center; padding:60px; color:var(--text-muted)"><h3>Financial Period Closing</h3><button class="btn btn-danger">Close Current Month</button></div></div></div>';
+    html += '<div class="card"><div class="card-body" style="text-align:center; padding:60px; color:var(--text-muted)"><h3>Financial Period Closing (الإقفال المالي)</h3><p style="margin-bottom:20px;">Lock all transactions for the current period to prevent further modifications.</p><button class="btn btn-danger btn-lg">' + icon('lock') + ' Close Current Month</button></div></div></div>';
 
     el.innerHTML = html;
 
@@ -1746,6 +1764,133 @@ Pages.pettyCash = function(el) {
         });
       }
     });
+
+    // Reports Logic
+    var btnGenerate = document.getElementById('btn-generate-report');
+    if (btnGenerate) {
+      btnGenerate.addEventListener('click', function() {
+        var rType = document.getElementById('report-type').value;
+        var rFrom = document.getElementById('report-from').value;
+        var rTo = document.getElementById('report-to').value;
+        var out = document.getElementById('report-output');
+        
+        out.innerHTML = '<span class="spinner"></span> Processing...';
+        
+        setTimeout(function() {
+          var repHtml = '<div style="text-align:left; color:var(--text-primary);">';
+          repHtml += '<h3 style="margin-bottom:16px; border-bottom:2px solid var(--accent-primary); padding-bottom:8px;">';
+          if(rType === 'income') repHtml += 'Income Statement (قائمة الدخل)';
+          if(rType === 'balance') repHtml += 'Balance Sheet (الميزانية العمومية)';
+          if(rType === 'trial') repHtml += 'Trial Balance (ميزان المراجعة)';
+          if(rType === 'apar') repHtml += 'AP/AR Summary (أرصدة العملاء والموردين)';
+          if(rType === 'taxes') repHtml += 'Taxes Summary (تقرير الضرائب)';
+          repHtml += '</h3>';
+          
+          if (rFrom || rTo) {
+            repHtml += '<div style="margin-bottom:20px; font-size:0.9rem; color:var(--text-muted);">Period: ' + (rFrom||'Start') + ' to ' + (rTo||'Present') + '</div>';
+          }
+          
+          repHtml += '<table class="table" style="width:100%; border-collapse:collapse; background:var(--bg-card);">';
+          
+          if (rType === 'apar') {
+            repHtml += '<thead><tr style="border-bottom:1px solid var(--border-color);text-align:left;"><th>Entity Name</th><th>Type</th><th>Current Balance (EGP)</th></tr></thead><tbody>';
+            var totalAR = 0, totalAP = 0;
+            clients.forEach(c => { repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td>'+c.name+'</td><td>Client (AR)</td><td style="color:#10b981">'+Number(c.balance).toLocaleString()+'</td></tr>'; totalAR += Number(c.balance); });
+            suppliers.forEach(s => { repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td>'+s.name+'</td><td>Supplier (AP)</td><td style="color:#ef4444">'+Number(s.balance).toLocaleString()+'</td></tr>'; totalAP += Number(s.balance); });
+            repHtml += '<tr style="font-weight:bold; background:rgba(0,0,0,0.02);"><td colspan="2" style="text-align:right">Total Accounts Receivable:</td><td style="color:#10b981">'+totalAR.toLocaleString()+'</td></tr>';
+            repHtml += '<tr style="font-weight:bold; background:rgba(0,0,0,0.02);"><td colspan="2" style="text-align:right">Total Accounts Payable:</td><td style="color:#ef4444">'+totalAP.toLocaleString()+'</td></tr>';
+            repHtml += '</tbody></table>';
+          } 
+          else if (rType === 'taxes') {
+            repHtml += '<thead><tr style="border-bottom:1px solid var(--border-color);text-align:left;"><th>Tax Type</th><th>Period</th><th>Taxable Amount</th><th>Tax Amount</th><th>Status</th></tr></thead><tbody>';
+            var totTax = 0;
+            taxes.forEach(t => { 
+              repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td>'+t.tax_type.toUpperCase()+'</td><td>'+(t.period||'-')+'</td><td>'+Number(t.taxable_amount).toLocaleString()+'</td><td>'+Number(t.tax_amount).toLocaleString()+'</td><td>'+t.status+'</td></tr>';
+              if(t.status!=='paid') totTax += Number(t.tax_amount);
+            });
+            repHtml += '<tr style="font-weight:bold; background:rgba(0,0,0,0.02);"><td colspan="3" style="text-align:right">Total Unpaid Taxes Liability:</td><td colspan="2" style="color:#ef4444">'+totTax.toLocaleString()+' EGP</td></tr>';
+            repHtml += '</tbody></table>';
+          }
+          else if (rType === 'income') {
+            // Simplified Income Statement based on invoices and petty cash
+            var salesRev = invoices.filter(i=>i.invoice_type==='sales').reduce((a,b)=>a+Number(b.total),0);
+            var costOfGoods = invoices.filter(i=>i.invoice_type==='purchase').reduce((a,b)=>a+Number(b.total),0);
+            var expenses = txs.filter(t=>t.type==='petty_cash').reduce((a,b)=>a+Number(b.amount),0);
+            var netIncome = salesRev - costOfGoods - expenses;
+            
+            repHtml += '<tbody>';
+            repHtml += '<tr><td style="padding:12px;font-weight:bold;font-size:1.1rem" colspan="2">Revenue (الإيرادات)</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:12px 24px">Sales Revenue</td><td style="text-align:right;padding:12px">'+salesRev.toLocaleString()+'</td></tr>';
+            repHtml += '<tr><td style="padding:12px;font-weight:bold;font-size:1.1rem" colspan="2">Cost of Goods Sold (تكلفة المبيعات)</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:12px 24px">Purchases / Materials</td><td style="text-align:right;padding:12px">('+costOfGoods.toLocaleString()+')</td></tr>';
+            repHtml += '<tr style="background:rgba(0,0,0,0.02);font-weight:bold"><td style="padding:12px">Gross Profit (إجمالي الربح)</td><td style="text-align:right;padding:12px">'+(salesRev - costOfGoods).toLocaleString()+'</td></tr>';
+            repHtml += '<tr><td style="padding:12px;font-weight:bold;font-size:1.1rem" colspan="2">Operating Expenses (مصروفات التشغيل)</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:12px 24px">Petty Cash & Admin Expenses</td><td style="text-align:right;padding:12px">('+expenses.toLocaleString()+')</td></tr>';
+            repHtml += '<tr style="background:var(--accent-primary);color:white;font-weight:bold;font-size:1.2rem"><td style="padding:12px">Net Income (صافي الربح)</td><td style="text-align:right;padding:12px">'+netIncome.toLocaleString()+' EGP</td></tr>';
+            repHtml += '</tbody></table>';
+          }
+          else if (rType === 'balance') {
+            // Simplified Balance Sheet
+            var totalSafe = safes.reduce((a,b)=>a+Number(b.balance),0);
+            var totalBank = banks.reduce((a,b)=>a+Number(b.balance),0);
+            var totalAR = clients.reduce((a,b)=>a+Number(b.balance),0);
+            var totalAssets = assets.reduce((a,b)=>a+Number(b.current_value),0);
+            
+            var totalAP = suppliers.reduce((a,b)=>a+Number(b.balance),0);
+            var totalTaxes = taxes.filter(t=>t.status!=='paid').reduce((a,b)=>a+Number(b.tax_amount),0);
+            
+            var totalAssetsSum = totalSafe + totalBank + totalAR + totalAssets;
+            var totalLiabilities = totalAP + totalTaxes;
+            var equity = totalAssetsSum - totalLiabilities; // Plug number
+            
+            repHtml += '<tbody>';
+            repHtml += '<tr><td style="padding:12px;font-weight:bold;font-size:1.1rem;color:#3b82f6" colspan="2">ASSETS (الأصول)</td></tr>';
+            repHtml += '<tr><td style="padding:8px 24px;font-weight:600" colspan="2">Current Assets</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:8px 40px">Cash in Safes</td><td style="text-align:right;padding:8px">'+totalSafe.toLocaleString()+'</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:8px 40px">Cash at Banks</td><td style="text-align:right;padding:8px">'+totalBank.toLocaleString()+'</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:8px 40px">Accounts Receivable</td><td style="text-align:right;padding:8px">'+totalAR.toLocaleString()+'</td></tr>';
+            repHtml += '<tr><td style="padding:8px 24px;font-weight:600" colspan="2">Non-Current Assets</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:8px 40px">Fixed Assets</td><td style="text-align:right;padding:8px">'+totalAssets.toLocaleString()+'</td></tr>';
+            repHtml += '<tr style="background:rgba(59,130,246,0.1);font-weight:bold"><td style="padding:12px">Total Assets (إجمالي الأصول)</td><td style="text-align:right;padding:12px">'+totalAssetsSum.toLocaleString()+'</td></tr>';
+            
+            repHtml += '<tr><td style="padding:12px;font-weight:bold;font-size:1.1rem;color:#ef4444" colspan="2">LIABILITIES & EQUITY (الخصوم وحقوق الملكية)</td></tr>';
+            repHtml += '<tr><td style="padding:8px 24px;font-weight:600" colspan="2">Current Liabilities</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:8px 40px">Accounts Payable</td><td style="text-align:right;padding:8px">'+totalAP.toLocaleString()+'</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:8px 40px">Taxes Payable</td><td style="text-align:right;padding:8px">'+totalTaxes.toLocaleString()+'</td></tr>';
+            repHtml += '<tr><td style="padding:8px 24px;font-weight:600" colspan="2">Equity</td></tr>';
+            repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td style="padding:8px 40px">Owner\'s Equity / Retained Earnings</td><td style="text-align:right;padding:8px">'+equity.toLocaleString()+'</td></tr>';
+            repHtml += '<tr style="background:rgba(239,68,68,0.1);font-weight:bold"><td style="padding:12px">Total Liabilities & Equity</td><td style="text-align:right;padding:12px">'+(totalLiabilities+equity).toLocaleString()+'</td></tr>';
+            
+            repHtml += '</tbody></table>';
+          }
+          else if (rType === 'trial') {
+            repHtml += '<thead><tr style="border-bottom:1px solid var(--border-color);text-align:left;"><th>Account Name</th><th>Debit (مدين)</th><th>Credit (دائن)</th></tr></thead><tbody>';
+            var accs = {};
+            journalEntries.forEach(j => {
+              if(j.status === 'posted' || j.status === 'approved') {
+                (j.finance_journal_lines || []).forEach(l => {
+                  if(!accs[l.account_name]) accs[l.account_name] = {d:0, c:0};
+                  accs[l.account_name].d += Number(l.debit);
+                  accs[l.account_name].c += Number(l.credit);
+                });
+              }
+            });
+            var tD = 0, tC = 0;
+            Object.keys(accs).forEach(k => {
+              repHtml += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)"><td>'+k+'</td><td>'+accs[k].d.toLocaleString()+'</td><td>'+accs[k].c.toLocaleString()+'</td></tr>';
+              tD += accs[k].d; tC += accs[k].c;
+            });
+            repHtml += '<tr style="font-weight:bold; background:rgba(0,0,0,0.02);"><td>Total:</td><td>'+tD.toLocaleString()+'</td><td>'+tC.toLocaleString()+'</td></tr>';
+            if (tD !== tC) repHtml += '<tr><td colspan="3" style="text-align:center;color:#ef4444;font-weight:bold">Warning: Trial Balance is unbalanced!</td></tr>';
+            repHtml += '</tbody></table>';
+          }
+          
+          repHtml += '<div style="margin-top:20px;text-align:right"><button class="btn btn-outline btn-sm" onclick="window.print()">' + icon('printer', 14) + ' Print Report</button></div>';
+          repHtml += '</div>';
+          out.innerHTML = repHtml;
+        }, 600);
+      });
+    }
   }
 
   loadData();
