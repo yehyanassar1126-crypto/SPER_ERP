@@ -970,13 +970,17 @@ Pages.hrDashboard = function (el) {
     });
     html += '</div></div></div>';
 
+    // Add placeholder for personal section
+    html += '<div id="hr-personal-zone" style="margin-top:30px"><div style="padding:30px;text-align:center;color:var(--text-muted)"><span class="spinner"></span><p>جاري تحميل بياناتك الشخصية...</p></div></div>';
+
     el.innerHTML = html;
 
     // ===== PERSONAL HR SECTION =====
-    // Fetch HR's own personal data and append below the admin dashboard
     (function loadHrPersonalSection() {
       var user = App.user;
       if (!user) return;
+      var pZone = document.getElementById('hr-personal-zone');
+      if (!pZone) return;
       
       var currentMonth = new Date().toISOString().substring(0, 7);
       var monthStart = currentMonth + '-01';
@@ -991,6 +995,9 @@ Pages.hrDashboard = function (el) {
         sbClient.from('salary_adjustments').select('*').eq('employee_id', user.id).eq('status', 'approved').eq('month', currentMonth),
         sbClient.from('payroll').select('net_salary, month').eq('employee_id', user.id).order('month', { ascending: false }).limit(1).single()
       ]).then(function(res) {
+        var pZone2 = document.getElementById('hr-personal-zone');
+        if (!pZone2) return;
+        
         var todayAtt = res[0].data || null;
         var monthAtts = res[1].data || [];
         var adjustments = res[2].data || [];
@@ -999,12 +1006,10 @@ Pages.hrDashboard = function (el) {
         var baseSalary = user.base_salary || 0;
         var dailyRate = Math.round(baseSalary / 30);
         
-        // Build earned so far
         var earnedSoFar = 0;
         var totalLateDeduction = 0;
         var totalBonuses = 0;
         var totalPenalties = 0;
-        var attMap = {};
         
         monthAtts.forEach(function(att) {
           var dm = att.delay_minutes || 0;
@@ -1016,10 +1021,8 @@ Pages.hrDashboard = function (el) {
           var dayNet = Math.max(0, dailyRate - lateDed);
           earnedSoFar += dayNet;
           totalLateDeduction += lateDed;
-          attMap[att.date] = { lateDed: lateDed, dayNet: dayNet };
         });
         
-        // Count fridays
         var firstActiveDay = dayOfMonth2;
         if (monthAtts.length > 0) {
           monthAtts.forEach(function(att) {
@@ -1040,18 +1043,13 @@ Pages.hrDashboard = function (el) {
           else totalPenalties += (adj.amount || 0);
         });
         
-        var netAccumulated = earnedSoFar + totalBonuses - totalPenalties;
         var salaryPct = baseSalary > 0 ? Math.min(100, Math.round((earnedSoFar / baseSalary) * 100)) : 0;
-        
-        // Today check-in status
-        var todayStatus = todayAtt ? (todayAtt.check_out ? '✅ مكتمل' : '🔵 مسجل حضور') : '⏳ لم يسجل بعد';
-        var todayColor = todayAtt ? (todayAtt.check_out ? '#22c55e' : '#3b82f6') : '#f59e0b';
         
         var ph = '';
         
         // Section Header
-        ph += '<div style="margin-top:36px;padding:0 0 16px;border-bottom:2px solid var(--border-color);display:flex;align-items:center;gap:12px;direction:rtl">';
-        ph += '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#06b6d4);display:flex;align-items:center;justify-content:center">' + icon('user', 20) + '</div>';
+        ph += '<div style="padding:0 0 16px;border-bottom:2px solid var(--border-color);display:flex;align-items:center;gap:12px;direction:rtl">';
+        ph += '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#06b6d4);display:flex;align-items:center;justify-content:center;color:#fff">' + icon('user', 20) + '</div>';
         ph += '<div><h3 style="margin:0;font-size:1.15rem;font-weight:800">بياناتي الشخصية (HR Profile)</h3>';
         ph += '<p style="margin:0;font-size:0.8rem;color:var(--text-muted)">حضورك، مرتبك، وتأخيراتك — ' + user.full_name + '</p></div>';
         ph += '<div style="margin-right:auto;display:flex;gap:8px">';
@@ -1091,12 +1089,10 @@ Pages.hrDashboard = function (el) {
         ph += '<div style="font-size:1.8rem;font-weight:900;color:var(--accent-primary)">EGP ' + earnedSoFar.toLocaleString() + '</div>';
         ph += '<div style="font-size:0.75rem;color:var(--text-muted)">من أصل ' + baseSalary.toLocaleString() + ' ج.م</div>';
         ph += '</div>';
-        // Progress bar
         ph += '<div style="width:100%;height:10px;background:var(--bg-secondary);border-radius:5px;overflow:hidden;margin-bottom:8px">';
         ph += '<div style="width:' + salaryPct + '%;height:100%;background:linear-gradient(90deg,#6366f1,#06b6d4);border-radius:5px;transition:width 0.6s"></div>';
         ph += '</div>';
         ph += '<div style="text-align:center;font-size:0.75rem;color:var(--accent-primary);font-weight:700;margin-bottom:16px">' + salaryPct + '% من المرتب الكامل</div>';
-        // Mini breakdown
         ph += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
         ph += '<div style="padding:10px;background:var(--bg-secondary);border-radius:8px;border-right:3px solid #06b6d4"><div style="font-size:0.68rem;color:var(--text-muted)">اليومية</div><div style="font-weight:800;color:#06b6d4">' + dailyRate.toLocaleString() + ' ج.م</div></div>';
         if (totalBonuses > 0) ph += '<div style="padding:10px;background:var(--bg-secondary);border-radius:8px;border-right:3px solid #22c55e"><div style="font-size:0.68rem;color:var(--text-muted)">مكافآت</div><div style="font-weight:800;color:#22c55e">+' + totalBonuses.toLocaleString() + '</div></div>';
@@ -1117,11 +1113,7 @@ Pages.hrDashboard = function (el) {
         ph += '<button class="btn btn-outline btn-sm" onclick="App.navigate(\'my-missions\')">' + icon('briefcase', 14) + ' مأمورياتي</button>';
         ph += '</div>';
         
-        // Append to el
-        var personalDiv = document.createElement('div');
-        personalDiv.id = 'hr-personal-inline';
-        personalDiv.innerHTML = ph;
-        el.appendChild(personalDiv);
+        pZone2.innerHTML = ph;
       });
     })();
 
