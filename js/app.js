@@ -1408,6 +1408,58 @@ Pages.employees = function (el) {
         });
       });
     });
+
+    // Friday Work Button Handler
+    var fridayBtn = document.getElementById('add-friday-btn');
+    if (fridayBtn) {
+      fridayBtn.addEventListener('click', function () {
+        var dateVal = todayStr();
+        var b = '<div class="form-field"><label>Date (تاريخ العمل الإضافي/يوم الجمعة) *</label><input type="date" id="fw-date" value="' + dateVal + '"></div>';
+        b += '<div class="form-field"><label>Select Employees (يمكن اختيار أكثر من موظف) *</label><select id="fw-emps" multiple style="height:120px">';
+        employees.forEach(function (u) { b += '<option value="' + u.id + '">' + u.full_name + '</option>'; });
+        b += '</select></div><p style="font-size:0.8rem;color:var(--text-muted)">اضغط Ctrl (أو Cmd) لاختيار أكثر من موظف</p>';
+        
+        App.showModal('Request Friday Work', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="fw-save">Submit Request</button>');
+
+        document.getElementById('fw-save').addEventListener('click', function () {
+          var date = document.getElementById('fw-date').value;
+          var sel = document.getElementById('fw-emps');
+          var selectedEmps = [];
+          for (var i=0; i<sel.options.length; i++) { if(sel.options[i].selected) selectedEmps.push(sel.options[i].value); }
+          
+          if (!date || selectedEmps.length === 0) { alert('Please select date and at least one employee'); return; }
+
+          var rec = { department: App.user.department, requested_by: App.user.id, requested_by_name: App.user.full_name, employees: selectedEmps, request_date: date, status: 'pending' };
+          sbClient.from('friday_work_requests').insert([rec]).then(function (r) {
+            if (r.error) { alert('Error: ' + r.error.message); return; }
+            App.closeModal(); 
+            showToast('Friday Work requested!', 'success'); 
+            empLoadFridayWork();
+          });
+        });
+      });
+    }
+
+    function empLoadFridayWork() {
+      sbClient.from('friday_work_requests').select('*').eq('department', App.user.department).order('created_at', {ascending:false}).then(function(r) {
+        var tb = document.getElementById('friday-tbody');
+        if(!tb) return;
+        if(r.error || !r.data || r.data.length===0) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">No Friday Work requests</td></tr>'; return; }
+        
+        var h = '';
+        r.data.forEach(function(fw) {
+          var sc = fw.status === 'approved' ? 'badge-success' : fw.status === 'rejected' ? 'badge-danger' : 'badge-warning';
+          h += '<tr>';
+          h += '<td>' + fw.requested_by_name + '</td>';
+          h += '<td>' + formatDate(fw.request_date) + '</td>';
+          h += '<td style="font-weight:700">' + (fw.employees ? fw.employees.length : 0) + ' Employees</td>';
+          h += '<td><span class="badge ' + sc + '"><span class="badge-dot"></span>' + fw.status + '</span></td>';
+          h += '</tr>';
+        });
+        tb.innerHTML = h;
+      });
+    }
+    empLoadFridayWork();
   }
 
   function showEmpView(id) {
