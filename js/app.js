@@ -1304,14 +1304,18 @@ Pages.employees = function (el) {
     });
     if (filtered.length === 0) html += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No employees found</td></tr>';
     html += '</tbody></table></div></div></div>';
-    html += '<div class="toolbar" style="margin-top:40px">';
-    html += '<button class="btn btn-primary" id="add-friday-btn">' + icon('plus') + ' Request Friday Work (طلب عمل إضافي / يوم جمعة)</button>';
-    html += '</div>';
+    // Friday Work: only managers can request, HR only approves/rejects
+    var isManagerRole = App.isManager() && !isHR;
+    if (isManagerRole) {
+      html += '<div class="toolbar" style="margin-top:40px">';
+      html += '<button class="btn btn-primary" id="add-friday-btn">' + icon('plus') + ' Request Friday Work (طلب عمل إضافي / يوم جمعة)</button>';
+      html += '</div>';
 
-    html += '<div class="card"><div class="card-header"><div><h3>My Friday Work Requests</h3></div></div>';
-    html += '<div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr><th>Requested By</th><th>Date</th><th>Employees Count</th><th>Status</th></tr></thead><tbody id="friday-tbody">';
-    html += '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>';
-    html += '</tbody></table></div></div></div>';
+      html += '<div class="card"><div class="card-header"><div><h3>My Friday Work Requests</h3></div></div>';
+      html += '<div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr><th>Requested By</th><th>Date</th><th>Employees Count</th><th>Status</th></tr></thead><tbody id="friday-tbody">';
+      html += '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>';
+      html += '</tbody></table></div></div></div>';
+    }
 
     if (isHR) {
       html += '<div class="card" style="margin-top:30px"><div class="card-header"><div><h3>Friday Work Requests (طلبات عمل الجمعة)</h3></div></div>';
