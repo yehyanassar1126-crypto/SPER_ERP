@@ -1153,12 +1153,12 @@ Pages.inventory = function(el) {
         if(curQty < qty) return alert('Insufficient stock. Available: ' + curQty);
         
         sbClient.from('inventory_items').update({quantity: curQty - qty}).eq('id', itemId).then(function() {
-          sbClient.from('inventory_transactions').insert({
+          sbClient.from('inventory_transactions').insert([{
             item_id: itemId, item_name: itemName,
             transaction_type: 'out', quantity: qty,
             processed_by: App.user.full_name,
             notes: notes
-          }).then(function(r) {
+          }]).then(function(r) {
             App.closeModal(); loadData();
             showToast('Goods dispatched successfully', 'success');
           });

@@ -105,5 +105,11 @@ ALTER TABLE engineering_projects ADD COLUMN IF NOT EXISTS workflow_approvals JSO
 ALTER TABLE users ADD COLUMN IF NOT EXISTS shift_system TEXT DEFAULT '3-shift';
 
 -- ============================================================
+-- SECTION 5: Inventory Transactions
+-- ============================================================
+
+ALTER TABLE inventory_transactions ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- ============================================================
 -- Done! All constraints and tables are now up to date.
 -- ============================================================
