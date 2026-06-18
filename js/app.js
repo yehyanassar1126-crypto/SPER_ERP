@@ -2044,46 +2044,53 @@ function renderScanner(el, type) {
   html += '</div></div></div>';
   el.innerHTML = html;
 
-  if (typeof Html5QrcodeScanner === 'undefined') {
+  if (typeof Html5Qrcode === 'undefined') {
     el.innerHTML += '<p style="color:red">Scanner library not loaded. Please refresh the page.</p>';
     return;
   }
 
-  var html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
-  html5QrcodeScanner.render(function(decodedText) {
-    try {
-      var data = JSON.parse(decodedText);
-      if (data.type !== 'hr_qr' || !data.timestamp) throw new Error();
-      var diffSec = Math.abs((Date.now() - data.timestamp) / 1000);
-      if (diffSec > 35) {
-        showToast('❌ Invalid or expired QR code', 'danger');
-        return;
-      }
-      
-      html5QrcodeScanner.clear();
-      
-      if (type === 'checkout') {
-        var mc = document.getElementById('modal-container');
-        var confirmHtml = '<div style="text-align:center;padding:20px"><p style="font-size:1.1rem;margin-bottom:20px">هل أنت متأكد من تسجيل الانصراف ومغادرة العمل؟</p>';
-        confirmHtml += '<div style="display:flex;gap:10px;justify-content:center"><button class="btn btn-outline" id="cancel-checkout">Cancel</button><button class="btn btn-primary" id="confirm-checkout">Confirm</button></div></div>';
-        App.showModal('Confirm Check-Out', confirmHtml);
+  var html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: {width: 250, height: 250} },
+    function(decodedText) {
+      try {
+        var data = JSON.parse(decodedText);
+        if (data.type !== 'hr_qr' || !data.timestamp) throw new Error();
+        var diffSec = Math.abs((Date.now() - data.timestamp) / 1000);
+        if (diffSec > 35) {
+          showToast('❌ Invalid or expired QR code', 'danger');
+          return;
+        }
         
-        document.getElementById('cancel-checkout').addEventListener('click', function() {
-          App.closeModal();
-          renderScanner(el, type);
-        });
-        document.getElementById('confirm-checkout').addEventListener('click', function() {
-          App.closeModal();
-          processScan(type);
-        });
-      } else {
-        processScan(type);
+        html5QrCode.stop().then(function() {
+          if (type === 'checkout') {
+            var mc = document.getElementById('modal-container');
+            var confirmHtml = '<div style="text-align:center;padding:20px"><p style="font-size:1.1rem;margin-bottom:20px">هل أنت متأكد من تسجيل الانصراف ومغادرة العمل؟</p>';
+            confirmHtml += '<div style="display:flex;gap:10px;justify-content:center"><button class="btn btn-outline" id="cancel-checkout">Cancel</button><button class="btn btn-primary" id="confirm-checkout">Confirm</button></div></div>';
+            App.showModal('Confirm Check-Out', confirmHtml);
+            
+            document.getElementById('cancel-checkout').addEventListener('click', function() {
+              App.closeModal();
+              renderScanner(el, type);
+            });
+            document.getElementById('confirm-checkout').addEventListener('click', function() {
+              App.closeModal();
+              processScan(type);
+            });
+          } else {
+            processScan(type);
+          }
+        }).catch(function(err) { console.error(err); });
+      } catch(e) {
+        showToast('❌ Invalid QR code format', 'danger');
       }
-    } catch(e) {
-      showToast('❌ Invalid QR code format', 'danger');
+    },
+    function(error) {
+      // ignore
     }
-  }, function(error) {
-    // ignore
+  ).catch(function(err) {
+    document.getElementById('reader').innerHTML = '<p style="color:red">Failed to start camera: ' + err + '</p>';
   });
 }
 
@@ -3874,19 +3881,27 @@ Pages.missions = function (el) {
         var modalBody = '<div style="text-align:center"><div id="mission-reader" style="width:100%;max-width:300px;margin:0 auto 20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح باركود البوابة لتسجيل <b>خروجك</b> للمأمورية</p></div>';
         App.showModal('تسجيل خروج للمأمورية', modalBody);
 
-        setTimeout(function () {
-          if (typeof Html5QrcodeScanner !== 'undefined') {
-            var scanner = new Html5QrcodeScanner("mission-reader", { fps: 10, qrbox: {width: 200, height: 200} }, false);
-            scanner.render(function(decodedText) {
-              scanner.clear();
-              App.closeModal();
-              var now = new Date();
-              var timeStr = now.toTimeString().split(' ')[0];
-              sbClient.from('missions').update({ actual_time_out: now.toISOString(), time_out: timeStr, qr_out: decodedText }).eq('id', id).then(function (r) {
-                if (!r.error) { showToast('تم تسجيل الخروج للمأمورية بنجاح!', 'success'); loadData(); }
-                else { alert('حدث خطأ: ' + r.error.message); }
-              });
-            }, function(err) {});
+                setTimeout(function () {
+          if (typeof Html5Qrcode !== 'undefined') {
+            var html5QrCode = new Html5Qrcode("mission-reader");
+            html5QrCode.start(
+              { facingMode: "environment" },
+              { fps: 10, qrbox: {width: 200, height: 200} },
+              function(decodedText) {
+                html5QrCode.stop().then(function() {
+                  App.closeModal();
+                  var now = new Date();
+                  var timeStr = now.toTimeString().split(' ')[0];
+                  sbClient.from('missions').update({ actual_time_out: now.toISOString(), time_out: timeStr, qr_out: decodedText }).eq('id', id).then(function (r) {
+                    if (!r.error) { showToast('تم تسجيل الخروج للمأمورية بنجاح!', 'success'); loadData(); }
+                    else { alert('حدث خطأ: ' + r.error.message); }
+                  });
+                });
+              },
+              function(err) {}
+            ).catch(function(err) {
+              document.getElementById('mission-reader').innerHTML = '<p style="color:red">Camera error: ' + err + '</p>';
+            });
           } else {
             document.getElementById('mission-reader').innerHTML = '<p style="color:red">Scanner library not loaded</p>';
           }
@@ -3901,66 +3916,74 @@ Pages.missions = function (el) {
         var modalBody = '<div style="text-align:center"><div id="mission-reader-in" style="width:100%;max-width:300px;margin:0 auto 20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح باركود البوابة لتسجيل <b>العودة</b> من المأمورية</p></div>';
         App.showModal('تسجيل عودة المأمورية', modalBody);
 
-        setTimeout(function () {
-          if (typeof Html5QrcodeScanner !== 'undefined') {
-            var scanner = new Html5QrcodeScanner("mission-reader-in", { fps: 10, qrbox: {width: 200, height: 200} }, false);
-            scanner.render(function(decodedText) {
-              scanner.clear();
-              App.closeModal();
-              var now = new Date();
-              var timeStr = now.toTimeString().split(' ')[0];
-              
-              sbClient.from('missions').update({ actual_time_in: now.toISOString(), time_in: timeStr, qr_in: decodedText }).eq('id', id).then(function (r) {
-                if (r.error) { alert('حدث خطأ: ' + r.error.message); return; }
+                setTimeout(function () {
+          if (typeof Html5Qrcode !== 'undefined') {
+            var html5QrCode = new Html5Qrcode("mission-reader-in");
+            html5QrCode.start(
+              { facingMode: "environment" },
+              { fps: 10, qrbox: {width: 200, height: 200} },
+              function(decodedText) {
+                html5QrCode.stop().then(function() {
+                  App.closeModal();
+                  var now = new Date();
+                  var timeStr = now.toTimeString().split(' ')[0];
+                  
+                  sbClient.from('missions').update({ actual_time_in: now.toISOString(), time_in: timeStr, qr_in: decodedText }).eq('id', id).then(function (r) {
+                    if (r.error) { alert('حدث خطأ: ' + r.error.message); return; }
 
-                // Calculate Overtime automatically! Overtime = Hours × HourRate × 1.5
-                var empShiftSystem = App.user.shift_system || '3-shift';
-                var shift = getShiftConfig(App.user.shift || 'morning', empShiftSystem);
-                var overTimeAmount = 0;
-                var diffHours = 0;
+                    // Calculate Overtime automatically!
+                    var empShiftSystem = App.user.shift_system || '3-shift';
+                    var shift = getShiftConfig(App.user.shift || 'morning', empShiftSystem);
+                    var overTimeAmount = 0;
+                    var diffHours = 0;
 
-                if (shift && shift.end) {
-                  var parts = shift.end.split(':');
-                  var shiftEnd = new Date(now);
-                  shiftEnd.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+                    if (shift && shift.end) {
+                      var parts = shift.end.split(':');
+                      var shiftEnd = new Date(now);
+                      shiftEnd.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
 
-                  if (parseInt(parts[0]) <= 8 && now.getHours() > 12) {
-                    shiftEnd.setDate(shiftEnd.getDate() + 1);
-                  }
+                      if (parseInt(parts[0]) <= 8 && now.getHours() > 12) {
+                        shiftEnd.setDate(shiftEnd.getDate() + 1);
+                      }
 
-                  var diffMs = now - shiftEnd;
-                  if (diffMs > 0) {
-                    diffHours = diffMs / 3600000;
-                    var baseSalary = App.user.base_salary || 0;
-                    var dailyRate30 = baseSalary / 30;
-                    var hourlyRate = dailyRate30 / shift.hours;
-                    overTimeAmount = Math.round(diffHours * hourlyRate * 1.5);
-                    sbClient.from('missions').update({ overtime_hours: diffHours.toFixed(2) }).eq('id', id).then(function(){});
-                  }
-                }
+                      var diffMs = now - shiftEnd;
+                      if (diffMs > 0) {
+                        diffHours = diffMs / 3600000;
+                        var baseSalary = App.user.base_salary || 0;
+                        var dailyRate30 = baseSalary / 30;
+                        var hourlyRate = dailyRate30 / shift.hours;
+                        overTimeAmount = Math.round(diffHours * hourlyRate * 1.5);
+                        sbClient.from('missions').update({ overtime_hours: diffHours.toFixed(2) }).eq('id', id).then(function(){});
+                      }
+                    }
 
-                if (overTimeAmount > 0) {
-                  var currentMonth = now.toISOString().substring(0, 7);
-                  sbClient.from('salary_adjustments').insert([{
-                    employee_id: App.user.id,
-                    employee_name: App.user.full_name,
-                    department: App.user.department,
-                    type: 'bonus',
-                    amount: overTimeAmount,
-                    reason: 'إضافي تلقائي: عودة مأمورية متأخرة (' + diffHours.toFixed(2) + ' ساعات × 1.5)',
-                    month: currentMonth,
-                    requested_by: 'النظام (تلقائي)',
-                    status: 'approved'
-                  }]).then(function () {
-                    showToast('تم تسجيل العودة! وإضافة ' + overTimeAmount + ' ج.م كإضافي لمرتبك تلقائياً ✅', 'success');
-                    loadData();
+                    if (overTimeAmount > 0) {
+                      var currentMonth = now.toISOString().substring(0, 7);
+                      sbClient.from('salary_adjustments').insert([{
+                        employee_id: App.user.id,
+                        employee_name: App.user.full_name,
+                        department: App.user.department,
+                        type: 'bonus',
+                        amount: overTimeAmount,
+                        reason: 'إضافي تلقائي: عودة مأمورية متأخرة (' + diffHours.toFixed(2) + ' ساعات × 1.5)',
+                        month: currentMonth,
+                        requested_by: 'النظام (تلقائي)',
+                        status: 'approved'
+                      }]).then(function () {
+                        showToast('تم تسجيل العودة! وإضافة ' + overTimeAmount + ' ج.م كإضافي لمرتبك تلقائياً ✅', 'success');
+                        loadData();
+                      });
+                    } else {
+                      showToast('تم تسجيل العودة من المأمورية بنجاح!', 'success');
+                      loadData();
+                    }
                   });
-                } else {
-                  showToast('تم تسجيل العودة من المأمورية بنجاح!', 'success');
-                  loadData();
-                }
-              });
-            }, function(err) {});
+                });
+              },
+              function(err) {}
+            ).catch(function(err) {
+              document.getElementById('mission-reader-in').innerHTML = '<p style="color:red">Camera error: ' + err + '</p>';
+            });
           } else {
             document.getElementById('mission-reader-in').innerHTML = '<p style="color:red">Scanner library not loaded</p>';
           }
