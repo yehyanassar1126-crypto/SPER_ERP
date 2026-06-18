@@ -280,6 +280,7 @@ var App = {
               { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
               { id: 'expenses', label: 'Expenses', icon: 'receipt' },
               { id: 'complaints', label: 'Disciplinary & Grievances', icon: 'gavel' },
+              { id: 'friday-work', label: 'Friday Work (عمل الجمعة)', icon: 'calendarPlus' },
               { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
             ]
           },
@@ -315,7 +316,7 @@ var App = {
           },
           {
             section: 'Team Management', items: [
-              { id: 'employees', label: 'Employees', icon: 'users' },
+              { id: 'friday-work', label: 'Friday Work (عمل الجمعة)', icon: 'calendarPlus' },
               { id: 'team-adjustments', label: 'Team Adjustments', icon: 'fileText' },
             ]
           },
@@ -635,7 +636,8 @@ var App = {
       case 'supplier-portal': Pages['supplier-portal'] && Pages['supplier-portal'](el); break;
       case 'dashboard': Pages.empDashboard(el); break;
       case 'hr-admin': App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el); break;
-      case 'employees': (App.isHR() || App.isManager()) ? Pages.employees(el) : Pages.empDashboard(el); break;
+      case 'employees': (App.isHR() || App.isOwner()) ? Pages.employees(el) : Pages.empDashboard(el); break;
+      case 'friday-work': Pages.fridayWork(el); break;
       case 'attendance': case 'my-attendance': Pages.attendance(el); break;
       case 'all-delays': App.isHR() ? Pages.allDelays(el) : Pages.empDashboard(el); break;
       case 'hr-qr-generator': Pages.hrQrGenerator(el); break;
@@ -1304,25 +1306,7 @@ Pages.employees = function (el) {
     });
     if (filtered.length === 0) html += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No employees found</td></tr>';
     html += '</tbody></table></div></div></div>';
-    // Friday Work: only managers can request, HR only approves/rejects
-    var isManagerRole = App.isManager() && !isHR;
-    if (isManagerRole) {
-      html += '<div class="toolbar" style="margin-top:40px">';
-      html += '<button class="btn btn-primary" id="add-friday-btn">' + icon('plus') + ' Request Friday Work (طلب عمل إضافي / يوم جمعة)</button>';
-      html += '</div>';
 
-      html += '<div class="card"><div class="card-header"><div><h3>My Friday Work Requests</h3></div></div>';
-      html += '<div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr><th>Requested By</th><th>Date</th><th>Employees Count</th><th>Status</th></tr></thead><tbody id="friday-tbody">';
-      html += '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>';
-      html += '</tbody></table></div></div></div>';
-    }
-
-    if (isHR) {
-      html += '<div class="card" style="margin-top:30px"><div class="card-header"><div><h3>Friday Work Requests (طلبات عمل الجمعة)</h3></div></div>';
-      html += '<div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr><th>Department</th><th>Requested By</th><th>Date</th><th>Employees Count</th><th>Status</th><th>Actions</th></tr></thead><tbody id="hr-friday-tbody">';
-      html += '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>';
-      html += '</tbody></table></div></div></div>';
-    }
 
     el.innerHTML = html;
 
@@ -1412,58 +1396,6 @@ Pages.employees = function (el) {
         });
       });
     });
-
-    // Friday Work Button Handler
-    var fridayBtn = document.getElementById('add-friday-btn');
-    if (fridayBtn) {
-      fridayBtn.addEventListener('click', function () {
-        var dateVal = todayStr();
-        var b = '<div class="form-field"><label>Date (تاريخ العمل الإضافي/يوم الجمعة) *</label><input type="date" id="fw-date" value="' + dateVal + '"></div>';
-        b += '<div class="form-field"><label>Select Employees (يمكن اختيار أكثر من موظف) *</label><select id="fw-emps" multiple style="height:120px">';
-        employees.forEach(function (u) { b += '<option value="' + u.id + '">' + u.full_name + '</option>'; });
-        b += '</select></div><p style="font-size:0.8rem;color:var(--text-muted)">اضغط Ctrl (أو Cmd) لاختيار أكثر من موظف</p>';
-        
-        App.showModal('Request Friday Work', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="fw-save">Submit Request</button>');
-
-        document.getElementById('fw-save').addEventListener('click', function () {
-          var date = document.getElementById('fw-date').value;
-          var sel = document.getElementById('fw-emps');
-          var selectedEmps = [];
-          for (var i=0; i<sel.options.length; i++) { if(sel.options[i].selected) selectedEmps.push(sel.options[i].value); }
-          
-          if (!date || selectedEmps.length === 0) { alert('Please select date and at least one employee'); return; }
-
-          var rec = { department: App.user.department, requested_by: App.user.id, requested_by_name: App.user.full_name, employees: selectedEmps, request_date: date, status: 'pending' };
-          sbClient.from('friday_work_requests').insert([rec]).then(function (r) {
-            if (r.error) { alert('Error: ' + r.error.message); return; }
-            App.closeModal(); 
-            showToast('Friday Work requested!', 'success'); 
-            empLoadFridayWork();
-          });
-        });
-      });
-    }
-
-    function empLoadFridayWork() {
-      sbClient.from('friday_work_requests').select('*').eq('department', App.user.department).order('created_at', {ascending:false}).then(function(r) {
-        var tb = document.getElementById('friday-tbody');
-        if(!tb) return;
-        if(r.error || !r.data || r.data.length===0) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">No Friday Work requests</td></tr>'; return; }
-        
-        var h = '';
-        r.data.forEach(function(fw) {
-          var sc = fw.status === 'approved' ? 'badge-success' : fw.status === 'rejected' ? 'badge-danger' : 'badge-warning';
-          h += '<tr>';
-          h += '<td>' + fw.requested_by_name + '</td>';
-          h += '<td>' + formatDate(fw.request_date) + '</td>';
-          h += '<td style="font-weight:700">' + (fw.employees ? fw.employees.length : 0) + ' Employees</td>';
-          h += '<td><span class="badge ' + sc + '"><span class="badge-dot"></span>' + fw.status + '</span></td>';
-          h += '</tr>';
-        });
-        tb.innerHTML = h;
-      });
-    }
-    empLoadFridayWork();
   }
 
   function showEmpView(id) {
@@ -1733,6 +1665,145 @@ Pages.employees = function (el) {
     });
   }
   render();
+};
+
+// ----- FRIDAY WORK (صفحة عمل الجمعة) -----
+Pages.fridayWork = function (el) {
+  var isHR = App.isHR();
+  var isManager = App.isManager();
+  var deptEmployees = [];
+  var requests = [];
+
+  function render() {
+    var html = '';
+
+    // Stats
+    var pending = requests.filter(function(r) { return r.status === 'pending'; }).length;
+    var approved = requests.filter(function(r) { return r.status === 'approved'; }).length;
+    var rejected = requests.filter(function(r) { return r.status === 'rejected'; }).length;
+
+    html += '<div class="stats-grid">';
+    html += _statCard('#f59e0b', 'timer', pending, 'Pending (معلق)');
+    html += _statCard('#22c55e', 'checkCircle', approved, 'Approved (معتمد)');
+    html += _statCard('#ef4444', 'xCircle', rejected, 'Rejected (مرفوض)');
+    html += _statCard('#6366f1', 'calendarPlus', requests.length, 'Total Requests');
+    html += '</div>';
+
+    // Manager: Submit new request
+    if (isManager && !isHR) {
+      html += '<div class="toolbar">';
+      html += '<button class="btn btn-primary" id="add-friday-btn">' + icon('plus') + ' Request Friday Work (طلب عمل إضافي / يوم جمعة)</button>';
+      html += '</div>';
+    }
+
+    // Request table
+    html += '<div class="card"><div class="card-header"><div><h3>' + (isHR ? 'All Friday Work Requests (كل طلبات عمل الجمعة)' : 'My Department Requests (طلبات إدارتي)') + '</h3><p>' + requests.length + ' requests</p></div></div>';
+    html += '<div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
+    if (isHR) html += '<th>Department (القسم)</th>';
+    html += '<th>Requested By (مقدم الطلب)</th><th>Date (التاريخ)</th><th>Employees (عدد الموظفين)</th><th>Status (الحالة)</th>';
+    if (isHR) html += '<th>Actions (إجراءات)</th>';
+    html += '</tr></thead><tbody>';
+
+    if (requests.length === 0) {
+      var cols = isHR ? 6 : 4;
+      html += '<tr><td colspan="' + cols + '" style="text-align:center;padding:40px;color:var(--text-muted)">No Friday Work requests yet</td></tr>';
+    } else {
+      requests.forEach(function(fw) {
+        var sc = fw.status === 'approved' ? 'badge-success' : fw.status === 'rejected' ? 'badge-danger' : 'badge-warning';
+        html += '<tr>';
+        if (isHR) html += '<td style="font-weight:600">' + (fw.department || '-') + '</td>';
+        html += '<td>' + (fw.requested_by_name || '-') + '</td>';
+        html += '<td>' + formatDate(fw.request_date) + '</td>';
+        html += '<td style="font-weight:700">' + (fw.employees ? fw.employees.length : 0) + ' Employees</td>';
+        html += '<td><span class="badge ' + sc + '"><span class="badge-dot"></span>' + fw.status + '</span></td>';
+        if (isHR) {
+          html += '<td>';
+          if (fw.status === 'pending') {
+            html += '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-fw-approve="' + fw.id + '">Approve</button><button class="btn btn-danger btn-xs" data-fw-reject="' + fw.id + '">Reject</button></div>';
+          } else {
+            html += '<span style="color:var(--text-muted);font-size:0.8rem">—</span>';
+          }
+          html += '</td>';
+        }
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+
+    el.innerHTML = html;
+
+    // Manager: Submit button handler
+    var fridayBtn = document.getElementById('add-friday-btn');
+    if (fridayBtn) {
+      fridayBtn.addEventListener('click', function () {
+        var dateVal = todayStr();
+        var b = '<div class="form-field"><label>Date (تاريخ العمل الإضافي/يوم الجمعة) *</label><input type="date" id="fw-date" value="' + dateVal + '"></div>';
+        b += '<div class="form-field"><label>Select Employees from ' + App.user.department + ' (يمكن اختيار أكثر من موظف) *</label><select id="fw-emps" multiple style="height:150px">';
+        deptEmployees.forEach(function (u) { b += '<option value="' + u.id + '">' + u.full_name + ' — ' + (u.position || 'Employee') + '</option>'; });
+        b += '</select></div><p style="font-size:0.8rem;color:var(--text-muted)">اضغط Ctrl (أو Cmd) لاختيار أكثر من موظف</p>';
+        
+        App.showModal('Request Friday Work (طلب عمل الجمعة)', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="fw-save">Submit Request</button>');
+
+        document.getElementById('fw-save').addEventListener('click', function () {
+          var date = document.getElementById('fw-date').value;
+          var sel = document.getElementById('fw-emps');
+          var selectedEmps = [];
+          for (var i=0; i<sel.options.length; i++) { if(sel.options[i].selected) selectedEmps.push(sel.options[i].value); }
+          
+          if (!date || selectedEmps.length === 0) { alert('يرجى اختيار التاريخ وموظف واحد على الأقل'); return; }
+
+          var rec = { department: App.user.department, requested_by: App.user.id, requested_by_name: App.user.full_name, employees: selectedEmps, request_date: date, status: 'pending' };
+          sbClient.from('friday_work_requests').insert([rec]).then(function (r) {
+            if (r.error) { alert('Error: ' + r.error.message); return; }
+            App.closeModal(); 
+            showToast('تم إرسال الطلب بنجاح!', 'success'); 
+            loadData();
+          });
+        });
+      });
+    }
+
+    // HR: Approve/Reject handlers
+    document.querySelectorAll('[data-fw-approve]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = this.getAttribute('data-fw-approve');
+        sbClient.from('friday_work_requests').update({status:'approved'}).eq('id',id).then(function(r) {
+          if(!r.error) { showToast('تمت الموافقة ✅', 'success'); loadData(); }
+        });
+      });
+    });
+    document.querySelectorAll('[data-fw-reject]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = this.getAttribute('data-fw-reject');
+        sbClient.from('friday_work_requests').update({status:'rejected'}).eq('id',id).then(function(r) {
+          if(!r.error) { showToast('تم الرفض ❌', 'danger'); loadData(); }
+        });
+      });
+    });
+  }
+
+  function loadData() {
+    var promises = [];
+    
+    // Load department employees (only manager's department)
+    if (isManager && !isHR) {
+      promises.push(sbClient.from('users').select('id, full_name, position, department').eq('department', App.user.department).eq('status', 'active'));
+      promises.push(sbClient.from('friday_work_requests').select('*').eq('department', App.user.department).order('created_at', {ascending:false}));
+    } else {
+      // HR sees all
+      promises.push(Promise.resolve({data: []}));
+      promises.push(sbClient.from('friday_work_requests').select('*').order('created_at', {ascending:false}));
+    }
+
+    Promise.all(promises).then(function(results) {
+      deptEmployees = results[0].data || [];
+      requests = results[1].data || [];
+      render();
+    });
+  }
+
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading...</div>';
+  loadData();
 };
 
 // ----- ATTENDANCE -----
