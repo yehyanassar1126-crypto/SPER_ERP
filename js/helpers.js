@@ -35,21 +35,24 @@ function calculateInsuranceDuration(startDate) {
   return { years: years, months: months, days: days, totalDays: totalDays };
 }
 
-function exportToCSV(data, filename) {
+function exportToExcel(data, filename) {
   if (!data || !data.length) return;
-  var headers = Object.keys(data[0]);
-  var csv = [
-    headers.join(','),
-  ].concat(data.map(function(row) {
-    return headers.map(function(h) { return '"' + (row[h] != null ? row[h] : '') + '"'; }).join(',');
-  })).join('\n');
-  var blob = new Blob([csv], { type: 'text/csv' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = filename + '_' + new Date().toISOString().split('T')[0] + '.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  
+  if (typeof XLSX === 'undefined') {
+    alert('Excel library not loaded');
+    return;
+  }
+  
+  var worksheet = XLSX.utils.json_to_sheet(data);
+  
+  // Set RTL direction for the worksheet
+  worksheet['!dir'] = 'rtl';
+  
+  var workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+  
+  // Write to Excel file
+  XLSX.writeFile(workbook, filename + '_' + new Date().toISOString().split('T')[0] + '.xlsx');
 }
 
 function todayStr() {
@@ -86,4 +89,26 @@ function formatDelay(totalMinutes) {
   if (m > 0) parts.push(m + 'm');
   if (parts.length === 0) return 'On time';
   return parts.join(' ');
+}
+
+// ----- HR APPROVAL RULES -----
+function canApprove(requesterId, requesterRole) {
+  if (!App.user) return false;
+  if (App.user.id === requesterId) return false; // No user can approve own requests
+  
+  var myRole = App.user.role ? App.user.role.toLowerCase() : '';
+  var reqRole = requesterRole ? requesterRole.toLowerCase() : 'employee';
+  
+  if (myRole === 'owner') return true; // Owner can approve anything (except their own, handled above)
+  
+  if (reqRole === 'hr manager') {
+    return myRole === 'owner'; // HR Manager approved ONLY by Owner
+  }
+  
+  if (reqRole === 'hr') {
+    return myRole === 'hr manager' || myRole === 'owner'; // HR approved by HR Manager or Owner
+  }
+  
+  // For other employees, HR, HR Manager, or Owner can approve
+  return myRole === 'hr' || myRole === 'hr manager' || myRole === 'owner';
 }

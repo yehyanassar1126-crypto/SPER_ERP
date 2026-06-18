@@ -258,7 +258,7 @@ var App = {
           {
             section: 'Overview', items: [
               { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' },
-              ...(App.user && App.user.role === 'owner' ? [] : [{ id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }])
+              ...(App.user && App.user.role === 'owner' ? [] : [{ id: 'hr-qr-generator', label: 'QR Generator (HR)', icon: 'qrCode' }])
             ]
           },
           {
@@ -298,13 +298,19 @@ var App = {
               { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
             ]
           },
+          {
+            section: 'My HR Profile', items: [
+              { id: 'hr-personal', label: 'My HR Profile', icon: 'user' },
+              { id: 'scan-checkin', label: 'Check-In (حضور)', icon: 'logIn' },
+              { id: 'scan-checkout', label: 'Check-Out (انصراف)', icon: 'logOut' }
+            ]
+          },
         ];
       } else if (isManager) {
         menu = [
           {
             section: 'Overview', items: [
-              { id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' },
-              { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' }
+              { id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }
             ]
           },
           {
@@ -316,7 +322,8 @@ var App = {
           {
             section: 'My Info', items: [
               { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
-              { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' },
+              { id: 'scan-checkin', label: 'Check-In (حضور)', icon: 'logIn' },
+              { id: 'scan-checkout', label: 'Check-Out (انصراف)', icon: 'logOut' },
               { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
               { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
               { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
@@ -348,7 +355,8 @@ var App = {
           {
             section: 'My Info', items: [
               { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
-              { id: 'qr-checkin', label: 'QR Check-In', icon: 'qrCode' },
+              { id: 'scan-checkin', label: 'Check-In (حضور)', icon: 'logIn' },
+              { id: 'scan-checkout', label: 'Check-Out (انصراف)', icon: 'logOut' },
               { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
               { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
               { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
@@ -533,7 +541,10 @@ var App = {
       'reports': { title: 'Reports & Analytics', sub: 'Insights & data export' },
       'audit-log': { title: 'Audit Log', sub: 'System activity tracking' },
       'my-attendance': { title: 'My Attendance', sub: 'Your attendance records' },
-      'qr-checkin': { title: 'QR Check-In / Out', sub: 'Scan to check in or out' },
+      'hr-qr-generator': { title: 'QR Generator (HR)', sub: 'Generate changing QR codes for check-in/out' },
+      'scan-checkin': { title: 'Check-In (حضور)', sub: 'Scan QR to start your shift' },
+      'scan-checkout': { title: 'Check-Out (انصراف)', sub: 'Scan QR to end your shift' },
+      'hr-personal': { title: 'My HR Profile', sub: 'Your personal HR records' },
       'my-leaves': { title: 'My Leaves', sub: 'Your leave requests' },
       'my-salary': { title: 'My Salary', sub: 'Your salary details' },
       'my-overtime': { title: 'My Overtime', sub: 'Your overtime records' },
@@ -626,7 +637,10 @@ var App = {
       case 'employees': (App.isHR() || App.isManager()) ? Pages.employees(el) : Pages.empDashboard(el); break;
       case 'attendance': case 'my-attendance': Pages.attendance(el); break;
       case 'all-delays': App.isHR() ? Pages.allDelays(el) : Pages.empDashboard(el); break;
-      case 'qr-checkin': Pages.qrCheckin(el); break;
+      case 'hr-qr-generator': Pages.hrQrGenerator(el); break;
+      case 'scan-checkin': Pages.scanCheckin(el); break;
+      case 'scan-checkout': Pages.scanCheckout(el); break;
+      case 'hr-personal': Pages.hrPersonal(el); break;
       case 'my-missions': Pages.missions(el); break;
       case 'all-missions': App.isHR() ? Pages.allMissions(el) : Pages.empDashboard(el); break;
       case 'leaves': case 'my-leaves': Pages.leaves(el); break;
@@ -1284,6 +1298,22 @@ Pages.employees = function (el) {
     });
     if (filtered.length === 0) html += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No employees found</td></tr>';
     html += '</tbody></table></div></div></div>';
+    html += '<div class="toolbar" style="margin-top:40px">';
+    html += '<button class="btn btn-primary" id="add-friday-btn">' + icon('plus') + ' Request Friday Work (طلب عمل إضافي / يوم جمعة)</button>';
+    html += '</div>';
+
+    html += '<div class="card"><div class="card-header"><div><h3>My Friday Work Requests</h3></div></div>';
+    html += '<div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr><th>Requested By</th><th>Date</th><th>Employees Count</th><th>Status</th></tr></thead><tbody id="friday-tbody">';
+    html += '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    if (isHR) {
+      html += '<div class="card" style="margin-top:30px"><div class="card-header"><div><h3>Friday Work Requests (طلبات عمل الجمعة)</h3></div></div>';
+      html += '<div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr><th>Department</th><th>Requested By</th><th>Date</th><th>Employees Count</th><th>Status</th><th>Actions</th></tr></thead><tbody id="hr-friday-tbody">';
+      html += '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>';
+      html += '</tbody></table></div></div></div>';
+    }
+
     el.innerHTML = html;
 
     // Restore focus to search input after re-render
@@ -1727,7 +1757,7 @@ Pages.attendance = function (el) {
     if (document.getElementById('att-dept')) document.getElementById('att-dept').addEventListener('change', applyFilters);
     document.getElementById('att-date').addEventListener('change', applyFilters);
     document.getElementById('att-status').addEventListener('change', applyFilters);
-    document.getElementById('att-export').addEventListener('click', function () { exportToCSV(data, 'attendance_report'); });
+    document.getElementById('att-export').addEventListener('click', function () { exportToExcel(data, 'attendance_report'); });
   }
 
   // ---- Edit Attendance Record Modal (HR Manager / Owner only) ----
@@ -1808,244 +1838,228 @@ Pages.attendance = function (el) {
   render(records);
 };
 
-// ----- QR CHECKIN -----
-Pages.qrCheckin = function (el) {
+// ----- QR CHECKIN (HR Manager) -----
+Pages.hrQrGenerator = function (el) {
   var user = App.user;
-  if (user && user.role === 'owner') {
-    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)"><h2>🚫 Not Required (غير مطلوب)</h2><p>Owner (المالك) does not require attendance tracking.</p></div>';
+  if (!App.isHR() || user.role === 'owner') {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--text-muted)"><h2>🚫 Not Available</h2></div>';
     return;
   }
   
-  var empShiftSystem = user.shift_system || '3-shift';
-  var shift = getShiftConfig(user.shift, empShiftSystem);
-  var checkedIn = false, checkedOut = false, checkInTime = null, checkOutTime = null, currentRecordId = null, delayMin = 0;
+  var html = '<div style="max-width:600px;margin:0 auto;text-align:center;">';
+  html += '<div class="card"><div class="card-header" style="justify-content:center"><h3>Scan to Check In / Out</h3></div>';
+  html += '<div class="card-body"><div id="hr-qr-container" style="display:inline-block;padding:20px;background:#fff;border-radius:10px;margin-bottom:20px"></div>';
+  html += '<p style="color:var(--text-muted)">QR code changes every 30 seconds</p></div></div></div>';
+  el.innerHTML = html;
 
-  function renderQR() {
-    var now = new Date();
-    var html = '<div style="max-width:600px;margin:0 auto">';
-    html += '<div class="card" style="margin-bottom:20px;text-align:center"><div class="card-body"><div style="font-size:2.5rem;font-weight:800;font-feature-settings:\'tnum\';color:var(--text-primary)" id="live-clock">' + now.toLocaleTimeString('en-US', { hour12: true }) + '</div><div style="font-size:0.9rem;color:var(--text-tertiary);margin-top:4px">' + formatDate(now) + ' — ' + (shift ? shift.label + ' (' + shift.start + ' - ' + shift.end + ')' : '') + '</div></div></div>';
-    html += '<div class="card"><div class="card-header" style="justify-content:center"><h3>' + (checkedOut ? '✅ Shift Complete' : checkedIn ? 'Ready to Check Out' : 'Ready to Check In') + '</h3></div>';
-    html += '<div class="qr-section"><div class="qr-code-wrapper" id="qr-container"></div>';
-    html += '<div class="qr-status"><p style="color:var(--text-secondary);font-size:0.85rem">' + user.full_name + ' — ' + user.employee_id + '</p></div>';
-    if (!checkedOut) {
-      html += '<button class="btn ' + (checkedIn ? 'btn-warning' : 'btn-primary') + '" style="width:100%;padding:14px;font-size:1rem" id="qr-scan-btn">' + (checkedIn ? icon('logOut') + ' Check Out' : icon('logIn') + ' Check In') + '</button>';
-    }
-    html += '</div></div>';
-    if (checkedIn || checkedOut) {
-      html += '<div class="card" style="margin-top:20px"><div class="card-body"><div style="display:flex;flex-direction:column;gap:14px">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--text-tertiary);display:flex;align-items:center;gap:6px">' + icon('logIn', 15) + ' Check In Time</span><span style="font-weight:700;color:var(--accent-success)">' + formatTime(checkInTime) + '</span></div>';
-      if (checkedOut) html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--text-tertiary);display:flex;align-items:center;gap:6px">' + icon('logOut', 15) + ' Check Out Time</span><span style="font-weight:700;color:var(--accent-warning)">' + formatTime(checkOutTime) + '</span></div>';
-      var workHrs = checkInTime ? (((checkOutTime || new Date()) - checkInTime) / 3600000).toFixed(2) : '0.00';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-color);padding-top:14px"><span style="color:var(--text-tertiary);display:flex;align-items:center;gap:6px">' + icon('clock', 15) + ' Working Hours</span><span style="font-weight:700;font-size:1.1rem;color:var(--accent-primary-hover)">' + workHrs + 'h</span></div>';
-      if (delayMin > 0) {
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(245,158,11,0.1);padding:12px;border-radius:var(--radius-md);margin-top:4px"><span style="color:var(--accent-warning);display:flex;align-items:center;gap:6px;font-weight:600">' + icon('alertTriangle', 15) + ' Late by</span><span style="font-weight:700;font-size:1.1rem;color:var(--accent-warning)">' + formatDelay(delayMin) + '</span></div>';
-      } else if (checkedIn) {
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(34,197,94,0.1);padding:12px;border-radius:var(--radius-md);margin-top:4px"><span style="color:var(--accent-success);display:flex;align-items:center;gap:6px;font-weight:600">' + icon('checkCircle', 15) + ' Status</span><span style="font-weight:700;color:var(--accent-success)">On Time \u2705</span></div>';
-      }
-      html += '</div></div></div>';
-    }
-    html += '</div>';
-    el.innerHTML = html;
-
-    // QR code
-    setTimeout(function () {
-      var qrData = JSON.stringify({ employee_id: user.employee_id, name: user.full_name, department: user.department, timestamp: new Date().toISOString(), type: checkedIn ? 'checkout' : 'checkin' });
-      var container = document.getElementById('qr-container');
-      if (container && typeof QRCode !== 'undefined') {
-        new QRCode(container, { text: qrData, width: 200, height: 200, colorDark: checkedOut ? '#22c55e' : '#0a0e1a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
-      }
-    }, 50);
-
-    // Live clock
-    var clockEl = document.getElementById('live-clock');
-    if (clockEl) {
-      setInterval(function () { if (document.getElementById('live-clock')) document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: true }); }, 1000);
-    }
-
-    // Scan button
-    var scanBtn = document.getElementById('qr-scan-btn');
-    if (scanBtn) {
-      scanBtn.addEventListener('click', function () {
-        scanBtn.disabled = true;
-        scanBtn.innerHTML = '<span class="spinner"></span>';
-        setTimeout(function () {
-          var timeNow = new Date();
-          if (!checkedIn) {
-            checkedIn = true;
-            checkInTime = timeNow;
-
-            // Auto-detect shift based on check-in time (handles weekly shift rotation automatically)
-            var empShiftSystem = user.shift_system || '3-shift';
-            var detectedShiftKey = user.shift || 'morning';
-            var availableShifts = getShiftsForSystem(empShiftSystem);
-            var bestDiff = Infinity;
-            var bestShiftStart = null;
-
-            availableShifts.forEach(function (s) {
-              var sConf = getShiftConfig(s.key, empShiftSystem);
-              var parts = sConf.start.split(':');
-
-              var candidate1 = new Date(timeNow);
-              candidate1.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-
-              var candidate2 = new Date(timeNow);
-              candidate2.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-              candidate2.setDate(candidate2.getDate() - 1);
-
-              var candidate3 = new Date(timeNow);
-              candidate3.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-              candidate3.setDate(candidate3.getDate() + 1);
-
-              [candidate1, candidate2, candidate3].forEach(function (cand) {
-                // Adjust candidate by +1 hour to shift the midpoint boundary.
-                // This ensures an employee is only considered for the next shift if they check in at most 1 hour early.
-                var adjustedCand = new Date(cand.getTime() + 1 * 3600000);
-                var diffAbs = Math.abs(timeNow - adjustedCand);
-                if (diffAbs < bestDiff) {
-                  bestDiff = diffAbs;
-                  detectedShiftKey = s.key;
-                  bestShiftStart = cand;
-                }
-              });
-            });
-
-            delayMin = 0;
-            var roleLC = (user.role || '').toLowerCase();
-            var isManagement = ['owner'].indexOf(roleLC) !== -1;
-
-            if (isManagement) {
-              // Management is completely exempt from delays
-              delayMin = 0;
-            } else {
-              if (detectedShiftKey === 'morning') {
-                var expectedHour = 8;
-                var expectedStart = new Date(timeNow);
-                expectedStart.setHours(expectedHour, 0, 0, 0);
-                var diffMs = timeNow - expectedStart;
-                if (diffMs > 0) {
-                  delayMin = Math.floor(diffMs / 60000);
-                }
-              } else if (bestShiftStart) {
-                var diffMs = timeNow - bestShiftStart;
-                if (diffMs > 0) {
-                  delayMin = Math.floor(diffMs / 60000);
-                }
-              }
-            }
-
-            {
-              sbClient.from('attendance').insert({ employee_id: user.id, employee_name: user.full_name, department: user.department, date: todayStr(), check_in: timeNow.toISOString(), shift: detectedShiftKey, delay_minutes: delayMin, status: 'present' }).select().single().then(function (r) {
-                if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
-                if (r.data) currentRecordId = r.data.id;
-              });
-            }
-            // Auto late deduction notification
-            if (delayMin > 15) {
-              var baseSalary = user.base_salary || 0;
-              var dailyRate30 = Math.round(baseSalary / 30);
-              var deductionFraction = 0;
-              var deductionLabel = '';
-              if (delayMin > 360) { // > 6 hours
-                deductionFraction = 1;
-                deductionLabel = 'يوم كامل (تأخير أكثر من 6 ساعات)';
-              } else if (delayMin > 120) { // > 2 hours
-                deductionFraction = 0.5;
-                deductionLabel = 'نص يوم (تأخير أكثر من ساعتين)';
-              } else { // > 15 min
-                deductionFraction = 0.25;
-                deductionLabel = 'ربع يوم (تأخير أكثر من ربع ساعة)';
-              }
-              var deductionAmount = Math.round(dailyRate30 * deductionFraction);
-              // Save late deduction as a permanent salary_adjustments record in the DB
-              var currentMonth = new Date().toISOString().substring(0, 7);
-              sbClient.from('salary_adjustments').insert([{
-                employee_id: user.id,
-                employee_name: user.full_name,
-                department: user.department,
-                type: 'penalty',
-                amount: deductionAmount,
-                reason: 'خصم تأخير تلقائي: ' + deductionLabel + ' — تأخير ' + formatDelay(delayMin) + ' يوم ' + todayStr(),
-                month: currentMonth,
-                requested_by: 'النظام (تلقائي)',
-                status: 'approved'
-              }]).then(function (r) {
-                if (r.error) {
-                  console.error('Late deduction salary_adjustments error:', r.error);
-                }
-              });
-              // Also save in dedicated late_deductions table
-              // (Redundant block removed because salary_adjustments already handles the penalty properly)
-              App.addNotification({
-                user_id: user.id,
-                type: 'late_deduction',
-                title: '⚠️ تم خصم ' + deductionLabel,
-                message: 'تأخرت ' + formatDelay(delayMin) + ' عن موعد الوردية. تم خصم ' + deductionAmount + ' ج.م (' + deductionLabel + ') من راتبك. (المرتب ÷ 30 يوم = ' + dailyRate30 + ' ج.م/يوم). تم تسجيل الخصم في سجل المرتبات.'
-              });
-              showToast('⚠️ تأخير ' + formatDelay(delayMin) + ' — تم خصم ' + deductionLabel + ' = ' + deductionAmount + ' ج.م (محفوظ في الداتا بيز)', 'warning');
-            } else if (delayMin > 0) {
-              showToast('⚠️ Checked in! You are ' + formatDelay(delayMin) + ' late (under 15 min, no deduction).', 'warning');
-            } else {
-              showToast('✅ Successfully checked in! On time!', 'success');
-            }
-          } else {
-            checkedOut = true;
-            checkOutTime = timeNow;
-            var diff = ((timeNow - checkInTime) / 3600000).toFixed(2);
-
-            if (user.role === 'hr' || user.role === 'manager' || user.role === 'owner') {
-              var actualHours = parseFloat(diff);
-              if (actualHours < 8) {
-                var missingMinutes = Math.round((8 - actualHours) * 60);
-                var baseSal = Number(user.base_salary) || 0;
-                if (baseSal > 0 && missingMinutes > 0) {
-                  var minuteRate = (baseSal / 30 / 8 / 60);
-                  var penaltyAmount = (missingMinutes * minuteRate).toFixed(2);
-
-                  sbClient.from('salary_adjustments').insert({
-                    employee_id: user.id,
-                    amount: penaltyAmount,
-                    type: 'deduction',
-                    reason: 'خصم لعدم إكمال 8 ساعات (ناقص ' + missingMinutes + ' دقيقة)',
-                    month: new Date().toISOString().substring(0, 7),
-                    status: 'approved',
-                    created_at: new Date().toISOString()
-                  }).then(function (r) {
-                    if (r && r.error) console.error("Penalty insertion error:", r.error);
-                  });
-
-                  App.addNotification({
-                    user_id: user.id,
-                    type: 'late_deduction',
-                    title: '⚠️ خصم عدم إكمال 8 ساعات',
-                    message: 'تم خصم ' + penaltyAmount + ' ج.م لعدم إكمال 8 ساعات عمل اليوم (ناقص ' + missingMinutes + ' دقيقة).'
-                  });
-                  showToast('⚠️ تم خصم ' + penaltyAmount + ' ج.م (ناقص ' + missingMinutes + ' دقيقة من 8 ساعات)', 'warning');
-                }
-              }
-              diff = '8.00'; // HR and Managers get automatic 8 hours for attendance stats
-            }
-
-            if (currentRecordId) {
-              sbClient.from('attendance').update({ check_out: timeNow.toISOString(), working_hours: Number(diff) }).eq('id', currentRecordId).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
-            }
-            showToast('✅ Successfully checked out! Working hours: ' + diff + 'h', 'success');
-          }
-          renderQR();
-        }, 1500);
-      });
+  var qrTimer;
+  function updateQR() {
+    var container = document.getElementById('hr-qr-container');
+    if (!container) { clearInterval(qrTimer); return; }
+    container.innerHTML = '';
+    var qrData = JSON.stringify({
+      hr_id: user.id,
+      timestamp: Date.now(),
+      type: 'hr_qr'
+    });
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(container, { text: qrData, width: 250, height: 250, colorDark: '#0a0e1a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
     }
   }
 
-  {
-    sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).order('created_at', { ascending: false }).limit(1).single().then(function (res) {
-      if (res.data) {
-        currentRecordId = res.data.id;
-        if (res.data.check_in) { checkedIn = true; checkInTime = new Date(res.data.check_in); }
-        if (res.data.check_out) { checkedOut = true; checkOutTime = new Date(res.data.check_out); }
+  updateQR();
+  qrTimer = setInterval(updateQR, 30000);
+};
+
+// ----- SCAN CHECKIN (Employee) -----
+Pages.scanCheckin = function (el) {
+  renderScanner(el, 'checkin');
+};
+
+// ----- SCAN CHECKOUT (Employee) -----
+Pages.scanCheckout = function (el) {
+  renderScanner(el, 'checkout');
+};
+
+function renderScanner(el, type) {
+  var title = type === 'checkin' ? 'Check-In (تسجيل حضور)' : 'Check-Out (تسجيل انصراف)';
+  var html = '<div style="max-width:600px;margin:0 auto;text-align:center;">';
+  html += '<div class="card"><div class="card-header" style="justify-content:center"><h3>' + title + '</h3></div>';
+  html += '<div class="card-body">';
+  html += '<div id="reader" style="width:100%;max-width:400px;margin:0 auto"></div>';
+  html += '<p style="margin-top:20px;color:var(--text-muted)">Please scan the QR code generated by the HR Manager</p>';
+  html += '</div></div></div>';
+  el.innerHTML = html;
+
+  if (typeof Html5QrcodeScanner === 'undefined') {
+    el.innerHTML += '<p style="color:red">Scanner library not loaded. Please refresh the page.</p>';
+    return;
+  }
+
+  var html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+  html5QrcodeScanner.render(function(decodedText) {
+    try {
+      var data = JSON.parse(decodedText);
+      if (data.type !== 'hr_qr' || !data.timestamp) throw new Error();
+      var diffSec = Math.abs((Date.now() - data.timestamp) / 1000);
+      if (diffSec > 35) {
+        showToast('❌ Invalid or expired QR code', 'danger');
+        return;
       }
-      renderQR();
+      
+      html5QrcodeScanner.clear();
+      
+      if (type === 'checkout') {
+        var mc = document.getElementById('modal-container');
+        var confirmHtml = '<div style="text-align:center;padding:20px"><p style="font-size:1.1rem;margin-bottom:20px">هل أنت متأكد من تسجيل الانصراف ومغادرة العمل؟</p>';
+        confirmHtml += '<div style="display:flex;gap:10px;justify-content:center"><button class="btn btn-outline" id="cancel-checkout">Cancel</button><button class="btn btn-primary" id="confirm-checkout">Confirm</button></div></div>';
+        App.showModal('Confirm Check-Out', confirmHtml);
+        
+        document.getElementById('cancel-checkout').addEventListener('click', function() {
+          App.closeModal();
+          renderScanner(el, type);
+        });
+        document.getElementById('confirm-checkout').addEventListener('click', function() {
+          App.closeModal();
+          processScan(type);
+        });
+      } else {
+        processScan(type);
+      }
+    } catch(e) {
+      showToast('❌ Invalid QR code format', 'danger');
+    }
+  }, function(error) {
+    // ignore
+  });
+}
+
+function processScan(actionType) {
+  var user = App.user;
+  var timeNow = new Date();
+  var dateStr = todayStr();
+
+  // Validate double scan
+  sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', dateStr).then(function(res) {
+    var rec = res.data && res.data[0];
+    if (actionType === 'checkin') {
+      if (rec && rec.check_in) {
+        showToast('❌ You have already checked in today!', 'danger');
+        return;
+      }
+      
+      // Validation check for leaves/missions/etc.
+      Promise.all([
+        sbClient.from('leave_requests').select('*').eq('employee_id', user.id).eq('status', 'approved').lte('start_date', dateStr).gte('end_date', dateStr),
+        sbClient.from('missions').select('*').eq('employee_id', user.id).eq('status', 'approved').eq('mission_date', dateStr)
+      ]).then(function(results) {
+        var isExempt = (results[0].data && results[0].data.length > 0) || (results[1].data && results[1].data.length > 0);
+        
+        var delayMin = 0;
+        var empShiftSystem = user.shift_system || '3-shift';
+        var shiftKey = user.shift || 'morning';
+        
+        if (!isExempt && ['owner', 'hr manager'].indexOf(user.role.toLowerCase()) === -1) {
+          var sConf = getShiftConfig(shiftKey, empShiftSystem);
+          var parts = sConf.start.split(':');
+          var expectedStart = new Date(timeNow);
+          expectedStart.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+          var diffMs = timeNow - expectedStart;
+          if (diffMs > 0) {
+            delayMin = Math.floor(diffMs / 60000);
+          }
+        }
+        
+        // Location capture
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function(pos) {
+            var loc = pos.coords.latitude + ',' + pos.coords.longitude;
+            insertCheckIn(loc, delayMin);
+          }, function() { insertCheckIn(null, delayMin); });
+        } else {
+          insertCheckIn(null, delayMin);
+        }
+      });
+    } else {
+      if (!rec || !rec.check_in) {
+        showToast('❌ You must check in first!', 'danger');
+        return;
+      }
+      if (rec.check_out) {
+        showToast('❌ You have already checked out today!', 'danger');
+        return;
+      }
+      
+      var workHrs = ((timeNow - new Date(rec.check_in)) / 3600000).toFixed(2);
+      
+      if (timeNow.getDay() === 5) {
+        // Friday work calculation (Hours x HourRate x 2)
+        var baseSalary = user.base_salary || 0;
+        var dailyRate30 = baseSalary / 30;
+        var hourlyRate = dailyRate30 / 8; // Assuming 8 hour shift
+        var fridayBonus = Math.round(workHrs * hourlyRate * 2);
+        
+        if (fridayBonus > 0) {
+          sbClient.from('salary_adjustments').insert([{
+            employee_id: user.id,
+            employee_name: user.full_name,
+            department: user.department,
+            type: 'bonus',
+            amount: fridayBonus,
+            reason: 'عمل إضافي (يوم الجمعة): ' + workHrs + ' ساعات × 2',
+            month: timeNow.toISOString().substring(0, 7),
+            requested_by: 'النظام (تلقائي)',
+            status: 'approved'
+          }]).then(function() {});
+        }
+      }
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          var loc = pos.coords.latitude + ',' + pos.coords.longitude;
+          updateCheckOut(rec.id, loc, workHrs);
+        }, function() { updateCheckOut(rec.id, null, workHrs); });
+      } else {
+        updateCheckOut(rec.id, null, workHrs);
+      }
+    }
+  });
+
+  function insertCheckIn(loc, delayMin) {
+    sbClient.from('attendance').insert({
+      employee_id: user.id,
+      employee_name: user.full_name,
+      department: user.department,
+      date: dateStr,
+      check_in: timeNow.toISOString(),
+      shift: user.shift || 'morning',
+      delay_minutes: delayMin,
+      status: 'checked_in',
+      check_in_location: loc
+    }).then(function(r) {
+      if(r.error) { showToast('DB Error: ' + r.error.message, 'danger'); return; }
+      showToast('✅ Check-In successful!', 'success');
+      sbClient.from('audit_log').insert({ action: 'CHECK_IN', user_name: user.full_name, user_id: user.id, details: 'Checked in at ' + timeNow.toLocaleTimeString() }).then(function(){});
     });
   }
+
+  function updateCheckOut(id, loc, workHrs) {
+    sbClient.from('attendance').update({
+      check_out: timeNow.toISOString(),
+      working_hours: parseFloat(workHrs),
+      status: 'present',
+      check_out_location: loc
+    }).eq('id', id).then(function(r) {
+      if(r.error) { showToast('DB Error: ' + r.error.message, 'danger'); return; }
+      showToast('✅ Check-Out successful!', 'success');
+      sbClient.from('audit_log').insert({ action: 'CHECK_OUT', user_name: user.full_name, user_id: user.id, details: 'Checked out at ' + timeNow.toLocaleTimeString() }).then(function(){});
+    });
+  }
+}
+
+// ----- HR PERSONAL SCREEN -----
+Pages.hrPersonal = function(el) {
+  el.innerHTML = '<div style="padding:20px"><h3>My HR Profile</h3><p>Here you can view your personal attendance, leaves, loans, and delays without affecting the global management view.</p><div style="margin-top:20px"><button class="btn btn-primary" onclick="App.navigate(\'my-attendance\')">My Attendance</button> <button class="btn btn-primary" onclick="App.navigate(\'my-leaves\')">My Leaves</button></div></div>';
 };
 
 // ----- LEAVES -----
@@ -2085,7 +2099,11 @@ Pages.leaves = function (el) {
       if (isHR) {
         html += '<td>';
         if (l.status === 'pending') {
-          html += '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-approve="' + l.id + '">' + icon('checkCircle') + ' Approve</button><button class="btn btn-danger btn-xs" data-reject="' + l.id + '">' + icon('xCircle') + ' Reject</button></div>';
+          if (typeof canApprove === 'function' && canApprove(l.employee_id, l.requester_role)) {
+            html += '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-approve="' + l.id + '">' + icon('checkCircle') + ' Approve</button><button class="btn btn-danger btn-xs" data-reject="' + l.id + '">' + icon('xCircle') + ' Reject</button></div>';
+          } else {
+            html += '<span style="font-size:0.75rem;color:var(--text-muted)">Waiting Higher Approval</span>';
+          }
         } else {
           html += '<span style="font-size:0.75rem;color:var(--text-muted)">By ' + l.approved_by + '</span>';
         }
@@ -2119,7 +2137,7 @@ Pages.leaves = function (el) {
     if (document.getElementById('lv-search')) document.getElementById('lv-search').addEventListener('input', applyFilters);
     document.getElementById('lv-status').addEventListener('change', applyFilters);
     if (document.getElementById('lv-dept')) document.getElementById('lv-dept').addEventListener('change', applyFilters);
-    if (document.getElementById('lv-export')) document.getElementById('lv-export').addEventListener('click', function () { exportToCSV(data, 'leave_report'); });
+    if (document.getElementById('lv-export')) document.getElementById('lv-export').addEventListener('click', function () { exportToExcel(data, 'leave_report'); });
 
     // Request leave
     var reqBtn = document.getElementById('req-leave-btn');
@@ -2378,7 +2396,13 @@ Pages.overtime = function (el) {
       html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + o.status.charAt(0).toUpperCase() + o.status.slice(1) + '</span></td>';
       if (isHR) {
         html += '<td>';
-        if (o.status === 'pending') html += '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-ot-approve="' + o.id + '">' + icon('checkCircle') + ' Approve</button><button class="btn btn-danger btn-xs" data-ot-reject="' + o.id + '">' + icon('xCircle') + ' Reject</button></div>';
+            if (o.status === 'pending') {
+      if (typeof canApprove === 'function' && canApprove(o.employee_id, o.requester_role)) {
+        html += '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-ot-approve="' + o.id + '">' + icon('checkCircle') + ' Approve</button><button class="btn btn-danger btn-xs" data-ot-reject="' + o.id + '">' + icon('xCircle') + ' Reject</button></div>';
+      } else {
+        html += '<span style="font-size:0.75rem;color:var(--text-muted)">Waiting Higher Approval</span>';
+      }
+    }
         else html += '<span style="font-size:0.75rem;color:var(--text-muted)">By ' + o.approved_by + '</span>';
         html += '</td>';
       }
@@ -2406,7 +2430,7 @@ Pages.overtime = function (el) {
     }
     if (document.getElementById('ot-search')) document.getElementById('ot-search').addEventListener('input', applyFilters);
     document.getElementById('ot-status').addEventListener('change', applyFilters);
-    document.getElementById('ot-export').addEventListener('click', function () { exportToCSV(data, 'overtime_report'); });
+    document.getElementById('ot-export').addEventListener('click', function () { exportToExcel(data, 'overtime_report'); });
 
     if (document.getElementById('log-ot-btn')) document.getElementById('log-ot-btn').addEventListener('click', function () {
       var body = '<div class="form-row"><div class="form-field"><label>Date</label><input type="date" id="otf-date"></div><div class="form-field"><label>Hours</label><input type="number" step="0.5" min="0.5" max="8" id="otf-hours" placeholder="e.g. 2"></div></div><div class="form-field" style="margin-bottom:16px"><label>Rate Multiplier</label><select id="otf-rate"><option value="1.5">1.5x (Regular Overtime)</option><option value="2">2x (Holiday/Weekend)</option></select></div><div class="form-field"><label>Reason</label><textarea id="otf-reason" placeholder="Why did you work overtime?"></textarea></div>';
@@ -2429,6 +2453,48 @@ Pages.overtime = function (el) {
         showToast('Overtime submitted!', 'success');
       });
     });
+
+    
+    if (isHR) {
+      function loadHRFridayWork() {
+        sbClient.from('friday_work_requests').select('*').order('created_at', {ascending:false}).then(function(r) {
+          var tb = document.getElementById('hr-friday-tbody');
+          if(!tb) return;
+          if(r.error || !r.data || r.data.length===0) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No Friday Work requests</td></tr>'; return; }
+          
+          window.fwData = r.data;
+          var h = '';
+          r.data.forEach(function(fw) {
+            var sc = fw.status === 'approved' ? 'badge-success' : fw.status === 'rejected' ? 'badge-danger' : 'badge-warning';
+            h += '<tr>';
+            h += '<td>' + fw.department + '</td>';
+            h += '<td>' + fw.requested_by_name + '</td>';
+            h += '<td>' + formatDate(fw.request_date) + '</td>';
+            h += '<td style="font-weight:700">' + (fw.employees ? fw.employees.length : 0) + ' Employees</td>';
+            h += '<td><span class="badge ' + sc + '"><span class="badge-dot"></span>' + fw.status + '</span></td>';
+            h += '<td>';
+            if (fw.status === 'pending') {
+              h += '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" onclick="approveFridayWork(\'' + fw.id + '\')">Approve</button><button class="btn btn-danger btn-xs" onclick="rejectFridayWork(\'' + fw.id + '\')">Reject</button></div>';
+            }
+            h += '</td></tr>';
+          });
+          tb.innerHTML = h;
+        });
+      }
+
+      window.approveFridayWork = function(id) {
+        sbClient.from('friday_work_requests').update({status:'approved'}).eq('id',id).then(function(r) {
+          if(!r.error) { showToast('Approved!', 'success'); loadHRFridayWork(); }
+        });
+      };
+      window.rejectFridayWork = function(id) {
+        sbClient.from('friday_work_requests').update({status:'rejected'}).eq('id',id).then(function(r) {
+          if(!r.error) { showToast('Rejected!', 'danger'); loadHRFridayWork(); }
+        });
+      };
+
+      loadHRFridayWork();
+    }
 
     document.querySelectorAll('[data-ot-approve]').forEach(function (btn) { btn.addEventListener('click', function () { handleOTAction(this.getAttribute('data-ot-approve'), 'approved'); }); });
     document.querySelectorAll('[data-ot-reject]').forEach(function (btn) { btn.addEventListener('click', function () { handleOTAction(this.getAttribute('data-ot-reject'), 'rejected'); }); });
@@ -2667,7 +2733,7 @@ Pages.payroll = function (el) {
     if (document.getElementById('pay-search')) document.getElementById('pay-search').addEventListener('input', applyFilters);
     document.getElementById('pay-month').addEventListener('change', applyFilters);
     document.getElementById('pay-status').addEventListener('change', applyFilters);
-    document.getElementById('pay-export').addEventListener('click', function () { exportToCSV(data, 'payroll_report'); });
+    document.getElementById('pay-export').addEventListener('click', function () { exportToExcel(data, 'payroll_report'); });
 
     if (document.getElementById('add-payroll')) {
       document.getElementById('add-payroll').addEventListener('click', function () {
@@ -3085,7 +3151,7 @@ Pages.reports = function (el) {
       else if (activeReport === 'procurement') dataToExport = purchaseReqs;
       else if (activeReport === 'inventory') dataToExport = inventory;
       else if (activeReport === 'expenses') dataToExport = expenses;
-      exportToCSV(dataToExport, activeReport + '_report');
+      exportToExcel(dataToExport, activeReport + '_report');
     });
 
     setTimeout(function () {
@@ -3183,7 +3249,7 @@ Pages.auditLog = function (el) {
     document.getElementById('al-search').addEventListener('input', applyFilters);
     document.getElementById('al-action').addEventListener('change', applyFilters);
     document.getElementById('al-date').addEventListener('change', applyFilters);
-    document.getElementById('al-export').addEventListener('click', function () { exportToCSV(data, 'audit_log'); });
+    document.getElementById('al-export').addEventListener('click', function () { exportToExcel(data, 'audit_log'); });
   }
 
   {
@@ -3220,6 +3286,54 @@ Pages.teamAdjustments = function (el) {
     if (adjustments.length === 0) html += '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No adjustments submitted yet</td></tr>';
     html += '</tbody></table></div></div></div>';
     el.innerHTML = html;
+
+    document.getElementById('add-friday-btn').addEventListener('click', function () {
+      var dateVal = todayStr();
+      var b = '<div class="form-field"><label>Date (تاريخ العمل الإضافي/يوم الجمعة) *</label><input type="date" id="fw-date" value="' + dateVal + '"></div>';
+      b += '<div class="form-field"><label>Select Employees (يمكن اختيار أكثر من موظف) *</label><select id="fw-emps" multiple style="height:120px">';
+      teamMembers.forEach(function (u) { b += '<option value="' + u.id + '">' + u.full_name + '</option>'; });
+      b += '</select></div><p style="font-size:0.8rem;color:var(--text-muted)">اضغط Ctrl (أو Cmd) لاختيار أكثر من موظف</p>';
+      
+      App.showModal('Request Friday Work', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="fw-save">Submit Request</button>');
+
+      document.getElementById('fw-save').addEventListener('click', function () {
+        var date = document.getElementById('fw-date').value;
+        var sel = document.getElementById('fw-emps');
+        var selectedEmps = [];
+        for (var i=0; i<sel.options.length; i++) { if(sel.options[i].selected) selectedEmps.push(sel.options[i].value); }
+        
+        if (!date || selectedEmps.length === 0) { alert('Please select date and at least one employee'); return; }
+
+        var rec = { department: App.user.department, requested_by: App.user.id, requested_by_name: App.user.full_name, employees: selectedEmps, request_date: date, status: 'pending' };
+        sbClient.from('friday_work_requests').insert([rec]).then(function (r) {
+          if (r.error) { alert('Error: ' + r.error.message); return; }
+          App.closeModal(); 
+          showToast('Friday Work requested!', 'success'); 
+          loadFridayWork();
+        });
+      });
+    });
+
+    function loadFridayWork() {
+      sbClient.from('friday_work_requests').select('*').eq('department', App.user.department).order('created_at', {ascending:false}).then(function(r) {
+        var tb = document.getElementById('friday-tbody');
+        if(!tb) return;
+        if(r.error || !r.data || r.data.length===0) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">No Friday Work requests</td></tr>'; return; }
+        
+        var h = '';
+        r.data.forEach(function(fw) {
+          var sc = fw.status === 'approved' ? 'badge-success' : fw.status === 'rejected' ? 'badge-danger' : 'badge-warning';
+          h += '<tr>';
+          h += '<td>' + fw.requested_by_name + '</td>';
+          h += '<td>' + formatDate(fw.request_date) + '</td>';
+          h += '<td style="font-weight:700">' + (fw.employees ? fw.employees.length : 0) + ' Employees</td>';
+          h += '<td><span class="badge ' + sc + '"><span class="badge-dot"></span>' + fw.status + '</span></td>';
+          h += '</tr>';
+        });
+        tb.innerHTML = h;
+      });
+    }
+    loadFridayWork();
 
     document.getElementById('add-adj-btn').addEventListener('click', function () {
       var monthVal = new Date().toISOString().substring(0, 7);
@@ -3604,30 +3718,26 @@ Pages.missions = function (el) {
       btn.addEventListener('click', function () {
         var id = this.getAttribute('data-start-mission');
 
-        var modalBody = '<div style="text-align:center"><div id="mission-qr-container" style="display:flex;justify-content:center;margin-bottom:20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح الباركود لتسجيل <b>خروجك</b> للمأمورية</p></div>';
-        var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-warning" id="qr-scan-out-btn" style="width:100%;font-size:1rem;padding:12px;">' + icon('logOut') + ' مسح وتسجيل خروج</button>';
-        App.showModal('تسجيل خروج للمأمورية (QR Code)', modalBody, modalFooter);
+        var modalBody = '<div style="text-align:center"><div id="mission-reader" style="width:100%;max-width:300px;margin:0 auto 20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح باركود البوابة لتسجيل <b>خروجك</b> للمأمورية</p></div>';
+        App.showModal('تسجيل خروج للمأمورية', modalBody);
 
         setTimeout(function () {
-          var qrData = JSON.stringify({ type: 'mission_out', mission_id: id, timestamp: new Date().toISOString() });
-          if (typeof QRCode !== 'undefined') {
-            new QRCode(document.getElementById('mission-qr-container'), { text: qrData, width: 200, height: 200, colorDark: '#f59e0b' });
-          }
-        }, 50);
-
-        document.getElementById('qr-scan-out-btn').addEventListener('click', function () {
-          this.innerHTML = '<span class="spinner"></span> جاري التحقق...';
-          this.disabled = true;
-          setTimeout(function () {
-            var now = new Date();
-            var timeStr = now.toTimeString().split(' ')[0];
-            sbClient.from('missions').update({ time_out: timeStr }).eq('id', id).then(function (r) {
+          if (typeof Html5QrcodeScanner !== 'undefined') {
+            var scanner = new Html5QrcodeScanner("mission-reader", { fps: 10, qrbox: {width: 200, height: 200} }, false);
+            scanner.render(function(decodedText) {
+              scanner.clear();
               App.closeModal();
-              if (!r.error) { showToast('تم تسجيل الخروج للمأمورية بنجاح!', 'success'); loadData(); }
-              else { alert('حدث خطأ: ' + r.error.message); }
-            });
-          }, 1500);
-        });
+              var now = new Date();
+              var timeStr = now.toTimeString().split(' ')[0];
+              sbClient.from('missions').update({ actual_time_out: now.toISOString(), time_out: timeStr, qr_out: decodedText }).eq('id', id).then(function (r) {
+                if (!r.error) { showToast('تم تسجيل الخروج للمأمورية بنجاح!', 'success'); loadData(); }
+                else { alert('حدث خطأ: ' + r.error.message); }
+              });
+            }, function(err) {});
+          } else {
+            document.getElementById('mission-reader').innerHTML = '<p style="color:red">Scanner library not loaded</p>';
+          }
+        }, 100);
       });
     });
 
@@ -3635,78 +3745,73 @@ Pages.missions = function (el) {
       btn.addEventListener('click', function () {
         var id = this.getAttribute('data-end-mission');
 
-        var modalBody = '<div style="text-align:center"><div id="mission-qr-container" style="display:flex;justify-content:center;margin-bottom:20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح الباركود لتسجيل <b>العودة</b> من المأمورية</p></div>';
-        var modalFooter = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-success" id="qr-scan-in-btn" style="width:100%;font-size:1rem;padding:12px;">' + icon('logIn') + ' مسح وتسجيل عودة</button>';
-        App.showModal('تسجيل عودة المأمورية (QR Code)', modalBody, modalFooter);
+        var modalBody = '<div style="text-align:center"><div id="mission-reader-in" style="width:100%;max-width:300px;margin:0 auto 20px;"></div><p style="color:var(--text-secondary);font-size:0.95rem">قم بمسح باركود البوابة لتسجيل <b>العودة</b> من المأمورية</p></div>';
+        App.showModal('تسجيل عودة المأمورية', modalBody);
 
         setTimeout(function () {
-          var qrData = JSON.stringify({ type: 'mission_in', mission_id: id, timestamp: new Date().toISOString() });
-          if (typeof QRCode !== 'undefined') {
-            new QRCode(document.getElementById('mission-qr-container'), { text: qrData, width: 200, height: 200, colorDark: '#22c55e' });
-          }
-        }, 50);
+          if (typeof Html5QrcodeScanner !== 'undefined') {
+            var scanner = new Html5QrcodeScanner("mission-reader-in", { fps: 10, qrbox: {width: 200, height: 200} }, false);
+            scanner.render(function(decodedText) {
+              scanner.clear();
+              App.closeModal();
+              var now = new Date();
+              var timeStr = now.toTimeString().split(' ')[0];
+              
+              sbClient.from('missions').update({ actual_time_in: now.toISOString(), time_in: timeStr, qr_in: decodedText }).eq('id', id).then(function (r) {
+                if (r.error) { alert('حدث خطأ: ' + r.error.message); return; }
 
-        document.getElementById('qr-scan-in-btn').addEventListener('click', function () {
-          this.innerHTML = '<span class="spinner"></span> جاري التحقق...';
-          this.disabled = true;
-          setTimeout(function () {
-            var now = new Date();
-            var timeStr = now.toTimeString().split(' ')[0];
-            sbClient.from('missions').update({ time_in: timeStr }).eq('id', id).then(function (r) {
-              if (r.error) { App.closeModal(); alert('حدث خطأ: ' + r.error.message); return; }
+                // Calculate Overtime automatically! Overtime = Hours × HourRate × 1.5
+                var empShiftSystem = App.user.shift_system || '3-shift';
+                var shift = getShiftConfig(App.user.shift || 'morning', empShiftSystem);
+                var overTimeAmount = 0;
+                var diffHours = 0;
 
-              // Calculate Overtime automatically!
-              var empShiftSystem = App.user.shift_system || '3-shift';
-              var shift = getShiftConfig(App.user.shift || 'morning', empShiftSystem);
-              var overTimeAmount = 0;
-              var diffHours = 0;
+                if (shift && shift.end) {
+                  var parts = shift.end.split(':');
+                  var shiftEnd = new Date(now);
+                  shiftEnd.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
 
-              if (shift && shift.end) {
-                var parts = shift.end.split(':');
-                var shiftEnd = new Date(now);
-                shiftEnd.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+                  if (parseInt(parts[0]) <= 8 && now.getHours() > 12) {
+                    shiftEnd.setDate(shiftEnd.getDate() + 1);
+                  }
 
-                // If it's night shift, ending next day
-                if (parseInt(parts[0]) <= 8 && now.getHours() > 12) {
-                  shiftEnd.setDate(shiftEnd.getDate() + 1);
+                  var diffMs = now - shiftEnd;
+                  if (diffMs > 0) {
+                    diffHours = diffMs / 3600000;
+                    var baseSalary = App.user.base_salary || 0;
+                    var dailyRate30 = baseSalary / 30;
+                    var hourlyRate = dailyRate30 / shift.hours;
+                    overTimeAmount = Math.round(diffHours * hourlyRate * 1.5);
+                    sbClient.from('missions').update({ overtime_hours: diffHours.toFixed(2) }).eq('id', id).then(function(){});
+                  }
                 }
 
-                var diffMs = now - shiftEnd;
-                if (diffMs > 0) {
-                  diffHours = diffMs / 3600000;
-                  var baseSalary = App.user.base_salary || 0;
-                  var dailyRate30 = baseSalary / 30;
-                  var hourlyRate = dailyRate30 / shift.hours;
-                  // Calculate 1.5x for overtime
-                  overTimeAmount = Math.round(diffHours * hourlyRate * 1.5);
-                }
-              }
-
-              if (overTimeAmount > 0) {
-                var currentMonth = now.toISOString().substring(0, 7);
-                sbClient.from('salary_adjustments').insert([{
-                  employee_id: App.user.id,
-                  employee_name: App.user.full_name,
-                  department: App.user.department,
-                  type: 'bonus',
-                  amount: overTimeAmount,
-                  reason: 'إضافي تلقائي: عودة مأمورية متأخرة (' + diffHours.toFixed(1) + ' ساعات × 1.5)',
-                  month: currentMonth,
-                  requested_by: 'النظام (تلقائي)',
-                  status: 'approved'
-                }]).then(function () {
-                  App.closeModal();
-                  showToast('تم تسجيل العودة! وإضافة ' + overTimeAmount + ' ج.م كإضافي لمرتبك تلقائياً ✅', 'success');
+                if (overTimeAmount > 0) {
+                  var currentMonth = now.toISOString().substring(0, 7);
+                  sbClient.from('salary_adjustments').insert([{
+                    employee_id: App.user.id,
+                    employee_name: App.user.full_name,
+                    department: App.user.department,
+                    type: 'bonus',
+                    amount: overTimeAmount,
+                    reason: 'إضافي تلقائي: عودة مأمورية متأخرة (' + diffHours.toFixed(2) + ' ساعات × 1.5)',
+                    month: currentMonth,
+                    requested_by: 'النظام (تلقائي)',
+                    status: 'approved'
+                  }]).then(function () {
+                    showToast('تم تسجيل العودة! وإضافة ' + overTimeAmount + ' ج.م كإضافي لمرتبك تلقائياً ✅', 'success');
+                    loadData();
+                  });
+                } else {
+                  showToast('تم تسجيل العودة من المأمورية بنجاح!', 'success');
                   loadData();
-                });
-              } else {
-                App.closeModal();
-                showToast('تم تسجيل العودة من المأمورية بنجاح!', 'success');
-                loadData();
-              }
-            });
-          }, 1500);
-        });
+                }
+              });
+            }, function(err) {});
+          } else {
+            document.getElementById('mission-reader-in').innerHTML = '<p style="color:red">Scanner library not loaded</p>';
+          }
+        }, 100);
       });
     });
   }
@@ -3741,7 +3846,11 @@ Pages.allMissions = function (el) {
       missions.forEach(function (m) {
         var actionHtml = '-';
         if (m.status === 'pending') {
-          actionHtml = '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-approve-mission="' + m.id + '">قبول</button><button class="btn btn-xs" style="background:var(--accent-danger);color:#fff" data-reject-mission="' + m.id + '">رفض</button></div>';
+          if (typeof canApprove === 'function' && canApprove(m.employee_id, m.requester_role)) {
+            actionHtml = '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-approve-mission="' + m.id + '">قبول</button><button class="btn btn-xs" style="background:var(--accent-danger);color:#fff" data-reject-mission="' + m.id + '">رفض</button></div>';
+          } else {
+            actionHtml = '<span style="font-size:0.75rem;color:var(--text-muted)">في انتظار موافقة أعلى</span>';
+          }
         } else {
           actionHtml = m.status === 'approved' ? '<span class="badge badge-success">مقبول</span>' : '<span class="badge badge-danger">مرفوض</span>';
         }
