@@ -277,6 +277,7 @@ var App = {
               ...(App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }] : []),
               { id: 'hr-adjustments', label: 'Salary Adjustments', icon: 'fileText' },
               { id: 'recruitment', label: 'Recruitment', icon: 'userCheck' },
+              { id: 'hr-ats', label: '🤖 AI ATS (فحص السير الذاتية)', icon: 'search' },
               { id: 'documents', label: 'Documents', icon: 'fileText' },
               { id: 'performance', label: 'Performance', icon: 'trendingUp' },
               { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
@@ -558,6 +559,7 @@ var App = {
       'scan-checkin': { title: 'Check-In (حضور)', sub: 'Scan QR to start your shift' },
       'scan-checkout': { title: 'Check-Out (انصراف)', sub: 'Scan QR to end your shift' },
       'hr-personal': { title: 'My HR Profile', sub: 'Your personal HR records' },
+      'hr-ats': { title: '🤖 AI ATS (فحص السير الذاتية)', sub: 'AI-powered applicant tracking & CV screening' },
       'my-leaves': { title: 'My Leaves', sub: 'Your leave requests' },
       'my-salary': { title: 'My Salary', sub: 'Your salary details' },
       'my-overtime': { title: 'My Overtime', sub: 'Your overtime records' },
@@ -698,6 +700,7 @@ var App = {
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
       case 'logistics': Pages.logistics(el); break;
+      case 'hr-ats': Pages.hrATS(el); break;
       default: Pages.empDashboard(el);
     }
   },
