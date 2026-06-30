@@ -348,7 +348,8 @@ Pages.offboarding = function (el) {
 // ==========================================
 Pages.expenses = function (el) {
   var user = App.user;
-  var isHR = App.isHR();
+  var isPersonalView = (App.activePage === 'my-expenses');
+  var isHR = App.isHR() && !isPersonalView;
   var expenses = [];
 
   function loadData() {

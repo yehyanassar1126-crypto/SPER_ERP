@@ -304,6 +304,7 @@ var App = {
           },
           {
             section: 'My Info (بياناتي)', items: [
+              { id: 'hr-personal', label: '👤 My Profile (ملفي الشخصي)', icon: 'user' },
               { id: 'my-attendance', label: 'My Attendance (حضوري)', icon: 'calendarCheck' },
               { id: 'scan-checkin', label: 'Check-In (تسجيل حضور)', icon: 'logIn' },
               { id: 'scan-checkout', label: 'Check-Out (تسجيل انصراف)', icon: 'logOut' },
@@ -1819,8 +1820,9 @@ Pages.fridayWork = function (el) {
 
 // ----- ATTENDANCE -----
 Pages.attendance = function (el) {
-  var isHR = App.isHR();
-  var canEdit = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner');
+  var isPersonalView = (App.activePage === 'my-attendance');
+  var isHR = App.isHR() && !isPersonalView;
+  var canEdit = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') && !isPersonalView;
   var records = isHR ? [] : [].filter(function (a) { return a.employee_id === App.user.id; });
   var search = '';
   var deptFilter = '';
@@ -1914,59 +1916,77 @@ Pages.attendance = function (el) {
     body += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted);font-size:0.82rem">التاريخ (Date)</span><span style="font-weight:700">' + formatDate(rec.date) + '</span></div>';
     body += '</div>';
 
+    body += '<div class="form-field"><label>نوع التعديل *</label><select id="edit-att-action" class="form-input" onchange="var v=this.value;document.getElementById(\'edit-fields\').style.display=v===\'edit\'?\'block\':\'none\';document.getElementById(\'delete-warn\').style.display=v===\'delete_checkout\'?\'block\':\'none\';document.getElementById(\'reopen-warn\').style.display=v===\'reopen\'?\'block\':\'none\';">';
+    body += '<option value="edit">✏️ تعديل بيانات الحضور/الانصراف</option>';
+    body += '<option value="delete_checkout">🗑️ حذف الانصراف (السماح بإعادة التسجيل)</option>';
+    body += '<option value="reopen">🔄 إعادة فتح اليوم بالكامل</option>';
+    body += '</select></div>';
+
+    body += '<div id="edit-fields">';
     body += '<div class="form-field"><label>الحالة (Status) *</label><select id="edit-att-status" class="form-input">';
     body += '<option value="present"' + (rec.status === 'present' ? ' selected' : '') + '>✅ حاضر (Present)</option>';
     body += '<option value="absent"' + (rec.status === 'absent' ? ' selected' : '') + '>❌ غائب (Absent)</option>';
     body += '<option value="checked_in"' + (rec.status === 'checked_in' ? ' selected' : '') + '>🔵 سجل حضور (Checked In)</option>';
     body += '<option value="leave"' + (rec.status === 'leave' ? ' selected' : '') + '>⛱️ إجازة (Leave)</option>';
     body += '</select></div>';
-
     body += '<div class="form-field"><label>وقت الحضور (Check-In Time)</label><input type="time" id="edit-att-checkin" class="form-input" value="' + (rec.check_in ? new Date(rec.check_in).toTimeString().slice(0,5) : '') + '"></div>';
-
+    body += '<div class="form-field"><label>وقت الانصراف (Check-Out Time)</label><input type="time" id="edit-att-checkout" class="form-input" value="' + (rec.check_out ? new Date(rec.check_out).toTimeString().slice(0,5) : '') + '"></div>';
     body += '<div class="form-field"><label>التأخير بالدقائق (Delay Minutes)</label><input type="number" id="edit-att-delay" class="form-input" value="' + (rec.delay_minutes || 0) + '" min="0"></div>';
-
     body += '<div class="form-field"><label>ساعات العمل (Working Hours)</label><input type="number" id="edit-att-hours" class="form-input" value="' + (rec.working_hours || 0) + '" min="0" step="0.5"></div>';
-
-    body += '<div style="margin-top:12px;padding:10px;background:rgba(245,158,11,0.08);border-radius:var(--radius-sm);border:1px solid rgba(245,158,11,0.15);font-size:0.78rem;color:#f59e0b">';
-    body += '⚠️ تنبيه: التعديل هيأثر على حساب المرتب تلقائياً';
     body += '</div>';
 
-    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء (Cancel)</button>';
-    footer += '<button class="btn btn-primary" id="save-att-edit">💾 حفظ التعديل (Save)</button>';
+    body += '<div id="delete-warn" style="display:none;margin-top:12px;padding:14px;background:rgba(239,68,68,0.08);border-radius:var(--radius-sm);border:1px solid rgba(239,68,68,0.2)"><p style="color:#ef4444;font-weight:700;margin:0">⚠️ سيتم حذف بيانات الانصراف والسماح للموظف بإعادة مسح QR الانصراف.</p></div>';
+    body += '<div id="reopen-warn" style="display:none;margin-top:12px;padding:14px;background:rgba(245,158,11,0.08);border-radius:var(--radius-sm);border:1px solid rgba(245,158,11,0.2)"><p style="color:#f59e0b;font-weight:700;margin:0">⚠️ سيتم حذف بيانات الحضور والانصراف بالكامل لإعادة فتح اليوم.</p></div>';
 
+    body += '<div class="form-field" style="margin-top:12px"><label>سبب التعديل (مطلوب) *</label><textarea id="edit-att-reason" class="form-input" rows="2" placeholder="اكتب سبب التعديل هنا..."></textarea></div>';
+
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button>';
+    footer += '<button class="btn btn-primary" id="save-att-edit">💾 حفظ التعديل</button>';
     App.showModal('✏️ تعديل سجل حضور - Edit Attendance', body, footer);
 
     document.getElementById('save-att-edit').addEventListener('click', function() {
-      var newStatus = document.getElementById('edit-att-status').value;
-      var newDelay = parseInt(document.getElementById('edit-att-delay').value) || 0;
-      var newHours = parseFloat(document.getElementById('edit-att-hours').value) || 0;
-      var newCheckinTime = document.getElementById('edit-att-checkin').value;
+      var action = document.getElementById('edit-att-action').value;
+      var reason = document.getElementById('edit-att-reason').value.trim();
+      if (!reason) return alert('يجب كتابة سبب التعديل!');
 
-      var updateObj = {
-        status: newStatus,
-        delay_minutes: newDelay,
-        working_hours: newHours
-      };
+      var updateObj = {};
+      var modType = action;
 
-      // If status changed to present and there was no check-in, set one
-      if (newStatus === 'present' && newCheckinTime) {
-        var dateStr = rec.date;
-        updateObj.check_in = dateStr + 'T' + newCheckinTime + ':00';
+      if (action === 'edit') {
+        modType = 'edit_checkout';
+        var newStatus = document.getElementById('edit-att-status').value;
+        var newDelay = parseInt(document.getElementById('edit-att-delay').value) || 0;
+        var newHours = parseFloat(document.getElementById('edit-att-hours').value) || 0;
+        var newCheckin = document.getElementById('edit-att-checkin').value;
+        var newCheckout = document.getElementById('edit-att-checkout').value;
+        updateObj = { status: newStatus, delay_minutes: newDelay, working_hours: newHours, modified_by: App.user.full_name, modification_reason: reason };
+        if (newCheckin) updateObj.check_in = rec.date + 'T' + newCheckin + ':00';
+        if (newCheckout) updateObj.check_out = rec.date + 'T' + newCheckout + ':00';
+        if (newStatus === 'absent') { updateObj.check_in = null; updateObj.check_out = null; updateObj.delay_minutes = 0; updateObj.working_hours = 0; }
+      } else if (action === 'delete_checkout') {
+        updateObj = { check_out: null, working_hours: 0, status: 'checked_in', modified_by: App.user.full_name, modification_reason: reason };
+      } else if (action === 'reopen') {
+        updateObj = { check_in: null, check_out: null, working_hours: 0, delay_minutes: 0, status: 'absent', modified_by: App.user.full_name, modification_reason: reason };
       }
 
-      // If absent, clear check-in/out and delay
-      if (newStatus === 'absent') {
-        updateObj.check_in = null;
-        updateObj.check_out = null;
-        updateObj.delay_minutes = 0;
-        updateObj.working_hours = 0;
-      }
+      // Save modification audit
+      sbClient.from('attendance_modifications').insert({
+        attendance_id: recordId,
+        employee_id: rec.employee_id,
+        employee_name: rec.employee_name,
+        modified_by: App.user.id,
+        modified_by_name: App.user.full_name,
+        modification_type: modType,
+        old_value: JSON.stringify({status: rec.status, check_in: rec.check_in, check_out: rec.check_out, delay: rec.delay_minutes}),
+        new_value: JSON.stringify(updateObj),
+        reason: reason
+      }).then(function() {});
 
       sbClient.from('attendance').update(updateObj).eq('id', recordId).then(function(res) {
         if (res.error) return alert('Error: ' + res.error.message);
         App.closeModal();
         showToast('تم تعديل السجل بنجاح ✅', 'success');
-        // Reload data
+        sbClient.from('audit_log').insert({ action: 'ATTENDANCE_MODIFY', user_name: App.user.full_name, user_id: App.user.id, details: action + ' for ' + rec.employee_name + ' on ' + rec.date + ' - Reason: ' + reason }).then(function(){});
         var query = sbClient.from('attendance').select('*').order('date', { ascending: false });
         if (!isHR) query = query.eq('employee_id', App.user.id);
         query.then(function (res2) { if (res2.data) { records = res2.data; render(records); } });
@@ -2050,29 +2070,40 @@ function renderScanner(el, type) {
         if (data.type !== 'hr_qr' || !data.timestamp) throw new Error();
         var diffSec = Math.abs((Date.now() - data.timestamp) / 1000);
         if (diffSec > 35) {
-          showToast('❌ Invalid or expired QR code', 'danger');
+          showToast('❌ QR Code منتهي الصلاحية - Expired', 'danger');
           return;
         }
         
-        html5QrCode.stop().then(function() {
-          if (type === 'checkout') {
-            var mc = document.getElementById('modal-container');
-            var confirmHtml = '<div style="text-align:center;padding:20px"><p style="font-size:1.1rem;margin-bottom:20px">هل أنت متأكد من تسجيل الانصراف ومغادرة العمل؟</p>';
-            confirmHtml += '<div style="display:flex;gap:10px;justify-content:center"><button class="btn btn-outline" id="cancel-checkout">Cancel</button><button class="btn btn-primary" id="confirm-checkout">Confirm</button></div></div>';
-            App.showModal('Confirm Check-Out', confirmHtml);
-            
-            document.getElementById('cancel-checkout').addEventListener('click', function() {
-              App.closeModal();
-              renderScanner(el, type);
-            });
-            document.getElementById('confirm-checkout').addEventListener('click', function() {
-              App.closeModal();
-              processScan(type);
-            });
-          } else {
-            processScan(type);
+        // Check if this QR token was already used by this employee
+        var tokenKey = data.timestamp + '_' + data.hr_id;
+        sbClient.from('qr_tokens').select('id').eq('token', tokenKey).eq('employee_id', App.user.id).then(function(tokenRes) {
+          if (tokenRes.data && tokenRes.data.length > 0) {
+            showToast('❌ تم استخدام هذا الـ QR مسبقاً - Already used', 'danger');
+            return;
           }
-        }).catch(function(err) { console.error(err); });
+          
+          html5QrCode.stop().then(function() {
+            // Save QR token as used
+            sbClient.from('qr_tokens').insert({ token: tokenKey, hr_id: data.hr_id, employee_id: App.user.id, action_type: type }).then(function(){});
+            
+            if (type === 'checkout') {
+              var confirmHtml = '<div style="text-align:center;padding:20px"><p style="font-size:1.1rem;margin-bottom:20px">هل أنت متأكد من تسجيل الانصراف ومغادرة العمل؟</p>';
+              confirmHtml += '<div style="display:flex;gap:10px;justify-content:center"><button class="btn btn-outline" id="cancel-checkout">إلغاء</button><button class="btn btn-primary" id="confirm-checkout">تأكيد الانصراف</button></div></div>';
+              App.showModal('Confirm Check-Out (تأكيد الانصراف)', confirmHtml);
+              
+              document.getElementById('cancel-checkout').addEventListener('click', function() {
+                App.closeModal();
+                renderScanner(el, type);
+              });
+              document.getElementById('confirm-checkout').addEventListener('click', function() {
+                App.closeModal();
+                processScan(type);
+              });
+            } else {
+              processScan(type);
+            }
+          }).catch(function(err) { console.error(err); });
+        });
       } catch(e) {
         showToast('❌ Invalid QR code format', 'danger');
       }
@@ -2142,13 +2173,18 @@ function processScan(actionType) {
       }
       
       var workHrs = ((timeNow - new Date(rec.check_in)) / 3600000).toFixed(2);
+      var baseSalary = user.base_salary || 0;
+      var dailyRate30 = baseSalary / 30;
+      var hourlyRate = dailyRate30 / 8;
+      var overtimeHrs = 0;
+      var overtimeAmt = 0;
+      var isFriday = timeNow.getDay() === 5;
       
-      if (timeNow.getDay() === 5) {
-        // Friday work calculation (Hours x HourRate x 2)
-        var baseSalary = user.base_salary || 0;
-        var dailyRate30 = baseSalary / 30;
-        var hourlyRate = dailyRate30 / 8; // Assuming 8 hour shift
+      if (isFriday) {
+        // Friday: all hours × 2
         var fridayBonus = Math.round(workHrs * hourlyRate * 2);
+        overtimeHrs = parseFloat(workHrs);
+        overtimeAmt = fridayBonus;
         
         if (fridayBonus > 0) {
           sbClient.from('salary_adjustments').insert([{
@@ -2163,15 +2199,43 @@ function processScan(actionType) {
             status: 'approved'
           }]).then(function() {});
         }
+      } else {
+        // Regular day: check if worked beyond shift end time → overtime at 1.5x
+        var shiftKey = user.shift || 'morning';
+        var empShiftSystem = user.shift_system || '3-shift';
+        var sConf = getShiftConfig(shiftKey, empShiftSystem);
+        if (sConf && sConf.end) {
+          var endParts = sConf.end.split(':');
+          var expectedEnd = new Date(timeNow);
+          expectedEnd.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+          var extraMs = timeNow - expectedEnd;
+          if (extraMs > 0) {
+            overtimeHrs = parseFloat((extraMs / 3600000).toFixed(2));
+            overtimeAmt = Math.round(overtimeHrs * hourlyRate * 1.5);
+            if (overtimeAmt > 0) {
+              sbClient.from('salary_adjustments').insert([{
+                employee_id: user.id,
+                employee_name: user.full_name,
+                department: user.department,
+                type: 'bonus',
+                amount: overtimeAmt,
+                reason: 'عمل إضافي: ' + overtimeHrs + ' ساعات × 1.5',
+                month: timeNow.toISOString().substring(0, 7),
+                requested_by: 'النظام (تلقائي)',
+                status: 'approved'
+              }]).then(function() {});
+            }
+          }
+        }
       }
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(pos) {
           var loc = pos.coords.latitude + ',' + pos.coords.longitude;
-          updateCheckOut(rec.id, loc, workHrs);
-        }, function() { updateCheckOut(rec.id, null, workHrs); });
+          updateCheckOut(rec.id, loc, workHrs, overtimeHrs, overtimeAmt, isFriday);
+        }, function() { updateCheckOut(rec.id, null, workHrs, overtimeHrs, overtimeAmt, isFriday); });
       } else {
-        updateCheckOut(rec.id, null, workHrs);
+        updateCheckOut(rec.id, null, workHrs, overtimeHrs, overtimeAmt, isFriday);
       }
     }
   });
@@ -2194,28 +2258,148 @@ function processScan(actionType) {
     });
   }
 
-  function updateCheckOut(id, loc, workHrs) {
+  function updateCheckOut(id, loc, workHrs, otHrs, otAmt, isFriday) {
     sbClient.from('attendance').update({
       check_out: timeNow.toISOString(),
       working_hours: parseFloat(workHrs),
       status: 'present',
-      check_out_location: loc
+      check_out_location: loc,
+      overtime_hours: otHrs || 0,
+      overtime_amount: otAmt || 0,
+      is_friday_work: isFriday || false
     }).eq('id', id).then(function(r) {
       if(r.error) { showToast('DB Error: ' + r.error.message, 'danger'); return; }
-      showToast('✅ Check-Out successful!', 'success');
-      sbClient.from('audit_log').insert({ action: 'CHECK_OUT', user_name: user.full_name, user_id: user.id, details: 'Checked out at ' + timeNow.toLocaleTimeString() }).then(function(){});
+      var msg = '✅ Check-Out successful!';
+      if (otHrs > 0) msg += ' (إضافي: ' + otHrs + ' ساعات = ' + otAmt + ' EGP)';
+      showToast(msg, 'success');
+      sbClient.from('audit_log').insert({ action: 'CHECK_OUT', user_name: user.full_name, user_id: user.id, details: 'Checked out at ' + timeNow.toLocaleTimeString() + (otHrs > 0 ? ' | OT: ' + otHrs + 'h' : '') }).then(function(){});
     });
   }
 }
 
-// ----- HR PERSONAL SCREEN -----
+// ----- HR PERSONAL SCREEN (Full Dashboard) -----
 Pages.hrPersonal = function(el) {
-  el.innerHTML = '<div style="padding:20px"><h3>My HR Profile</h3><p>Here you can view your personal attendance, leaves, loans, and delays without affecting the global management view.</p><div style="margin-top:20px"><button class="btn btn-primary" onclick="App.navigate(\'my-attendance\')">My Attendance</button> <button class="btn btn-primary" onclick="App.navigate(\'my-leaves\')">My Leaves</button></div></div>';
+  var user = App.user;
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)"><span class="spinner"></span> Loading your profile...</div>';
+
+  Promise.all([
+    sbClient.from('attendance').select('*').eq('employee_id', user.id).order('date', {ascending: false}).limit(60),
+    sbClient.from('leave_requests').select('*').eq('employee_id', user.id).order('created_at', {ascending: false}).limit(30),
+    sbClient.from('salary_adjustments').select('*').eq('employee_id', user.id).order('created_at', {ascending: false}).limit(30),
+    sbClient.from('missions').select('*').eq('employee_id', user.id).order('created_at', {ascending: false}).limit(30)
+  ]).then(function(res) {
+    var att = res[0].data || [];
+    var leaves = res[1].data || [];
+    var adj = res[2].data || [];
+    var missions = res[3].data || [];
+
+    var totalDays = att.length;
+    var presentDays = att.filter(function(a) { return a.status === 'present'; }).length;
+    var totalDelay = att.reduce(function(s,a) { return s + (a.delay_minutes || 0); }, 0);
+    var totalOT = att.reduce(function(s,a) { return s + (parseFloat(a.overtime_hours) || 0); }, 0);
+    var pendingLeaves = leaves.filter(function(l) { return l.status === 'pending'; }).length;
+    var bonuses = adj.filter(function(a) { return a.type === 'bonus'; }).reduce(function(s,a) { return s + Number(a.amount); }, 0);
+    var penalties = adj.filter(function(a) { return a.type === 'penalty'; }).reduce(function(s,a) { return s + Number(a.amount); }, 0);
+
+    var html = '<div style="margin-bottom:20px"><h3 style="margin:0">👤 ' + user.full_name + ' — ' + (user.position || user.role) + '</h3><p style="color:var(--text-muted);margin:4px 0 0">' + user.department + '</p></div>';
+
+    // Stats
+    html += '<div class="stats-grid">';
+    html += _statCard('#22c55e', 'checkCircle', presentDays + '/' + totalDays, 'أيام الحضور');
+    html += _statCard('#f59e0b', 'alertTriangle', totalDelay + 'm', 'إجمالي التأخير');
+    html += _statCard('#6366f1', 'timer', totalOT.toFixed(1) + 'h', 'ساعات إضافية');
+    html += _statCard('#ef4444', 'calendarDays', pendingLeaves, 'إجازات معلقة');
+    html += '</div>';
+
+    // Tabs
+    html += '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">';
+    html += '<button class="btn btn-outline" id="hp-tab-att" style="border-color:var(--accent-primary);color:var(--accent-primary)">📅 حضوري</button>';
+    html += '<button class="btn btn-ghost" id="hp-tab-delays">⏰ تأخيراتي</button>';
+    html += '<button class="btn btn-ghost" id="hp-tab-salary">💰 المرتب والخصومات</button>';
+    html += '<button class="btn btn-ghost" id="hp-tab-ot">⏱️ الإضافي</button>';
+    html += '<button class="btn btn-ghost" id="hp-tab-missions">🚗 مأمورياتي</button>';
+    html += '</div>';
+
+    // Tab 1: Attendance
+    html += '<div id="hp-view-att">';
+    html += '<div class="card"><div class="card-header"><h3>سجل الحضور والانصراف</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>ساعات العمل</th><th>التأخير</th><th>الحالة</th></tr></thead><tbody>';
+    att.forEach(function(a) {
+      var badge = a.status === 'present' ? 'badge-success' : a.status === 'leave' ? 'badge-warning' : a.status === 'checked_in' ? 'badge-info' : 'badge-danger';
+      html += '<tr><td>' + formatDate(a.date) + '</td><td>' + formatTime(a.check_in) + '</td><td>' + formatTime(a.check_out) + '</td><td>' + (a.working_hours || '—') + 'h</td><td>' + (a.delay_minutes > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + a.delay_minutes + 'm</span>' : '0m') + '</td><td><span class="badge ' + badge + '">' + a.status + '</span></td></tr>';
+    });
+    if (att.length === 0) html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا يوجد سجلات</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    // Tab 2: Delays
+    html += '<div id="hp-view-delays" style="display:none">';
+    var delays = att.filter(function(a) { return a.delay_minutes > 0; });
+    html += '<div class="card"><div class="card-header"><h3>تأخيراتي التفصيلية</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>الوردية</th><th>وقت الحضور</th><th>التأخير</th><th>نوع الخصم</th></tr></thead><tbody>';
+    delays.forEach(function(d) {
+      var deductType = d.delay_minutes > 360 ? 'يوم كامل' : d.delay_minutes > 120 ? 'نصف يوم' : d.delay_minutes > 15 ? 'ربع يوم' : 'بدون خصم';
+      var deductColor = d.delay_minutes > 360 ? 'danger' : d.delay_minutes > 120 ? 'warning' : d.delay_minutes > 15 ? 'info' : 'success';
+      html += '<tr><td>' + formatDate(d.date) + '</td><td>' + d.shift + '</td><td>' + formatTime(d.check_in) + '</td><td style="font-weight:700;color:var(--accent-warning)">' + d.delay_minutes + ' دقيقة</td><td><span class="badge badge-' + deductColor + '">' + deductType + '</span></td></tr>';
+    });
+    if (delays.length === 0) html += '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">لا يوجد تأخيرات 🎉</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    // Tab 3: Salary & Adjustments
+    html += '<div id="hp-view-salary" style="display:none">';
+    html += '<div style="display:flex;gap:16px;margin-bottom:16px"><div class="card" style="flex:1"><div class="card-body"><h4>الراتب الأساسي</h4><h2 style="color:var(--accent-primary)">' + (user.base_salary ? user.base_salary.toLocaleString() + ' EGP' : 'غير محدد') + '</h2></div></div>';
+    html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي المكافآت</h4><h2 style="color:var(--accent-success)">+' + bonuses.toLocaleString() + ' EGP</h2></div></div>';
+    html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي الخصومات</h4><h2 style="color:var(--accent-danger)">-' + penalties.toLocaleString() + ' EGP</h2></div></div></div>';
+    html += '<div class="card"><div class="card-header"><h3>سجل المكافآت والخصومات</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>السبب</th><th>الحالة</th></tr></thead><tbody>';
+    adj.forEach(function(a) {
+      var isBonus = a.type === 'bonus';
+      html += '<tr><td>' + formatDate(a.created_at) + '</td><td><span class="badge badge-' + (isBonus ? 'success' : 'danger') + '">' + (isBonus ? 'مكافأة' : 'خصم') + '</span></td><td style="font-weight:700;color:var(--accent-' + (isBonus ? 'success' : 'danger') + ')">' + (isBonus ? '+' : '-') + a.amount + ' EGP</td><td>' + (a.reason || '-') + '</td><td><span class="badge badge-' + (a.status === 'approved' ? 'success' : 'warning') + '">' + a.status + '</span></td></tr>';
+    });
+    if (adj.length === 0) html += '<tr><td colspan="5" style="text-align:center;padding:30px">لا يوجد سجلات</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    // Tab 4: Overtime
+    html += '<div id="hp-view-ot" style="display:none">';
+    var otRecs = att.filter(function(a) { return (parseFloat(a.overtime_hours) || 0) > 0; });
+    html += '<div class="card"><div class="card-header"><h3>ساعات العمل الإضافي</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>ساعات العمل</th><th>ساعات إضافية</th><th>المبلغ</th></tr></thead><tbody>';
+    otRecs.forEach(function(o) {
+      html += '<tr><td>' + formatDate(o.date) + '</td><td>' + (o.working_hours || 0) + 'h</td><td style="font-weight:700;color:var(--accent-info)">+' + (o.overtime_hours || 0) + 'h</td><td style="font-weight:700;color:var(--accent-success)">' + (o.overtime_amount || 0) + ' EGP</td></tr>';
+    });
+    if (otRecs.length === 0) html += '<tr><td colspan="4" style="text-align:center;padding:30px">لا يوجد ساعات إضافية</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    // Tab 5: Missions
+    html += '<div id="hp-view-missions" style="display:none">';
+    html += '<div class="card"><div class="card-header"><h3>مأمورياتي</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>الوجهة</th><th>خروج</th><th>عودة</th><th>الحالة</th></tr></thead><tbody>';
+    missions.forEach(function(m) {
+      var mBadge = m.status === 'approved' ? 'badge-success' : m.status === 'completed' ? 'badge-primary' : 'badge-warning';
+      html += '<tr><td>' + formatDate(m.mission_date || m.created_at) + '</td><td>' + (m.destination || m.reason || '-') + '</td><td>' + (m.time_out || '—') + '</td><td>' + (m.time_in || '—') + '</td><td><span class="badge ' + mBadge + '">' + m.status + '</span></td></tr>';
+    });
+    if (missions.length === 0) html += '<tr><td colspan="5" style="text-align:center;padding:30px">لا يوجد مأموريات</td></tr>';
+    html += '</tbody></table></div></div></div>';
+
+    el.innerHTML = html;
+
+    // Tab switching
+    var tabs = ['att','delays','salary','ot','missions'];
+    tabs.forEach(function(t, idx) {
+      var btn = document.getElementById('hp-tab-' + t);
+      if (btn) btn.addEventListener('click', function() {
+        tabs.forEach(function(tt) {
+          var b = document.getElementById('hp-tab-' + tt);
+          var v = document.getElementById('hp-view-' + tt);
+          if (b) { b.className = 'btn btn-ghost'; b.style.color = 'inherit'; b.style.borderColor = 'transparent'; }
+          if (v) v.style.display = 'none';
+        });
+        this.className = 'btn btn-outline'; this.style.color = 'var(--accent-primary)'; this.style.borderColor = 'var(--accent-primary)';
+        var view = document.getElementById('hp-view-' + t);
+        if (view) view.style.display = 'block';
+      });
+    });
+  });
 };
 
 // ----- LEAVES -----
 Pages.leaves = function (el) {
-  var isHR = App.isHR();
+  var isPersonalView = (App.activePage === 'my-leaves');
+  var isHR = App.isHR() && !isPersonalView;
   var leaves = isHR ? [] : [].filter(function (l) { return l.employee_id === App.user.id; });
 
   var search = '';
@@ -2508,7 +2692,8 @@ Pages.shifts = function (el) {
 
 // ----- OVERTIME -----
 Pages.overtime = function (el) {
-  var isHR = App.isHR();
+  var isPersonalView = (App.activePage === 'my-overtime');
+  var isHR = App.isHR() && !isPersonalView;
   var overtime = isHR ? [] : [].filter(function (o) { return o.employee_id === App.user.id; });
 
   var search = '';
@@ -2677,8 +2862,9 @@ Pages.overtime = function (el) {
 
 // ----- PAYROLL -----
 Pages.payroll = function (el) {
-  var isHRManagerOrOwner = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner');
-  var isFinance = App.user && App.user.department === 'Finance';
+  var isPersonalView = (App.activePage === 'my-salary');
+  var isHRManagerOrOwner = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') && !isPersonalView;
+  var isFinance = App.user && App.user.department === 'Finance' && !isPersonalView;
   var isHR = isHRManagerOrOwner || isFinance;
   var payroll = isHR ? [] : [].filter(function (p) { return p.employee_id === App.user.id; });
   var medicalClaims = [];
