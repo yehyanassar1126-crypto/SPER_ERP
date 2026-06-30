@@ -1671,6 +1671,10 @@ Pages.pettyCash = function(el) {
 
     // 1. Treasury View
     html += '<div id="view-treasury" style="display:' + (isProcurementOnly ? 'none' : 'block') + '">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">';
+    html += '<h3>Treasury (الخزائن والبنوك)</h3>';
+    html += '<button class="btn btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ Add Safe/Bank (إضافة خزنة/بنك)</button>';
+    html += '</div>';
     html += '<div style="display:flex; gap:20px; margin-bottom:20px;">';
     var totalSafe = safes.reduce((a,b)=>a+Number(b.balance),0);
     var totalBank = banks.reduce((a,b)=>a+Number(b.balance),0);
@@ -1682,17 +1686,17 @@ Pages.pettyCash = function(el) {
     // 2. AP/AR View
     html += '<div id="view-ap-ar" style="display:none">';
     html += '<div style="display:flex; gap:20px;">';
-    html += '<div class="card" style="flex:1"><div class="card-header"><h3>العملاء (Accounts Receivable)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>العميل</th><th>الرصيد</th></tr></thead><tbody>';
+    html += '<div class="card" style="flex:1"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>العملاء (AR)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'client\')">➕ إضافة عميل</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>العميل</th><th>الرصيد</th></tr></thead><tbody>';
     clients.forEach(c => { html += '<tr><td>'+c.name+'</td><td>'+c.balance+'</td></tr>'; });
     html += '</tbody></table></div></div>';
-    html += '<div class="card" style="flex:1"><div class="card-header"><h3>الموردين (Accounts Payable)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>المورد</th><th>الرصيد</th></tr></thead><tbody>';
+    html += '<div class="card" style="flex:1"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>الموردين (AP)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'supplier\')">➕ إضافة مورد</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>المورد</th><th>الرصيد</th></tr></thead><tbody>';
     suppliers.forEach(s => { html += '<tr><td>'+s.name+'</td><td>'+s.balance+'</td></tr>'; });
     html += '</tbody></table></div></div>';
     html += '</div></div>';
 
     // 3. Journal View
     html += '<div id="view-journal" style="display:none">';
-    html += '<div class="card"><div class="card-header"><h3>Journal Entries (القيود اليومية)</h3></div><div class="card-body no-pad">';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Journal Entries (القيود اليومية)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'journal\')">➕ إضافة قيد</button></div><div class="card-body no-pad">';
     html += '<table class="data-table"><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>البيان</th><th>إجمالي مدين</th><th>إجمالي دائن</th><th>الحالة</th></tr></thead><tbody>';
     journalEntries.forEach(j => {
       html += '<tr><td>'+(j.entry_number||'-')+'</td><td>'+formatDate(j.entry_date)+'</td><td>'+(j.description||'-')+'</td><td>'+j.total_debit+'</td><td>'+j.total_credit+'</td><td>'+j.status+'</td></tr>';
@@ -1702,21 +1706,21 @@ Pages.pettyCash = function(el) {
 
     // 4. Assets
     html += '<div id="view-assets" style="display:none">';
-    html += '<div class="card"><div class="card-header"><h3>Fixed Assets (الأصول الثابتة)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الأصل</th><th>الكود</th><th>تاريخ الشراء</th><th>القيمة الحالية</th><th>الحالة</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Fixed Assets (الأصول الثابتة)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'asset\')">➕ إضافة أصل</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الأصل</th><th>الكود</th><th>تاريخ الشراء</th><th>القيمة الحالية</th><th>الحالة</th></tr></thead><tbody>';
     assets.forEach(a => { html += '<tr><td>'+a.name+'</td><td>'+(a.asset_code||'-')+'</td><td>'+(a.purchase_date||'-')+'</td><td>'+a.current_value+'</td><td>'+a.status+'</td></tr>'; });
     if(assets.length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد أصول مسجلة</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 5. Taxes
     html += '<div id="view-taxes" style="display:none">';
-    html += '<div class="card"><div class="card-header"><h3>Taxes (الضرائب)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>نوع الضريبة</th><th>الفترة</th><th>المبلغ الخاضع</th><th>قيمة الضريبة</th><th>الحالة</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Taxes (الضرائب)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'tax\')">➕ إضافة ضريبة</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>نوع الضريبة</th><th>الفترة</th><th>المبلغ الخاضع</th><th>قيمة الضريبة</th><th>الحالة</th></tr></thead><tbody>';
     taxes.forEach(t => { html += '<tr><td>'+t.tax_type+'</td><td>'+(t.period||'-')+'</td><td>'+t.taxable_amount+'</td><td>'+t.tax_amount+'</td><td>'+t.status+'</td></tr>'; });
     if(taxes.length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد ضرائب مسجلة</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 6. Petty Cash
     html += '<div id="view-petty" style="display:' + (isProcurementOnly ? 'block' : 'none') + '">';
-    html += '<div class="card"><div class="card-header"><h3>Petty Cash & Advances (العهد والسلف)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>طريقة الصرف</th><th>المبلغ</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Petty Cash & Advances (العهد والسلف)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'petty\')">➕ صرف نقدية</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>طريقة الصرف</th><th>المبلغ</th></tr></thead><tbody>';
     var pcTxs = txs.filter(t => t.type === 'petty_cash');
     pcTxs.forEach(t => { html += '<tr><td>'+formatDate(t.created_at)+'</td><td>'+t.type+'</td><td>'+t.method+'</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td></tr>'; });
     if(pcTxs.length===0) html += '<tr><td colspan="4" style="text-align:center">لا يوجد عهد</td></tr>';
@@ -1893,6 +1897,182 @@ Pages.pettyCash = function(el) {
       });
     }
   }
+
+  // ===== ADD MODALS FOR EACH FINANCIAL TAB =====
+  window.showAddFinanceModal = function(type) {
+    var body = '';
+    var title = '';
+
+    if (type === 'treasury') {
+      title = '➕ إضافة خزنة / بنك';
+      body = '<div class="form-field"><label>النوع *</label><select id="fin-type" class="form-input"><option value="safe">خزنة (Safe)</option><option value="bank">بنك (Bank)</option></select></div>';
+      body += '<div class="form-field"><label>الاسم *</label><input type="text" id="fin-name" class="form-input" placeholder="مثلاً: الخزنة الرئيسية"></div>';
+      body += '<div class="form-field"><label>الرصيد الافتتاحي (EGP)</label><input type="number" id="fin-balance" class="form-input" value="0"></div>';
+    }
+    else if (type === 'client') {
+      title = '➕ إضافة عميل جديد';
+      body = '<div class="form-field"><label>اسم العميل *</label><input type="text" id="fin-name" class="form-input"></div>';
+      body += '<div class="form-field"><label>رقم الهاتف</label><input type="text" id="fin-phone" class="form-input"></div>';
+      body += '<div class="form-field"><label>البريد الإلكتروني</label><input type="email" id="fin-email" class="form-input"></div>';
+      body += '<div class="form-field"><label>الرصيد الافتتاحي (EGP)</label><input type="number" id="fin-balance" class="form-input" value="0"></div>';
+    }
+    else if (type === 'supplier') {
+      title = '➕ إضافة مورد جديد';
+      body = '<div class="form-field"><label>اسم المورد *</label><input type="text" id="fin-name" class="form-input"></div>';
+      body += '<div class="form-field"><label>رقم الهاتف</label><input type="text" id="fin-phone" class="form-input"></div>';
+      body += '<div class="form-field"><label>البريد الإلكتروني</label><input type="email" id="fin-email" class="form-input"></div>';
+      body += '<div class="form-field"><label>الرصيد الافتتاحي (EGP)</label><input type="number" id="fin-balance" class="form-input" value="0"></div>';
+    }
+    else if (type === 'journal') {
+      title = '➕ إضافة قيد يومي';
+      body = '<div class="form-field"><label>تاريخ القيد *</label><input type="date" id="fin-date" class="form-input" value="' + new Date().toISOString().split('T')[0] + '"></div>';
+      body += '<div class="form-field"><label>البيان *</label><input type="text" id="fin-desc" class="form-input" placeholder="وصف القيد"></div>';
+      body += '<div class="form-field"><label>الحساب المدين *</label><select id="fin-debit-acc" class="form-input"><option value="">اختر الحساب</option></select></div>';
+      body += '<div class="form-field"><label>الحساب الدائن *</label><select id="fin-credit-acc" class="form-input"><option value="">اختر الحساب</option></select></div>';
+      body += '<div class="form-field"><label>المبلغ (EGP) *</label><input type="number" id="fin-amount" class="form-input" min="0"></div>';
+    }
+    else if (type === 'asset') {
+      title = '➕ تسجيل أصل ثابت';
+      body = '<div class="form-field"><label>اسم الأصل *</label><input type="text" id="fin-name" class="form-input" placeholder="مثلاً: سيارة نقل"></div>';
+      body += '<div class="form-field"><label>كود الأصل</label><input type="text" id="fin-code" class="form-input" placeholder="FA-001"></div>';
+      body += '<div class="form-field"><label>الفئة *</label><select id="fin-category" class="form-input"><option value="vehicles">سيارات (Vehicles)</option><option value="machinery">آلات ومعدات (Machinery)</option><option value="furniture">أثاث (Furniture)</option><option value="electronics">إلكترونيات (Electronics)</option><option value="building">مباني (Buildings)</option><option value="land">أراضي (Land)</option><option value="other">أخرى (Other)</option></select></div>';
+      body += '<div class="form-field"><label>تاريخ الشراء *</label><input type="date" id="fin-date" class="form-input"></div>';
+      body += '<div class="form-field"><label>القيمة الأصلية (EGP) *</label><input type="number" id="fin-amount" class="form-input"></div>';
+      body += '<div class="form-field"><label>العمر الافتراضي (سنوات)</label><input type="number" id="fin-life" class="form-input" value="5"></div>';
+      body += '<div class="form-field"><label>الحالة *</label><select id="fin-status" class="form-input"><option value="active">نشط (Active)</option><option value="disposed">تم التصرف (Disposed)</option></select></div>';
+    }
+    else if (type === 'tax') {
+      title = '➕ تسجيل ضريبة';
+      body = '<div class="form-field"><label>نوع الضريبة *</label><select id="fin-tax-type" class="form-input"><option value="vat">ضريبة القيمة المضافة (VAT)</option><option value="income_tax">ضريبة الدخل (Income Tax)</option><option value="payroll_tax">ضريبة كسب العمل (Payroll Tax)</option><option value="stamp_duty">ضريبة الدمغة (Stamp Duty)</option><option value="withholding">ضريبة الخصم والإضافة (Withholding)</option><option value="other">أخرى (Other)</option></select></div>';
+      body += '<div class="form-field"><label>الفترة *</label><input type="month" id="fin-period" class="form-input"></div>';
+      body += '<div class="form-field"><label>المبلغ الخاضع (EGP) *</label><input type="number" id="fin-taxable" class="form-input"></div>';
+      body += '<div class="form-field"><label>قيمة الضريبة (EGP) *</label><input type="number" id="fin-amount" class="form-input"></div>';
+      body += '<div class="form-field"><label>الحالة *</label><select id="fin-status" class="form-input"><option value="pending">معلقة (Pending)</option><option value="paid">مدفوعة (Paid)</option><option value="overdue">متأخرة (Overdue)</option></select></div>';
+    }
+    else if (type === 'petty') {
+      title = '➕ صرف نقدية / عهدة';
+      body = '<div class="form-field"><label>الموظف *</label><select id="fin-employee" class="form-input"><option value="">اختر الموظف</option></select></div>';
+      body += '<div class="form-field"><label>طريقة الصرف *</label><select id="fin-method" class="form-input"><option value="cash">كاش من الخزنة (Cash)</option><option value="bank_transfer">تحويل بنكي (Bank Transfer)</option><option value="check">شيك (Check)</option></select></div>';
+      body += '<div class="form-field"><label>المبلغ (EGP) *</label><input type="number" id="fin-amount" class="form-input"></div>';
+      body += '<div class="form-field"><label>البيان / السبب</label><input type="text" id="fin-desc" class="form-input" placeholder="سبب الصرف"></div>';
+    }
+
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-primary" id="fin-save-btn">💾 حفظ</button>';
+    App.showModal(title, body, footer, true);
+
+    // Populate dropdowns after modal opens
+    if (type === 'journal') {
+      sbClient.from('chart_of_accounts').select('*').eq('is_active', true).then(function(r) {
+        var accs = r.data || [];
+        var opts = '';
+        accs.forEach(function(a) { opts += '<option value="' + a.code + '">' + a.code + ' - ' + a.name_ar + ' (' + a.name_en + ')</option>'; });
+        var dSel = document.getElementById('fin-debit-acc');
+        var cSel = document.getElementById('fin-credit-acc');
+        if (dSel) dSel.innerHTML = '<option value="">اختر الحساب</option>' + opts;
+        if (cSel) cSel.innerHTML = '<option value="">اختر الحساب</option>' + opts;
+      });
+    }
+    if (type === 'petty') {
+      sbClient.from('users').select('id, full_name, department').order('full_name').then(function(r) {
+        var emps = r.data || [];
+        var opts = '';
+        emps.forEach(function(e) { opts += '<option value="' + e.id + '">' + e.full_name + ' (' + (e.department || '') + ')</option>'; });
+        var sel = document.getElementById('fin-employee');
+        if (sel) sel.innerHTML = '<option value="">اختر الموظف</option>' + opts;
+      });
+    }
+
+    // Save handler
+    setTimeout(function() {
+      var saveBtn = document.getElementById('fin-save-btn');
+      if (!saveBtn) return;
+      saveBtn.addEventListener('click', function() {
+        saveBtn.disabled = true;
+        saveBtn.textContent = '⏳ جاري الحفظ...';
+
+        if (type === 'treasury') {
+          var tType = document.getElementById('fin-type').value;
+          var tbl = tType === 'bank' ? 'finance_bank_accounts' : 'finance_safes';
+          sbClient.from(tbl).insert({ name: document.getElementById('fin-name').value, balance: parseFloat(document.getElementById('fin-balance').value) || 0 }).then(function(r) {
+            if (r.error) return alert(r.error.message);
+            showToast('✅ تم إضافة ' + (tType === 'bank' ? 'البنك' : 'الخزنة'), 'success');
+            App.closeModal(); loadData();
+          });
+        }
+        else if (type === 'client') {
+          sbClient.from('finance_clients').insert({ name: document.getElementById('fin-name').value, phone: document.getElementById('fin-phone').value, email: document.getElementById('fin-email').value, balance: parseFloat(document.getElementById('fin-balance').value) || 0 }).then(function(r) {
+            if (r.error) return alert(r.error.message);
+            showToast('✅ تم إضافة العميل', 'success'); App.closeModal(); loadData();
+          });
+        }
+        else if (type === 'supplier') {
+          sbClient.from('finance_suppliers').insert({ name: document.getElementById('fin-name').value, phone: document.getElementById('fin-phone').value, email: document.getElementById('fin-email').value, balance: parseFloat(document.getElementById('fin-balance').value) || 0 }).then(function(r) {
+            if (r.error) return alert(r.error.message);
+            showToast('✅ تم إضافة المورد', 'success'); App.closeModal(); loadData();
+          });
+        }
+        else if (type === 'journal') {
+          var debitAcc = document.getElementById('fin-debit-acc').value;
+          var creditAcc = document.getElementById('fin-credit-acc').value;
+          var amt = parseFloat(document.getElementById('fin-amount').value) || 0;
+          if (!debitAcc || !creditAcc || !amt) return alert('يرجى ملء جميع الحقول');
+          sbClient.from('finance_journal_entries').insert({
+            entry_date: document.getElementById('fin-date').value, description: document.getElementById('fin-desc').value,
+            total_debit: amt, total_credit: amt, status: 'draft',
+            created_by: App.user.id, created_by_name: App.user.full_name
+          }).select().then(function(r) {
+            if (r.error) return alert(r.error.message);
+            var entryId = r.data[0].id;
+            var dName = document.getElementById('fin-debit-acc').selectedOptions[0].text;
+            var cName = document.getElementById('fin-credit-acc').selectedOptions[0].text;
+            sbClient.from('finance_journal_lines').insert([
+              { journal_entry_id: entryId, account_code: debitAcc, account_name: dName, debit: amt, credit: 0 },
+              { journal_entry_id: entryId, account_code: creditAcc, account_name: cName, debit: 0, credit: amt }
+            ]).then(function() {
+              showToast('✅ تم إضافة القيد', 'success'); App.closeModal(); loadData();
+            });
+          });
+        }
+        else if (type === 'asset') {
+          sbClient.from('finance_fixed_assets').insert({
+            name: document.getElementById('fin-name').value, asset_code: document.getElementById('fin-code').value,
+            category: document.getElementById('fin-category').value, purchase_date: document.getElementById('fin-date').value,
+            original_value: parseFloat(document.getElementById('fin-amount').value) || 0,
+            current_value: parseFloat(document.getElementById('fin-amount').value) || 0,
+            useful_life_years: parseInt(document.getElementById('fin-life').value) || 5,
+            status: document.getElementById('fin-status').value
+          }).then(function(r) {
+            if (r.error) return alert(r.error.message);
+            showToast('✅ تم تسجيل الأصل', 'success'); App.closeModal(); loadData();
+          });
+        }
+        else if (type === 'tax') {
+          sbClient.from('finance_taxes').insert({
+            tax_type: document.getElementById('fin-tax-type').value, period: document.getElementById('fin-period').value,
+            taxable_amount: parseFloat(document.getElementById('fin-taxable').value) || 0,
+            tax_amount: parseFloat(document.getElementById('fin-amount').value) || 0,
+            status: document.getElementById('fin-status').value
+          }).then(function(r) {
+            if (r.error) return alert(r.error.message);
+            showToast('✅ تم تسجيل الضريبة', 'success'); App.closeModal(); loadData();
+          });
+        }
+        else if (type === 'petty') {
+          var empId = document.getElementById('fin-employee').value;
+          if (!empId) return alert('اختر الموظف');
+          sbClient.from('finance_treasury_tx').insert({
+            type: 'petty_cash', method: document.getElementById('fin-method').value,
+            amount: parseFloat(document.getElementById('fin-amount').value) || 0,
+            description: document.getElementById('fin-desc').value,
+            employee_id: empId, created_by: App.user.id, created_by_name: App.user.full_name
+          }).then(function(r) {
+            if (r.error) return alert(r.error.message);
+            showToast('✅ تم صرف النقدية', 'success'); App.closeModal(); loadData();
+          });
+        }
+      });
+    }, 200);
+  };
 
   loadData();
 };
