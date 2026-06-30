@@ -5,7 +5,6 @@ Pages.hrATS = function(el) {
   if (!App.isHR()) { el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied</h2></div>'; return; }
 
   var applications = [];
-  var activeTab = 'applications';
 
   function loadData() {
     el.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span> Loading ATS...</div>';
@@ -22,20 +21,20 @@ Pages.hrATS = function(el) {
     var hired = applications.filter(function(a) { return a.status === 'hired'; }).length;
     var rejected = applications.filter(function(a) { return a.status === 'rejected'; }).length;
 
-    var html = '<div style="margin-bottom:20px"><h3 style="margin:0">🤖 AI-Powered Applicant Tracking System (نظام تتبع المتقدمين)</h3><p style="color:var(--text-muted)">Upload CVs and let AI analyze candidate suitability</p></div>';
+    var html = '<div style="margin-bottom:20px"><h3 style="margin:0">🤖 AI-Powered Applicant Tracking System (نظام تتبع المتقدمين بالذكاء الاصطناعي)</h3><p style="color:var(--text-muted)">Upload CVs as PDF and let AI analyze candidate suitability</p></div>';
 
     html += '<div class="stats-grid">';
-    html += _statCard('#f59e0b','clock',pending,'Pending');
-    html += _statCard('#6366f1','search',screening,'Screening');
-    html += _statCard('#3b82f6','users',interview,'Interview');
-    html += _statCard('#22c55e','userCheck',hired,'Hired');
-    html += _statCard('#ef4444','xCircle',rejected,'Rejected');
+    html += _statCard('#f59e0b','clock',pending,'Pending (معلق)');
+    html += _statCard('#6366f1','search',screening,'Screening (فحص)');
+    html += _statCard('#3b82f6','users',interview,'Interview (مقابلة)');
+    html += _statCard('#22c55e','userCheck',hired,'Hired (تم التعيين)');
+    html += _statCard('#ef4444','xCircle',rejected,'Rejected (مرفوض)');
     html += '</div>';
 
     html += '<div class="toolbar" style="display:flex;justify-content:space-between;margin-bottom:16px">';
     html += '<div style="display:flex;gap:8px">';
-    html += '<button class="btn btn-outline" id="ats-tab-apps" style="border-color:var(--accent-primary);color:var(--accent-primary)">📋 Applications</button>';
-    html += '<button class="btn btn-ghost" id="ats-tab-add">➕ Add Candidate</button>';
+    html += '<button class="btn btn-outline" id="ats-tab-apps" style="border-color:var(--accent-primary);color:var(--accent-primary)">📋 Applications (المتقدمين)</button>';
+    html += '<button class="btn btn-ghost" id="ats-tab-add">➕ Add Candidate (إضافة متقدم)</button>';
     html += '</div>';
     html += '<select class="filter-select" id="ats-filter"><option value="">All Status</option><option value="pending">Pending</option><option value="screening">Screening</option><option value="interview">Interview</option><option value="offered">Offered</option><option value="hired">Hired</option><option value="rejected">Rejected</option></select>';
     html += '</div>';
@@ -43,11 +42,10 @@ Pages.hrATS = function(el) {
     // Applications Table
     html += '<div id="ats-view-apps">';
     html += '<div class="card"><div class="card-header"><h3>All Applications (' + applications.length + ')</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr>';
-    html += '<th>Candidate</th><th>Position</th><th>Department</th><th>AI Score</th><th>AI Verdict</th><th>Status</th><th>Date</th><th>Actions</th>';
+    html += '<th>المتقدم</th><th>الوظيفة</th><th>القسم</th><th>AI Score</th><th>AI Verdict</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th>';
     html += '</tr></thead><tbody>';
 
-    var filtered = applications;
-    filtered.forEach(function(app) {
+    applications.forEach(function(app) {
       var scoreColor = (app.ai_score || 0) >= 70 ? 'var(--accent-success)' : (app.ai_score || 0) >= 40 ? 'var(--accent-warning)' : 'var(--accent-danger)';
       var verdictBadge = app.ai_verdict === 'accepted' ? 'badge-success' : app.ai_verdict === 'rejected' ? 'badge-danger' : 'badge-warning';
       var statusBadge = app.status === 'hired' ? 'badge-success' : app.status === 'rejected' ? 'badge-danger' : app.status === 'interview' ? 'badge-info' : 'badge-warning';
@@ -61,32 +59,54 @@ Pages.hrATS = function(el) {
       html += '<td><span class="badge ' + statusBadge + '">' + app.status + '</span></td>';
       html += '<td>' + formatDate(app.created_at) + '</td>';
       html += '<td><div style="display:flex;gap:4px">';
-      html += '<button class="btn btn-xs btn-outline" onclick="window.atsViewApp(\'' + app.id + '\')">View</button>';
+      html += '<button class="btn btn-xs btn-outline" onclick="window.atsViewApp(\'' + app.id + '\')">عرض</button>';
       if (app.status !== 'hired' && app.status !== 'rejected') {
         html += '<button class="btn btn-xs btn-success" onclick="window.atsUpdateStatus(\'' + app.id + '\',\'next\')">▶</button>';
         html += '<button class="btn btn-xs btn-danger" onclick="window.atsUpdateStatus(\'' + app.id + '\',\'rejected\')">✕</button>';
       }
       html += '</div></td></tr>';
     });
-    if (filtered.length === 0) html += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No applications yet</td></tr>';
+    if (applications.length === 0) html += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No applications yet — لا يوجد متقدمين</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // Add Candidate Form
     html += '<div id="ats-view-add" style="display:none">';
-    html += '<div class="card"><div class="card-header"><h3>➕ Add New Candidate</h3></div><div class="card-body">';
+    html += '<div class="card"><div class="card-header"><h3>➕ إضافة متقدم جديد (Add New Candidate)</h3></div><div class="card-body">';
     html += '<div class="grid-2">';
-    html += '<div class="form-field"><label>Candidate Name *</label><input type="text" id="ats-name" class="form-input" placeholder="Full name"></div>';
-    html += '<div class="form-field"><label>Job Title *</label><input type="text" id="ats-job" class="form-input" placeholder="e.g. Production Engineer"></div>';
-    html += '<div class="form-field"><label>Email</label><input type="email" id="ats-email" class="form-input"></div>';
-    html += '<div class="form-field"><label>Phone</label><input type="text" id="ats-phone" class="form-input"></div>';
-    html += '<div class="form-field"><label>Department</label><select id="ats-dept" class="form-input"><option value="">Select</option>';
+    html += '<div class="form-field"><label>اسم المتقدم (Candidate Name) *</label><input type="text" id="ats-name" class="form-input" placeholder="الاسم بالكامل"></div>';
+    html += '<div class="form-field"><label>الوظيفة المطلوبة (Job Title) *</label><input type="text" id="ats-job" class="form-input" placeholder="مثلاً: مهندس إنتاج"></div>';
+    html += '<div class="form-field"><label>البريد الإلكتروني (Email)</label><input type="email" id="ats-email" class="form-input"></div>';
+    html += '<div class="form-field"><label>الهاتف (Phone)</label><input type="text" id="ats-phone" class="form-input"></div>';
+    html += '<div class="form-field"><label>القسم (Department)</label><select id="ats-dept" class="form-input"><option value="">اختر القسم</option>';
     if (typeof DEPARTMENTS !== 'undefined') DEPARTMENTS.forEach(function(d) { html += '<option>' + d + '</option>'; });
     html += '</select></div>';
-    html += '<div class="form-field"><label>Years of Experience</label><input type="number" id="ats-exp" class="form-input" min="0" step="0.5"></div>';
+    html += '<div class="form-field"><label>سنوات الخبرة (Experience)</label><input type="number" id="ats-exp" class="form-input" min="0" step="0.5"></div>';
     html += '</div>';
-    html += '<div class="form-field"><label>CV / Resume Text * (Paste CV content here)</label><textarea id="ats-cv" class="form-input" rows="8" placeholder="Paste the full CV text here for AI analysis..."></textarea></div>';
-    html += '<div class="form-field"><label>Required Skills (comma separated)</label><input type="text" id="ats-skills" class="form-input" placeholder="e.g. AutoCAD, Excel, Leadership"></div>';
-    html += '<div style="margin-top:16px;display:flex;gap:10px"><button class="btn btn-primary" id="ats-analyze">🤖 Analyze with AI & Save</button><button class="btn btn-outline" id="ats-save-only">💾 Save Without AI</button></div>';
+
+    // PDF Upload
+    html += '<div class="form-field" style="margin-top:16px">';
+    html += '<label>📄 رفع السيرة الذاتية PDF (Upload CV)</label>';
+    html += '<div id="ats-dropzone" style="border:2px dashed var(--border-color);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all 0.3s;background:var(--bg-secondary)">';
+    html += '<div style="font-size:2.5rem;margin-bottom:8px">📎</div>';
+    html += '<p style="margin:0;font-weight:600">اضغط هنا أو اسحب ملف PDF</p>';
+    html += '<p style="margin:4px 0 0;color:var(--text-muted);font-size:0.8rem">Click or drag & drop a PDF file</p>';
+    html += '<input type="file" id="ats-pdf" accept=".pdf" style="display:none">';
+    html += '</div>';
+    html += '<div id="ats-pdf-status" style="margin-top:8px;display:none;padding:10px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2)">';
+    html += '<span id="ats-pdf-name" style="font-weight:600;color:var(--accent-success)"></span>';
+    html += '<span id="ats-pdf-pages" style="margin-left:8px;color:var(--text-muted)"></span>';
+    html += '</div>';
+    html += '<div id="ats-extract-progress" style="display:none;margin-top:8px;padding:10px;background:var(--bg-tertiary);border-radius:8px"><span class="spinner" style="width:16px;height:16px"></span> جاري استخراج النص من PDF...</div>';
+    html += '</div>';
+
+    // Hidden textarea for extracted text
+    html += '<textarea id="ats-cv" style="display:none"></textarea>';
+
+    html += '<div class="form-field"><label>المهارات المطلوبة (Required Skills) — مفصولة بفاصلة</label><input type="text" id="ats-skills" class="form-input" placeholder="مثلاً: AutoCAD, Excel, Leadership, إدارة الجودة"></div>';
+    html += '<div style="margin-top:16px;display:flex;gap:10px">';
+    html += '<button class="btn btn-primary" id="ats-analyze" disabled>🤖 تحليل بالذكاء الاصطناعي وحفظ</button>';
+    html += '<button class="btn btn-outline" id="ats-save-only">💾 حفظ بدون تحليل</button>';
+    html += '</div>';
     html += '</div></div></div>';
 
     el.innerHTML = html;
@@ -112,12 +132,82 @@ Pages.hrATS = function(el) {
       rows.forEach(function(row) {
         if (!val) { row.style.display = ''; return; }
         var statusCell = row.cells[5];
-        if (statusCell && statusCell.textContent.trim().toLowerCase().indexOf(val) !== -1) row.style.display = '';
-        else row.style.display = 'none';
+        row.style.display = (statusCell && statusCell.textContent.trim().toLowerCase().indexOf(val) !== -1) ? '' : 'none';
       });
     });
 
-    // AI Analyze
+    // PDF Dropzone
+    var dropzone = document.getElementById('ats-dropzone');
+    var pdfInput = document.getElementById('ats-pdf');
+    
+    dropzone.addEventListener('click', function() { pdfInput.click(); });
+    dropzone.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderColor = 'var(--accent-primary)'; this.style.background = 'rgba(99,102,241,0.05)'; });
+    dropzone.addEventListener('dragleave', function() { this.style.borderColor = 'var(--border-color)'; this.style.background = 'var(--bg-secondary)'; });
+    dropzone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.style.borderColor = 'var(--border-color)'; this.style.background = 'var(--bg-secondary)';
+      if (e.dataTransfer.files.length > 0 && e.dataTransfer.files[0].type === 'application/pdf') {
+        pdfInput.files = e.dataTransfer.files;
+        processPDF(e.dataTransfer.files[0]);
+      } else {
+        showToast('❌ يرجى رفع ملف PDF فقط', 'danger');
+      }
+    });
+
+    pdfInput.addEventListener('change', function() {
+      if (this.files.length > 0) processPDF(this.files[0]);
+    });
+
+    function processPDF(file) {
+      document.getElementById('ats-pdf-status').style.display = 'block';
+      document.getElementById('ats-pdf-name').textContent = '✅ ' + file.name;
+      document.getElementById('ats-extract-progress').style.display = 'block';
+      document.getElementById('ats-analyze').disabled = true;
+
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var typedarray = new Uint8Array(e.target.result);
+        
+        if (typeof pdfjsLib === 'undefined') {
+          // Fallback if PDF.js not loaded
+          document.getElementById('ats-extract-progress').innerHTML = '⚠️ PDF.js not loaded — please paste CV text manually';
+          document.getElementById('ats-cv').style.display = 'block';
+          document.getElementById('ats-cv').placeholder = 'الصق نص السيرة الذاتية هنا يدوياً...';
+          document.getElementById('ats-analyze').disabled = false;
+          return;
+        }
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        
+        pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+          document.getElementById('ats-pdf-pages').textContent = '(' + pdf.numPages + ' pages)';
+          var allText = '';
+          var promises = [];
+
+          for (var i = 1; i <= pdf.numPages; i++) {
+            promises.push(
+              pdf.getPage(i).then(function(page) {
+                return page.getTextContent().then(function(content) {
+                  return content.items.map(function(item) { return item.str; }).join(' ');
+                });
+              })
+            );
+          }
+
+          Promise.all(promises).then(function(pageTexts) {
+            allText = pageTexts.join('\n');
+            document.getElementById('ats-cv').value = allText;
+            document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-success);font-weight:600">✅ تم استخراج النص بنجاح (' + allText.length + ' حرف)</span>';
+            document.getElementById('ats-analyze').disabled = false;
+          });
+        }).catch(function(err) {
+          document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-danger)">❌ Error reading PDF: ' + err.message + '</span>';
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Buttons
     var analyzeBtn = document.getElementById('ats-analyze');
     if (analyzeBtn) analyzeBtn.addEventListener('click', function() { submitCandidate(true); });
     var saveBtn = document.getElementById('ats-save-only');
@@ -134,63 +224,35 @@ Pages.hrATS = function(el) {
     var cvText = document.getElementById('ats-cv').value.trim();
     var reqSkills = document.getElementById('ats-skills').value.trim();
 
-    if (!name || !job) return alert('Please fill candidate name and job title');
+    if (!name || !job) return alert('يرجى ملء اسم المتقدم والوظيفة المطلوبة');
 
     var record = {
-      candidate_name: name,
-      job_title: job,
-      candidate_email: email,
-      candidate_phone: phone,
-      department: dept,
-      experience_years: exp,
-      cv_text: cvText,
-      status: 'pending'
+      candidate_name: name, job_title: job, candidate_email: email,
+      candidate_phone: phone, department: dept, experience_years: exp,
+      cv_text: cvText, status: 'pending'
     };
 
     if (useAI && cvText) {
-      // AI Analysis
-      var score = 0;
-      var matched = [];
-      var missing = [];
+      var score = 0, matched = [], missing = [];
       var cvLower = cvText.toLowerCase();
 
-      // Score based on required skills
       if (reqSkills) {
         var skills = reqSkills.split(',').map(function(s) { return s.trim(); });
         skills.forEach(function(skill) {
-          if (cvLower.indexOf(skill.toLowerCase()) !== -1) {
-            matched.push(skill);
-            score += Math.round(60 / skills.length);
-          } else {
-            missing.push(skill);
-          }
+          if (skill && cvLower.indexOf(skill.toLowerCase()) !== -1) { matched.push(skill); score += Math.round(60 / skills.length); }
+          else if (skill) { missing.push(skill); }
         });
-      } else {
-        score += 30; // No specific skills required
-      }
+      } else { score += 30; }
 
-      // Score based on experience
-      if (exp >= 5) score += 20;
-      else if (exp >= 3) score += 15;
-      else if (exp >= 1) score += 10;
-      else score += 5;
+      if (exp >= 5) score += 20; else if (exp >= 3) score += 15; else if (exp >= 1) score += 10; else score += 5;
+      if (cvText.length > 1000) score += 10; else if (cvText.length > 500) score += 5;
 
-      // Score based on CV length/detail
-      if (cvText.length > 1000) score += 10;
-      else if (cvText.length > 500) score += 5;
-
-      // Bonus for education keywords
-      var eduKeywords = ['bachelor','master','phd','engineering','university','degree','بكالوريوس','ماجستير','هندسة','جامعة'];
-      eduKeywords.forEach(function(k) { if (cvLower.indexOf(k) !== -1) score += 2; });
-
+      ['bachelor','master','phd','engineering','university','degree','بكالوريوس','ماجستير','هندسة','جامعة','diploma','دبلوم'].forEach(function(k) { if (cvLower.indexOf(k) !== -1) score += 2; });
       score = Math.min(score, 100);
 
-      var verdict = score >= 70 ? 'accepted' : score >= 40 ? 'review' : 'rejected';
-      var analysis = 'AI Score: ' + score + '% | Skills matched: ' + matched.join(', ') + ' | Missing: ' + missing.join(', ') + ' | Experience: ' + exp + ' years';
-
       record.ai_score = score;
-      record.ai_verdict = verdict;
-      record.ai_analysis = analysis;
+      record.ai_verdict = score >= 70 ? 'accepted' : score >= 40 ? 'review' : 'rejected';
+      record.ai_analysis = 'AI Score: ' + score + '% | مهارات متطابقة: ' + (matched.join(', ') || 'لم يتم التحديد') + ' | ناقصة: ' + (missing.join(', ') || 'لا يوجد') + ' | خبرة: ' + exp + ' سنوات';
       record.skills_matched = matched.join(', ');
       record.skills_missing = missing.join(', ');
       record.status = 'screening';
@@ -198,63 +260,50 @@ Pages.hrATS = function(el) {
 
     sbClient.from('ats_applications').insert([record]).then(function(r) {
       if (r.error) return alert('Error: ' + r.error.message);
-      showToast('✅ Candidate added' + (useAI ? ' with AI analysis!' : '!'), 'success');
+      showToast('✅ تم إضافة المتقدم' + (useAI ? ' مع تحليل AI!' : '!'), 'success');
       loadData();
     });
   }
 
-  // View application details
   window.atsViewApp = function(id) {
     var app = applications.find(function(a) { return a.id === id; });
     if (!app) return;
-
     var scoreColor = (app.ai_score || 0) >= 70 ? 'var(--accent-success)' : (app.ai_score || 0) >= 40 ? 'var(--accent-warning)' : 'var(--accent-danger)';
 
     var body = '<div style="display:flex;gap:20px;margin-bottom:16px">';
     body += '<div style="flex:1;padding:16px;background:var(--bg-tertiary);border-radius:12px;text-align:center">';
     body += '<div style="font-size:2.5rem;font-weight:900;color:' + scoreColor + '">' + (app.ai_score || '—') + '%</div>';
-    body += '<div style="color:var(--text-muted);font-size:0.8rem">AI Score</div>';
-    body += '</div>';
-    body += '<div style="flex:2">';
-    body += '<h4 style="margin:0">' + app.candidate_name + '</h4>';
+    body += '<div style="color:var(--text-muted)">AI Score</div></div>';
+    body += '<div style="flex:2"><h4 style="margin:0">' + app.candidate_name + '</h4>';
     body += '<p style="color:var(--text-muted);margin:4px 0">' + app.job_title + ' | ' + (app.department || '-') + '</p>';
     body += '<p style="margin:4px 0">' + (app.candidate_email || '') + ' | ' + (app.candidate_phone || '') + '</p>';
-    body += '<p>Experience: ' + (app.experience_years || 0) + ' years</p>';
-    body += '</div></div>';
+    body += '<p>خبرة: ' + (app.experience_years || 0) + ' سنوات</p></div></div>';
 
     if (app.ai_analysis) {
-      body += '<div style="padding:12px;background:var(--bg-secondary);border-radius:8px;margin-bottom:12px;border-left:4px solid ' + scoreColor + '">';
-      body += '<b>🤖 AI Analysis:</b><br>' + app.ai_analysis;
-      body += '</div>';
+      body += '<div style="padding:12px;background:var(--bg-secondary);border-radius:8px;margin-bottom:12px;border-left:4px solid ' + scoreColor + '"><b>🤖 تحليل AI:</b><br>' + app.ai_analysis + '</div>';
     }
-    if (app.skills_matched) body += '<p><b style="color:var(--accent-success)">✅ Skills Matched:</b> ' + app.skills_matched + '</p>';
-    if (app.skills_missing) body += '<p><b style="color:var(--accent-danger)">❌ Skills Missing:</b> ' + app.skills_missing + '</p>';
-    if (app.cv_text) body += '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">📄 View CV Text</summary><pre style="white-space:pre-wrap;max-height:200px;overflow:auto;padding:10px;background:var(--bg-tertiary);border-radius:8px;font-size:0.8rem;margin-top:8px">' + app.cv_text + '</pre></details>';
+    if (app.skills_matched) body += '<p><b style="color:var(--accent-success)">✅ مهارات متطابقة:</b> ' + app.skills_matched + '</p>';
+    if (app.skills_missing) body += '<p><b style="color:var(--accent-danger)">❌ مهارات ناقصة:</b> ' + app.skills_missing + '</p>';
+    if (app.cv_text) body += '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">📄 عرض نص CV المستخرج</summary><pre style="white-space:pre-wrap;max-height:200px;overflow:auto;padding:10px;background:var(--bg-tertiary);border-radius:8px;font-size:0.8rem;margin-top:8px">' + app.cv_text.substring(0, 3000) + '</pre></details>';
 
-    body += '<div class="form-field" style="margin-top:12px"><label>HR Notes</label><textarea id="ats-notes" class="form-input" rows="2">' + (app.notes || '') + '</textarea></div>';
+    body += '<div class="form-field" style="margin-top:12px"><label>ملاحظات HR</label><textarea id="ats-notes" class="form-input" rows="2">' + (app.notes || '') + '</textarea></div>';
 
-    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Close</button>';
+    var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إغلاق</button>';
     if (app.status !== 'hired' && app.status !== 'rejected') {
-      footer += ' <button class="btn btn-success" onclick="window.atsUpdateStatus(\'' + id + '\',\'next\');App.closeModal()">▶ Next Stage</button>';
-      footer += ' <button class="btn btn-danger" onclick="window.atsUpdateStatus(\'' + id + '\',\'rejected\');App.closeModal()">✕ Reject</button>';
+      footer += ' <button class="btn btn-success" onclick="window.atsUpdateStatus(\'' + id + '\',\'next\');App.closeModal()">▶ المرحلة التالية</button>';
+      footer += ' <button class="btn btn-danger" onclick="window.atsUpdateStatus(\'' + id + '\',\'rejected\');App.closeModal()">✕ رفض</button>';
     }
-    App.showModal('📋 Application Details', body, footer, true);
+    App.showModal('📋 تفاصيل المتقدم — ' + app.candidate_name, body, footer, true);
   };
 
   window.atsUpdateStatus = function(id, action) {
     var app = applications.find(function(a) { return a.id === id; });
     if (!app) return;
     var flow = ['pending','screening','interview','offered','hired'];
-    var newStatus;
-    if (action === 'rejected') {
-      newStatus = 'rejected';
-    } else {
-      var idx = flow.indexOf(app.status);
-      newStatus = (idx >= 0 && idx < flow.length - 1) ? flow[idx + 1] : app.status;
-    }
+    var newStatus = action === 'rejected' ? 'rejected' : (function() { var i = flow.indexOf(app.status); return (i >= 0 && i < flow.length - 1) ? flow[i + 1] : app.status; })();
     sbClient.from('ats_applications').update({ status: newStatus, reviewed_by: App.user.id, reviewed_by_name: App.user.full_name }).eq('id', id).then(function(r) {
       if (r.error) return alert(r.error.message);
-      showToast('Status → ' + newStatus, newStatus === 'rejected' ? 'danger' : 'success');
+      showToast('الحالة → ' + newStatus, newStatus === 'rejected' ? 'danger' : 'success');
       loadData();
     });
   };

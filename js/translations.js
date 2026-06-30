@@ -475,7 +475,49 @@ const ARABIC_DICT = {
 
   // Engineering
   "Engineering (الإدارة الهندسية)": "الإدارة الهندسية",
-  "Projects & Designs": "المشاريع والرسومات"
+  "Projects & Designs": "المشاريع والرسومات",
+
+  // ATS - AI Applicant Tracking
+  "AI ATS (فحص السير الذاتية)": "نظام فحص السير الذاتية بالذكاء الاصطناعي",
+  "Upload CVs as PDF and let AI analyze candidate suitability": "ارفع السيرة الذاتية PDF واترك الذكاء الاصطناعي يحللها",
+  "Applications": "المتقدمين",
+  "Add Candidate": "إضافة متقدم",
+  "Candidate Name": "اسم المتقدم",
+  "AI Score": "تقييم AI",
+  "AI Verdict": "حكم AI",
+  "Screening": "فحص",
+  "Interview": "مقابلة",
+  "Offered": "تم العرض",
+  "Hired": "تم التعيين",
+  "Skills Matched": "مهارات متطابقة",
+  "Skills Missing": "مهارات ناقصة",
+  "Upload CV": "رفع السيرة الذاتية",
+  "Analyze with AI": "تحليل بالذكاء الاصطناعي",
+  "Save Without AI": "حفظ بدون تحليل",
+  "Next Stage": "المرحلة التالية",
+
+  // HR Personal Dashboard
+  "My HR Profile": "ملفي الشخصي",
+  "Your personal HR records": "بيانات الموارد البشرية الشخصية",
+  "My Profile (ملفي الشخصي)": "ملفي الشخصي",
+
+  // Attendance Modifications
+  "Edit Attendance": "تعديل سجل الحضور",
+  "Delete Checkout": "حذف الانصراف",
+  "Reopen Day": "إعادة فتح اليوم",
+  "Modification Reason": "سبب التعديل",
+  "Modification Type": "نوع التعديل",
+
+  // Overtime
+  "Overtime Hours": "ساعات إضافية",
+  "Overtime Amount": "مبلغ الإضافي",
+  "Friday Work": "عمل الجمعة",
+  "Friday Bonus": "بدل الجمعة",
+
+  // QR Security
+  "QR Code Expired": "QR منتهي الصلاحية",
+  "QR Already Used": "تم استخدام هذا الـ QR مسبقاً",
+  "Confirm Check-Out": "تأكيد الانصراف"
 };
 
 // Set Arabic as default language
