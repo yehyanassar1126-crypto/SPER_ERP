@@ -2222,35 +2222,70 @@ Pages.pettyCash = function(el) {
 
   // Check Clearance Logic
   window.clearCheck = function(id) {
-    sbClient.from('finance_bank_accounts').select('*').then(function(bres) {
-      sbClient.from('finance_safes').select('*').then(function(sres) {
-        var opts = '';
-        (bres.data||[]).forEach(b => { opts += '<option value="bank|'+b.id+'|'+b.name+'">بنك: '+b.name+'</option>'; });
-        (sres.data||[]).forEach(s => { opts += '<option value="safe|'+s.id+'|'+s.name+'">خزنة: '+s.name+'</option>'; });
-        
-        var body = '<div class="form-field"><label>صرف من حساب *</label><select id="chk-acc" class="form-input">'+opts+'</select></div>';
-        
-        App.showModal('تأكيد صرف الشيك', body, 
-          '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="chk-confirm">تأكيد الصرف</button>');
-        
-        document.getElementById('chk-confirm').onclick = function() {
-          var sel = document.getElementById('chk-acc').value.split('|');
-          var accType = sel[0];
-          var accId = sel[1];
-          var accName = sel[2];
+    // Fetch transaction details first
+    sbClient.from('finance_treasury_tx').select('*').eq('id', id).single().then(function(txRes) {
+      if(txRes.error || !txRes.data) return alert('خطأ في استرجاع بيانات الشيك');
+      var tx = txRes.data;
+      var isOutbound = (tx.type === 'check_issued' || tx.type === 'supplier_payment' || tx.type === 'petty_cash');
+      var amount = parseFloat(tx.amount) || 0;
+
+      sbClient.from('finance_bank_accounts').select('*').then(function(bres) {
+        sbClient.from('finance_safes').select('*').then(function(sres) {
+          var opts = '';
+          (bres.data||[]).forEach(b => { opts += '<option value="bank|'+b.id+'|'+b.name+'">بنك: '+b.name+' (رصيد: '+b.balance+')</option>'; });
+          (sres.data||[]).forEach(s => { opts += '<option value="safe|'+s.id+'|'+s.name+'">خزنة: '+s.name+' (رصيد: '+s.balance+')</option>'; });
           
-          this.disabled = true; this.innerHTML = 'جاري التحديث...';
-          sbClient.from('finance_treasury_tx').update({
-            status: 'cleared',
-            cleared_account: accName
-          }).eq('id', id).then(function(res) {
-            if(res.error) return alert(res.error.message);
-            // Optionally deduct from actual balance
-            App.closeModal();
-            loadData();
-            showToast('✅ تم تأكيد صرف الشيك من: ' + accName, 'success');
-          });
-        };
+          var body = '<div style="padding:10px;background:var(--bg-secondary);border-radius:8px;margin-bottom:12px">';
+          body += '<strong>نوع الشيك:</strong> ' + (isOutbound ? '<span style="color:var(--accent-danger)">صرف (خروج نقدية)</span>' : '<span style="color:var(--accent-success)">تحصيل (دخول نقدية)</span>') + '<br>';
+          body += '<strong>المبلغ:</strong> <span style="font-weight:bold">' + amount.toLocaleString() + ' EGP</span><br>';
+          body += '</div>';
+          body += '<div class="form-field"><label>الحساب المرتبط (بنك / خزنة) *</label><select id="chk-acc" class="form-input">'+opts+'</select></div>';
+          
+          App.showModal('تأكيد صرف / تحصيل الشيك', body, 
+            '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="chk-confirm">تأكيد العملية</button>');
+          
+          document.getElementById('chk-confirm').onclick = function() {
+            var sel = document.getElementById('chk-acc').value.split('|');
+            var accType = sel[0];
+            var accId = sel[1];
+            var accName = sel[2];
+            var table = accType === 'bank' ? 'finance_bank_accounts' : 'finance_safes';
+            
+            this.disabled = true; this.innerHTML = 'جاري التحديث...';
+
+            // Get current balance of that account
+            sbClient.from(table).select('balance').eq('id', accId).single().then(function(bRes) {
+              if (bRes.error) return alert(bRes.error.message);
+              var currentBalance = parseFloat(bRes.data.balance) || 0;
+              
+              if (isOutbound && amount > currentBalance) {
+                alert('الرصيد غير كافي في ' + accName);
+                document.getElementById('chk-confirm').disabled = false;
+                document.getElementById('chk-confirm').innerHTML = 'تأكيد العملية';
+                return;
+              }
+
+              var newBalance = isOutbound ? (currentBalance - amount) : (currentBalance + amount);
+              
+              // Update balance
+              sbClient.from(table).update({ balance: newBalance }).eq('id', accId).then(function(updRes) {
+                if(updRes.error) return alert('خطأ في تحديث الرصيد: ' + updRes.error.message);
+
+                // Mark check as cleared
+                sbClient.from('finance_treasury_tx').update({
+                  status: 'cleared',
+                  cleared_account: accName,
+                  cleared_date: new Date().toISOString()
+                }).eq('id', id).then(function(res) {
+                  if(res.error) return alert(res.error.message);
+                  App.closeModal();
+                  loadData();
+                  showToast('✅ تم تأكيد صرف الشيك وتحديث رصيد: ' + accName, 'success');
+                });
+              });
+            });
+          };
+        });
       });
     });
   };
