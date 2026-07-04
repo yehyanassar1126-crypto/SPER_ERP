@@ -1704,7 +1704,17 @@ Pages.pettyCash = function(el) {
     html += '<div class="card" style="flex:1"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>الموردين (AP)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'supplier\')">➕ إضافة مورد</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>المورد</th><th>الرصيد</th></tr></thead><tbody>';
     suppliers.forEach(s => { html += '<tr><td>'+s.name+'</td><td>'+s.balance+'</td></tr>'; });
     html += '</tbody></table></div></div>';
-    html += '</div></div>';
+    html += '</div>';
+
+    // === Pending Sales Payments (from Sales module) ===
+    html += '<div class="card" style="margin-top:20px"><div class="card-header" style="background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.05))"><h3>💰 مدفوعات مبيعات معلقة (Pending Sales Payments)</h3></div>';
+    html += '<div class="card-body no-pad" id="pending-sales-payments"><div style="padding:20px;text-align:center;color:var(--text-muted)">جاري التحميل...</div></div></div>';
+
+    // === Pending Purchase Payments (from Procurement) ===
+    html += '<div class="card" style="margin-top:20px"><div class="card-header" style="background:linear-gradient(135deg,rgba(239,68,68,0.1),rgba(245,158,11,0.05))"><h3>🛒 مدفوعات مشتريات معلقة (Pending Purchase Payments)</h3></div>';
+    html += '<div class="card-body no-pad" id="pending-purchase-payments"><div style="padding:20px;text-align:center;color:var(--text-muted)">جاري التحميل...</div></div></div>';
+
+    html += '</div>';
 
     // 3. Journal View
     html += '<div id="view-journal" style="display:none">';
@@ -1949,6 +1959,50 @@ Pages.pettyCash = function(el) {
         }, 600);
       });
     }
+
+    // --- Load Pending Payments Data ---
+    function loadPendingPayments() {
+      var sCon = document.getElementById('pending-sales-payments');
+      var pCon = document.getElementById('pending-purchase-payments');
+      if(!sCon || !pCon) return;
+
+      // Sales
+      sbClient.from('sales_workflow_orders').select('*').eq('status', 'Pending Payment').then(function(res) {
+        if(res.error) { sCon.innerHTML = 'Error loading sales'; return; }
+        var orders = res.data || [];
+        if(orders.length === 0) {
+          sCon.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">لا يوجد مدفوعات مبيعات معلقة</div>';
+        } else {
+          var h = '<table class="data-table"><thead><tr><th>الطلب</th><th>العميل</th><th>المبلغ المطلوب</th><th>طريقة السداد</th><th>إجراء</th></tr></thead><tbody>';
+          orders.forEach(o => {
+            h += '<tr><td>'+(o.id.split('-')[0].toUpperCase())+'</td><td>'+o.customer_name+'</td><td style="color:var(--accent-success);font-weight:bold">+ '+(o.remaining_amount||o.total_amount)+' EGP</td><td>'+(o.payment_method||'cash')+'</td>';
+            h += '<td><button class="btn btn-sm btn-primary" onclick="window.processPendingPayment(\'sales\',\''+o.id+'\',\''+o.customer_name+'\','+(o.remaining_amount||o.total_amount)+')">💰 تحصيل / دفع</button></td></tr>';
+          });
+          h += '</tbody></table>';
+          sCon.innerHTML = h;
+        }
+      });
+
+      // Purchases
+      sbClient.from('purchase_orders').select('*, purchase_requests(*)').in('payment_status', ['pending', 'unpaid', 'partial']).then(function(res) {
+        if(res.error) { pCon.innerHTML = 'Error loading purchases'; return; }
+        var orders = res.data || [];
+        if(orders.length === 0) {
+          pCon.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">لا يوجد مدفوعات مشتريات معلقة</div>';
+        } else {
+          var h = '<table class="data-table"><thead><tr><th>الطلب</th><th>المورد</th><th>المنتج</th><th>المبلغ المطلوب</th><th>إجراء</th></tr></thead><tbody>';
+          orders.forEach(o => {
+            var reqName = o.purchase_requests ? o.purchase_requests.item_name : '-';
+            var amt = (o.price || 0) * (o.quantity || 0);
+            h += '<tr><td>'+(o.id.split('-')[0].toUpperCase())+'</td><td>'+(o.supplier_name||'-')+'</td><td>'+reqName+'</td><td style="color:var(--accent-danger);font-weight:bold">- '+amt+' EGP</td>';
+            h += '<td><button class="btn btn-sm btn-danger" onclick="window.processPendingPayment(\'purchase\',\''+o.id+'\',\''+(o.supplier_name||'-')+'\','+amt+')">💳 سداد للمورد</button></td></tr>';
+          });
+          h += '</tbody></table>';
+          pCon.innerHTML = h;
+        }
+      });
+    }
+    loadPendingPayments();
   }
 
   // ===== ADD MODALS FOR EACH FINANCIAL TAB =====
@@ -2309,6 +2363,72 @@ Pages.pettyCash = function(el) {
       });
     };
   };
+
+  // Process Pending Payments (Sales/Purchases)
+  window.processPendingPayment = function(type, orderId, name, amount) {
+    sbClient.from('finance_bank_accounts').select('*').then(function(bres) {
+      sbClient.from('finance_safes').select('*').then(function(sres) {
+        var opts = '';
+        var allAccs = [];
+        (sres.data||[]).forEach(s => { allAccs.push({id: s.id, type: 'safe', table: 'finance_safes', name: 'خزنة: ' + s.name, balance: Number(s.balance)}); });
+        (bres.data||[]).forEach(b => { allAccs.push({id: b.id, type: 'bank', table: 'finance_bank_accounts', name: 'بنك: ' + b.name, balance: Number(b.balance)}); });
+
+        allAccs.forEach((a, i) => { opts += '<option value="'+i+'">'+a.name+' (رصيد: '+a.balance.toLocaleString()+' EGP)</option>'; });
+
+        var title = type === 'sales' ? '💰 تحصيل فاتورة مبيعات' : '💳 سداد فاتورة مشتريات';
+        var body = '<div style="padding:10px;background:var(--bg-secondary);border-radius:8px;margin-bottom:12px">';
+        body += '<strong>المبلغ:</strong> <span style="font-size:1.1rem;font-weight:bold;color:'+(type==='sales'?'var(--accent-success)':'var(--accent-danger)')+'">' + amount.toLocaleString() + ' EGP</span><br>';
+        body += '<strong>الطرف الآخر:</strong> ' + name;
+        body += '</div>';
+        body += '<div class="form-field"><label>الحساب (خزنة / بنك) *</label><select id="pay-acc" class="form-input">'+opts+'</select></div>';
+        
+        App.showModal(title, body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="pay-confirm">تأكيد العملية</button>');
+
+        document.getElementById('pay-confirm').onclick = function() {
+          var accIdx = document.getElementById('pay-acc').value;
+          var acc = allAccs[accIdx];
+          
+          if(type === 'purchase' && amount > acc.balance) return alert('الرصيد غير كافي في ' + acc.name);
+
+          this.disabled = true; this.innerHTML = 'جاري المعالجة...';
+
+          var newBal = type === 'sales' ? (acc.balance + amount) : (acc.balance - amount);
+          
+          // Update Account Balance
+          sbClient.from(acc.table).update({ balance: newBal }).eq('id', acc.id).then(function(r1) {
+            if(r1.error) return alert(r1.error.message);
+
+            // Log Transaction
+            var desc = (type === 'sales' ? 'تحصيل مبيعات من العميل: ' : 'سداد مشتريات للمورد: ') + name + ' (طلب: ' + orderId.split('-')[0].toUpperCase() + ')';
+            sbClient.from('finance_treasury_tx').insert({
+              type: type === 'sales' ? 'client_payment' : 'supplier_payment',
+              method: acc.type === 'bank' ? 'bank_transfer' : 'cash',
+              amount: amount, description: desc, status: 'cleared', cleared_account: acc.name,
+              created_by: App.user.id, created_by_name: App.user.full_name
+            }).then(function() {
+              
+              // Update Original Order
+              if (type === 'sales') {
+                sbClient.from('sales_workflow_orders').update({
+                  status: 'Paid - Awaiting Pickup', paid_amount: amount, remaining_amount: 0, payment_status: 'paid'
+                }).eq('id', orderId).then(function() {
+                  App.closeModal(); loadData(); showToast('✅ تم تحصيل المبلغ بنجاح', 'success');
+                });
+              } else {
+                sbClient.from('purchase_orders').update({
+                  payment_status: 'paid'
+                }).eq('id', orderId).then(function() {
+                  App.closeModal(); loadData(); showToast('✅ تم سداد المبلغ بنجاح', 'success');
+                });
+              }
+            });
+          });
+        };
+      });
+    });
+  };
+
+
 
   loadData();
 };
