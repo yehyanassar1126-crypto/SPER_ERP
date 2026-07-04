@@ -1519,6 +1519,7 @@ Pages.employees = function (el) {
       'Mechanical Engineer (مهندس ميكانيكا)', 'Technical Office Engineer (مهندس مكتب فني)',
       'Spare Parts Inspector (مراقب قطع غيار)',
       'IT Support (دعم فني)',
+      'Nursing Manager (مدير تمريض)', 'Nurse (ممرض/ة)',
       'Logistics Manager (مدير حركة/نقل)', 'Driver (سائق)',
       'Safety & Security Officer (أمن وسلامة)', 'Secretary (سكرتارية)',
       'Employee (موظف عادي)'
