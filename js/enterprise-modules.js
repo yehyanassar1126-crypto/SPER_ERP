@@ -1751,7 +1751,7 @@ Pages.pettyCash = function(el) {
 
     // 6. Petty Cash
     html += '<div id="view-petty" style="display:' + (isProcurementOnly ? 'block' : 'none') + '">';
-    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Petty Cash & Advances (العهد والسلف والشيكات)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'petty\')">➕ صرف نقدية / شيك</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البيان</th><th>طريقة الصرف</th><th>المبلغ</th><th>حالة الشيك</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Petty Cash & Advances (العهد والسلف والشيكات)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'petty\')">➕ صرف نقدية / شيك</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البيان</th><th>طريقة الصرف</th><th>المبلغ</th><th>حالة الشيك</th><th>تسوية العهدة</th></tr></thead><tbody>';
     var pcTxs = txs.filter(t => t.type === 'petty_cash' || t.type === 'check_issued');
     pcTxs.forEach(t => { 
       var chkStatus = '-';
@@ -1762,10 +1762,21 @@ Pages.pettyCash = function(el) {
           chkStatus = '<button class="btn btn-xs btn-outline" style="border-color:var(--accent-primary);color:var(--accent-primary)" onclick="window.clearCheck(\'' + t.id + '\')">⏳ معلق - تحديث للصرف</button>';
         }
       }
+      // Settlement status
+      var settleCol = '';
+      if (t.settlement_status === 'settled') {
+        settleCol = '<div style="font-size:0.8rem"><span style="color:var(--accent-success);font-weight:bold">✅ تمت التسوية</span>';
+        settleCol += '<br>مصروف: ' + (t.amount_spent||0) + ' EGP';
+        settleCol += '<br>مرتجع: ' + (t.amount_returned||0) + ' EGP';
+        if (t.settlement_notes) settleCol += '<br><small style="color:var(--text-muted)">' + t.settlement_notes + '</small>';
+        settleCol += '</div>';
+      } else {
+        settleCol = '<button class="btn btn-xs btn-warning" onclick="window.settlePettyCash(\'' + t.id + '\',' + t.amount + ')">📋 تسوية العهدة</button>';
+      }
       var empName = t.employee_name || t.created_by_name || '-';
-      html += '<tr><td>'+formatDate(t.created_at)+'</td><td>'+empName+'</td><td>'+(t.description||'-')+'</td><td>'+t.method+'</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td><td>'+chkStatus+'</td></tr>'; 
+      html += '<tr><td>'+formatDate(t.created_at)+'</td><td>'+empName+'</td><td>'+(t.description||'-')+'</td><td>'+t.method+'</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td><td>'+chkStatus+'</td><td>'+settleCol+'</td></tr>'; 
     });
-    if(pcTxs.length===0) html += '<tr><td colspan="6" style="text-align:center">لا يوجد عهد أو شيكات</td></tr>';
+    if(pcTxs.length===0) html += '<tr><td colspan="7" style="text-align:center">لا يوجد عهد أو شيكات</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 7. Reports
@@ -2227,6 +2238,44 @@ Pages.pettyCash = function(el) {
         };
       });
     });
+  };
+
+  // Petty Cash Settlement
+  window.settlePettyCash = function(id, originalAmount) {
+    var body = '<div style="padding:10px;background:var(--bg-secondary);border-radius:8px;margin-bottom:12px">';
+    body += '<strong>مبلغ العهدة الأصلي:</strong> <span style="color:var(--accent-primary);font-weight:bold">' + originalAmount + ' EGP</span>';
+    body += '</div>';
+    body += '<div class="form-field"><label>المبلغ المصروف فعلياً (EGP) *</label><input type="number" id="stl-spent" class="form-input" min="0" max="' + originalAmount + '" oninput="var r=document.getElementById(\'stl-returned\');if(r)r.value=(' + originalAmount + '-Number(this.value)).toFixed(2)"></div>';
+    body += '<div class="form-field"><label>المبلغ المرتجع (EGP)</label><input type="number" id="stl-returned" class="form-input" value="0" readonly style="background:var(--bg-secondary)"></div>';
+    body += '<div class="form-field"><label>ملاحظات التسوية</label><textarea id="stl-notes" class="form-input" rows="2" placeholder="تفاصيل المصروفات..."></textarea></div>';
+
+    App.showModal('📋 تسوية العهدة', body,
+      '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-primary" id="stl-save">💾 تأكيد التسوية</button>');
+
+    document.getElementById('stl-save').onclick = function() {
+      var spent = parseFloat(document.getElementById('stl-spent').value) || 0;
+      var returned = parseFloat(document.getElementById('stl-returned').value) || 0;
+      var notes = document.getElementById('stl-notes').value;
+
+      if (spent <= 0 && returned <= 0) return alert('يرجى إدخال المبلغ المصروف');
+      if (spent > originalAmount) return alert('المبلغ المصروف أكبر من العهدة الأصلية');
+
+      this.disabled = true; this.textContent = '⏳ جاري الحفظ...';
+
+      sbClient.from('finance_treasury_tx').update({
+        settlement_status: 'settled',
+        amount_spent: spent,
+        amount_returned: returned,
+        settlement_notes: notes,
+        settlement_date: new Date().toISOString(),
+        settled_by: App.user.full_name
+      }).eq('id', id).then(function(res) {
+        if (res.error) return alert(res.error.message);
+        App.closeModal();
+        loadData();
+        showToast('✅ تمت تسوية العهدة — مصروف: ' + spent + ' EGP | مرتجع: ' + returned + ' EGP', 'success');
+      });
+    };
   };
 
   loadData();
