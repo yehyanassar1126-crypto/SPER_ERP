@@ -1723,9 +1723,16 @@ Pages.pettyCash = function(el) {
 
     // 4. Assets
     html += '<div id="view-assets" style="display:none">';
-    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Fixed Assets (الأصول الثابتة)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'asset\')">➕ إضافة أصل</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الأصل</th><th>الكود</th><th>تاريخ الشراء</th><th>القيمة الحالية</th><th>الحالة</th></tr></thead><tbody>';
-    assets.forEach(a => { html += '<tr><td>'+a.name+'</td><td>'+(a.asset_code||'-')+'</td><td>'+(a.purchase_date||'-')+'</td><td>'+a.current_value+'</td><td>'+a.status+'</td></tr>'; });
-    if(assets.length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد أصول مسجلة</td></tr>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Fixed Assets (الأصول الثابتة)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'asset\')">➕ إضافة أصل</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الأصل</th><th>الكود</th><th>الفئة</th><th>تاريخ الشراء</th><th>القيمة الأصلية</th><th>القيمة الحالية</th><th>الحالة</th><th>تغيير الحالة</th></tr></thead><tbody>';
+    assets.forEach(a => { 
+      var asColor = a.status==='active'?'var(--accent-success)':a.status==='disposed'?'var(--accent-danger)':a.status==='sold'?'var(--accent-primary)':'var(--accent-warning)';
+      var asLabel = a.status==='active'?'✅ نشط':a.status==='disposed'?'🗑️ تم الإهلاك':a.status==='sold'?'💰 مباع':a.status==='under_maintenance'?'🔧 تحت الصيانة':'⏳ '+a.status;
+      html += '<tr><td>'+a.name+'</td><td>'+(a.asset_code||'-')+'</td><td>'+(a.category||'-')+'</td><td>'+(a.purchase_date||'-')+'</td><td>'+(a.original_value||'-')+'</td><td>'+a.current_value+'</td>';
+      html += '<td><span style="color:'+asColor+';font-weight:bold">'+asLabel+'</span></td>';
+      html += '<td><select class="form-input" style="padding:4px 8px;font-size:0.8rem;min-width:120px" onchange="window.changeFinStatus(\'finance_fixed_assets\',\''+a.id+'\',this.value)">';
+      html += '<option value="" disabled selected>تغيير...</option><option value="active">✅ نشط</option><option value="under_maintenance">🔧 تحت الصيانة</option><option value="disposed">🗑️ تم الإهلاك</option><option value="sold">💰 مباع</option></select></td></tr>';
+    });
+    if(assets.length === 0) html += '<tr><td colspan="8" style="text-align:center">لا يوجد أصول مسجلة</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 5. Taxes
