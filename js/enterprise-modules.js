@@ -1674,7 +1674,7 @@ Pages.pettyCash = function(el) {
     html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">';
     html += '<h3>Treasury (الخزائن والبنوك)</h3>';
     html += '<div style="display:flex;gap:8px">';
-    html += '<button class="btn btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ إضافة خزنة/بنك</button>';
+    html += '<button class="btn btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ Add Safe/Bank/Check (إضافة خزنة/بنك/شيك)</button>';
     html += '<button class="btn btn-outline" style="border-color:var(--accent-primary);color:var(--accent-primary)" onclick="window.showTransferModal()">🔄 تحويل بين الحسابات</button>';
     html += '</div>';
     html += '</div>';
@@ -1693,6 +1693,33 @@ Pages.pettyCash = function(el) {
     html += '</tbody></table></div></div>';
     
     html += '</div>';
+
+    // Checks section in Treasury
+    var checkTxs = txs.filter(t => t.method === 'check');
+    html += '<div class="card" style="margin-top:20px"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(168,85,247,0.05))"><h3>🧾 Checks (الشيكات)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ Issue Check (إصدار شيك)</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>Check No (رقم الشيك)</th><th>Beneficiary (المستفيد)</th><th>Amount (المبلغ)</th><th>Due Date (تاريخ الاستحقاق)</th><th>Status (الحالة)</th><th>Action (إجراء)</th></tr></thead><tbody>';
+    if (checkTxs.length === 0) {
+      html += '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">No checks issued yet (لا يوجد شيكات حتى الآن)</td></tr>';
+    } else {
+      checkTxs.forEach(t => {
+        var statusHtml = '';
+        if (t.status === 'cleared') {
+          statusHtml = '<span style="color:var(--accent-success);font-weight:bold">✅ Cleared (تم الصرف)</span><br><small style="color:var(--text-muted)">' + (t.cleared_account||'') + '</small>';
+        } else {
+          statusHtml = '<span style="color:var(--accent-warning);font-weight:bold">⏳ Pending (معلق)</span>';
+        }
+        var actionHtml = t.status === 'cleared' ? '<span style="color:var(--text-muted)">—</span>' : '<button class="btn btn-xs btn-primary" onclick="window.clearCheck(\'' + t.id + '\')">💳 Clear (صرف الشيك)</button>';
+        html += '<tr>';
+        html += '<td style="font-weight:bold">' + (t.check_number||'-') + '</td>';
+        html += '<td>' + (t.employee_name || t.description || '-') + '</td>';
+        html += '<td style="font-weight:bold;color:var(--accent-primary)">' + Number(t.amount).toLocaleString() + ' EGP</td>';
+        html += '<td>' + (t.check_due_date || '-') + '</td>';
+        html += '<td>' + statusHtml + '</td>';
+        html += '<td>' + actionHtml + '</td>';
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div>';
+
     html += '</div>';
 
     // 2. AP/AR View
