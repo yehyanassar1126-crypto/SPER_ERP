@@ -1698,10 +1698,10 @@ Pages.pettyCash = function(el) {
     // 2. AP/AR View
     html += '<div id="view-ap-ar" style="display:none">';
     html += '<div style="display:flex; gap:20px;">';
-    html += '<div class="card" style="flex:1"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>العملاء (AR)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'client\')">➕ إضافة عميل</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>العميل</th><th>الرصيد</th></tr></thead><tbody>';
+    html += '<div class="card" style="flex:1"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Clients (العملاء - AR)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'client\')">➕ Add Client (إضافة عميل)</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>Client (العميل)</th><th>Balance (الرصيد)</th></tr></thead><tbody>';
     clients.forEach(c => { html += '<tr><td>'+c.name+'</td><td>'+c.balance+'</td></tr>'; });
     html += '</tbody></table></div></div>';
-    html += '<div class="card" style="flex:1"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>الموردين (AP)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'supplier\')">➕ إضافة مورد</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>المورد</th><th>الرصيد</th></tr></thead><tbody>';
+    html += '<div class="card" style="flex:1"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Suppliers (الموردين - AP)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'supplier\')">➕ Add Supplier (إضافة مورد)</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>Supplier (المورد)</th><th>Balance (الرصيد)</th></tr></thead><tbody>';
     suppliers.forEach(s => { html += '<tr><td>'+s.name+'</td><td>'+s.balance+'</td></tr>'; });
     html += '</tbody></table></div></div>';
     html += '</div>';
@@ -1718,8 +1718,8 @@ Pages.pettyCash = function(el) {
 
     // 3. Journal View
     html += '<div id="view-journal" style="display:none">';
-    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Journal Entries (القيود اليومية)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'journal\')">➕ إضافة قيد</button></div><div class="card-body no-pad">';
-    html += '<table class="data-table"><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>البيان</th><th>إجمالي مدين</th><th>إجمالي دائن</th><th>الحالة</th><th>تغيير الحالة</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Journal Entries (القيود اليومية)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'journal\')">➕ Add Entry (إضافة قيد)</button></div><div class="card-body no-pad">';
+    html += '<table class="data-table"><thead><tr><th>Entry No (رقم القيد)</th><th>Date (التاريخ)</th><th>Description (البيان)</th><th>Total Debit (إجمالي مدين)</th><th>Total Credit (إجمالي دائن)</th><th>Status (الحالة)</th><th>Change Status (تغيير الحالة)</th></tr></thead><tbody>';
     journalEntries.forEach(j => {
       var stColor = j.status==='posted'?'var(--accent-success)':j.status==='rejected'?'var(--accent-danger)':'var(--accent-warning)';
       var stLabel = j.status==='posted'?'✅ معتمد':j.status==='rejected'?'❌ مرفوض':'⏳ مسودة';
@@ -1733,35 +1733,35 @@ Pages.pettyCash = function(el) {
 
     // 4. Assets
     html += '<div id="view-assets" style="display:none">';
-    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Fixed Assets (الأصول الثابتة)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'asset\')">➕ إضافة أصل</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الأصل</th><th>الكود</th><th>الفئة</th><th>تاريخ الشراء</th><th>القيمة الأصلية</th><th>القيمة الحالية</th><th>الحالة</th><th>تغيير الحالة</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Fixed Assets (الأصول الثابتة)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'asset\')">➕ Add Asset (إضافة أصل)</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>Asset (الأصل)</th><th>Code (الكود)</th><th>Category (الفئة)</th><th>Purchase Date (تاريخ الشراء)</th><th>Original Value (القيمة الأصلية)</th><th>Current Value (القيمة الحالية)</th><th>Status (الحالة)</th><th>Change Status (تغيير الحالة)</th></tr></thead><tbody>';
     assets.forEach(a => { 
       var asColor = a.status==='active'?'var(--accent-success)':a.status==='disposed'?'var(--accent-danger)':a.status==='sold'?'var(--accent-primary)':'var(--accent-warning)';
       var asLabel = a.status==='active'?'✅ نشط':a.status==='disposed'?'🗑️ تم الإهلاك':a.status==='sold'?'💰 مباع':a.status==='under_maintenance'?'🔧 تحت الصيانة':'⏳ '+a.status;
       html += '<tr><td>'+a.name+'</td><td>'+(a.asset_code||'-')+'</td><td>'+(a.category||'-')+'</td><td>'+(a.purchase_date||'-')+'</td><td>'+(a.original_value||'-')+'</td><td>'+a.current_value+'</td>';
       html += '<td><span style="color:'+asColor+';font-weight:bold">'+asLabel+'</span></td>';
       html += '<td><select class="form-input" style="padding:4px 8px;font-size:0.8rem;min-width:120px" onchange="window.changeFinStatus(\'finance_fixed_assets\',\''+a.id+'\',this.value)">';
-      html += '<option value="" disabled selected>تغيير...</option><option value="active">✅ نشط</option><option value="under_maintenance">🔧 تحت الصيانة</option><option value="disposed">🗑️ تم الإهلاك</option><option value="sold">💰 مباع</option></select></td></tr>';
+      html += '<option value="" disabled selected>Change... (تغيير...)</option><option value="active">✅ نشط</option><option value="under_maintenance">🔧 تحت الصيانة</option><option value="disposed">🗑️ تم الإهلاك</option><option value="sold">💰 مباع</option></select></td></tr>';
     });
     if(assets.length === 0) html += '<tr><td colspan="8" style="text-align:center">لا يوجد أصول مسجلة</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 5. Taxes
     html += '<div id="view-taxes" style="display:none">';
-    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Taxes (الضرائب)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'tax\')">➕ إضافة ضريبة</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>نوع الضريبة</th><th>الفترة</th><th>المبلغ الخاضع</th><th>قيمة الضريبة</th><th>الحالة</th><th>تغيير الحالة</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Taxes (الضرائب)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'tax\')">➕ Add Tax (إضافة ضريبة)</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>Tax Type (نوع الضريبة)</th><th>Period (الفترة)</th><th>Taxable Amount (المبلغ الخاضع)</th><th>Tax Amount (قيمة الضريبة)</th><th>Status (الحالة)</th><th>Change Status (تغيير الحالة)</th></tr></thead><tbody>';
     taxes.forEach(t => {
       var txColor = t.status==='paid'?'var(--accent-success)':t.status==='overdue'?'var(--accent-danger)':'var(--accent-warning)';
       var txLabel = t.status==='paid'?'✅ مدفوعة':t.status==='overdue'?'❌ متأخرة':'⏳ معلقة';
       html += '<tr><td>'+t.tax_type+'</td><td>'+(t.period||'-')+'</td><td>'+t.taxable_amount+'</td><td>'+t.tax_amount+'</td>';
       html += '<td><span style="color:'+txColor+';font-weight:bold">'+txLabel+'</span></td>';
       html += '<td><select class="form-input" style="padding:4px 8px;font-size:0.8rem;min-width:120px" onchange="window.changeFinStatus(\'finance_taxes\',\''+t.id+'\',this.value)">';
-      html += '<option value="" disabled selected>تغيير...</option><option value="pending">⏳ معلقة</option><option value="paid">✅ مدفوعة</option><option value="overdue">❌ متأخرة</option></select></td></tr>';
+      html += '<option value="" disabled selected>Change... (تغيير...)</option><option value="pending">⏳ معلقة</option><option value="paid">✅ مدفوعة</option><option value="overdue">❌ متأخرة</option></select></td></tr>';
     });
     if(taxes.length === 0) html += '<tr><td colspan="6" style="text-align:center">لا يوجد ضرائب مسجلة</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 6. Petty Cash
     html += '<div id="view-petty" style="display:' + (isProcurementOnly ? 'block' : 'none') + '">';
-    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Petty Cash & Advances (العهد والسلف والشيكات)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'petty\')">➕ صرف نقدية / شيك</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البيان</th><th>طريقة الصرف</th><th>المبلغ</th><th>حالة الشيك</th><th>تسوية العهدة</th></tr></thead><tbody>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Petty Cash & Advances (العهد والسلف والشيكات)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'petty\')">➕ Issue Cash/Check (صرف نقدية / شيك)</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>Date (التاريخ)</th><th>Employee (الموظف)</th><th>Description (البيان)</th><th>Method (طريقة الصرف)</th><th>Amount (المبلغ)</th><th>Check Status (حالة الشيك)</th><th>Settlement (تسوية العهدة)</th></tr></thead><tbody>';
     var pcTxs = txs.filter(t => t.type === 'petty_cash' || t.type === 'check_issued');
     pcTxs.forEach(t => { 
       var chkStatus = '-';

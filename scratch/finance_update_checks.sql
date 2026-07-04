@@ -1,21 +1,35 @@
--- Update finance tables for Petty Cash, Checks, and Lists
-ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'cleared';
-ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS cleared_account TEXT;
-ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS employee_name TEXT;
+-- =====================================================
+-- FINANCE MODULE - COMPLETE DATABASE UPDATES
+-- Run this in Supabase SQL Editor
+-- Date: 2026-07-04
+-- =====================================================
 
--- Make sure RLS is allowing access
-DO $$ 
-DECLARE
-  t TEXT;
-BEGIN
-  FOREACH t IN ARRAY ARRAY[
-    'finance_safes','finance_bank_accounts','finance_clients',
-    'finance_suppliers','finance_invoices','finance_journal_entries',
-    'finance_journal_lines','finance_cost_centers','finance_fixed_assets',
-    'finance_taxes','finance_treasury_tx'
-  ] LOOP
-    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
-    EXECUTE format('DROP POLICY IF EXISTS "allow_all_%s" ON %I', t, t);
-    EXECUTE format('CREATE POLICY "allow_all_%s" ON %I FOR ALL USING (true) WITH CHECK (true)', t, t);
-  END LOOP;
+-- 1. Treasury Transactions - Settlement columns (تسوية العهد)
+ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS settlement_status TEXT DEFAULT 'open';
+ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS amount_spent NUMERIC(14,2) DEFAULT 0;
+ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS amount_returned NUMERIC(14,2) DEFAULT 0;
+ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS settlement_notes TEXT;
+ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS settlement_date TIMESTAMPTZ;
+ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS settled_by TEXT;
+
+-- 2. Treasury Transactions - Check columns (شيكات)
+ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS check_number TEXT;
+ALTER TABLE finance_treasury_tx ADD COLUMN IF NOT EXISTS check_due_date DATE;
+
+-- 3. Purchase Orders - Payment status (حالة الدفع للمشتريات)
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'unpaid';
+
+-- 4. Sales Orders - Payment status (حالة الدفع للمبيعات)
+ALTER TABLE sales_workflow_orders ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'unpaid';
+ALTER TABLE sales_workflow_orders ADD COLUMN IF NOT EXISTS paid_amount NUMERIC(14,2) DEFAULT 0;
+ALTER TABLE sales_workflow_orders ADD COLUMN IF NOT EXISTS remaining_amount NUMERIC(14,2) DEFAULT 0;
+ALTER TABLE sales_workflow_orders ADD COLUMN IF NOT EXISTS payment_method TEXT;
+ALTER TABLE sales_workflow_orders ADD COLUMN IF NOT EXISTS due_date DATE;
+
+-- 5. RLS Policies (if not already set)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'finance_treasury_tx' AND policyname = 'allow_all') THEN
+    ALTER TABLE finance_treasury_tx ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY allow_all ON finance_treasury_tx FOR ALL USING (true) WITH CHECK (true);
+  END IF;
 END $$;
