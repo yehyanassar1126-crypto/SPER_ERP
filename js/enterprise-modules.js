@@ -1673,7 +1673,10 @@ Pages.pettyCash = function(el) {
     html += '<div id="view-treasury" style="display:' + (isProcurementOnly ? 'none' : 'block') + '">';
     html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">';
     html += '<h3>Treasury (الخزائن والبنوك)</h3>';
-    html += '<button class="btn btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ Add Safe/Bank (إضافة خزنة/بنك)</button>';
+    html += '<div style="display:flex;gap:8px">';
+    html += '<button class="btn btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ إضافة خزنة/بنك</button>';
+    html += '<button class="btn btn-outline" style="border-color:var(--accent-primary);color:var(--accent-primary)" onclick="window.showTransferModal()">🔄 تحويل بين الحسابات</button>';
+    html += '</div>';
     html += '</div>';
     html += '<div style="display:flex; gap:20px; margin-bottom:20px;">';
     
@@ -2155,6 +2158,67 @@ Pages.pettyCash = function(el) {
       if (res.error) return alert(res.error.message);
       showToast('✅ تم تحديث الحالة بنجاح', 'success');
       loadData();
+    });
+  };
+
+  // Transfer between accounts
+  window.showTransferModal = function() {
+    sbClient.from('finance_bank_accounts').select('*').then(function(bres) {
+      sbClient.from('finance_safes').select('*').then(function(sres) {
+        var allAccounts = [];
+        (sres.data||[]).forEach(function(s) { allAccounts.push({ type: 'safe', table: 'finance_safes', id: s.id, name: 'خزنة: ' + s.name, balance: Number(s.balance) }); });
+        (bres.data||[]).forEach(function(b) { allAccounts.push({ type: 'bank', table: 'finance_bank_accounts', id: b.id, name: 'بنك: ' + b.name, balance: Number(b.balance) }); });
+
+        var opts = '';
+        allAccounts.forEach(function(a, i) { opts += '<option value="' + i + '">' + a.name + ' (رصيد: ' + a.balance.toLocaleString() + ' EGP)</option>'; });
+
+        var body = '<div class="form-field"><label>من حساب (المصدر) *</label><select id="tf-from" class="form-input">' + opts + '</select></div>';
+        body += '<div class="form-field"><label>إلى حساب (الوجهة) *</label><select id="tf-to" class="form-input">' + opts + '</select></div>';
+        body += '<div class="form-field"><label>المبلغ (EGP) *</label><input type="number" id="tf-amount" class="form-input" min="1"></div>';
+        body += '<div class="form-field"><label>ملاحظات</label><input type="text" id="tf-notes" class="form-input" placeholder="سبب التحويل"></div>';
+
+        App.showModal('🔄 تحويل بين الحسابات', body,
+          '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-primary" id="tf-save">تأكيد التحويل</button>');
+
+        // Store accounts for reference
+        window._tfAccounts = allAccounts;
+
+        document.getElementById('tf-save').onclick = function() {
+          var fromIdx = Number(document.getElementById('tf-from').value);
+          var toIdx = Number(document.getElementById('tf-to').value);
+          var amount = parseFloat(document.getElementById('tf-amount').value) || 0;
+          var notes = document.getElementById('tf-notes').value;
+
+          if (fromIdx === toIdx) return alert('لا يمكن التحويل لنفس الحساب');
+          if (amount <= 0) return alert('المبلغ غير صحيح');
+
+          var fromAcc = window._tfAccounts[fromIdx];
+          var toAcc = window._tfAccounts[toIdx];
+
+          if (amount > fromAcc.balance) return alert('الرصيد غير كافي! المتاح: ' + fromAcc.balance.toLocaleString() + ' EGP');
+
+          this.disabled = true; this.textContent = 'جاري التحويل...';
+
+          // Deduct from source
+          sbClient.from(fromAcc.table).update({ balance: fromAcc.balance - amount }).eq('id', fromAcc.id).then(function(r1) {
+            if (r1.error) return alert('خطأ في الخصم: ' + r1.error.message);
+            // Add to destination
+            sbClient.from(toAcc.table).update({ balance: toAcc.balance + amount }).eq('id', toAcc.id).then(function(r2) {
+              if (r2.error) return alert('خطأ في الإيداع: ' + r2.error.message);
+              // Log the transfer
+              sbClient.from('finance_treasury_tx').insert({
+                type: 'transfer', method: 'internal_transfer', amount: amount,
+                description: 'تحويل من ' + fromAcc.name + ' إلى ' + toAcc.name + (notes ? ' — ' + notes : ''),
+                status: 'cleared', created_by: App.user.id, created_by_name: App.user.full_name
+              }).then(function() {
+                App.closeModal();
+                loadData();
+                showToast('✅ تم تحويل ' + amount.toLocaleString() + ' EGP من ' + fromAcc.name + ' إلى ' + toAcc.name, 'success');
+              });
+            });
+          });
+        };
+      });
     });
   };
 
