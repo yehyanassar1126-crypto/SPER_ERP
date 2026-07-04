@@ -497,11 +497,11 @@ var App = {
       if (canViewQuality) {
         menu.push({ section: 'Quality (الجودة)', items: [{ id: 'erp-quality', label: 'QC Inspections (فحص الجودة)', icon: 'checkCircle' }] });
       }
-      var canViewMaintenance = App.isOwner() || (App.user && (
+      var canViewMaintenance = (App.isOwner() || (App.user && (
         App.user.department === 'Production' || App.user.role === 'hall manager' ||
         App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician' ||
         App.user.role === 'hr manager'
-      ));
+      ))) && !App.isNursing();
 
       if (canViewMaintenance) {
         menu.push({ section: 'Maintenance (الصيانة)', items: [
@@ -509,12 +509,12 @@ var App = {
         ]});
       }
 
-      var canViewSpareParts = App.isOwner() || (App.user && (
+      var canViewSpareParts = (App.isOwner() || (App.user && (
         App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician' ||
         App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' ||
         App.user.department === 'Quality' || App.user.role === 'quality manager' ||
         App.user.role === 'hr manager' || App.user.department === 'Logistics' || App.user.role === 'spare parts inspector'
-      ));
+      ))) && !App.isNursing();
 
       if (canViewSpareParts) {
         menu.push({ section: 'Spare Parts (قطع الغيار)', items: [

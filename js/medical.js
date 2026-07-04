@@ -84,8 +84,11 @@ Pages.medicalRequests = function (el) {
     for (var i = 0; i < btnAppNurs.length; i++) {
       btnAppNurs[i].addEventListener('click', function() {
         if (!confirm('Confirm medical validity? (هل تؤكد صحة الطلب طبيًا؟)')) return;
+        var amount = prompt("Enter approved amount in EGP (أدخل المبلغ المعتمد للصرف، أو 0 إذا كان مجانياً):", "0");
+        if (amount === null || isNaN(parseFloat(amount))) return;
+        
         var id = this.getAttribute('data-id');
-        sbClient.from('medical_requests').update({ status: 'pending_manager' }).eq('id', id).then(function(res) {
+        sbClient.from('medical_requests').update({ status: 'pending_manager', amount: parseFloat(amount) }).eq('id', id).then(function(res) {
           if (res.error) alert(res.error.message); else { showToast('✅ Forwarded to Manager', 'success'); loadData(); }
         });
       });
@@ -97,8 +100,8 @@ Pages.medicalRequests = function (el) {
       btnAppMgr[i].addEventListener('click', function() {
         if (!confirm('Approve this request? (هل توافق على هذا الطلب؟)')) return;
         var id = this.getAttribute('data-id');
-        sbClient.from('medical_requests').update({ status: 'pending_finance' }).eq('id', id).then(function(res) {
-          if (res.error) alert(res.error.message); else { showToast('✅ Forwarded to Finance', 'success'); loadData(); }
+        sbClient.from('medical_requests').update({ status: 'pending_hr' }).eq('id', id).then(function(res) {
+          if (res.error) alert(res.error.message); else { showToast('✅ Forwarded to HR', 'success'); loadData(); }
         });
       });
     }
