@@ -712,7 +712,7 @@ Pages.inventory = function(el) {
           html += '<td>';
           if(m.status==='pending') {
             var isTool = m.requested_by && m.requested_by.indexOf('Maintenance (Tool)') !== -1;
-            html += '<button class="btn btn-xs btn-success" onclick="issueMaterial(\''+m.id+'\',\''+m.item_id+'\','+m.quantity_needed+', ' + isTool + ')">✅ Issue (صرف)</button>';
+            html += '<button class="btn btn-xs btn-success" onclick="issueMaterial(\''+m.id+'\',\''+m.item_id+'\','+m.quantity_needed+', ' + isTool + ', this)">✅ Issue (صرف)</button>';
             html += ' <button class="btn btn-xs btn-danger" onclick="rejectMaterial(\''+m.id+'\')">❌ Reject</button>';
           } else if(m.status === 'tool_out') {
             html += '<button class="btn btn-xs btn-primary" onclick="returnToolMaterial(\''+m.id+'\',\''+m.item_name.replace(/'/g,"\\'")+'\','+m.quantity_needed+')">🔄 Return (تم استرجاعها)</button>';
@@ -990,7 +990,6 @@ Pages.inventory = function(el) {
       var select = document.getElementById('tx-item');
       var itemId = select.value;
       var itemName = select.options[select.selectedIndex].text.split(' (')[0];
-      var currentQty = parseInt(select.options[select.selectedIndex].getAttribute('data-qty'));
       
       var type = document.getElementById('tx-type').value;
       var qty = parseInt(document.getElementById('tx-qty').value);
@@ -998,29 +997,53 @@ Pages.inventory = function(el) {
       var newSupplier = document.getElementById('tx-supplier').value;
       var newPrice = document.getElementById('tx-price').value;
 
-      if(!itemId || !qty) return alert('Please fill all fields');
-      if(type === 'out' && qty > currentQty) return alert('Not enough stock! Current stock: ' + currentQty);
+      if(!itemId || isNaN(qty) || qty <= 0) return alert('Please fill all fields with valid positive quantity');
 
-      var newQty = type === 'in' ? currentQty + qty : currentQty - qty;
-      var updateData = { quantity: newQty };
-      if (type === 'in') {
-        if (newSupplier) updateData.supplier_name = newSupplier;
-        if (newPrice) updateData.last_purchase_price = parseFloat(newPrice);
-      }
+      document.getElementById('save-tx-btn').disabled = true;
+      document.getElementById('save-tx-btn').textContent = 'Processing...';
 
-      sbClient.from('inventory_items').update(updateData).eq('id', itemId).then(function(r) {
-        if(r.error) return alert(r.error.message);
-        
-        sbClient.from('inventory_transactions').insert([{
-          item_id: itemId, item_name: itemName, transaction_type: type, quantity: qty,
-          requested_by: reqBy, processed_by: App.user.full_name
-        }]).then(function(r2) {
-          if(r2.error) return alert(r2.error.message);
-          App.closeModal();
-          loadData();
-          showToast('Transaction processed successfully', 'success');
+      // Re-fetch current quantity to avoid concurrency issues
+      sbClient.from('inventory_items').select('quantity').eq('id', itemId).single().then(function(res) {
+        if (res.error || !res.data) {
+          alert('Item not found in database');
+          return resetBtn();
+        }
+        var currentQty = res.data.quantity;
+
+        if (type === 'out' && qty > currentQty) {
+          alert('Not enough stock! Current database stock is: ' + currentQty);
+          return resetBtn();
+        }
+
+        var newQty = type === 'in' ? currentQty + qty : currentQty - qty;
+        var updateData = { quantity: newQty };
+        if (type === 'in') {
+          if (newSupplier) updateData.supplier_name = newSupplier;
+          if (newPrice) updateData.last_purchase_price = parseFloat(newPrice);
+        }
+
+        sbClient.from('inventory_items').update(updateData).eq('id', itemId).then(function(r) {
+          if(r.error) {
+            alert(r.error.message);
+            return resetBtn();
+          }
+          
+          sbClient.from('inventory_transactions').insert([{
+            item_id: itemId, item_name: itemName, transaction_type: type, quantity: qty,
+            requested_by: reqBy, processed_by: App.user.full_name
+          }]).then(function(r2) {
+            if(r2.error) return alert(r2.error.message);
+            App.closeModal();
+            loadData();
+            showToast('Transaction processed successfully', 'success');
+          });
         });
       });
+
+      function resetBtn() {
+        var btn = document.getElementById('save-tx-btn');
+        if (btn) { btn.disabled = false; btn.textContent = 'Process Transaction'; }
+      }
     });
   };
 
@@ -1066,14 +1089,19 @@ Pages.inventory = function(el) {
     });
   };
 
-  window.issueMaterial = function(mrId, itemId, qty, isTool) {
+  window.issueMaterial = function(mrId, itemId, qty, isTool, btnEl) {
+    if (isNaN(qty) || qty <= 0) return alert('Invalid requested quantity');
     var confirmMsg = isTool ? 'Issue ' + qty + ' units as a Tool (عُهدة) to Maintenance?' : 'Issue ' + qty + ' units from Warehouse?';
     if(!confirm(confirmMsg)) return;
+
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Processing...'; }
+
+    var resetBtn = function() { if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Issue (صرف)'; } };
 
     var doIssue = function() {
       var nextStatus = isTool ? 'tool_out' : 'issued';
       sbClient.from('material_requests').update({status: nextStatus, quantity_issued: qty, approved_by: App.user.full_name}).eq('id', mrId).then(function(r2) {
-        if(r2.error) return alert(r2.error.message);
+        if(r2.error) { alert(r2.error.message); return resetBtn(); }
         
         if(itemId && itemId !== 'null' && itemId !== 'undefined') {
           var item = items.find(function(i){return i.id===itemId});
@@ -1094,11 +1122,11 @@ Pages.inventory = function(el) {
 
     if(itemId && itemId !== 'null' && itemId !== 'undefined') {
       sbClient.from('inventory_items').select('quantity').eq('id', itemId).single().then(function(res) {
-        if(res.error || !res.data) return alert('Item not found');
+        if(res.error || !res.data) { alert('Item not found'); return resetBtn(); }
         var currentQty = res.data.quantity;
-        if(qty > currentQty) return alert('Not enough stock! Current: ' + currentQty);
+        if(qty > currentQty) { alert('Not enough stock! Current: ' + currentQty); return resetBtn(); }
         sbClient.from('inventory_items').update({quantity: currentQty - qty}).eq('id', itemId).then(function(r) {
-          if(r.error) return alert(r.error.message);
+          if(r.error) { alert(r.error.message); return resetBtn(); }
           doIssue();
         });
       });

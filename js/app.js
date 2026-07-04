@@ -124,8 +124,9 @@ var App = {
 
   isOwner: function () { return App.user && App.user.role === 'owner'; },
   isHR: function () { return App.user && ['owner', 'hr manager', 'hr'].indexOf(App.user.role) !== -1; },
-  isManager: function () { return App.user && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager'].indexOf(App.user.role) !== -1; },
-  getRoleLevel: function (r) { return r === 'owner' ? 6 : r === 'hr manager' ? 5 : r === 'hr' ? 4 : r === 'hall manager' ? 3 : r === 'department head' ? 2 : 1; },
+  isManager: function () { return App.user && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager', 'nursing management'].indexOf(App.user.role) !== -1; },
+  isNursing: function () { return App.user && App.user.role === 'nursing management'; },
+  getRoleLevel: function (r) { return r === 'owner' ? 6 : r === 'hr manager' ? 5 : r === 'hr' ? 4 : (r === 'hall manager' || r === 'nursing management') ? 3 : r === 'department head' ? 2 : 1; },
 
   showLoginError: function (msg) {
     var el = document.getElementById('login-error');
@@ -363,6 +364,32 @@ var App = {
         ];
       } else if (App.user && App.user.role === 'supplier_external') {
         menu = [];
+      } else if (App.isNursing()) {
+        menu = [
+          { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
+          {
+            section: 'Nursing Management (إدارة التمريض)', items: [
+              { id: 'nursing-medical-approvals', label: '🏥 Medical Approvals (موافقات طبية)', icon: 'heart' },
+            ]
+          },
+          {
+            section: 'My Info', items: [
+              { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
+              { id: 'scan-checkin', label: 'Check-In (حضور)', icon: 'logIn' },
+              { id: 'scan-checkout', label: 'Check-Out (انصراف)', icon: 'logOut' },
+              { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
+              { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
+              { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
+              { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
+              { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
+              { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
+              { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
+              { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
+              { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
+            ]
+          },
+          { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
+        ];
       } else {
         menu = [
           { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
@@ -573,6 +600,7 @@ var App = {
       'my-loans': { title: 'My Loans', sub: 'Your loan requests and remaining balance' },
       'medical-requests': { title: 'Medical Requests', sub: 'Manage medical needs and disbursements' },
       'my-medical': { title: 'My Medical Needs', sub: 'Upload medical needs and receipts' },
+      'nursing-medical-approvals': { title: '🏥 Medical Approvals (موافقات طبية)', sub: 'Review employee medical requests' },
       'ai-mind': { title: 'AI Mind', sub: 'Neural-powered workforce intelligence' },
       'org-directory': { title: 'Company Directory', sub: 'Interactive Org Chart & Skills Finder' },
       'shift-swap': { title: 'Shift Marketplace', sub: 'Request and accept shift swaps intelligently' },
@@ -675,7 +703,8 @@ var App = {
       case 'uniforms': App.isHR() ? Pages.uniforms(el) : Pages.empDashboard(el); break;
       case 'loans': App.isHR() ? Pages.loans(el) : Pages.empDashboard(el); break;
       case 'my-loans': Pages.myLoans(el); break;
-      case 'medical-requests': App.isHR() ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
+      case 'medical-requests': (App.isHR() || App.isManager()) ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
+      case 'nursing-medical-approvals': App.isNursing() ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
       case 'my-medical': Pages.myMedical(el); break;
       case 'ai-mind': (App.isHR() || App.isManager()) ? Pages.aiMind(el) : Pages.empDashboard(el); break;
       case 'org-directory': Pages.orgDirectory(el); break;
@@ -1466,6 +1495,7 @@ Pages.employees = function (el) {
     if (myLevel >= 2) roleOptions += '<option value="spare parts inspector" ' + (emp && emp.role === 'spare parts inspector' ? 'selected' : '') + '>Spare Parts Inspector (مراقب قطع غيار)</option>';
     if (myLevel >= 2) roleOptions += '<option value="technical office" ' + (emp && emp.role === 'technical office' ? 'selected' : '') + '>Technical Office (مكتب فني)</option>';
     if (myLevel >= 2) roleOptions += '<option value="it" ' + (emp && emp.role === 'it' ? 'selected' : '') + '>IT Support (دعم فني)</option>';
+    if (myLevel >= 3) roleOptions += '<option value="nursing management" ' + (emp && emp.role === 'nursing management' ? 'selected' : '') + '>Nursing Management (إدارة التمريض)</option>';
     if (myLevel >= 2) roleOptions += '<option value="employee" ' + (!emp || emp.role === 'employee' ? 'selected' : '') + '>Employee (موظف)</option>';
 
     body += '<div class="form-row"><div class="form-field"><label>System Role *</label><select id="ef-role">' + roleOptions + '</select></div><div class="form-field"><label>Department *</label><select id="ef-dept">';
