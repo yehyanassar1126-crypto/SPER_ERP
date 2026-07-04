@@ -3109,11 +3109,11 @@ Pages.payroll = function (el) {
 
     if (document.getElementById('add-payroll')) {
       document.getElementById('add-payroll').addEventListener('click', function () {
-        sbClient.from('users').select('id, full_name, base_salary, department, insurance_active, insurance_start').eq('status', 'active').then(function (res) {
+        sbClient.from('users').select('id, full_name, base_salary, department, insurance_active, insurance_start, created_at').eq('status', 'active').then(function (res) {
           var users = res.data || [];
           var monthVal = new Date().toISOString().substring(0, 7);
           var b = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="pf-emp"><option value="">-- Select --</option>';
-          users.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-base="' + (u.base_salary || 0) + '" data-dept="' + u.department + '" data-insured="' + (u.insurance_active ? '1' : '0') + '" data-pos="' + (u.position || '') + '">' + u.full_name + ' - ' + u.department + (u.insurance_active ? '' : ' (No Insurance)') + '</option>'; });
+          users.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-base="' + (u.base_salary || 0) + '" data-dept="' + u.department + '" data-insured="' + (u.insurance_active ? '1' : '0') + '" data-pos="' + (u.position || '') + '" data-hire="' + (u.created_at || '') + '">' + u.full_name + ' - ' + u.department + (u.insurance_active ? '' : ' (No Insurance)') + '</option>'; });
           b += '</select></div><div class="form-field"><label>Month *</label><input type="month" id="pf-m" value="' + monthVal + '"></div></div>';
           b += '<div id="pf-calc-result" style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:1px solid var(--border-color);margin-bottom:16px;display:none"><p style="color:var(--text-muted);text-align:center">Select an employee and click Calculate</p></div>';
           b += '<div class="form-row"><div class="form-field"><label>Extra HR Bonus (Manual)</label><input type="number" id="pf-extra-b" value="0"></div><div class="form-field"><label>Extra HR Penalty (Manual)</label><input type="number" id="pf-extra-p" value="0"></div></div>';
@@ -3130,6 +3130,7 @@ Pages.payroll = function (el) {
             var empDept = opt.getAttribute('data-dept') + (opt.getAttribute('data-pos').indexOf('(عامل يومية)') !== -1 ? ' (عامل يومية)' : '');
             var base = Number(opt.getAttribute('data-base')) || 0;
             var isInsured = opt.getAttribute('data-insured') === '1';
+            var hireDateStr = opt.getAttribute('data-hire');
             var month = document.getElementById('pf-m').value;
             if (!month) { alert('Select a month'); return; }
 
@@ -3147,12 +3148,16 @@ Pages.payroll = function (el) {
               sbClient.from('overtime').select('hours, rate').eq('employee_id', empId).eq('status', 'approved').gte('date', monthStart).lte('date', monthEnd),
               sbClient.from('salary_adjustments').select('type, amount').eq('employee_id', empId).eq('status', 'approved').eq('month', month),
               sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', empId).gte('date', monthStart).lte('date', monthEnd),
-              sbClient.from('leave_requests').select('start_date, end_date, days').eq('employee_id', empId).eq('status', 'approved').gte('start_date', monthStart).lte('end_date', monthEnd)
+              sbClient.from('leave_requests').select('start_date, end_date, days').eq('employee_id', empId).eq('status', 'approved').gte('start_date', monthStart).lte('end_date', monthEnd),
+              sbClient.from('medical_requests').select('amount, created_at').eq('employee_id', empId).eq('status', 'disbursed')
             ]).then(function (results) {
               var otRecords = results[0].data || [];
               var adjRecords = results[1].data || [];
               var attRecords = results[2].data || [];
               var leaveRecords = results[3].data || [];
+              var medicalRecords = (results[4].data || []).filter(function(m) {
+                return m.created_at.substring(0, 7) === month;
+              });
 
               var dailyRate = Math.round(base / 30);
 
@@ -3169,8 +3174,11 @@ Pages.payroll = function (el) {
                 else totalPenalties += (adj.amount || 0);
               });
 
+              // Medical Disbursed
+              var totalMedical = 0;
+              medicalRecords.forEach(function (m) { totalMedical += (m.amount || 0); });
+
               // EXACT MATCH WITH EMPLOYEE DASHBOARD
-              var earnedSoFar = 0;
               var totalLateDeduction = 0;
               attRecords.forEach(function (att) {
                 if (att.status === 'leave') return;
@@ -3182,9 +3190,7 @@ Pages.payroll = function (el) {
                   else if (dm > 15) lateDed = dailyRate * 0.25;
                 }
                 lateDed = Math.round(lateDed);
-                var dayNet = Math.max(0, dailyRate - lateDed);
                 totalLateDeduction += lateDed;
-                earnedSoFar += dayNet;
               });
 
               // Calculate approved leave days in this month
@@ -3226,29 +3232,27 @@ Pages.payroll = function (el) {
                 }
               }
 
-              // Calculate absence explicitly
-              var expectedWorkDays = lastDay - totalFridaysInMonth;
-              var missingWorkDays = Math.max(0, expectedWorkDays - (attRecords.length + Math.floor(approvedLeaveDays)));
-              var unpaidFridays = totalFridaysInMonth - fridaysCount;
-              var totalMissedDays = missingWorkDays + unpaidFridays;
-              
+              var attendedDays = attRecords.length;
+              var paidDaysDisplay = attendedDays + fridaysCount;
+
+              // Use a standard 30-day baseline for salary calculation.
+              // This perfectly prorates new hires and handles 28/31-day months correctly.
+              var totalPaidDays = attendedDays + fridaysCount + Math.floor(approvedLeaveDays);
+              var totalMissedDays = Math.max(0, 30 - totalPaidDays);
               var calculatedAbsenceDeductions = Math.round(totalMissedDays * dailyRate);
 
               var earnedSoFar = base; // Start from full 30 days base
-
-              var attendedDays = attRecords.length;
-              var paidDaysDisplay = attendedDays + fridaysCount;
               var extraB = Number(document.getElementById('pf-extra-b').value) || 0;
               var extraP = Number(document.getElementById('pf-extra-p').value) || 0;
 
-              var totalEarnings = earnedSoFar + totalOTPay + totalBonuses + extraB;
+              var totalEarnings = earnedSoFar + totalOTPay + totalBonuses + extraB + totalMedical;
               var totalDeductions = totalPenalties + extraP + totalLateDeduction + calculatedAbsenceDeductions;
               var net = totalEarnings - totalDeductions;
 
               calcData = {
                 employee_id: empId, employee_name: empName, department: empDept,
                 month: month, base_salary: base,
-                overtime_pay: totalOTPay, bonuses: totalBonuses + extraB,
+                overtime_pay: totalOTPay, bonuses: totalBonuses + extraB + totalMedical,
                 performance_bonus: 0,
                 penalties: totalPenalties + extraP,
                 late_deductions: totalLateDeduction, absence_deductions: calculatedAbsenceDeductions,
@@ -3276,6 +3280,7 @@ Pages.payroll = function (el) {
                 '<div style="color:var(--accent-primary)">Base Salary (30 Days):</div><div style="font-weight:600;color:var(--accent-primary)">EGP ' + base.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-success)">Overtime (' + otRecords.length + ' records):</div><div style="font-weight:600;color:var(--accent-success)">+EGP ' + totalOTPay.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-info)">Bonuses (' + adjRecords.filter(function (a) { return a.type === "bonus" }).length + ' approved):</div><div style="font-weight:600;color:var(--accent-info)">+EGP ' + (totalBonuses + extraB).toLocaleString() + '</div>' +
+                '<div style="color:var(--accent-info)">Medical Allowances:</div><div style="font-weight:600;color:var(--accent-info)">+EGP ' + totalMedical.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-danger)">Penalties:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + (totalPenalties + extraP).toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-warning)">⏰ Late Deductions:</div><div style="font-weight:600;color:var(--accent-warning)">-EGP ' + totalLateDeduction.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-danger)">🚫 Absence Deductions:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + calculatedAbsenceDeductions.toLocaleString() + ' (' + totalMissedDays + ' days)</div>' +
