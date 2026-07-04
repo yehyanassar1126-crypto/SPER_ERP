@@ -282,8 +282,9 @@ var App = {
               { id: 'documents', label: 'Documents', icon: 'fileText' },
               { id: 'performance', label: 'Performance', icon: 'trendingUp' },
               { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
-              { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
               { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
+              { id: 'nursing-medical-approvals', label: '🏥 Medical Approvals (موافقات طبية)', icon: 'heart' },
+              { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
               { id: 'expenses', label: 'Expenses', icon: 'receipt' },
               { id: 'complaints', label: 'Disciplinary & Grievances', icon: 'gavel' },
               { id: 'friday-work', label: 'Friday Work (عمل الجمعة)', icon: 'calendarPlus' },
@@ -704,7 +705,7 @@ var App = {
       case 'loans': App.isHR() ? Pages.loans(el) : Pages.empDashboard(el); break;
       case 'my-loans': Pages.myLoans(el); break;
       case 'medical-requests': (App.isHR() || App.isManager()) ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
-      case 'nursing-medical-approvals': App.isNursing() ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
+      case 'nursing-medical-approvals': (App.isNursing() || App.isHR() || App.isOwner()) ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
       case 'my-medical': Pages.myMedical(el); break;
       case 'ai-mind': (App.isHR() || App.isManager()) ? Pages.aiMind(el) : Pages.empDashboard(el); break;
       case 'org-directory': Pages.orgDirectory(el); break;
