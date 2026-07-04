@@ -1676,10 +1676,19 @@ Pages.pettyCash = function(el) {
     html += '<button class="btn btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ Add Safe/Bank (إضافة خزنة/بنك)</button>';
     html += '</div>';
     html += '<div style="display:flex; gap:20px; margin-bottom:20px;">';
-    var totalSafe = safes.reduce((a,b)=>a+Number(b.balance),0);
-    var totalBank = banks.reduce((a,b)=>a+Number(b.balance),0);
-    html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي الخزائن</h4><h2 style="color:var(--accent-success)">EGP ' + totalSafe.toLocaleString() + '</h2></div></div>';
-    html += '<div class="card" style="flex:1"><div class="card-body"><h4>إجمالي البنوك</h4><h2 style="color:var(--accent-primary)">EGP ' + totalBank.toLocaleString() + '</h2></div></div>';
+    
+    html += '<div class="card" style="flex:1"><div class="card-header"><h3>الخزائن (Safes)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الاسم</th><th>الرصيد</th></tr></thead><tbody>';
+    var totalSafe = 0;
+    safes.forEach(s => { html += '<tr><td>'+s.name+'</td><td>'+Number(s.balance).toLocaleString()+'</td></tr>'; totalSafe += Number(s.balance); });
+    html += '<tr style="background:rgba(0,0,0,0.03)"><td style="font-weight:bold">الإجمالي</td><td style="font-weight:bold;color:var(--accent-success);font-size:1.1rem">'+totalSafe.toLocaleString()+' EGP</td></tr>';
+    html += '</tbody></table></div></div>';
+
+    html += '<div class="card" style="flex:1"><div class="card-header"><h3>البنوك (Banks)</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>الاسم</th><th>الرصيد</th></tr></thead><tbody>';
+    var totalBank = 0;
+    banks.forEach(b => { html += '<tr><td>'+b.name+'</td><td>'+Number(b.balance).toLocaleString()+'</td></tr>'; totalBank += Number(b.balance); });
+    html += '<tr style="background:rgba(0,0,0,0.03)"><td style="font-weight:bold">الإجمالي</td><td style="font-weight:bold;color:var(--accent-primary);font-size:1.1rem">'+totalBank.toLocaleString()+' EGP</td></tr>';
+    html += '</tbody></table></div></div>';
+    
     html += '</div>';
     html += '</div>';
 
@@ -1720,10 +1729,21 @@ Pages.pettyCash = function(el) {
 
     // 6. Petty Cash
     html += '<div id="view-petty" style="display:' + (isProcurementOnly ? 'block' : 'none') + '">';
-    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Petty Cash & Advances (العهد والسلف)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'petty\')">➕ صرف نقدية</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>طريقة الصرف</th><th>المبلغ</th></tr></thead><tbody>';
-    var pcTxs = txs.filter(t => t.type === 'petty_cash');
-    pcTxs.forEach(t => { html += '<tr><td>'+formatDate(t.created_at)+'</td><td>'+t.type+'</td><td>'+t.method+'</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td></tr>'; });
-    if(pcTxs.length===0) html += '<tr><td colspan="4" style="text-align:center">لا يوجد عهد</td></tr>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Petty Cash & Advances (العهد والسلف والشيكات)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'petty\')">➕ صرف نقدية / شيك</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>الموظف</th><th>البيان</th><th>طريقة الصرف</th><th>المبلغ</th><th>حالة الشيك</th></tr></thead><tbody>';
+    var pcTxs = txs.filter(t => t.type === 'petty_cash' || t.type === 'check_issued');
+    pcTxs.forEach(t => { 
+      var chkStatus = '-';
+      if (t.method === 'check') {
+        if (t.status === 'cleared') {
+          chkStatus = '<span style="color:var(--accent-success)">✅ تم الصرف (' + (t.cleared_account||'') + ')</span>';
+        } else {
+          chkStatus = '<button class="btn btn-xs btn-outline" style="border-color:var(--accent-primary);color:var(--accent-primary)" onclick="window.clearCheck(\'' + t.id + '\')">⏳ معلق - تحديث للصرف</button>';
+        }
+      }
+      var empName = t.employee_name || t.created_by_name || '-';
+      html += '<tr><td>'+formatDate(t.created_at)+'</td><td>'+empName+'</td><td>'+(t.description||'-')+'</td><td>'+t.method+'</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td><td>'+chkStatus+'</td></tr>'; 
+    });
+    if(pcTxs.length===0) html += '<tr><td colspan="6" style="text-align:center">لا يوجد عهد أو شيكات</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 7. Reports
@@ -2059,12 +2079,19 @@ Pages.pettyCash = function(el) {
         }
         else if (type === 'petty') {
           var empId = document.getElementById('fin-employee').value;
+          var empName = document.getElementById('fin-employee').options[document.getElementById('fin-employee').selectedIndex].text.split(' (')[0];
+          var method = document.getElementById('fin-method').value;
           if (!empId) return alert('اختر الموظف');
           sbClient.from('finance_treasury_tx').insert({
-            type: 'petty_cash', method: document.getElementById('fin-method').value,
+            type: method === 'check' ? 'check_issued' : 'petty_cash', 
+            status: method === 'check' ? 'pending' : 'cleared',
+            method: method,
             amount: parseFloat(document.getElementById('fin-amount').value) || 0,
             description: document.getElementById('fin-desc').value,
-            employee_id: empId, created_by: App.user.id, created_by_name: App.user.full_name
+            employee_id: empId, 
+            employee_name: empName,
+            created_by: App.user.id, 
+            created_by_name: App.user.full_name
           }).then(function(r) {
             if (r.error) return alert(r.error.message);
             showToast('✅ تم صرف النقدية', 'success'); App.closeModal(); loadData();
@@ -2072,6 +2099,41 @@ Pages.pettyCash = function(el) {
         }
       });
     }, 200);
+  };
+
+  // Check Clearance Logic
+  window.clearCheck = function(id) {
+    sbClient.from('finance_bank_accounts').select('*').then(function(bres) {
+      sbClient.from('finance_safes').select('*').then(function(sres) {
+        var opts = '';
+        (bres.data||[]).forEach(b => { opts += '<option value="bank|'+b.id+'|'+b.name+'">بنك: '+b.name+'</option>'; });
+        (sres.data||[]).forEach(s => { opts += '<option value="safe|'+s.id+'|'+s.name+'">خزنة: '+s.name+'</option>'; });
+        
+        var body = '<div class="form-field"><label>صرف من حساب *</label><select id="chk-acc" class="form-input">'+opts+'</select></div>';
+        
+        App.showModal('تأكيد صرف الشيك', body, 
+          '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="chk-confirm">تأكيد الصرف</button>');
+        
+        document.getElementById('chk-confirm').onclick = function() {
+          var sel = document.getElementById('chk-acc').value.split('|');
+          var accType = sel[0];
+          var accId = sel[1];
+          var accName = sel[2];
+          
+          this.disabled = true; this.innerHTML = 'جاري التحديث...';
+          sbClient.from('finance_treasury_tx').update({
+            status: 'cleared',
+            cleared_account: accName
+          }).eq('id', id).then(function(res) {
+            if(res.error) return alert(res.error.message);
+            // Optionally deduct from actual balance
+            App.closeModal();
+            loadData();
+            showToast('✅ تم تأكيد صرف الشيك من: ' + accName, 'success');
+          });
+        };
+      });
+    });
   };
 
   loadData();
