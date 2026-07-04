@@ -1957,10 +1957,21 @@ Pages.pettyCash = function(el) {
     var title = '';
 
     if (type === 'treasury') {
-      title = '➕ إضافة خزنة / بنك';
-      body = '<div class="form-field"><label>النوع *</label><select id="fin-type" class="form-input"><option value="safe">خزنة (Safe)</option><option value="bank">بنك (Bank)</option></select></div>';
+      title = '➕ إضافة خزنة / بنك / شيك';
+      body = '<div class="form-field"><label>النوع *</label><select id="fin-type" class="form-input" onchange="var c=document.getElementById(\'fin-check-fields\');var s=document.getElementById(\'fin-safe-fields\');if(this.value===\'check\'){c.style.display=\'block\';s.style.display=\'none\';}else{c.style.display=\'none\';s.style.display=\'block\';}"><option value="safe">خزنة (Safe)</option><option value="bank">بنك (Bank)</option><option value="check">شيك (Check)</option></select></div>';
+      // Safe/Bank fields
+      body += '<div id="fin-safe-fields">';
       body += '<div class="form-field"><label>الاسم *</label><input type="text" id="fin-name" class="form-input" placeholder="مثلاً: الخزنة الرئيسية"></div>';
       body += '<div class="form-field"><label>الرصيد الافتتاحي (EGP)</label><input type="number" id="fin-balance" class="form-input" value="0"></div>';
+      body += '</div>';
+      // Check fields
+      body += '<div id="fin-check-fields" style="display:none">';
+      body += '<div class="form-field"><label>رقم الشيك *</label><input type="text" id="fin-check-num" class="form-input" placeholder="CHK-001"></div>';
+      body += '<div class="form-field"><label>المستفيد *</label><input type="text" id="fin-check-beneficiary" class="form-input" placeholder="اسم الشخص أو الجهة"></div>';
+      body += '<div class="form-field"><label>المبلغ (EGP) *</label><input type="number" id="fin-check-amount" class="form-input"></div>';
+      body += '<div class="form-field"><label>تاريخ الاستحقاق *</label><input type="date" id="fin-check-date" class="form-input"></div>';
+      body += '<div class="form-field"><label>البيان</label><input type="text" id="fin-check-desc" class="form-input" placeholder="سبب إصدار الشيك"></div>';
+      body += '</div>';
     }
     else if (type === 'client') {
       title = '➕ إضافة عميل جديد';
@@ -2045,12 +2056,33 @@ Pages.pettyCash = function(el) {
 
         if (type === 'treasury') {
           var tType = document.getElementById('fin-type').value;
-          var tbl = tType === 'bank' ? 'finance_bank_accounts' : 'finance_safes';
-          sbClient.from(tbl).insert({ name: document.getElementById('fin-name').value, balance: parseFloat(document.getElementById('fin-balance').value) || 0 }).then(function(r) {
-            if (r.error) return alert(r.error.message);
-            showToast('✅ تم إضافة ' + (tType === 'bank' ? 'البنك' : 'الخزنة'), 'success');
-            App.closeModal(); loadData();
-          });
+          if (tType === 'check') {
+            // Issue a check
+            var chkNum = document.getElementById('fin-check-num').value;
+            var chkBen = document.getElementById('fin-check-beneficiary').value;
+            var chkAmt = parseFloat(document.getElementById('fin-check-amount').value) || 0;
+            var chkDate = document.getElementById('fin-check-date').value;
+            var chkDesc = document.getElementById('fin-check-desc').value;
+            if (!chkNum || !chkBen || !chkAmt) return alert('يرجى ملء بيانات الشيك');
+            sbClient.from('finance_treasury_tx').insert({
+              type: 'check_issued', method: 'check', amount: chkAmt,
+              status: 'pending', check_number: chkNum, 
+              description: 'شيك رقم ' + chkNum + ' — ' + chkBen + (chkDesc ? ' — ' + chkDesc : ''),
+              employee_name: chkBen, check_due_date: chkDate || null,
+              created_by: App.user.id, created_by_name: App.user.full_name
+            }).then(function(r) {
+              if (r.error) return alert(r.error.message);
+              showToast('✅ تم إصدار الشيك رقم ' + chkNum, 'success');
+              App.closeModal(); loadData();
+            });
+          } else {
+            var tbl = tType === 'bank' ? 'finance_bank_accounts' : 'finance_safes';
+            sbClient.from(tbl).insert({ name: document.getElementById('fin-name').value, balance: parseFloat(document.getElementById('fin-balance').value) || 0 }).then(function(r) {
+              if (r.error) return alert(r.error.message);
+              showToast('✅ تم إضافة ' + (tType === 'bank' ? 'البنك' : 'الخزنة'), 'success');
+              App.closeModal(); loadData();
+            });
+          }
         }
         else if (type === 'client') {
           sbClient.from('finance_clients').insert({ name: document.getElementById('fin-name').value, phone: document.getElementById('fin-phone').value, email: document.getElementById('fin-email').value, balance: parseFloat(document.getElementById('fin-balance').value) || 0 }).then(function(r) {
