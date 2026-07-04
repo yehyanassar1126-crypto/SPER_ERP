@@ -124,7 +124,7 @@ var App = {
 
   isOwner: function () { return App.user && App.user.role === 'owner'; },
   isHR: function () { return App.user && ['owner', 'hr manager', 'hr'].indexOf(App.user.role) !== -1; },
-  isManager: function () { return App.user && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager', 'nursing management'].indexOf(App.user.role) !== -1; },
+  isManager: function () { return App.user && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager'].indexOf(App.user.role) !== -1; },
   isNursing: function () { return App.user && App.user.role === 'nursing management'; },
   getRoleLevel: function (r) { return r === 'owner' ? 6 : r === 'hr manager' ? 5 : r === 'hr' ? 4 : (r === 'hall manager' || r === 'nursing management') ? 3 : r === 'department head' ? 2 : 1; },
 
