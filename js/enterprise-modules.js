@@ -2477,49 +2477,85 @@ Pages.pettyCash = function(el) {
         body += '<strong>المبلغ:</strong> <span style="font-size:1.1rem;font-weight:bold;color:'+(type==='sales'?'var(--accent-success)':'var(--accent-danger)')+'">' + amount.toLocaleString() + ' EGP</span><br>';
         body += '<strong>الطرف الآخر:</strong> ' + name;
         body += '</div>';
-        body += '<div class="form-field"><label>الحساب (خزنة / بنك) *</label><select id="pay-acc" class="form-input">'+opts+'</select></div>';
+
+        body += '<div class="form-field"><label>طريقة الدفع *</label><select id="pay-method" class="form-input" onchange="var c=document.getElementById(\'pay-chk\'); if(this.value===\'check\'){c.style.display=\'block\';}else{c.style.display=\'none\';}"><option value="cash_or_bank">نقد / تحويل بنكي (Cash / Transfer)</option><option value="check">شيك (Check)</option></select></div>';
+        
+        body += '<div class="form-field"><label>الحساب المرتبط (خزنة / بنك) *</label><select id="pay-acc" class="form-input">'+opts+'</select></div>';
+        
+        body += '<div id="pay-chk" style="display:none;background:rgba(0,0,0,0.03);padding:10px;border-radius:8px;margin-bottom:12px">';
+        body += '<div class="form-field"><label>رقم الشيك *</label><input type="text" id="pay-chk-num" class="form-input"></div>';
+        body += '<div class="form-field"><label>تاريخ الاستحقاق *</label><input type="date" id="pay-chk-date" class="form-input"></div>';
+        body += '</div>';
         
         App.showModal(title, body, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="pay-confirm">تأكيد العملية</button>');
 
         document.getElementById('pay-confirm').onclick = function() {
           var accIdx = document.getElementById('pay-acc').value;
           var acc = allAccs[accIdx];
+          var method = document.getElementById('pay-method').value;
+          var isCheck = method === 'check';
           
-          if(type === 'purchase' && amount > acc.balance) return alert('الرصيد غير كافي في ' + acc.name);
+          if(type === 'purchase' && !isCheck && amount > acc.balance) return alert('الرصيد غير كافي في ' + acc.name);
+
+          var chkNum = null, chkDate = null;
+          if (isCheck) {
+            chkNum = document.getElementById('pay-chk-num').value;
+            chkDate = document.getElementById('pay-chk-date').value;
+            if (!chkNum || !chkDate) return alert('يرجى إدخال رقم الشيك وتاريخ الاستحقاق');
+          }
 
           this.disabled = true; this.innerHTML = 'جاري المعالجة...';
 
-          var newBal = type === 'sales' ? (acc.balance + amount) : (acc.balance - amount);
+          var desc = (type === 'sales' ? 'تحصيل مبيعات من العميل: ' : 'سداد مشتريات للمورد: ') + name + ' (طلب: ' + orderId.split('-')[0].toUpperCase() + ')';
           
-          // Update Account Balance
-          sbClient.from(acc.table).update({ balance: newBal }).eq('id', acc.id).then(function(r1) {
-            if(r1.error) return alert(r1.error.message);
-
-            // Log Transaction
-            var desc = (type === 'sales' ? 'تحصيل مبيعات من العميل: ' : 'سداد مشتريات للمورد: ') + name + ' (طلب: ' + orderId.split('-')[0].toUpperCase() + ')';
-            sbClient.from('finance_treasury_tx').insert({
-              type: type === 'sales' ? 'client_payment' : 'supplier_payment',
-              method: acc.type === 'bank' ? 'bank_transfer' : 'cash',
-              amount: amount, description: desc, status: 'cleared', cleared_account: acc.name,
-              created_by: App.user.id, created_by_name: App.user.full_name
-            }).then(function() {
-              
-              // Update Original Order
+          function finalizeOrder() {
               if (type === 'sales') {
                 sbClient.from('sales_workflow_orders').update({
                   status: 'Paid - Awaiting Pickup', paid_amount: amount, remaining_amount: 0, payment_status: 'paid'
                 }).eq('id', orderId).then(function() {
-                  App.closeModal(); loadData(); showToast('✅ تم تحصيل المبلغ بنجاح', 'success');
+                  App.closeModal(); loadData(); showToast('✅ تم تسجيل الدفعة بنجاح', 'success');
                 });
               } else {
                 sbClient.from('purchase_orders').update({
                   payment_status: 'paid'
                 }).eq('id', orderId).then(function() {
-                  App.closeModal(); loadData(); showToast('✅ تم سداد المبلغ بنجاح', 'success');
+                  App.closeModal(); loadData(); showToast('✅ تم تسجيل سداد المورد بنجاح', 'success');
                 });
               }
+          }
+
+          if (isCheck) {
+             // Just insert check as pending_clearance. Do NOT update balance yet!
+             sbClient.from('finance_treasury_tx').insert({
+              type: type === 'sales' ? 'check_received' : 'check_issued',
+              method: 'check',
+              check_number: chkNum,
+              check_due_date: chkDate,
+              amount: amount, description: desc, 
+              status: 'pending_clearance', 
+              cleared_account: acc.name,
+              created_by: App.user.id, created_by_name: App.user.full_name
+            }).then(function(r) {
+               if(r.error) { alert(r.error.message); return; }
+               finalizeOrder();
             });
-          });
+          } else {
+             // Immediate payment (Cash / Bank Transfer) -> Update balance immediately
+             var newBal = type === 'sales' ? (acc.balance + amount) : (acc.balance - amount);
+             sbClient.from(acc.table).update({ balance: newBal }).eq('id', acc.id).then(function(r1) {
+                if(r1.error) return alert(r1.error.message);
+                sbClient.from('finance_treasury_tx').insert({
+                  type: type === 'sales' ? 'client_payment' : 'supplier_payment',
+                  method: acc.type === 'bank' ? 'bank_transfer' : 'cash',
+                  amount: amount, description: desc, 
+                  status: 'cleared', cleared_account: acc.name, cleared_date: new Date().toISOString(),
+                  created_by: App.user.id, created_by_name: App.user.full_name
+                }).then(function(r2) {
+                   if(r2.error) return alert(r2.error.message);
+                   finalizeOrder();
+                });
+             });
+          }
         };
       });
     });
