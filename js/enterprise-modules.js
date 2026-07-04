@@ -1724,20 +1724,25 @@ Pages.pettyCash = function(el) {
 
     // Checks section in Treasury
     var checkTxs = txs.filter(t => t.method === 'check');
-    html += '<div class="card" style="margin-top:20px"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(168,85,247,0.05))"><h3>🧾 Checks (الشيكات)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ Issue Check (إصدار شيك)</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>Check No (رقم الشيك)</th><th>Beneficiary (المستفيد)</th><th>Amount (المبلغ)</th><th>Due Date (تاريخ الاستحقاق)</th><th>Status (الحالة)</th><th>Action (إجراء)</th></tr></thead><tbody>';
+    html += '<div class="card" style="margin-top:20px"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(168,85,247,0.05))"><h3>🧾 Checks (الشيكات)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'treasury\')">➕ Issue/Receive Check (إضافة شيك)</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>Check No (رقم الشيك)</th><th>Type (النوع)</th><th>Beneficiary/Client</th><th>Amount (المبلغ)</th><th>Due Date (الاستحقاق)</th><th>Status (الحالة)</th><th>Action (إجراء)</th></tr></thead><tbody>';
     if (checkTxs.length === 0) {
-      html += '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">No checks issued yet (لا يوجد شيكات حتى الآن)</td></tr>';
+      html += '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No checks issued or received yet (لا يوجد شيكات حتى الآن)</td></tr>';
     } else {
       checkTxs.forEach(t => {
+        var isOut = t.type === 'check_issued' || t.type === 'supplier_payment' || t.type === 'petty_cash';
+        var typeHtml = isOut ? '<span style="color:var(--accent-danger);font-weight:bold">صادر ⬆️</span>' : '<span style="color:var(--accent-success);font-weight:bold">وارد ⬇️</span>';
+        
         var statusHtml = '';
         if (t.status === 'cleared') {
-          statusHtml = '<span style="color:var(--accent-success);font-weight:bold">✅ Cleared (تم الصرف)</span><br><small style="color:var(--text-muted)">' + (t.cleared_account||'') + '</small>';
+          statusHtml = '<span style="color:var(--accent-success);font-weight:bold">✅ Cleared (' + (isOut ? 'تم الصرف' : 'تم التحصيل') + ')</span><br><small style="color:var(--text-muted)">' + (t.cleared_account||'') + '</small>';
         } else {
           statusHtml = '<span style="color:var(--accent-warning);font-weight:bold">⏳ Pending (معلق)</span>';
         }
-        var actionHtml = t.status === 'cleared' ? '<span style="color:var(--text-muted)">—</span>' : '<button class="btn btn-xs btn-primary" onclick="window.clearCheck(\'' + t.id + '\')">💳 Clear (صرف الشيك)</button>';
+        var btnText = isOut ? 'صرف الشيك' : 'تحصيل الشيك';
+        var actionHtml = t.status === 'cleared' ? '<span style="color:var(--text-muted)">—</span>' : '<button class="btn btn-xs btn-primary" onclick="window.clearCheck(\'' + t.id + '\')">💳 Clear ('+btnText+')</button>';
         html += '<tr>';
         html += '<td style="font-weight:bold">' + (t.check_number||'-') + '</td>';
+        html += '<td>' + typeHtml + '</td>';
         html += '<td>' + (t.employee_name || t.description || '-') + '</td>';
         html += '<td style="font-weight:bold;color:var(--accent-primary)">' + Number(t.amount).toLocaleString() + ' EGP</td>';
         html += '<td>' + (t.check_due_date || '-') + '</td>';
@@ -2075,11 +2080,12 @@ Pages.pettyCash = function(el) {
       body += '</div>';
       // Check fields
       body += '<div id="fin-check-fields" style="display:none">';
+      body += '<div class="form-field"><label>اتجاه الشيك (Incoming / Outgoing) *</label><select id="fin-check-direction" class="form-input"><option value="check_issued">صادر - دفع مصروفات (Outgoing)</option><option value="check_received">وارد - تحصيل إيرادات (Incoming)</option></select></div>';
       body += '<div class="form-field"><label>رقم الشيك *</label><input type="text" id="fin-check-num" class="form-input" placeholder="CHK-001"></div>';
-      body += '<div class="form-field"><label>المستفيد *</label><input type="text" id="fin-check-beneficiary" class="form-input" placeholder="اسم الشخص أو الجهة"></div>';
+      body += '<div class="form-field"><label>المستفيد / العميل *</label><input type="text" id="fin-check-beneficiary" class="form-input" placeholder="اسم الشخص أو الجهة"></div>';
       body += '<div class="form-field"><label>المبلغ (EGP) *</label><input type="number" id="fin-check-amount" class="form-input"></div>';
       body += '<div class="form-field"><label>تاريخ الاستحقاق *</label><input type="date" id="fin-check-date" class="form-input"></div>';
-      body += '<div class="form-field"><label>البيان</label><input type="text" id="fin-check-desc" class="form-input" placeholder="سبب إصدار الشيك"></div>';
+      body += '<div class="form-field"><label>البيان</label><input type="text" id="fin-check-desc" class="form-input" placeholder="سبب إصدار أو استلام الشيك"></div>';
       body += '</div>';
     }
     else if (type === 'client') {
@@ -2166,7 +2172,8 @@ Pages.pettyCash = function(el) {
         if (type === 'treasury') {
           var tType = document.getElementById('fin-type').value;
           if (tType === 'check') {
-            // Issue a check
+            // Issue or receive a check
+            var chkDir = document.getElementById('fin-check-direction') ? document.getElementById('fin-check-direction').value : 'check_issued';
             var chkNum = document.getElementById('fin-check-num').value;
             var chkBen = document.getElementById('fin-check-beneficiary').value;
             var chkAmt = parseFloat(document.getElementById('fin-check-amount').value) || 0;
@@ -2174,14 +2181,14 @@ Pages.pettyCash = function(el) {
             var chkDesc = document.getElementById('fin-check-desc').value;
             if (!chkNum || !chkBen || !chkAmt) return alert('يرجى ملء بيانات الشيك');
             sbClient.from('finance_treasury_tx').insert({
-              type: 'check_issued', method: 'check', amount: chkAmt,
+              type: chkDir, method: 'check', amount: chkAmt,
               status: 'pending', check_number: chkNum, 
               description: 'شيك رقم ' + chkNum + ' — ' + chkBen + (chkDesc ? ' — ' + chkDesc : ''),
               employee_name: chkBen, check_due_date: chkDate || null,
               created_by: App.user.id, created_by_name: App.user.full_name
             }).then(function(r) {
               if (r.error) return alert(r.error.message);
-              showToast('✅ تم إصدار الشيك رقم ' + chkNum, 'success');
+              showToast('✅ تم حفظ الشيك رقم ' + chkNum, 'success');
               App.closeModal(); loadData();
             });
           } else {
