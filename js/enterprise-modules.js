@@ -1706,11 +1706,16 @@ Pages.pettyCash = function(el) {
     // 3. Journal View
     html += '<div id="view-journal" style="display:none">';
     html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Journal Entries (القيود اليومية)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'journal\')">➕ إضافة قيد</button></div><div class="card-body no-pad">';
-    html += '<table class="data-table"><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>البيان</th><th>إجمالي مدين</th><th>إجمالي دائن</th><th>الحالة</th></tr></thead><tbody>';
+    html += '<table class="data-table"><thead><tr><th>رقم القيد</th><th>التاريخ</th><th>البيان</th><th>إجمالي مدين</th><th>إجمالي دائن</th><th>الحالة</th><th>تغيير الحالة</th></tr></thead><tbody>';
     journalEntries.forEach(j => {
-      html += '<tr><td>'+(j.entry_number||'-')+'</td><td>'+formatDate(j.entry_date)+'</td><td>'+(j.description||'-')+'</td><td>'+j.total_debit+'</td><td>'+j.total_credit+'</td><td>'+j.status+'</td></tr>';
+      var stColor = j.status==='posted'?'var(--accent-success)':j.status==='rejected'?'var(--accent-danger)':'var(--accent-warning)';
+      var stLabel = j.status==='posted'?'✅ معتمد':j.status==='rejected'?'❌ مرفوض':'⏳ مسودة';
+      html += '<tr><td>'+(j.entry_number||'-')+'</td><td>'+formatDate(j.entry_date)+'</td><td>'+(j.description||'-')+'</td><td>'+j.total_debit+'</td><td>'+j.total_credit+'</td>';
+      html += '<td><span style="color:'+stColor+';font-weight:bold">'+stLabel+'</span></td>';
+      html += '<td><select class="form-input" style="padding:4px 8px;font-size:0.8rem;min-width:120px" onchange="window.changeFinStatus(\'finance_journal_entries\',\''+j.id+'\',this.value)">';
+      html += '<option value="" disabled selected>تغيير...</option><option value="draft">⏳ مسودة</option><option value="posted">✅ معتمد</option><option value="rejected">❌ مرفوض</option></select></td></tr>';
     });
-    if(journalEntries.length === 0) html += '<tr><td colspan="6" style="text-align:center">لا يوجد قيود</td></tr>';
+    if(journalEntries.length === 0) html += '<tr><td colspan="7" style="text-align:center">لا يوجد قيود</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 4. Assets
@@ -1722,9 +1727,16 @@ Pages.pettyCash = function(el) {
 
     // 5. Taxes
     html += '<div id="view-taxes" style="display:none">';
-    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Taxes (الضرائب)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'tax\')">➕ إضافة ضريبة</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>نوع الضريبة</th><th>الفترة</th><th>المبلغ الخاضع</th><th>قيمة الضريبة</th><th>الحالة</th></tr></thead><tbody>';
-    taxes.forEach(t => { html += '<tr><td>'+t.tax_type+'</td><td>'+(t.period||'-')+'</td><td>'+t.taxable_amount+'</td><td>'+t.tax_amount+'</td><td>'+t.status+'</td></tr>'; });
-    if(taxes.length === 0) html += '<tr><td colspan="5" style="text-align:center">لا يوجد ضرائب مسجلة</td></tr>';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center"><h3>Taxes (الضرائب)</h3><button class="btn btn-sm btn-primary" onclick="window.showAddFinanceModal(\'tax\')">➕ إضافة ضريبة</button></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>نوع الضريبة</th><th>الفترة</th><th>المبلغ الخاضع</th><th>قيمة الضريبة</th><th>الحالة</th><th>تغيير الحالة</th></tr></thead><tbody>';
+    taxes.forEach(t => {
+      var txColor = t.status==='paid'?'var(--accent-success)':t.status==='overdue'?'var(--accent-danger)':'var(--accent-warning)';
+      var txLabel = t.status==='paid'?'✅ مدفوعة':t.status==='overdue'?'❌ متأخرة':'⏳ معلقة';
+      html += '<tr><td>'+t.tax_type+'</td><td>'+(t.period||'-')+'</td><td>'+t.taxable_amount+'</td><td>'+t.tax_amount+'</td>';
+      html += '<td><span style="color:'+txColor+';font-weight:bold">'+txLabel+'</span></td>';
+      html += '<td><select class="form-input" style="padding:4px 8px;font-size:0.8rem;min-width:120px" onchange="window.changeFinStatus(\'finance_taxes\',\''+t.id+'\',this.value)">';
+      html += '<option value="" disabled selected>تغيير...</option><option value="pending">⏳ معلقة</option><option value="paid">✅ مدفوعة</option><option value="overdue">❌ متأخرة</option></select></td></tr>';
+    });
+    if(taxes.length === 0) html += '<tr><td colspan="6" style="text-align:center">لا يوجد ضرائب مسجلة</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // 6. Petty Cash
@@ -2133,6 +2145,16 @@ Pages.pettyCash = function(el) {
           });
         };
       });
+    });
+  };
+
+  // Generic Status Change for any finance table
+  window.changeFinStatus = function(table, id, newStatus) {
+    if (!confirm('تأكيد تغيير الحالة إلى: ' + newStatus + '؟')) return;
+    sbClient.from(table).update({ status: newStatus }).eq('id', id).then(function(res) {
+      if (res.error) return alert(res.error.message);
+      showToast('✅ تم تحديث الحالة بنجاح', 'success');
+      loadData();
     });
   };
 
