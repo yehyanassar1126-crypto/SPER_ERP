@@ -303,6 +303,10 @@ var App = {
               { id: 'complaints', label: 'Disciplinary & Grievances', icon: 'gavel' },
               { id: 'friday-work', label: 'Friday Work (عمل الجمعة)', icon: 'calendarPlus' },
               { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
+              { id: 'performance-reviews', label: '⭐ Performance Reviews (تقييم الأداء)', icon: 'trendingUp' },
+              { id: 'training', label: '🎓 Training (التدريب)', icon: 'book' },
+              { id: 'asset-assignment', label: '💻 Asset Assignment (العهد)', icon: 'monitor' },
+              { id: 'employee-warnings', label: '⚠️ Warnings (الإنذارات)', icon: 'alertTriangle' },
             ]
           },
           { section: 'Communication', items: [
@@ -673,7 +677,11 @@ var App = {
       'financial-reports': { title: '📊 Financial Reports', sub: 'P&L, Balance Sheet, Cash Flow' },
       'system-settings': { title: '⚙️ System Settings', sub: 'Configure system parameters' },
       'document-management': { title: '📁 Document Management', sub: 'Upload and manage documents' },
-      'approval-workflows': { title: '✅ Approval Workflows', sub: 'Manage approval requests' }
+      'approval-workflows': { title: '✅ Approval Workflows', sub: 'Manage approval requests' },
+      'performance-reviews': { title: '⭐ Performance Reviews', sub: 'Employee performance evaluation' },
+      'training': { title: '🎓 Training & Development', sub: 'Courses and skill development' },
+      'asset-assignment': { title: '💻 Asset Assignment', sub: 'Track company assets and custody' },
+      'employee-warnings': { title: '⚠️ Employee Warnings', sub: 'Disciplinary actions and penalties' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -790,6 +798,10 @@ var App = {
       case 'system-settings': Pages.systemSettings(el); break;
       case 'document-management': Pages.documentManagement(el); break;
       case 'approval-workflows': Pages.approvalWorkflows(el); break;
+      case 'performance-reviews': Pages.performanceReviews(el); break;
+      case 'training': Pages.training(el); break;
+      case 'asset-assignment': Pages.assetAssignment(el); break;
+      case 'employee-warnings': Pages.employeeWarnings(el); break;
       default: Pages.empDashboard(el);
     }
   },
