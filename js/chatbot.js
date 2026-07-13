@@ -31,7 +31,7 @@ var EmployeeChatbot = {
       
       // Header
       html += '<div style="padding:16px;background:linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1));border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">';
-      html += '<div style="display:flex;align-items:center;gap:10px;"><div style="font-size:24px;">🤖</div><div><h4 style="margin:0;font-size:1rem;color:var(--text-primary);">HR Assistant</h4><span style="font-size:0.7rem;color:var(--accent-success);">● Online</span></div></div>';
+      html += '<div style="display:flex;align-items:center;gap:10px;"><div style="font-size:24px;">🤖</div><div><h4 style="margin:0;font-size:1rem;color:var(--text-primary);">المساعد الآلي HR Assistant</h4><span style="font-size:0.7rem;color:var(--accent-success);">● متصل Online</span></div></div>';
       html += '<button onclick="EmployeeChatbot.toggle()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✖</button>';
       html += '</div>';
       
@@ -39,7 +39,7 @@ var EmployeeChatbot = {
       html += '<div id="chatbot-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">';
       
       if (this.messages.length === 0) {
-        this.messages.push({ role: 'bot', text: 'أهلاً بك يا ' + App.user.full_name.split(' ')[0] + '! 👋\nأنا المساعد الآلي بتاعك، أقدر أجاوبك على أسئلة عن إجازاتك، مرتبك، ساعاتك الإضافية، أو حضورك. اسألني أي حاجة!' });
+        this.messages.push({ role: 'bot', text: 'أهلاً بك يا ' + App.user.full_name.split(' ')[0] + '! 👋\nأنا المساعد الآلي بتاعك (HR Assistant).\nأقدر أجاوبك بالعربي أو بالإنجليزي عن إجازاتك، مرتبك، الحضور، التدريب، العهد، والإنذارات.\nاسألني أي حاجة! Ask me anything!' });
       }
       
       this.messages.forEach(function(msg) {
@@ -54,7 +54,7 @@ var EmployeeChatbot = {
       
       // Input
       html += '<div style="padding:12px;border-top:1px solid var(--border-color);display:flex;gap:8px;">';
-      html += '<input type="text" id="chatbot-input" placeholder="اكتب سؤالك هنا..." style="flex:1;padding:10px 14px;border-radius:var(--radius-full);border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);outline:none;font-size:0.85rem;">';
+      html += '<input type="text" id="chatbot-input" placeholder="اكتب سؤالك هنا... / Type your question..." style="flex:1;padding:10px 14px;border-radius:var(--radius-full);border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);outline:none;font-size:0.85rem;">';
       html += '<button onclick="EmployeeChatbot.sendMessage()" style="width:40px;height:40px;border-radius:50%;background:var(--accent-primary);color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">' + (typeof icon !== 'undefined' ? icon('send', 16) : '➤') + '</button>';
       html += '</div>';
       
@@ -218,8 +218,32 @@ var EmployeeChatbot = {
     else if (q.match(/(لوحة|تحكم|مالك|إدارة|owner|dashboard)/)) {
       response = "الـ 'Owner Dashboard' هي لوحة تحكم خاصة بمالك الشركة فقط (General Manager) عشان يشوف ملخص لحالة كل الأقسام، الحضور، نواقص المخازن، والـ IT في شاشة واحدة.";
     }
+    else if (q.match(/(تقييم|أداء|اداء|تقييمي|performance|review|rating)/)) {
+      response = "**تقييم الأداء (Performance Reviews):**\nالـ HR بيقيّم كل موظف على 5 معايير:\n• 📅 الحضور والالتزام\n• ✅ جودة العمل\n• 👥 العمل الجماعي\n• 💡 المبادرة\n• 💬 التواصل\nكل معيار من 1 لـ 5 نجوم، والتقييم الشامل بيتحسب تلقائياً.\nتقدر تسأل الـ HR عن تقييمك الأخير.";
+    }
+    else if (q.match(/(تدريب|دورة|كورس|training|course|تطوير|مهارات|skill)/)) {
+      response = "**التدريب والتطوير (Training & Development):**\n1. الـ HR بينزل دورات تدريبية (داخلية، خارجية، أو أونلاين).\n2. تقدر تسجل في أي دورة متاحة.\n3. بعد إتمام الدورة بتحصل على تقييم ودرجة.\nلو عايز تعرف الدورات المتاحة، ادخل على '🎓 Training' من القائمة.";
+    }
+    else if (q.match(/(عهدة|عهد|لابتوب|جهاز|تسليم|asset|custody|تليفون|مفتاح|يونيفورم)/)) {
+      response = "**تسليم العهد (Asset Assignment):**\n1. الـ HR بيسجل كل عهدة (لابتوب، موبايل، مفاتيح، يونيفورم) باسمك.\n2. لما تسلم العهدة ترجع وتتسجل كـ 'Returned'.\n3. تقدر تشوف كل العهد اللي عليك من صفحة '💻 Asset Assignment'.\nلو عايز تسلم عهدة، كلم الـ HR.";
+    }
+    else if (q.match(/(إنذار|انذار|جزاء|عقوبة|warning|penalty|suspension|فصل)/)) {
+      response = "**الإنذارات والجزاءات (Employee Warnings):**\nأنواع الإنذارات:\n• شفهي (Verbal) - تنبيه\n• كتابي (Written) - إنذار رسمي\n• إنذار نهائي (Final) - آخر فرصة\n• إيقاف (Suspension)\nكل إنذار ممكن يكون معاه خصم مالي أو خصم أيام.\nلو عندك اعتراض تقدر تقدم تظلم من صفحة الشكاوى.";
+    }
+    else if (q.match(/(شات|محادث|رسالة|رسائل|chat|message|تواصل|كلم|internal)/)) {
+      response = "**الشات الداخلي (Internal Chat):**\n1. ادخل على '💬 Internal Chat' من القائمة.\n2. اضغط '+ New' عشان تبدأ محادثة.\n3. هتلاقي الأشخاص مقسمين:\n   • 👔 مديرك\n   • 🏢 فريق الـ HR\n   • 👥 زملائك في القسم\n4. كمان فيه جروب تلقائي لقسمك 🏢.\n5. مش هتقدر تفتح شات مكرر مع نفس الشخص.";
+    }
+    else if (q.match(/(مستند|وثيقة|ملف|document|upload|رفع ملف)/)) {
+      response = "**إدارة المستندات (Document Management):**\n1. ادخل على '📁 Documents' من القائمة.\n2. اضغط 'Upload Document' لرفع ملف جديد.\n3. حدد العنوان والقسم ونوع الملف.\n4. كل المستندات محفوظة ومنظمة حسب القسم.";
+    }
+    else if (q.match(/(موافق|اعتماد|approval|approve|رفض|reject|workflow)/)) {
+      response = "**سير عمل الموافقات (Approval Workflows):**\n1. كل الطلبات (إجازات، مشتريات، مصاريف) بتروح للموافقة.\n2. الـ HR والمديرين يقدروا يوافقوا أو يرفضوا من صفحة '✅ Approvals'.\n3. كل إجراء بيتسجل بالتاريخ والشخص المسؤول.";
+    }
+    else if (q.match(/(إعدادات|اعدادات|settings|ضبط|تهيئة|config)/)) {
+      response = "**إعدادات النظام (System Settings):**\nصفحة الإعدادات متاحة للـ HR والمدير العام فقط.\nمنها تقدر تتحكم في:\n• إعدادات الحضور (نظام الشيفتات)\n• إعدادات الإجازات (الحد الأقصى)\n• إعدادات الإشعارات\nادخل على '⚙️ Settings' من القائمة.";
+    }
     else {
-      response = "عذراً، مش فاهم سؤالك أوي. تقدر تسألني عن:\n• المبيعات، التخطيط، الإنتاج، الجودة\n• إجازاتك، الحضور، التأخيرات\n• الدعم الفني (IT)\n• طلبات الشراء والمشتريات\n• **نظام فحص الـ CV بالذكاء الاصطناعي (ATS)**\n• **ملفي الشخصي (HR Personal)**\n• **تعديل/حذف سجلات الحضور**\n• قطع الغيار وتسليم المبيعات\n• **الإدارة المالية الشاملة** (خزنة، بنوك، شيكات، تسويات، تحويلات)\n• **مدفوعات المبيعات والمشتريات المعلقة** (جديد)\n• **تسوية العهد وصرف الشيكات** (جديد)";
+      response = "عذراً، مش فاهم سؤالك أوي. تقدر تسألني عن:\n• المبيعات، التخطيط، الإنتاج، الجودة\n• إجازاتك، الحضور، التأخيرات\n• الدعم الفني (IT)\n• طلبات الشراء والمشتريات\n• **نظام فحص الـ CV بالذكاء الاصطناعي (ATS)**\n• **ملفي الشخصي (HR Personal)**\n• **تقييم الأداء (Performance Reviews)** ⭐ جديد\n• **التدريب والتطوير (Training)** 🎓 جديد\n• **تسليم العهد (Asset Assignment)** 💻 جديد\n• **الإنذارات والجزاءات (Warnings)** ⚠️ جديد\n• **الشات الداخلي (Internal Chat)** 💬 جديد\n• **إدارة المستندات (Documents)** 📁 جديد\n• **الموافقات (Approvals)** ✅ جديد\n• **الإدارة المالية الشاملة** (خزنة، بنوك، شيكات)\n• قطع الغيار وتسليم المبيعات";
     }
     
     this.messages.push({ role: 'bot', text: response });
