@@ -149,8 +149,27 @@ Pages.internalChat = function(el) {
   };
 
   window.newChatModal = function() {
-    sbClient.from('users').select('id,full_name').eq('status','active').then(function(res) {
-      var emps = (res.data || []).filter(function(e) { return e.id !== userId; });
+    sbClient.from('users').select('id,full_name,role,department').eq('status','active').then(function(res) {
+      var allEmps = (res.data || []).filter(function(e) { return e.id !== userId; });
+      var myRole = App.user.role;
+      var myDept = App.user.department;
+
+      // Role-based filtering:
+      // HR → sees everyone
+      // Owner → sees HR managers and department managers only (not regular employees)
+      // Managers → sees only people in their same department
+      // Employee → sees only people in their same department
+      var emps;
+      if (myRole === 'hr' || myRole === 'hr manager') {
+        emps = allEmps; // HR sees everyone
+      } else if (myRole === 'owner') {
+        emps = allEmps.filter(function(e) {
+          return e.role === 'hr' || e.role === 'hr manager' || e.role === 'owner' ||
+                 (e.role && e.role.indexOf('manager') !== -1);
+        });
+      } else {
+        emps = allEmps.filter(function(e) { return e.department === myDept; });
+      }
       var body = '<div class="form-field"><label>Chat Type</label><select id="chat-type" class="form-input"><option value="direct">Direct Message</option><option value="group">Group Chat</option></select></div>';
       body += '<div class="form-field"><label>Name (for groups)</label><input type="text" id="chat-name" class="form-input" placeholder="Group name"></div>';
       body += '<div class="form-field"><label>Select Members</label><div style="max-height:200px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px;padding:8px">';
