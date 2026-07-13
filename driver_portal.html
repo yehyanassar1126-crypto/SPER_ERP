@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة السائقين | Driver Portal</title>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/erp.css">
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      background-color: #f4f6f8;
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .driver-header {
+      background: linear-gradient(135deg, #1e1b4b, #4f46e5);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .driver-container {
+      padding: 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      border-radius: 16px;
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s;
+    }
+    .action-btn:active {
+      transform: scale(0.98);
+    }
+    .btn-out { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .btn-in { background: linear-gradient(135deg, #10b981, #059669); }
+    
+    .card-trip {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+    }
+    .trip-title {
+      font-weight: 700;
+      color: #374151;
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+    #reader-container {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      background: black;
+    }
+    .close-reader {
+      margin-top: 20px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="driver-header">
+    <h1 style="margin: 0; font-size: 1.5rem;">بوابة السائقين | Driver Portal</h1>
+    <p id="driver-name" style="margin: 8px 0 0 0; color: #cbd5e1; font-weight: 600;">جاري التحميل...</p>
+    <a href="index.html" style="color: #cbd5e1; font-size: 0.8rem; text-decoration: underline; margin-top:10px; display:inline-block;">العودة للرئيسية</a>
+  </div>
+
+  <div class="driver-container">
+    <button class="action-btn btn-out" onclick="startScanner('Gate Out')">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 8px;"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+      تسجيل خروج (Gate Out)
+    </button>
+    
+    <button class="action-btn btn-in" onclick="startScanner('Gate In')">
+      <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 8px;"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+      تسجيل دخول (Gate In)
+    </button>
+
+    <div class="card-trip">
+      <div class="trip-title">مأموريتك الحالية (Current Trip)</div>
+      <div id="current-trip-content" style="color: #6b7280; font-size: 0.95rem;">
+        جاري البحث عن مأموريات...
+      </div>
+    </div>
+  </div>
+
+  <div id="reader-container">
+    <h3 style="color:white; margin-bottom:20px; font-family:'Cairo';">وجه الكاميرا نحو الـ QR Code الخاص بالبوابة</h3>
+    <div id="reader"></div>
+    <button class="close-reader" onclick="stopScanner()">إلغاء (Cancel)</button>
+  </div>
+
+  <script src="js/env.js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    let html5QrCode = null;
+    let scanTypeAction = '';
+    let currentUser = null;
+
+    async function initDriverPortal() {
+      // Check session
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (!session) {
+        window.location.href = 'index.html';
+        return;
+      }
+      
+      currentUser = session.user;
+      
+      // Get user full name from profiles
+      const { data: profile } = await sbClient.from('profiles').select('full_name').eq('id', currentUser.id).single();
+      if (profile) {
+        document.getElementById('driver-name').textContent = "مرحباً، " + profile.full_name;
+      } else {
+        document.getElementById('driver-name').textContent = "مرحباً، سائق";
+      }
+
+      // Fetch active trip
+      const { data: activeTrips } = await sbClient.from('logistics_movements')
+        .select('*')
+        .eq('employee_id', currentUser.id) // Or driver_id if they are linked via logistics_drivers
+        .is('odometer_end', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (activeTrips && activeTrips.length > 0) {
+        let t = activeTrips[0];
+        document.getElementById('current-trip-content').innerHTML = `
+          <strong style="color:#4f46e5; font-size:1.1rem;">الوجهة: ${t.destination}</strong><br>
+          <span style="font-size:0.85rem;">قراءة البداية: ${t.odometer_start || '--'}</span>
+        `;
+      } else {
+        document.getElementById('current-trip-content').innerHTML = `لا توجد مأموريات نشطة حالياً.`;
+      }
+    }
+
+    function startScanner(type) {
+      scanTypeAction = type;
+      document.getElementById('reader-container').style.display = 'flex';
+      
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        onScanFailure
+      ).catch(err => {
+        alert("فشل في فتح الكاميرا: " + err);
+        stopScanner();
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          document.getElementById('reader-container').style.display = 'none';
+          html5QrCode = null;
+        }).catch(err => console.error(err));
+      } else {
+        document.getElementById('reader-container').style.display = 'none';
+      }
+    }
+
+    async function onScanSuccess(decodedText, decodedResult) {
+      stopScanner();
+      try {
+        let data = JSON.parse(decodedText);
+        if(data.hr_id === 'qr-station') {
+          // Valid Gate QR
+          let profileName = document.getElementById('driver-name').textContent.replace('مرحباً، ', '');
+          const { error } = await sbClient.from('logistics_gate_logs').insert({
+            driver_id: currentUser.id,
+            driver_name: profileName,
+            scan_type: scanTypeAction
+          });
+          
+          if (error) {
+            alert('حدث خطأ أثناء التسجيل. تأكد من إعداد قاعدة البيانات.');
+            console.error(error);
+          } else {
+            alert('✅ تمت حركة (' + scanTypeAction + ') بنجاح!');
+          }
+        } else {
+          alert('❌ كود QR غير صحيح. الرجاء استخدام كود بوابة المصنع.');
+        }
+      } catch(e) {
+        alert('❌ كود QR غير معروف.');
+      }
+    }
+
+    function onScanFailure(error) {
+      // Background scanning errors, ignore
+    }
+
+    document.addEventListener('DOMContentLoaded', initDriverPortal);
+  </script>
+</body>
+</html>
