@@ -557,7 +557,7 @@ var App = {
         App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician' ||
         App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' ||
         App.user.department === 'Quality' || App.user.role === 'quality manager' ||
-        App.user.role === 'hr manager' || App.user.department === 'Logistics' || App.user.role === 'spare parts inspector'
+        App.user.role === 'hr manager' || App.user.role === 'spare parts inspector'
       ))) && !App.isNursing();
 
       if (canViewSpareParts) {

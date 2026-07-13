@@ -126,6 +126,7 @@ window.ERPLogistics = {
           
           let formHtml = '<div class="form-group"><label class="form-label">Select Driver (اختر السائق)</label><select class="form-input" id="select-driver">' + driverOpts + '</select></div>';
           formHtml += '<div class="form-group"><label class="form-label">Destination / Task (الوجهة / المهمة)</label><input type="text" class="form-input" id="movement-destination" required></div>';
+          formHtml += '<div class="form-group"><label class="form-label">Current Odometer (قراءة العداد قبل المشوار)</label><input type="number" class="form-input" id="odometer-start" placeholder="e.g. 15000" required></div>';
           
           let footerHtml = '<button class="btn btn-outline" id="cancel-movement">Cancel</button><button class="btn btn-primary" id="save-movement">Assign</button>';
           
@@ -139,8 +140,9 @@ window.ERPLogistics = {
             let dName = selOpt.getAttribute('data-name');
             let cNum = selOpt.getAttribute('data-car');
             let dest = document.getElementById('movement-destination').value.trim();
+            let odometerStart = document.getElementById('odometer-start').value.trim();
             
-            if (!dest) { alert('Please enter the destination.'); return; }
+            if (!dest || !odometerStart) { alert('Please enter destination and odometer reading.'); return; }
             
             let btn = this;
             btn.disabled = true;
@@ -152,8 +154,9 @@ window.ERPLogistics = {
               driver_id: dId,
               driver_name: dName,
               car_number: cNum,
-              destination: dest
-            }).then(function() {
+              destination: dest,
+              odometer_start: parseFloat(odometerStart)
+            }).then(function(res) {
               App.closeModal();
               App.navigate('logistics');
             });
