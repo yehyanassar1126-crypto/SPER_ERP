@@ -31,7 +31,7 @@ var EmployeeChatbot = {
       
       // Header
       html += '<div style="padding:16px;background:linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1));border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">';
-      html += '<div style="display:flex;align-items:center;gap:10px;"><div style="font-size:24px;">🤖</div><div><h4 style="margin:0;font-size:1rem;color:var(--text-primary);">المساعد الآلي HR Assistant</h4><span style="font-size:0.7rem;color:var(--accent-success);">● متصل Online</span></div></div>';
+      html += '<div style="display:flex;align-items:center;gap:10px;"><div style="font-size:24px;">🤖</div><div><h4 style="margin:0;font-size:1rem;color:var(--text-primary);">HR Assistant</h4><span style="font-size:0.7rem;color:var(--accent-success);">● Online</span></div></div>';
       html += '<button onclick="EmployeeChatbot.toggle()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✖</button>';
       html += '</div>';
       
@@ -39,7 +39,7 @@ var EmployeeChatbot = {
       html += '<div id="chatbot-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">';
       
       if (this.messages.length === 0) {
-        this.messages.push({ role: 'bot', text: 'أهلاً بك يا ' + App.user.full_name.split(' ')[0] + '! 👋\nأنا المساعد الآلي بتاعك (HR Assistant).\nأقدر أجاوبك بالعربي أو بالإنجليزي عن إجازاتك، مرتبك، الحضور، التدريب، العهد، والإنذارات.\nاسألني أي حاجة! Ask me anything!' });
+        this.messages.push({ role: 'bot', text: 'أهلاً بك يا ' + App.user.full_name.split(' ')[0] + '! 👋\nأنا المساعد الآلي بتاعك، أقدر أجاوبك على أسئلة عن إجازاتك، مرتبك، ساعاتك الإضافية، أو حضورك. اسألني أي حاجة!' });
       }
       
       this.messages.forEach(function(msg) {
@@ -54,7 +54,7 @@ var EmployeeChatbot = {
       
       // Input
       html += '<div style="padding:12px;border-top:1px solid var(--border-color);display:flex;gap:8px;">';
-      html += '<input type="text" id="chatbot-input" placeholder="اكتب سؤالك هنا... / Type your question..." style="flex:1;padding:10px 14px;border-radius:var(--radius-full);border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);outline:none;font-size:0.85rem;">';
+      html += '<input type="text" id="chatbot-input" placeholder="اكتب سؤالك هنا..." style="flex:1;padding:10px 14px;border-radius:var(--radius-full);border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);outline:none;font-size:0.85rem;">';
       html += '<button onclick="EmployeeChatbot.sendMessage()" style="width:40px;height:40px;border-radius:50%;background:var(--accent-primary);color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">' + (typeof icon !== 'undefined' ? icon('send', 16) : '➤') + '</button>';
       html += '</div>';
       
