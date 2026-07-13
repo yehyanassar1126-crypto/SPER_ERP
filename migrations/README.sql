@@ -1,0 +1,38 @@
+-- ============================================================
+-- ENTERPRISE ERP - MASTER MIGRATION FILE
+-- Run files in order in Supabase SQL Editor:
+-- 1. migrations/001_enterprise_security.sql
+-- 2. migrations/002_enterprise_multi.sql  
+-- 3. migrations/003_enterprise_features.sql
+-- 4. migrations/004_enterprise_kpis_views.sql
+-- ============================================================
+-- 
+-- SUMMARY OF NEW TABLES (25+ tables):
+-- 
+-- Security & Auth:
+--   login_history, activity_log, permissions, role_permissions, user_sessions
+--
+-- Multi-Tenant:
+--   companies, branches, currencies, exchange_rates, system_settings
+--
+-- Workflow Engine:
+--   approval_workflows, approval_steps, approval_requests, approval_actions
+--
+-- Document Management:
+--   document_categories, documents
+--
+-- Collaboration:
+--   tasks, calendar_events, chat_channels, chat_messages
+--
+-- Enterprise Features:
+--   digital_signatures, webhooks, email_templates
+--   kpi_definitions, kpi_values, import_logs, backup_logs
+--
+-- Database Views:
+--   v_employee_summary, v_attendance_monthly, v_inventory_status
+--
+-- Database Functions:
+--   fn_next_doc_number(), fn_log_activity()
+--
+-- New Indexes: 16+ performance indexes
+-- ============================================================

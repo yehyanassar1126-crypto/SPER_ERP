@@ -71,6 +71,8 @@ var App = {
         // Try Supplier Login
         sbClient.from('suppliers').select('*').eq('email', username).single().then(function (sRes) {
           if (sRes.error || !sRes.data || sRes.data.password_hash !== password) {
+            // Log failed attempt
+            sbClient.from('login_history').insert({ user_name: username, login_status: 'failed', failure_reason: 'Invalid credentials' }).then(function(){});
             App.showLoginError('Invalid credentials');
             return;
           }
@@ -84,19 +86,31 @@ var App = {
             department: 'External Supplier'
           };
           localStorage.setItem('hr_portal_user', JSON.stringify(App.user));
+          sbClient.from('login_history').insert({ user_id: sRes.data.id, user_name: sRes.data.company_name, login_status: 'success' }).then(function(){});
           App.renderApp();
         });
         return;
       }
       
+      // Check if user is active
+      if (res.data.status !== 'active') {
+        sbClient.from('login_history').insert({ user_id: res.data.id, user_name: res.data.full_name, login_status: 'failed', failure_reason: 'Account inactive' }).then(function(){});
+        App.showLoginError('Account is inactive. Contact HR.');
+        return;
+      }
+
       var userData = Object.assign({}, res.data);
       delete userData.password_hash;
       App.user = userData;
       localStorage.setItem('hr_portal_user', JSON.stringify(App.user));
       App.loadNotifications();
+      // Load permissions
+      if (typeof SecurityHelpers !== 'undefined') SecurityHelpers.loadPermissions();
       App.renderApp();
-      // Log login
-      sbClient.from('audit_log').insert({ action: 'LOGIN', user_name: res.data.full_name, details: res.data.role.toUpperCase() + ' user logged in', user_id: res.data.id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
+      // Log login to both audit_log and login_history
+      sbClient.from('audit_log').insert({ action: 'LOGIN', user_name: res.data.full_name, details: res.data.role.toUpperCase() + ' user logged in', user_id: res.data.id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); } });
+      sbClient.from('login_history').insert({ user_id: res.data.id, user_name: res.data.full_name, login_status: 'success' }).then(function(){});
+      if (typeof SecurityHelpers !== 'undefined') SecurityHelpers.logActivity('auth', 'LOGIN', 'user', res.data.id);
     });
   },
 
@@ -291,18 +305,30 @@ var App = {
               { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
             ]
           },
-          { section: 'Communication', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
+          { section: 'Communication', items: [
+            { id: 'announcements', label: 'Announcements', icon: 'megaphone' },
+            { id: 'internal-chat', label: '💬 Internal Chat', icon: 'messageSquare' },
+          ]},
           {
             section: 'Workplace', items: [
               { id: 'org-directory', label: 'Company Directory', icon: 'users' },
               { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' },
+              { id: 'calendar', label: '📅 Calendar', icon: 'calendarDays' },
             ]
           },
           {
             section: 'Analytics', items: [
               { id: 'reports', label: 'Reports', icon: 'barChart' },
+              { id: 'kpi-dashboard', label: '📊 KPI Dashboard', icon: 'trendingUp' },
               { id: 'audit-log', label: 'Audit Log', icon: 'fileText' },
+              { id: 'login-history', label: '🔐 Login History', icon: 'lock' },
+              { id: 'activity-log-page', label: '📋 Activity Log', icon: 'fileText' },
               { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
+            ]
+          },
+          {
+            section: 'Collaboration', items: [
+              { id: 'task-management', label: '📝 Tasks (المهام)', icon: 'checkCircle' },
             ]
           },
           {
@@ -410,10 +436,15 @@ var App = {
               { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
             ]
           },
-          { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
+          { section: 'Other', items: [
+            { id: 'announcements', label: 'Announcements', icon: 'megaphone' },
+            { id: 'internal-chat', label: '💬 Chat', icon: 'messageSquare' },
+          ]},
           {
             section: 'Workplace', items: [
-              { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
+              { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' },
+              { id: 'calendar', label: '📅 Calendar', icon: 'calendarDays' },
+              { id: 'task-management', label: '📝 My Tasks', icon: 'checkCircle' },
             ]
           },
         ];
@@ -447,6 +478,7 @@ var App = {
         if (canViewFinance) {
           finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
           finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
+          finItems.push({ id: 'financial-reports', label: '📊 Financial Reports (التقارير المالية)', icon: 'barChart' });
         }
 
         // Avoid duplicate "Petty Cash" section if both Finance and Procurement
@@ -624,7 +656,14 @@ var App = {
       'spare-parts': { title: 'Spare Parts Lifecycle (دورة قطع الغيار)', sub: 'Manage spare parts requests, returns, and quality checks' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
-      'logistics': { title: 'Transportation & Logistics', sub: 'Manage driver and vehicle movements' }
+      'logistics': { title: 'Transportation & Logistics', sub: 'Manage driver and vehicle movements' },
+      'kpi-dashboard': { title: '📊 KPI Dashboard', sub: 'Real-time performance indicators' },
+      'login-history': { title: '🔐 Login History', sub: 'Track all login attempts' },
+      'activity-log-page': { title: '📋 Activity Log', sub: 'Detailed system activity tracking' },
+      'task-management': { title: '📝 Task Management', sub: 'Manage and track tasks' },
+      'internal-chat': { title: '💬 Internal Chat', sub: 'Team messaging & collaboration' },
+      'calendar': { title: '📅 Calendar', sub: 'Events, meetings & deadlines' },
+      'financial-reports': { title: '📊 Financial Reports', sub: 'P&L, Balance Sheet, Cash Flow' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -731,6 +770,13 @@ var App = {
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
       case 'logistics': Pages.logistics(el); break;
       case 'hr-ats': Pages.hrATS(el); break;
+      case 'kpi-dashboard': Pages.kpiDashboard(el); break;
+      case 'login-history': Pages.loginHistory(el); break;
+      case 'activity-log-page': Pages.activityLog(el); break;
+      case 'task-management': Pages.taskManagement(el); break;
+      case 'internal-chat': Pages.internalChat(el); break;
+      case 'calendar': Pages.calendar(el); break;
+      case 'financial-reports': Pages.financialReports(el); break;
       default: Pages.empDashboard(el);
     }
   },
