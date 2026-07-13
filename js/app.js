@@ -329,6 +329,13 @@ var App = {
           {
             section: 'Collaboration', items: [
               { id: 'task-management', label: '📝 Tasks (المهام)', icon: 'checkCircle' },
+              { id: 'document-management', label: '📁 Documents (المستندات)', icon: 'folder' },
+              { id: 'approval-workflows', label: '✅ Approvals (الموافقات)', icon: 'checkSquare' },
+            ]
+          },
+          {
+            section: 'Administration', items: [
+              { id: 'system-settings', label: '⚙️ Settings (الإعدادات)', icon: 'settings' },
             ]
           },
           {
@@ -663,7 +670,10 @@ var App = {
       'task-management': { title: '📝 Task Management', sub: 'Manage and track tasks' },
       'internal-chat': { title: '💬 Internal Chat', sub: 'Team messaging & collaboration' },
       'calendar': { title: '📅 Calendar', sub: 'Events, meetings & deadlines' },
-      'financial-reports': { title: '📊 Financial Reports', sub: 'P&L, Balance Sheet, Cash Flow' }
+      'financial-reports': { title: '📊 Financial Reports', sub: 'P&L, Balance Sheet, Cash Flow' },
+      'system-settings': { title: '⚙️ System Settings', sub: 'Configure system parameters' },
+      'document-management': { title: '📁 Document Management', sub: 'Upload and manage documents' },
+      'approval-workflows': { title: '✅ Approval Workflows', sub: 'Manage approval requests' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -777,6 +787,9 @@ var App = {
       case 'internal-chat': Pages.internalChat(el); break;
       case 'calendar': Pages.calendar(el); break;
       case 'financial-reports': Pages.financialReports(el); break;
+      case 'system-settings': Pages.systemSettings(el); break;
+      case 'document-management': Pages.documentManagement(el); break;
+      case 'approval-workflows': Pages.approvalWorkflows(el); break;
       default: Pages.empDashboard(el);
     }
   },
