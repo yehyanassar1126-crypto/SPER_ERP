@@ -2138,7 +2138,7 @@ Pages.hrQrGenerator = function (el) {
   }
 
   updateQR();
-  qrTimer = setInterval(updateQR, 30000);
+  qrTimer = setInterval(updateQR, 5000);
 };
 
 // ----- SCAN CHECKIN (Employee) -----
