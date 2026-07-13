@@ -18,9 +18,33 @@ Pages.internalChat = function(el) {
     sbClient.from('users').select('id,full_name').eq('status','active').then(function(uRes) {
       (uRes.data || []).forEach(function(u) { allUsers[u.id] = u.full_name; });
       sbClient.from('chat_channels').select('*').order('created_at', {ascending: false}).then(function(res) {
-        channels = (res.data || []).filter(function(ch) {
+        var myChannels = (res.data || []).filter(function(ch) {
           return ch.members && ch.members.indexOf(userId) !== -1;
         });
+
+        // De-duplicate direct chats: keep only the first (newest) per person
+        var seen = {};
+        var duplicateIds = [];
+        channels = [];
+        myChannels.forEach(function(ch) {
+          if (ch.channel_type === 'direct' && ch.members && ch.members.length === 2) {
+            var otherId = ch.members.find(function(m) { return m !== userId; }) || '';
+            if (seen[otherId]) {
+              duplicateIds.push(ch.id); // mark for deletion
+              return;
+            }
+            seen[otherId] = true;
+          }
+          channels.push(ch);
+        });
+
+        // Auto-delete duplicates from DB
+        if (duplicateIds.length > 0) {
+          duplicateIds.forEach(function(did) {
+            sbClient.from('chat_channels').delete().eq('id', did).then(function() {});
+          });
+        }
+
         render();
       });
     });
