@@ -173,52 +173,65 @@ Pages.internalChat = function(el) {
   window.newChatModal = function() {
     sbClient.from('users').select('id,full_name,role,department').eq('status','active').then(function(res) {
       var allEmps = (res.data || []).filter(function(e) { return e.id !== userId; });
+      var myRole = App.user.role;
       var myDept = App.user.department;
+      var isHR = (myRole === 'hr' || myRole === 'hr manager');
+      var isOwner = (myRole === 'owner');
 
-      // Categorize contacts
-      var managers = allEmps.filter(function(e) {
-        return e.department === myDept && e.role && (e.role.indexOf('manager') !== -1 || e.role === 'owner');
-      });
-      var hrTeam = allEmps.filter(function(e) {
-        return e.role === 'hr' || e.role === 'hr manager';
-      });
-      var colleagues = allEmps.filter(function(e) {
-        return e.department === myDept && (!e.role || (e.role.indexOf('manager') === -1 && e.role !== 'owner'));
-      });
-      // Remove duplicates (HR who are also in same dept)
-      var hrIds = hrTeam.map(function(h) { return h.id; });
-      colleagues = colleagues.filter(function(c) { return hrIds.indexOf(c.id) === -1; });
+      var body = '<div class="form-field"><label>Chat Type (نوع المحادثة)</label><select id="chat-type" class="form-input"><option value="direct">Direct Message (رسالة مباشرة)</option><option value="group">Group Chat (مجموعة)</option></select></div>';
+      body += '<div class="form-field"><label>Group Name (اسم المجموعة) - for groups only</label><input type="text" id="chat-name" class="form-input" placeholder="Group name / اسم المجموعة"></div>';
+      body += '<div class="form-field"><label>Choose Members (اختر الأشخاص)</label>';
+      body += '<div style="max-height:320px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px;padding:8px">';
 
-      var body = '<div class="form-field"><label>Chat Type</label><select id="chat-type" class="form-input"><option value="direct">Direct Message (رسالة مباشرة)</option><option value="group">Group Chat (مجموعة)</option></select></div>';
-      body += '<div class="form-field"><label>Group Name (للمجموعات فقط)</label><input type="text" id="chat-name" class="form-input" placeholder="اسم المجموعة"></div>';
-      body += '<div class="form-field"><label>Select Members (اختر)</label><div style="max-height:280px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px;padding:8px">';
-
-      // Manager section
-      if (managers.length > 0) {
-        body += '<div style="font-weight:700;font-size:0.8rem;color:var(--accent-primary);padding:6px 0;border-bottom:1px solid var(--border-color);margin-bottom:4px">👔 My Manager (مديري)</div>';
-        managers.forEach(function(e) {
-          body += '<label style="display:flex;align-items:center;gap:8px;padding:4px 0;padding-left:8px;cursor:pointer"><input type="checkbox" class="chat-member" value="' + e.id + '"> ' + e.full_name + ' <span style="font-size:0.7rem;color:var(--text-muted)">(' + (e.role || '') + ')</span></label>';
+      if (isHR || isOwner) {
+        // HR & Owner: see ALL people grouped by department
+        var depts = {};
+        allEmps.forEach(function(e) {
+          var d = e.department || 'Other';
+          if (!depts[d]) depts[d] = [];
+          depts[d].push(e);
         });
-      }
-
-      // HR section
-      if (hrTeam.length > 0) {
-        body += '<div style="font-weight:700;font-size:0.8rem;color:#22c55e;padding:6px 0;border-bottom:1px solid var(--border-color);margin:8px 0 4px">🏢 HR Team (الموارد البشرية)</div>';
-        hrTeam.forEach(function(e) {
-          body += '<label style="display:flex;align-items:center;gap:8px;padding:4px 0;padding-left:8px;cursor:pointer"><input type="checkbox" class="chat-member" value="' + e.id + '"> ' + e.full_name + '</label>';
+        Object.keys(depts).sort().forEach(function(dept) {
+          body += '<div style="font-weight:700;font-size:0.8rem;color:var(--accent-primary);padding:8px 0 4px;border-bottom:1px solid var(--border-color);margin-top:8px">🏢 ' + dept + ' (' + depts[dept].length + ')</div>';
+          depts[dept].forEach(function(e) {
+            var roleTag = e.role && e.role !== 'employee' ? ' <span style="font-size:0.65rem;background:var(--accent-primary);color:white;padding:1px 6px;border-radius:4px;margin-left:4px">' + e.role + '</span>' : '';
+            body += '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;padding-left:12px;cursor:pointer"><input type="checkbox" class="chat-member" value="' + e.id + '"> ' + e.full_name + roleTag + '</label>';
+          });
         });
-      }
-
-      // Colleagues section
-      if (colleagues.length > 0) {
-        body += '<div style="font-weight:700;font-size:0.8rem;color:#f59e0b;padding:6px 0;border-bottom:1px solid var(--border-color);margin:8px 0 4px">👥 Colleagues (زملائي - ' + myDept + ')</div>';
-        colleagues.forEach(function(e) {
-          body += '<label style="display:flex;align-items:center;gap:8px;padding:4px 0;padding-left:8px;cursor:pointer"><input type="checkbox" class="chat-member" value="' + e.id + '"> ' + e.full_name + '</label>';
+      } else {
+        // Regular employees & managers: see Manager + HR + Colleagues
+        var managers = allEmps.filter(function(e) {
+          return e.department === myDept && e.role && (e.role.indexOf('manager') !== -1 || e.role === 'owner');
         });
+        var hrTeam = allEmps.filter(function(e) {
+          return e.role === 'hr' || e.role === 'hr manager';
+        });
+        var colleagues = allEmps.filter(function(e) {
+          return e.department === myDept && (!e.role || (e.role.indexOf('manager') === -1 && e.role !== 'owner' && e.role !== 'hr' && e.role !== 'hr manager'));
+        });
+
+        if (managers.length > 0) {
+          body += '<div style="font-weight:700;font-size:0.8rem;color:var(--accent-primary);padding:6px 0;border-bottom:1px solid var(--border-color);margin-bottom:4px">👔 My Manager (مديري)</div>';
+          managers.forEach(function(e) {
+            body += '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;padding-left:12px;cursor:pointer"><input type="checkbox" class="chat-member" value="' + e.id + '"> ' + e.full_name + ' <span style="font-size:0.65rem;color:var(--text-muted)">(' + e.role + ')</span></label>';
+          });
+        }
+        if (hrTeam.length > 0) {
+          body += '<div style="font-weight:700;font-size:0.8rem;color:#22c55e;padding:6px 0;border-bottom:1px solid var(--border-color);margin:8px 0 4px">🏢 HR Team (الموارد البشرية)</div>';
+          hrTeam.forEach(function(e) {
+            body += '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;padding-left:12px;cursor:pointer"><input type="checkbox" class="chat-member" value="' + e.id + '"> ' + e.full_name + '</label>';
+          });
+        }
+        if (colleagues.length > 0) {
+          body += '<div style="font-weight:700;font-size:0.8rem;color:#f59e0b;padding:6px 0;border-bottom:1px solid var(--border-color);margin:8px 0 4px">👥 My Colleagues (زملائي - ' + myDept + ')</div>';
+          colleagues.forEach(function(e) {
+            body += '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;padding-left:12px;cursor:pointer"><input type="checkbox" class="chat-member" value="' + e.id + '"> ' + e.full_name + '</label>';
+          });
+        }
       }
 
       body += '</div></div>';
-      var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="create-chat-btn">Start Chat</button>';
+      var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel (إلغاء)</button><button class="btn btn-primary" id="create-chat-btn">Start Chat (ابدأ محادثة)</button>';
       App.showModal('New Conversation (محادثة جديدة)', body, footer);
 
       document.getElementById('create-chat-btn').addEventListener('click', function() {
@@ -226,9 +239,8 @@ Pages.internalChat = function(el) {
         var name = document.getElementById('chat-name').value;
         var members = [userId];
         document.querySelectorAll('.chat-member:checked').forEach(function(cb) { members.push(cb.value); });
-        if (members.length < 2) { alert('اختر شخص واحد على الأقل'); return; }
+        if (members.length < 2) { alert('Please select at least one person\nاختر شخص واحد على الأقل'); return; }
 
-        // Prevent duplicate direct chats
         if (type === 'direct' && members.length === 2) {
           var targetId = members.find(function(m) { return m !== userId; });
           var existing = channels.find(function(ch) {
@@ -238,7 +250,7 @@ Pages.internalChat = function(el) {
           if (existing) {
             App.closeModal();
             loadMessages(existing.id);
-            showToast('الشات موجود بالفعل - تم فتحه', 'info');
+            showToast('Chat already exists - تم فتح المحادثة الموجودة', 'info');
             return;
           }
         }
@@ -249,7 +261,7 @@ Pages.internalChat = function(el) {
         }).then(function(r) {
           if (r.error) { alert(r.error.message); return; }
           App.closeModal(); loadChannels();
-          showToast('تم إنشاء المحادثة', 'success');
+          showToast('Chat created - تم إنشاء المحادثة', 'success');
         });
       });
     });
