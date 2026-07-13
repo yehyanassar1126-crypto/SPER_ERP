@@ -66,6 +66,7 @@ window.ERPLogistics = {
       }
       html += '<th style="padding:12px">Driver & Vehicle</th>';
       html += '<th style="padding:12px">Destination (الوجهة)</th>';
+      html += '<th style="padding:12px">Odometers & Distance</th>';
       html += '</tr></thead><tbody>';
       
       if (movements.length === 0) {
@@ -79,6 +80,8 @@ window.ERPLogistics = {
           }
           html += '<td style="padding:12px"><div style="font-weight:600">' + m.driver_name + '</div><div style="font-size:0.8rem; color:var(--text-muted)">' + m.car_number + '</div></td>';
           html += '<td style="padding:12px"><span style="background:rgba(34,197,94,0.1); color:#16a34a; padding:4px 8px; border-radius:4px; font-weight:600">' + (m.destination || 'N/A') + '</span></td>';
+          let distStr = (m.odometer_end && m.odometer_start) ? (m.odometer_end - m.odometer_start) + ' km' : 'N/A';
+          html += '<td style="padding:12px"><div style="font-size:0.85rem">Start: ' + (m.odometer_start||'--') + '<br>End: ' + (m.odometer_end||'--') + '<br><strong style="color:#6366f1">Dist: ' + distStr + '</strong></div></td>';
           html += '</tr>';
         });
       }
@@ -126,7 +129,8 @@ window.ERPLogistics = {
           
           let formHtml = '<div class="form-group"><label class="form-label">Select Driver (اختر السائق)</label><select class="form-input" id="select-driver">' + driverOpts + '</select></div>';
           formHtml += '<div class="form-group"><label class="form-label">Destination / Task (الوجهة / المهمة)</label><input type="text" class="form-input" id="movement-destination" required></div>';
-          formHtml += '<div class="form-group"><label class="form-label">Current Odometer (قراءة العداد قبل المشوار)</label><input type="number" class="form-input" id="odometer-start" placeholder="e.g. 15000" required></div>';
+          formHtml += '<div class="form-group"><label class="form-label">Odometer Start (قراءة العداد قبل المشوار)</label><input type="number" class="form-input" id="odometer-start" placeholder="e.g. 15000" required></div>';
+          formHtml += '<div class="form-group"><label class="form-label">Odometer End (قراءة العداد بعد المشوار)</label><input type="number" class="form-input" id="odometer-end" placeholder="e.g. 15200"></div>';
           
           let footerHtml = '<button class="btn btn-outline" id="cancel-movement">Cancel</button><button class="btn btn-primary" id="save-movement">Assign</button>';
           
@@ -141,6 +145,7 @@ window.ERPLogistics = {
             let cNum = selOpt.getAttribute('data-car');
             let dest = document.getElementById('movement-destination').value.trim();
             let odometerStart = document.getElementById('odometer-start').value.trim();
+            let odometerEnd = document.getElementById('odometer-end').value.trim();
             
             if (!dest || !odometerStart) { alert('Please enter destination and odometer reading.'); return; }
             
@@ -148,7 +153,7 @@ window.ERPLogistics = {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span> Saving...';
             
-            sbClient.from('logistics_movements').insert({
+            let insertData = {
               employee_id: App.user.id,
               employee_name: App.user.full_name,
               driver_id: dId,
@@ -156,7 +161,21 @@ window.ERPLogistics = {
               car_number: cNum,
               destination: dest,
               odometer_start: parseFloat(odometerStart)
-            }).then(function(res) {
+            };
+            
+            if (odometerEnd) {
+              insertData.odometer_end = parseFloat(odometerEnd);
+              insertData.distance_covered = parseFloat(odometerEnd) - parseFloat(odometerStart);
+            }
+            
+            sbClient.from('logistics_movements').insert(insertData).then(function(res) {
+              if (res.error) {
+                alert('Database error: Please run fix_logistics_table.sql in Supabase SQL editor.');
+                btn.disabled = false;
+                btn.innerHTML = 'Assign';
+                console.error(res.error);
+                return;
+              }
               App.closeModal();
               App.navigate('logistics');
             });
