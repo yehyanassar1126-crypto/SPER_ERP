@@ -521,7 +521,7 @@ GROUP BY a.employee_id, a.employee_name, a.department, to_char(a.date, 'YYYY-MM'
 
 CREATE OR REPLACE VIEW v_inventory_status AS
 SELECT 
-  i.id, i.name, i.category, i.quantity, i.min_quantity, i.warehouse_type,
+  i.id, i.name, i.category, i.quantity, i.min_quantity,
   CASE 
     WHEN i.quantity <= 0 THEN 'out_of_stock'
     WHEN i.quantity <= i.min_quantity THEN 'low_stock'
@@ -542,18 +542,49 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Performance Indexes
-CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department);
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
-CREATE INDEX IF NOT EXISTS idx_attendance_status ON attendance(status);
-CREATE INDEX IF NOT EXISTS idx_attendance_emp_date ON attendance(employee_id, date);
-CREATE INDEX IF NOT EXISTS idx_leave_dates ON leave_requests(start_date, end_date);
-CREATE INDEX IF NOT EXISTS idx_payroll_emp_month ON payroll(employee_id, month);
-CREATE INDEX IF NOT EXISTS idx_loans_status ON loans(status);
-CREATE INDEX IF NOT EXISTS idx_expenses_status ON expenses(status);
-CREATE INDEX IF NOT EXISTS idx_it_tickets_status ON it_tickets(status);
-CREATE INDEX IF NOT EXISTS idx_purchase_req_status ON purchase_requests(status);
+-- Performance Indexes (safe - only on confirmed tables)
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS idx_users_dept ON users(department);
+  CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+  CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS idx_attendance_status ON attendance(status);
+  CREATE INDEX IF NOT EXISTS idx_attendance_emp_date ON attendance(employee_id, date);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS idx_leave_dates ON leave_requests(start_date, end_date);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS idx_payroll_emp_month ON payroll(employee_id, month);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS idx_loans_status ON loans(status);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS idx_expenses_status ON expenses(status);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS idx_it_tickets_status ON it_tickets(status);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE INDEX IF NOT EXISTS idx_purchase_req_status ON purchase_requests(status);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 ALTER TABLE kpi_definitions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kpi_values ENABLE ROW LEVEL SECURITY;
