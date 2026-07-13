@@ -10,14 +10,30 @@ Pages.internalChat = function(el) {
   var activeChannel = null;
   var messages = [];
 
+  var allUsers = {}; // cache: id -> name
+
   function loadChannels() {
     el.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span></div>';
-    sbClient.from('chat_channels').select('*').order('created_at', {ascending: false}).then(function(res) {
-      channels = (res.data || []).filter(function(ch) {
-        return ch.members && ch.members.indexOf(userId) !== -1;
+    // Load users first to resolve names
+    sbClient.from('users').select('id,full_name').eq('status','active').then(function(uRes) {
+      (uRes.data || []).forEach(function(u) { allUsers[u.id] = u.full_name; });
+      sbClient.from('chat_channels').select('*').order('created_at', {ascending: false}).then(function(res) {
+        channels = (res.data || []).filter(function(ch) {
+          return ch.members && ch.members.indexOf(userId) !== -1;
+        });
+        render();
       });
-      render();
     });
+  }
+
+  function getChannelName(ch) {
+    if (ch.channel_type === 'group') return ch.name || 'Group Chat';
+    // For direct: show the OTHER person's name
+    if (ch.members && ch.members.length >= 2) {
+      var otherId = ch.members.find(function(m) { return m !== userId; });
+      if (otherId && allUsers[otherId]) return allUsers[otherId];
+    }
+    return ch.name || 'Chat';
   }
 
   function loadMessages(channelId) {
@@ -48,10 +64,11 @@ Pages.internalChat = function(el) {
     } else {
       channels.forEach(function(ch) {
         var isActive = activeChannel === ch.id;
-        var name = ch.name || 'Direct Message';
+        var name = getChannelName(ch);
+        var emoji = ch.channel_type === 'group' ? '👥 ' : '💬 ';
         html += '<div onclick="loadChatChannel(\'' + ch.id + '\')" style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border-color);background:' + (isActive ? 'var(--bg-card)' : 'transparent') + ';border-left:3px solid ' + (isActive ? 'var(--accent-primary)' : 'transparent') + '">';
-        html += '<div style="font-weight:600;font-size:0.9rem">' + (ch.channel_type === 'group' ? '👥 ' : '💬 ') + name + '</div>';
-        html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">' + ch.channel_type + '</div>';
+        html += '<div style="font-weight:600;font-size:0.9rem">' + emoji + name + '</div>';
+        html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">' + (ch.channel_type === 'direct' ? 'Direct Message' : 'Group') + '</div>';
         html += '</div>';
       });
     }
@@ -64,7 +81,7 @@ Pages.internalChat = function(el) {
       html += '<div style="text-align:center"><div style="font-size:3rem;margin-bottom:12px">💬</div><p>Select a conversation to start chatting</p></div></div>';
     } else {
       var ch = channels.find(function(c) { return c.id === activeChannel; });
-      html += '<div style="padding:12px 16px;border-bottom:1px solid var(--border-color);font-weight:700">' + (ch ? ch.name || 'Chat' : 'Chat') + '</div>';
+      html += '<div style="padding:12px 16px;border-bottom:1px solid var(--border-color);font-weight:700">' + (ch ? getChannelName(ch) : 'Chat') + '</div>';
       html += '<div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px">';
       
       if (messages.length === 0) {
@@ -126,8 +143,24 @@ Pages.internalChat = function(el) {
         var members = [userId];
         document.querySelectorAll('.chat-member:checked').forEach(function(cb) { members.push(cb.value); });
         if (members.length < 2) { alert('Select at least one member'); return; }
+
+        // Prevent duplicate direct chats
+        if (type === 'direct' && members.length === 2) {
+          var targetId = members.find(function(m) { return m !== userId; });
+          var existing = channels.find(function(ch) {
+            return ch.channel_type === 'direct' && ch.members &&
+              ch.members.indexOf(userId) !== -1 && ch.members.indexOf(targetId) !== -1;
+          });
+          if (existing) {
+            App.closeModal();
+            loadMessages(existing.id);
+            showToast('Chat already exists - opened it', 'info');
+            return;
+          }
+        }
+
         sbClient.from('chat_channels').insert({
-          name: name || (type === 'direct' ? null : 'Group Chat'),
+          name: name || null,
           channel_type: type, members: members, created_by: userId
         }).then(function(r) {
           if (r.error) { alert(r.error.message); return; }
