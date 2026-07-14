@@ -1577,11 +1577,22 @@ Pages.employees = function (el) {
     if (myLevel >= 2) roleOptions += '<option value="technical office" ' + (emp && emp.role === 'technical office' ? 'selected' : '') + '>Technical Office (مكتب فني)</option>';
     if (myLevel >= 2) roleOptions += '<option value="it" ' + (emp && emp.role === 'it' ? 'selected' : '') + '>IT Support (دعم فني)</option>';
     if (myLevel >= 3) roleOptions += '<option value="nursing management" ' + (emp && emp.role === 'nursing management' ? 'selected' : '') + '>Nursing Management (إدارة التمريض)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="driver" ' + (emp && emp.role === 'driver' ? 'selected' : '') + '>Driver (سائق)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="logistics manager" ' + (emp && emp.role === 'logistics manager' ? 'selected' : '') + '>Logistics Manager (مدير حركة)</option>';
     if (myLevel >= 2) roleOptions += '<option value="employee" ' + (!emp || emp.role === 'employee' ? 'selected' : '') + '>Employee (موظف)</option>';
 
     body += '<div class="form-row"><div class="form-field"><label>System Role *</label><select id="ef-role">' + roleOptions + '</select></div><div class="form-field"><label>Department *</label><select id="ef-dept">';
     DEPARTMENTS.forEach(function (d) { body += '<option value="' + d + '"' + (emp && emp.department === d ? ' selected' : '') + '>' + d + '</option>'; });
-    body += '</select></div></div><div class="form-row"><div class="form-field"><label>Position / Title *</label><select id="ef-pos">';
+    body += '</select></div></div>';
+    
+    // Driver Type (only shown if role == driver)
+    body += '<div class="form-row" id="ef-driver-type-row" style="display:' + (emp && emp.role === 'driver' ? 'flex' : 'none') + '">';
+    body += '<div class="form-field"><label>Driver Type *</label><select id="ef-driver-type">';
+    body += '<option value="internal"' + (emp && emp.driver_type === 'internal' ? ' selected' : '') + '>Internal (موظف بالشركة - راتب ثابت)</option>';
+    body += '<option value="external"' + (emp && emp.driver_type === 'external' ? ' selected' : '') + '>External (سائق خارجي - يحاسب بالمشوار)</option>';
+    body += '</select></div><div></div></div>';
+    
+    body += '<div class="form-row"><div class="form-field"><label>Position / Title *</label><select id="ef-pos">';
     var currentPos = emp ? (emp.position || '').replace(' (عامل يومية)', '') : '';
     var positionsList = [
       'General Manager (مدير عام)', 'Factory Manager (مدير مصنع)',
@@ -1654,6 +1665,13 @@ Pages.employees = function (el) {
       };
       document.getElementById('ef-role').addEventListener('change', updatePermSection);
     }
+    
+    if (document.getElementById('ef-role')) {
+      document.getElementById('ef-role').addEventListener('change', function() {
+        var drvRow = document.getElementById('ef-driver-type-row');
+        if(drvRow) drvRow.style.display = this.value === 'driver' ? 'flex' : 'none';
+      });
+    }
 
     // Dynamic: when shift system changes, update shift dropdown
     document.getElementById('ef-shift-system').addEventListener('change', function () {
@@ -1715,6 +1733,15 @@ Pages.employees = function (el) {
         insurance_salary: Number(document.getElementById('ef-ins-salary').value || 0),
         documents_complete: (emp ? emp.documents_complete : false)
       };
+      
+      if (form.role === 'driver') {
+        form.driver_type = document.getElementById('ef-driver-type') ? document.getElementById('ef-driver-type').value : 'internal';
+        if (form.driver_type === 'external') {
+           form.base_salary = 0; // External drivers don't have a base salary
+        }
+      } else {
+        form.driver_type = null;
+      }
 
       var canEditSalary = true;
       if (App.user && App.user.role === 'hr') {
@@ -1739,7 +1766,13 @@ Pages.employees = function (el) {
       if (!form.username) { alert('Username is required'); return; }
       if (emp) {
         Object.assign(emp, form);
-        sbClient.from('users').update(form).eq('id', emp.id).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); } });
+        sbClient.from('users').update(form).eq('id', emp.id).then(function (r) { 
+           if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); return; }
+           if (form.role === 'driver') {
+              // Ensure they exist in logistics_drivers
+              sbClient.from('logistics_drivers').upsert({ id: emp.id, employee_id: emp.id, driver_name: form.full_name, car_number: 'N/A', driver_type: form.driver_type }).then(function(){});
+           }
+        });
       } else {
         var passInputValue = document.getElementById('ef-password') ? document.getElementById('ef-password').value : 'emp123';
         if (!form.username) { alert('Username is required'); return; }
@@ -1762,6 +1795,10 @@ Pages.employees = function (el) {
           sbClient.from('users').insert([newEmp]).select().single().then(function (r) {
             if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); return; }
             if (r.data) {
+              if (form.role === 'driver') {
+                 // Automatically insert into logistics_drivers
+                 sbClient.from('logistics_drivers').insert({ id: r.data.id, employee_id: r.data.id, driver_name: form.full_name, car_number: 'N/A', driver_type: form.driver_type }).then(function(){});
+              }
               employees.push(r.data);
               render();
               showToast('Employee added!', 'success');
