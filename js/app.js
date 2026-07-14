@@ -1428,25 +1428,41 @@ Pages.employees = function (el) {
     if (isHR) html += '<button class="btn btn-primary" id="add-emp-btn">' + icon('plus') + ' Add Employee</button>';
     html += '</div>';
 
-    html += '<div class="card"><div class="card-header"><div><h3>All Employees</h3><p>' + filtered.length + ' employees found</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr><th>Employee</th><th>ID</th><th>Department</th><th>Position</th><th>Shift System</th><th>Shift</th><th>Status</th><th>Docs</th><th>Actions</th></tr></thead><tbody>';
-    filtered.forEach(function (emp) {
-      var empEmail = emp.email || 'No email';
-      var empShiftSystem = emp.shift_system || '3-shift';
-      var shiftConf = getShiftConfig(emp.shift, empShiftSystem);
-      var sysLabel = empShiftSystem === '2-shift' ? '2-Shift (12h)' : '3-Shift (8h)';
-      html += '<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="sidebar-avatar" style="background:' + (emp.avatar_color || '#6366f1') + ';width:32px;height:32px;font-size:0.7rem">' + getInitials(emp.full_name) + '</div><div><div style="color:var(--text-primary);font-weight:600;font-size:0.85rem">' + emp.full_name + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + empEmail + '</div></div></div></td>';
-      html += '<td><code style="color:var(--accent-primary);font-size:0.78rem">' + emp.employee_id + '</code></td><td>' + emp.department + '</td><td>' + (emp.position || '—') + '</td>';
-      html += '<td><span class="badge badge-info" style="font-size:0.72rem">' + sysLabel + '</span></td>';
-      html += '<td><span class="shift-badge shift-' + emp.shift + '">' + icon('clock', 11) + ' ' + shiftConf.label + ' (' + shiftConf.start + '-' + shiftConf.end + ')</span></td>';
-      html += '<td><span class="badge badge-success"><span class="badge-dot"></span>' + emp.status + '</span></td>';
-      var docsHtml = emp.documents_complete ? '<span class="badge badge-info" style="cursor:pointer" data-doc-complete="' + emp.id + '" title="View Documents">' + icon('checkCheck', 12) + ' Complete</span>' : '<button class="btn btn-xs btn-warning" data-doc-complete="' + emp.id + '" title="Manage Documents">?? Missing</button>';
-      html += '<td>' + docsHtml + '</td>';
-      html += '<td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-icon" data-view="' + emp.id + '" title="View">' + icon('eye') + '</button>';
-      if (isHR) html += '<button class="btn btn-ghost btn-icon" data-edit="' + emp.id + '" title="Edit">' + icon('edit') + '</button><button class="btn btn-ghost btn-icon" data-del="' + emp.id + '" title="Delete" style="color:var(--accent-danger)">' + icon('trash') + '</button>';
-      html += '</div></td></tr>';
-    });
-    if (filtered.length === 0) html += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No employees found</td></tr>';
-    html += '</tbody></table></div></div></div>';
+    html += '<div class="card"><div class="card-header"><div><h3>All Employees</h3><p>' + filtered.length + ' employees found</p></div></div><div class="card-body no-pad">';
+    if (filtered.length === 0) {
+      html += '<div style="text-align:center;padding:40px;color:var(--text-muted)">No employees found</div>';
+    } else {
+      var grouped = {};
+      filtered.forEach(function(emp) {
+        var d = emp.department || 'Unknown';
+        if (!grouped[d]) grouped[d] = [];
+        grouped[d].push(emp);
+      });
+      
+      var sortedDepts = Object.keys(grouped).sort();
+      sortedDepts.forEach(function(d) {
+        html += '<div style="background:var(--bg-tertiary);padding:12px 20px;font-weight:700;font-size:0.95rem;border-bottom:1px solid var(--border-color);border-top:1px solid var(--border-color);color:var(--accent-primary);display:flex;align-items:center;gap:10px;">' + icon('users') + ' ' + (window.t ? t(d) : d) + ' <span class="badge badge-neutral" style="font-size:0.7rem">' + grouped[d].length + ' Employees</span></div>';
+        html += '<div class="table-container"><table class="data-table"><thead><tr><th>Employee</th><th>ID</th><th>Position</th><th>Shift System</th><th>Shift</th><th>Status</th><th>Docs</th><th>Actions</th></tr></thead><tbody>';
+        grouped[d].forEach(function (emp) {
+          var empEmail = emp.email || 'No email';
+          var empShiftSystem = emp.shift_system || '3-shift';
+          var shiftConf = getShiftConfig(emp.shift, empShiftSystem);
+          var sysLabel = empShiftSystem === '2-shift' ? '2-Shift (12h)' : '3-Shift (8h)';
+          html += '<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="sidebar-avatar" style="background:' + (emp.avatar_color || '#e11d48') + ';width:32px;height:32px;font-size:0.7rem">' + getInitials(emp.full_name) + '</div><div><div style="color:var(--text-primary);font-weight:600;font-size:0.85rem">' + emp.full_name + '</div><div style="font-size:0.72rem;color:var(--text-muted)">' + empEmail + '</div></div></div></td>';
+          html += '<td><code style="color:var(--accent-primary);font-size:0.78rem">' + emp.employee_id + '</code></td><td>' + (window.t ? t(emp.position || '—') : (emp.position || '—')) + '</td>';
+          html += '<td><span class="badge badge-info" style="font-size:0.72rem">' + sysLabel + '</span></td>';
+          html += '<td><span class="shift-badge shift-' + emp.shift + '">' + icon('clock', 11) + ' ' + shiftConf.label + ' (' + shiftConf.start + '-' + shiftConf.end + ')</span></td>';
+          html += '<td><span class="badge badge-success"><span class="badge-dot"></span>' + emp.status + '</span></td>';
+          var docsHtml = emp.documents_complete ? '<span class="badge badge-info" style="cursor:pointer" data-doc-complete="' + emp.id + '" title="View Documents">' + icon('checkCheck', 12) + ' Complete</span>' : '<button class="btn btn-xs btn-warning" data-doc-complete="' + emp.id + '" title="Manage Documents">?? Missing</button>';
+          html += '<td>' + docsHtml + '</td>';
+          html += '<td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-icon" data-view="' + emp.id + '" title="View">' + icon('eye') + '</button>';
+          if (isHR) html += '<button class="btn btn-ghost btn-icon" data-edit="' + emp.id + '" title="Edit">' + icon('edit') + '</button><button class="btn btn-ghost btn-icon" data-del="' + emp.id + '" title="Delete" style="color:var(--accent-danger)">' + icon('trash') + '</button>';
+          html += '</div></td></tr>';
+        });
+        html += '</tbody></table></div>';
+      });
+    }
+    html += '</div></div>';
 
 
     el.innerHTML = html;
