@@ -214,11 +214,9 @@ var App = {
       '<div class="login-logo"><img src="public/logo.png" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(225,29,72,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>ERP System</p></div>' +
       '<form class="login-form" id="login-form">' +
       '<div id="login-error" class="login-error" style="display:none"></div>' +
-      '<div class="form-group"><label class="form-label">Username</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="Enter your username" id="login-username" autofocus>' +
-      '<span class="form-input-icon">' + icon('user') + '</span></div></div>' +
-      '<div class="form-group"><label class="form-label">Password</label><div class="form-input-wrapper"><input type="password" class="form-input" placeholder="Enter your password" id="login-password">' +
-      '<span class="form-input-icon">' + icon('lock') + '</span></div></div>' +
-      '<button type="submit" class="login-btn" id="login-submit">Sign In</button></form>' +
+      '<div class="form-group"><label class="form-label">Username (اسم المستخدم)</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="Enter your username" id="login-username" autofocus></div></div>' +
+      '<div class="form-group"><label class="form-label">Password (كلمة المرور)</label><div class="form-input-wrapper"><input type="password" class="form-input" placeholder="Enter your password" id="login-password"></div></div>' +
+      '<button type="submit" class="login-btn" id="login-submit">Sign In (تسجيل الدخول)</button></form>' +
 
       '</div></div>';
 
