@@ -469,7 +469,7 @@ var App = {
         });
       }
 
-      if (App.user && App.user.role === 'driver') {
+      if (App.user && App.user.role === 'driver' && App.user.driver_type === 'external') {
         menu = [
           { section: 'Transportation (النقل)', items: [{ id: 'logistics', label: 'Vehicle Movement (حركة العربيات)', icon: 'truck' }] },
           { section: 'Collaboration (التواصل)', items: [{ id: 'internal-chat', label: 'Internal Chat (المحادثات)', icon: 'messageSquare' }] }
