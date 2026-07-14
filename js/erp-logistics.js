@@ -178,7 +178,11 @@ window.ERPLogistics = {
             }
           } else {
             let sBadge = mStatus === 'new' ? '<span class="badge badge-info">New</span>' : (mStatus === 'in_progress' ? '<span class="badge badge-warning">In Progress</span>' : '<span class="badge badge-success">Completed</span>');
-            html += '<div style="margin-bottom:8px">' + sBadge + '</div>';
+            html += '<div style="margin-bottom:8px">' + sBadge;
+            if (App.user.role !== 'driver' && mStatus === 'new') {
+               html += '<button class="btn btn-sm" style="margin-left: 8px; color: #ef4444; background: none; border: 1px solid #ef4444; padding: 2px 8px; font-size: 0.75rem; cursor: pointer;" onclick="deleteLogisticsTrip(\''+m.id+'\')">Delete (حذف)</button>';
+            }
+            html += '</div>';
           }
           
           // Cost Workflow (Only for external drivers, or managers dealing with costs)
@@ -607,3 +611,14 @@ window.ERPLogistics = {
 };
 
 Pages['logistics'] = ERPLogistics.renderLogistics;
+
+window.deleteLogisticsTrip = function(tripId) {
+  if (!confirm('Are you sure you want to delete this trip? (هل أنت متأكد من حذف هذا المشوار؟)')) return;
+  sbClient.from('logistics_movements').delete().eq('id', tripId).then(function(res) {
+    if(res.error) {
+      alert('Error deleting trip: ' + res.error.message);
+    } else {
+      App.navigate('logistics');
+    }
+  });
+};
