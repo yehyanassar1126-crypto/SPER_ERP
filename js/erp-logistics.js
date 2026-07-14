@@ -375,7 +375,7 @@ window.ERPLogistics = {
               return;
           }
           
-          var html5QrcodeScanner = new Html5QrcodeScanner("trip-scanner", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+          var html5QrcodeScanner = new Html5QrcodeScanner("trip-scanner", { fps: 10, qrbox: {width: 250, height: 250}, videoConstraints: { facingMode: "environment" } }, false);
           html5QrcodeScanner.render(function(decodedText) {
               html5QrcodeScanner.clear();
               App.closeModal();
@@ -405,7 +405,7 @@ window.ERPLogistics = {
               return;
           }
           
-          var html5QrcodeScanner = new Html5QrcodeScanner("trip-scanner-end", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+          var html5QrcodeScanner = new Html5QrcodeScanner("trip-scanner-end", { fps: 10, qrbox: {width: 250, height: 250}, videoConstraints: { facingMode: "environment" } }, false);
           html5QrcodeScanner.render(function(decodedText) {
               html5QrcodeScanner.clear();
               App.closeModal();
