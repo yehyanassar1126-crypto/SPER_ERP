@@ -524,6 +524,15 @@ var App = {
           ]
         });
       }
+      
+      var canViewLegal = App.isOwner() || App.isManager() || App.isHR() || (App.user && App.user.role === 'lawyer');
+      if (canViewLegal) {
+        menu.push({
+          section: 'Legal & Compliance', items: [
+            { id: 'legal-affairs', label: 'Legal Affairs (الشئون القانونية)', icon: 'shield' }
+          ]
+        });
+      }
 
       // ERP Departments
       var canViewSales = App.isOwner() || (App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager'));
@@ -675,6 +684,7 @@ var App = {
       'purchase-requests': { title: 'Material Requests (طلبات صرف وشراء)', sub: 'Warehouse and Procurement workflows' },
       'petty-cash': { title: 'Financial Suite (الإدارة المالية الشاملة)', sub: 'Manage treasury, AP/AR, assets, and more' },
       'it-tickets': { title: 'IT Support (الدعم الفني)', sub: 'Technical support and issue tracking' },
+      'legal-affairs': { title: 'Legal Affairs (الشئون القانونية)', sub: 'Company investigations and legal issues' },
       'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' },
       'erp-sales': { title: 'Sales (المبيعات)', sub: 'Sales orders & client management' },
       'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
@@ -782,6 +792,7 @@ var App = {
       case 'performance': (App.isHR() || App.isManager()) ? Pages.performance(el) : Pages.empDashboard(el); break;
       case 'uniforms': App.isHR() ? Pages.uniforms(el) : Pages.empDashboard(el); break;
       case 'loans': App.isHR() ? Pages.loans(el) : Pages.empDashboard(el); break;
+      case 'legal-affairs': if (Pages.legalAffairs) Pages.legalAffairs(el); else el.innerHTML = 'Module missing'; break;
       case 'my-loans': Pages.myLoans(el); break;
       case 'medical-requests': (App.isHR() || App.isManager()) ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
       case 'nursing-medical-approvals': (App.isNursing() || App.isHR() || App.isOwner()) ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
@@ -1592,6 +1603,7 @@ Pages.employees = function (el) {
     if (myLevel >= 3) roleOptions += '<option value="nursing management" ' + (emp && emp.role === 'nursing management' ? 'selected' : '') + '>Nursing Management (إدارة التمريض)</option>';
     if (myLevel >= 2) roleOptions += '<option value="driver" ' + (emp && emp.role === 'driver' ? 'selected' : '') + '>Driver (سائق)</option>';
     if (myLevel >= 2) roleOptions += '<option value="logistics manager" ' + (emp && emp.role === 'logistics manager' ? 'selected' : '') + '>Logistics Manager (مدير حركة)</option>';
+    if (myLevel >= 2) roleOptions += '<option value="lawyer" ' + (emp && emp.role === 'lawyer' ? 'selected' : '') + '>Lawyer (محامي)</option>';
     if (myLevel >= 2) roleOptions += '<option value="employee" ' + (!emp || emp.role === 'employee' ? 'selected' : '') + '>Employee (موظف)</option>';
 
     body += '<div class="form-row"><div class="form-field"><label>System Role *</label><select id="ef-role">' + roleOptions + '</select></div><div class="form-field"><label>Department *</label><select id="ef-dept">';
@@ -1627,6 +1639,7 @@ Pages.employees = function (el) {
       'Nursing Manager (مدير تمريض)', 'Nurse (ممرض/ة)',
       'Logistics Manager (مدير حركة/نقل)', 'Driver (سائق)',
       'Safety & Security Officer (أمن وسلامة)', 'Secretary (سكرتارية)',
+      'Lawyer (محامي)',
       'Employee (موظف عادي)'
     ];
     positionsList.forEach(function (p) {
