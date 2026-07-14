@@ -46,21 +46,25 @@ window.ERPLogistics = {
         html += '</div>';
         html += '<div id="gate-scanner-container" style="margin-top:20px; width:100%; max-width:400px; display:none;"></div>';
         
-        if (gateLogs.length > 0) {
-          html += '<h4 style="margin-top:24px; font-weight:600;">Recent Gate Logs</h4>';
-          html += '<table class="table" style="width:100%; margin-top:8px;"><thead><tr style="text-align:left; border-bottom:1px solid #eee;"><th>Time</th><th>Driver</th><th>Action</th></tr></thead><tbody>';
-          gateLogs.forEach(log => {
-            let color = log.scan_type === 'Gate In' ? '#16a34a' : '#ef4444';
-            html += `<tr>
-              <td style="padding:8px">${new Date(log.scan_time).toLocaleString()}</td>
-              <td style="padding:8px">${log.driver_name}</td>
-              <td style="padding:8px"><span style="color:${color}; font-weight:600;">${log.scan_type}</span></td>
-            </tr>`;
-          });
-          html += '</tbody></table>';
-        }
-        
         html += '</div>';
+      }
+      
+      // ==========================================
+      // GATE LOGS (For Both Drivers & Managers)
+      // ==========================================
+      if (gateLogs.length > 0) {
+        html += '<div class="card" style="background:var(--bg-card); border-radius:var(--radius-lg); padding:24px; border:1px solid var(--border-color); margin-bottom: 32px;">';
+        html += '<h3 style="font-size:1.3rem; font-weight:700; margin-bottom:16px;">Gate Logs (سجل البوابة)</h3>';
+        html += '<table class="table" style="width:100%; margin-top:8px;"><thead><tr style="text-align:left; border-bottom:1px solid #eee;"><th>Time</th><th>Driver</th><th>Action</th></tr></thead><tbody>';
+        gateLogs.forEach(log => {
+          let color = log.scan_type === 'Gate In' ? '#16a34a' : '#ef4444';
+          html += `<tr>
+            <td style="padding:8px">${new Date(log.scan_time).toLocaleString()}</td>
+            <td style="padding:8px">${log.driver_name}</td>
+            <td style="padding:8px"><span style="color:${color}; font-weight:600;">${log.scan_type}</span></td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
       }
       // ==========================================
       // DRIVERS SECTION
