@@ -65,7 +65,7 @@ window.ERPLogistics = {
       // ==========================================
       // DRIVERS SECTION
       // ==========================================
-      if (App.user.role === 'owner' || App.user.department === 'Logistics' || App.user.role === 'logistics manager') {
+      if (App.user.role !== 'driver' && (App.user.role === 'owner' || App.user.department === 'Logistics' || App.user.role === 'logistics manager')) {
         html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; margin-top:24px;">';
         html += '<h3 style="font-size:1.3rem; font-weight:700;">Registered Drivers (السائقين المسجلين)</h3>';
         html += '<button class="btn btn-primary btn-sm" id="new-driver-btn">' + icon('plus', 16) + ' Add Driver</button>';
@@ -118,35 +118,38 @@ window.ERPLogistics = {
           html += '<td style="padding:12px"><div style="font-size:0.85rem">Start: ' + (m.odometer_start||'--') + '<br>End: ' + (m.odometer_end||'--') + '<br><strong style="color:#6366f1">Dist: ' + distStr + '</strong></div></td>';
           
           html += '<td style="padding:12px">';
-          if (!m.odometer_end && (App.user.role === 'owner' || App.user.department === 'Logistics' || App.user.role === 'logistics manager')) {
+          if (!m.odometer_end && (App.user.role === 'owner' || App.user.department === 'Logistics' || App.user.role === 'logistics manager') && App.user.role !== 'driver') {
             html += '<button class="btn btn-outline btn-sm end-trip-btn" data-id="'+m.id+'" data-start="'+m.odometer_start+'">End Trip</button>';
           } else if (m.odometer_end) {
             html += '<div style="margin-bottom:8px;"><span style="color:#16a34a; font-weight:600;">Completed</span></div>';
-            
-            let costStat = m.cost_status || 'pending';
-            if (costStat === 'pending') {
-              if (App.user.role === 'driver') {
-                html += '<button class="btn btn-primary btn-sm add-cost-btn" data-id="'+m.id+'">Add Trip Cost</button>';
-              } else {
-                html += '<span style="color:var(--text-muted); font-size:0.8rem;">Waiting for Driver Cost</span>';
-              }
-            } else if (costStat === 'pending_approval') {
-              if (App.user.department === 'Logistics' || App.user.role === 'logistics manager' || App.user.role === 'owner') {
-                 html += '<div style="margin-bottom:4px;">Cost: <strong>'+m.trip_cost+' EGP</strong></div>';
-                 html += '<button class="btn btn-warning btn-sm approve-cost-btn" data-id="'+m.id+'">Approve Cost</button>';
-              } else {
-                 html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#f59e0b; font-size:0.8rem">(Pending Approval)</span></div>';
-              }
-            } else if (costStat === 'pending_payment') {
-              if (App.user.department === 'Finance' || App.user.role === 'owner' || App.user.role === 'hr manager') {
-                 html += '<div style="margin-bottom:4px;">Cost: <strong>'+m.trip_cost+' EGP</strong></div>';
-                 html += '<button class="btn btn-success btn-sm pay-cost-btn" data-id="'+m.id+'">Mark as Paid</button>';
-              } else {
-                 html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#3b82f6; font-size:0.8rem">(Pending Payment)</span></div>';
-              }
-            } else if (costStat === 'paid') {
-               html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#16a34a; font-weight:bold; font-size:0.8rem">(Paid)</span></div>';
+          } else if (App.user.role === 'driver') {
+            html += '<div style="margin-bottom:8px;"><span style="color:#f59e0b; font-weight:600;">In Progress</span></div>';
+          }
+          
+          // Show Cost Workflow for both completed and in-progress (if driver wants to add it early)
+          let costStat = m.cost_status || 'pending';
+          if (costStat === 'pending') {
+            if (App.user.role === 'driver') {
+              html += '<button class="btn btn-primary btn-sm add-cost-btn" data-id="'+m.id+'">Add Trip Cost</button>';
+            } else {
+              html += '<span style="color:var(--text-muted); font-size:0.8rem;">Waiting for Driver Cost</span>';
             }
+          } else if (costStat === 'pending_approval') {
+            if ((App.user.department === 'Logistics' || App.user.role === 'logistics manager' || App.user.role === 'owner') && App.user.role !== 'driver') {
+               html += '<div style="margin-bottom:4px;">Cost: <strong>'+m.trip_cost+' EGP</strong></div>';
+               html += '<button class="btn btn-warning btn-sm approve-cost-btn" data-id="'+m.id+'">Approve Cost</button>';
+            } else {
+               html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#f59e0b; font-size:0.8rem">(Pending Approval)</span></div>';
+            }
+          } else if (costStat === 'pending_payment') {
+            if (App.user.department === 'Finance' || App.user.role === 'owner' || App.user.role === 'hr manager') {
+               html += '<div style="margin-bottom:4px;">Cost: <strong>'+m.trip_cost+' EGP</strong></div>';
+               html += '<button class="btn btn-success btn-sm pay-cost-btn" data-id="'+m.id+'">Mark as Paid</button>';
+            } else {
+               html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#3b82f6; font-size:0.8rem">(Pending Payment)</span></div>';
+            }
+          } else if (costStat === 'paid') {
+             html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#16a34a; font-weight:bold; font-size:0.8rem">(Paid)</span></div>';
           }
           html += '</td>';
           
@@ -407,6 +410,21 @@ window.ERPLogistics = {
               trip_cost: costVal,
               cost_status: 'pending_approval'
             }).eq('id', mId).then(function(res) {
+              
+              // Notify Logistics Manager
+              sbClient.from('users').select('id').in('role', ['logistics manager', 'owner']).then(function(uRes) {
+                 if (uRes.data) {
+                    uRes.data.forEach(function(mgr) {
+                       App.addNotification({
+                         user_id: mgr.id,
+                         title: 'Trip Cost Approval Required',
+                         message: 'Driver ' + App.user.full_name + ' has submitted a trip cost of ' + costVal + ' EGP for approval.',
+                         type: 'info'
+                       });
+                    });
+                 }
+              });
+
               App.closeModal();
               App.navigate('logistics');
               showToast('Cost submitted for approval', 'success');
