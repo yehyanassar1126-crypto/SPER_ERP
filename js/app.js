@@ -488,23 +488,31 @@ var App = {
         });
       }
 
-      var canViewFinance = App.isOwner() || (App.user && App.user.department === 'Finance') || (App.user && App.user.role === 'hr manager');
+      var isPureFinance = App.isOwner() || (App.user && App.user.department === 'Finance');
+      var canViewFinance = isPureFinance || (App.user && App.user.role === 'hr manager');
+      
       if (canViewFinance || canViewProcurement) {
         var finItems = [];
-        finItems.push({ id: 'petty-cash', label: 'Financial Suite (الإدارة المالية)', icon: 'dollarSign' });
+        
+        if (isPureFinance || canViewProcurement) {
+          finItems.push({ id: 'petty-cash', label: 'Financial Suite (الإدارة المالية)', icon: 'dollarSign' });
+        }
+        
         if (canViewFinance) {
           finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
           finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
+        }
+        
+        if (isPureFinance) {
           finItems.push({ id: 'financial-reports', label: '📊 Financial Reports (التقارير المالية)', icon: 'barChart' });
-          if (App.isOwner() || (App.user && App.user.department === 'Finance')) {
-            finItems.push({ id: 'driver-payments', label: 'Driver Payments (حسابات السائقين)', icon: 'truck' });
-          }
+          finItems.push({ id: 'driver-payments', label: 'Driver Payments (حسابات السائقين)', icon: 'truck' });
         }
 
-        // Avoid duplicate "Petty Cash" section if both Finance and Procurement
-        menu.push({
-          section: 'Finance & Accounting', items: finItems
-        });
+        if (finItems.length > 0) {
+          menu.push({
+            section: 'Finance & Accounting', items: finItems
+          });
+        }
       }
 
       var canViewIT = App.isManager() || App.isHR() || App.isOwner() || (App.user && App.user.department === 'IT');
