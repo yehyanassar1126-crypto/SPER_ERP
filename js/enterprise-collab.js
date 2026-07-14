@@ -368,8 +368,8 @@ Pages.calendar = function(el) {
     var body = '<div class="form-field"><label>Title (العنوان) *</label><input type="text" id="ev-title" class="form-input"></div>';
     body += '<div class="form-row"><div class="form-field"><label>Type (النوع)</label><select id="ev-type" class="form-input"><option value="meeting">Meeting (اجتماع)</option><option value="deadline">Deadline (موعد نهائي)</option><option value="holiday">Holiday (إجازة)</option><option value="reminder">Reminder (تذكير)</option><option value="other">Other (أخرى)</option></select></div>';
     body += '<div class="form-field"><label>All Day? (طوال اليوم؟)</label><select id="ev-allday" class="form-input"><option value="0">No</option><option value="1">Yes</option></select></div></div>';
-    body += '<div class="form-row"><div class="form-field"><label>Start (بداية)</label><input type="datetime-local" id="ev-start" class="form-input" value="' + localISOTime + '"></div>';
-    body += '<div class="form-field"><label>End (نهاية)</label><input type="datetime-local" id="ev-end" class="form-input"></div></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Start (بداية)</label><input type="datetime-local" id="ev-start" class="form-input" value="' + localISOTime + '" onclick="if(this.showPicker) this.showPicker();"></div>';
+    body += '<div class="form-field"><label>End (نهاية)</label><input type="datetime-local" id="ev-end" class="form-input" onclick="if(this.showPicker) this.showPicker();"></div></div>';
     body += '<div class="form-field"><label>Description (الوصف)</label><textarea id="ev-desc" class="form-input" rows="3"></textarea></div>';
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-ev-btn">Save Event</button>';
     App.showModal('New Event', body, footer);
