@@ -217,6 +217,8 @@ window.ERPLogistics = {
             
             // 1. Create User Account in users table
             sbClient.from('users').insert({
+              employee_id: 'DRV-' + Date.now().toString().slice(-6),
+              email: dPhone + '@erp.com',
               username: dPhone,
               full_name: dName,
               password_hash: '123456', // Default password
