@@ -8,7 +8,11 @@ window.ERPLogistics = {
     let moveQuery = sbClient.from('logistics_movements').select('*').order('created_at', { ascending: false });
     let gateQuery = sbClient.from('logistics_gate_logs').select('*').order('scan_time', { ascending: false }).limit(20);
     
-    if (App.user.role !== 'owner' && App.user.role !== 'hr manager' && App.user.role !== 'logistics manager') {
+    if (App.user.role === 'driver') {
+      driverQuery = driverQuery.eq('id', App.user.id);
+      moveQuery = moveQuery.eq('driver_id', App.user.id);
+      gateQuery = gateQuery.eq('driver_id', App.user.id);
+    } else if (App.user.role !== 'owner' && App.user.role !== 'hr manager' && App.user.role !== 'logistics manager' && App.user.department !== 'Logistics') {
       driverQuery = driverQuery.eq('employee_id', App.user.id);
       moveQuery = moveQuery.eq('employee_id', App.user.id);
       gateQuery = gateQuery.eq('driver_id', App.user.id);
@@ -55,7 +59,7 @@ window.ERPLogistics = {
       if (gateLogs.length > 0) {
         html += '<div class="card" style="background:var(--bg-card); border-radius:var(--radius-lg); padding:24px; border:1px solid var(--border-color); margin-bottom: 32px;">';
         html += '<h3 style="font-size:1.3rem; font-weight:700; margin-bottom:16px;">Gate Logs (سجل البوابة)</h3>';
-        html += '<table class="table" style="width:100%; margin-top:8px;"><thead><tr style="text-align:left; border-bottom:1px solid #eee;"><th>Time</th><th>Driver</th><th>Action</th></tr></thead><tbody>';
+        html += '<div class="table-responsive" style="overflow-x:auto; width:100%;"><table class="table" style="width:100%; margin-top:8px; min-width:500px;"><thead><tr style="text-align:left; border-bottom:1px solid #eee;"><th>Time</th><th>Driver</th><th>Action</th></tr></thead><tbody>';
         gateLogs.forEach(log => {
           let color = log.scan_type === 'Gate In' ? '#16a34a' : '#ef4444';
           html += `<tr>
@@ -64,7 +68,7 @@ window.ERPLogistics = {
             <td style="padding:8px"><span style="color:${color}; font-weight:600;">${log.scan_type}</span></td>
           </tr>`;
         });
-        html += '</tbody></table></div>';
+        html += '</tbody></table></div></div>';
       }
       // ==========================================
       // DRIVERS SECTION
@@ -100,7 +104,7 @@ window.ERPLogistics = {
       html += '</div>';
       
       html += '<div class="card" style="background:var(--bg-card); border-radius:var(--radius-lg); padding:20px; border:1px solid var(--border-color);">';
-      html += '<div class="table-responsive"><table class="table" style="width:100%; border-collapse:collapse;">';
+      html += '<div class="table-responsive" style="overflow-x:auto; width:100%;"><table class="table" style="width:100%; min-width:700px; border-collapse:collapse;">';
       html += '<thead><tr style="text-align:left; border-bottom:1px solid var(--border-color);">';
       html += '<th style="padding:12px">Date / Time</th>';
       html += '<th style="padding:12px">Driver & Vehicle</th>';
