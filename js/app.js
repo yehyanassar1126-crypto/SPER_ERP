@@ -472,7 +472,7 @@ var App = {
       if (App.user && App.user.role === 'driver') {
         menu = [
           { section: 'Transportation (النقل)', items: [{ id: 'logistics', label: 'Vehicle Movement (حركة العربيات)', icon: 'truck' }] },
-          { section: 'Collaboration (التواصل)', items: [{ id: 'chat', label: 'Internal Chat (المحادثات)', icon: 'messageSquare' }] }
+          { section: 'Collaboration (التواصل)', items: [{ id: 'internal-chat', label: 'Internal Chat (المحادثات)', icon: 'messageSquare' }] }
         ];
         
         var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>HR & ERP</p></div></div>';
@@ -749,6 +749,8 @@ var App = {
     var el = document.getElementById('page-content');
     if (App.user && App.user.role === 'supplier_external') {
       App.activePage = App.activePage || 'supplier-portal';
+    } else if (App.user && App.user.role === 'driver') {
+      App.activePage = App.activePage || 'logistics';
     } else {
       App.activePage = App.activePage || 'dashboard';
     }

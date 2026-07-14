@@ -36,7 +36,7 @@ window.ERPLogistics = {
       // ==========================================
       // DRIVER GATE SCANNER (For Drivers)
       // ==========================================
-      if (App.user.role === 'driver' || App.user.department === 'Logistics' || App.user.role === 'owner') {
+      if (App.user.role === 'driver') {
         html += '<div class="card" style="background:var(--bg-card); border-radius:var(--radius-lg); padding:24px; border:1px solid var(--border-color); margin-bottom: 32px;">';
         html += '<h3 style="font-size:1.3rem; font-weight:700; margin-bottom:16px;">Gate In/Out Scanner (تسجيل الخروج والدخول من المصنع)</h3>';
         html += '<p style="color:var(--text-muted); margin-bottom: 16px;">Scan the main factory QR code to register your Gate Out and Gate In.</p>';
@@ -121,7 +121,32 @@ window.ERPLogistics = {
           if (!m.odometer_end && (App.user.role === 'owner' || App.user.department === 'Logistics' || App.user.role === 'logistics manager')) {
             html += '<button class="btn btn-outline btn-sm end-trip-btn" data-id="'+m.id+'" data-start="'+m.odometer_start+'">End Trip</button>';
           } else if (m.odometer_end) {
-            html += '<span style="color:#16a34a; font-weight:600;">Completed</span>';
+            html += '<div style="margin-bottom:8px;"><span style="color:#16a34a; font-weight:600;">Completed</span></div>';
+            
+            let costStat = m.cost_status || 'pending';
+            if (costStat === 'pending') {
+              if (App.user.role === 'driver') {
+                html += '<button class="btn btn-primary btn-sm add-cost-btn" data-id="'+m.id+'">Add Trip Cost</button>';
+              } else {
+                html += '<span style="color:var(--text-muted); font-size:0.8rem;">Waiting for Driver Cost</span>';
+              }
+            } else if (costStat === 'pending_approval') {
+              if (App.user.department === 'Logistics' || App.user.role === 'logistics manager' || App.user.role === 'owner') {
+                 html += '<div style="margin-bottom:4px;">Cost: <strong>'+m.trip_cost+' EGP</strong></div>';
+                 html += '<button class="btn btn-warning btn-sm approve-cost-btn" data-id="'+m.id+'">Approve Cost</button>';
+              } else {
+                 html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#f59e0b; font-size:0.8rem">(Pending Approval)</span></div>';
+              }
+            } else if (costStat === 'pending_payment') {
+              if (App.user.department === 'Finance' || App.user.role === 'owner' || App.user.role === 'hr manager') {
+                 html += '<div style="margin-bottom:4px;">Cost: <strong>'+m.trip_cost+' EGP</strong></div>';
+                 html += '<button class="btn btn-success btn-sm pay-cost-btn" data-id="'+m.id+'">Mark as Paid</button>';
+              } else {
+                 html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#3b82f6; font-size:0.8rem">(Pending Payment)</span></div>';
+              }
+            } else if (costStat === 'paid') {
+               html += '<div>Cost: <strong>'+m.trip_cost+' EGP</strong> <br><span style="color:#16a34a; font-weight:bold; font-size:0.8rem">(Paid)</span></div>';
+            }
           }
           html += '</td>';
           
@@ -353,6 +378,70 @@ window.ERPLogistics = {
               App.navigate('logistics');
             });
           });
+        });
+      });
+
+      // 5. Trip Cost Workflow Handlers
+      let addCostBtns = document.querySelectorAll('.add-cost-btn');
+      addCostBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          let mId = this.getAttribute('data-id');
+          let formHtml = '<div class="form-group"><label class="form-label">Trip Cost (تكلفة المشوار)</label><input type="number" class="form-input" id="trip-cost-val" placeholder="e.g. 50" required></div>';
+          
+          let footerHtml = '<button class="btn btn-outline" id="cancel-cost">Cancel</button><button class="btn btn-primary" id="save-cost">Submit Cost</button>';
+          App.showModal('Add Trip Cost (إضافة تكلفة)', formHtml, footerHtml);
+          
+          document.getElementById('cancel-cost').addEventListener('click', App.closeModal);
+          document.getElementById('save-cost').addEventListener('click', function() {
+            let costVal = parseFloat(document.getElementById('trip-cost-val').value);
+            if (isNaN(costVal) || costVal < 0) {
+              alert('Please enter a valid cost.');
+              return;
+            }
+            
+            let sBtn = this;
+            sBtn.disabled = true;
+            sBtn.innerHTML = 'Saving...';
+            
+            sbClient.from('logistics_movements').update({
+              trip_cost: costVal,
+              cost_status: 'pending_approval'
+            }).eq('id', mId).then(function(res) {
+              App.closeModal();
+              App.navigate('logistics');
+              showToast('Cost submitted for approval', 'success');
+            });
+          });
+        });
+      });
+
+      let approveCostBtns = document.querySelectorAll('.approve-cost-btn');
+      approveCostBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          let mId = this.getAttribute('data-id');
+          if (confirm('Are you sure you want to approve this trip cost?')) {
+            sbClient.from('logistics_movements').update({
+              cost_status: 'pending_payment'
+            }).eq('id', mId).then(function(res) {
+              App.navigate('logistics');
+              showToast('Cost approved, waiting for payment', 'success');
+            });
+          }
+        });
+      });
+
+      let payCostBtns = document.querySelectorAll('.pay-cost-btn');
+      payCostBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          let mId = this.getAttribute('data-id');
+          if (confirm('Confirm marking this trip cost as PAID?')) {
+            sbClient.from('logistics_movements').update({
+              cost_status: 'paid'
+            }).eq('id', mId).then(function(res) {
+              App.navigate('logistics');
+              showToast('Cost marked as Paid', 'success');
+            });
+          }
         });
       });
 
