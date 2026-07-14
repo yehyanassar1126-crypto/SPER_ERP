@@ -494,7 +494,8 @@ var App = {
       if (canViewFinance || canViewProcurement) {
         var finItems = [];
         
-        if (isPureFinance || canViewProcurement) {
+        var isProcurementOnly = App.user && App.user.department === 'Procurement';
+        if (isPureFinance || isProcurementOnly) {
           finItems.push({ id: 'petty-cash', label: 'Financial Suite (الإدارة المالية)', icon: 'dollarSign' });
         }
         
