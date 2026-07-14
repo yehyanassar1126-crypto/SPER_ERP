@@ -211,7 +211,7 @@ var App = {
   // ========== RENDERING ==========
   renderLogin: function () {
     document.getElementById('app').innerHTML = '<div class="login-wrapper"><div class="login-bg"></div><div class="login-card">' +
-      '<div class="login-logo"><img src="public/logo.png" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(99,102,241,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>HR & Workforce Management System</p></div>' +
+      '<div class="login-logo"><img src="public/logo.png" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(225,29,72,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>ERP System</p></div>' +
       '<form class="login-form" id="login-form">' +
       '<div id="login-error" class="login-error" style="display:none"></div>' +
       '<div class="form-group"><label class="form-label">Username</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="Enter your username" id="login-username" autofocus>' +
@@ -615,7 +615,7 @@ var App = {
       } // End of driver else block
     } // End of supplier_external else block
 
-    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>HR & ERP</p></div></div>';
+    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
       html += '<div class="sidebar-section"><div class="sidebar-section-title">' + section.section + '</div>';
