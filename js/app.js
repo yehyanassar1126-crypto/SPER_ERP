@@ -1015,17 +1015,9 @@ Pages.hrDashboard = function (el) {
   el.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner" style="margin-bottom:16px;"></span><p>Loading Dashboard...</p></div>';
 
   var tds = todayStr();
-  var myLevel = App.getRoleLevel(App.user ? App.user.role : 'hr');
-  var allowedRoles = [];
-  if (myLevel >= 6) allowedRoles.push('hr manager', 'hr', 'hall manager', 'department head', 'employee');
-  if (myLevel >= 5) allowedRoles.push('hr', 'hall manager', 'department head', 'employee');
-  if (myLevel >= 4) allowedRoles.push('hall manager', 'department head', 'employee');
-  if (myLevel >= 3) allowedRoles.push('department head', 'employee');
-  if (myLevel >= 2) allowedRoles.push('employee');
-  allowedRoles = allowedRoles.filter(function (item, pos) { return allowedRoles.indexOf(item) === pos; });
 
   Promise.all([
-    sbClient.from('users').select('*').in('role', allowedRoles),
+    sbClient.from('users').select('*'),
     sbClient.from('attendance').select('*').eq('date', tds),
     sbClient.from('leave_requests').select('*'),
     sbClient.from('overtime').select('*'),
@@ -1843,16 +1835,7 @@ Pages.employees = function (el) {
   }
 
   {
-    var myLevel = App.getRoleLevel(App.user ? App.user.role : 'hr');
-    var allowedRoles = [];
-    if (myLevel >= 6) allowedRoles.push('hr manager', 'hr', 'hall manager', 'department head', 'employee');
-    if (myLevel >= 5) allowedRoles.push('hr', 'hall manager', 'department head', 'employee');
-    if (myLevel >= 4) allowedRoles.push('hall manager', 'department head', 'employee');
-    if (myLevel >= 3) allowedRoles.push('department head', 'employee');
-    if (myLevel >= 2) allowedRoles.push('employee');
-    allowedRoles = allowedRoles.filter(function (item, pos) { return allowedRoles.indexOf(item) === pos; });
-
-    sbClient.from('users').select('*').in('role', allowedRoles).order('created_at', { ascending: false }).then(function (res) {
+    sbClient.from('users').select('*').order('created_at', { ascending: false }).then(function (res) {
       if (res.data) { employees = res.data; render(); }
     });
   }
@@ -2853,16 +2836,7 @@ Pages.shifts = function (el) {
     });
   }
   {
-    var myLevel = App.getRoleLevel(App.user ? App.user.role : 'hr');
-    var allowedRoles = [];
-    if (myLevel >= 6) allowedRoles.push('hr manager', 'hr', 'hall manager', 'department head', 'employee');
-    if (myLevel >= 5) allowedRoles.push('hr', 'hall manager', 'department head', 'employee');
-    if (myLevel >= 4) allowedRoles.push('hall manager', 'department head', 'employee');
-    if (myLevel >= 3) allowedRoles.push('department head', 'employee');
-    if (myLevel >= 2) allowedRoles.push('employee');
-    allowedRoles = allowedRoles.filter(function (item, pos) { return allowedRoles.indexOf(item) === pos; });
-
-    sbClient.from('users').select('*').in('role', allowedRoles).then(function (r) {
+    sbClient.from('users').select('*').then(function (r) {
       if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
       if (r.data) { employees = r.data; render(); }
     });
