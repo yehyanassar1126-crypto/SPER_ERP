@@ -472,7 +472,8 @@ var App = {
       if (App.isOwner()) {
         menu.unshift({
           section: 'ERP Control', items: [
-            { id: 'owner-dashboard', label: 'Owner Dashboard (لوحة المالك)', icon: 'globe' }
+            { id: 'owner-dashboard', label: 'Owner Dashboard (لوحة المالك)', icon: 'globe' },
+            { id: 'cost-centers', label: 'Cost Centers (تكلفة الإدارات)', icon: 'pieChart' }
           ]
         });
       }
@@ -694,6 +695,7 @@ var App = {
       'it-tickets': { title: 'IT Support (الدعم الفني)', sub: 'Technical support and issue tracking' },
       'legal-affairs': { title: 'Legal Affairs (الشئون القانونية)', sub: 'Company investigations and legal issues' },
       'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' },
+      'cost-centers': { title: 'Cost Centers (تكلفة الإدارات)', sub: 'Department Costs & Analytics' },
       'erp-sales': { title: 'Sales (المبيعات)', sub: 'Sales orders & client management' },
       'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
       'erp-production': { title: 'Production (الإنتاج)', sub: 'Manufacturing & material requests' },
@@ -813,6 +815,7 @@ var App = {
       case 'complaints': Pages.complaints(el); break;
       case 'offboarding': App.isHR() ? Pages.offboarding(el) : Pages.empDashboard(el); break;
       case 'owner-dashboard': App.isOwner() ? Pages.ownerDashboard(el) : Pages.hrDashboard(el); break;
+      case 'cost-centers': App.isOwner() ? Pages.costCenters(el) : Pages.hrDashboard(el); break;
       case 'inventory': Pages.inventory(el); break;
       case 'purchase-requests': Pages.purchaseRequests(el); break;
       case 'petty-cash': Pages.pettyCash(el); break;
