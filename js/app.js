@@ -496,6 +496,7 @@ var App = {
           finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
           finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
           finItems.push({ id: 'financial-reports', label: '📊 Financial Reports (التقارير المالية)', icon: 'barChart' });
+          finItems.push({ id: 'driver-payments', label: 'Driver Payments (حسابات السائقين)', icon: 'truck' });
         }
 
         // Avoid duplicate "Petty Cash" section if both Finance and Procurement
@@ -663,7 +664,6 @@ var App = {
       'purchase-requests': { title: 'Material Requests (طلبات صرف وشراء)', sub: 'Warehouse and Procurement workflows' },
       'petty-cash': { title: 'Financial Suite (الإدارة المالية الشاملة)', sub: 'Manage treasury, AP/AR, assets, and more' },
       'it-tickets': { title: 'IT Support (الدعم الفني)', sub: 'Technical support and issue tracking' },
-      'payroll-funding': { title: 'Payroll Funding (صرف المرتبات)', sub: 'Release salary funds for HR' },
       'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' },
       'erp-sales': { title: 'Sales (المبيعات)', sub: 'Sales orders & client management' },
       'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
@@ -759,6 +759,8 @@ var App = {
       case 'shifts': App.isHR() ? Pages.shifts(el) : Pages.empDashboard(el); break;
       case 'overtime': case 'my-overtime': Pages.overtime(el); break;
       case 'payroll': case 'my-salary': Pages.payroll(el); break;
+      case 'payroll-funding': Pages.payrollFunding(el); break;
+      case 'driver-payments': if (Pages.driverPayments) Pages.driverPayments(el); else el.innerHTML = 'Module missing'; break;
       case 'announcements': Pages.announcements(el); break;
       case 'reports': App.isHR() ? Pages.reports(el) : Pages.empDashboard(el); break;
       case 'audit-log': App.isHR() ? Pages.auditLog(el) : Pages.empDashboard(el); break;
