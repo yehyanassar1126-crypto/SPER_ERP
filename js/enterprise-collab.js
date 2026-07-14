@@ -319,11 +319,12 @@ Pages.calendar = function(el) {
       var isToday = d === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
       var dayEvents = events.filter(function(e) { return new Date(e.start_time).getDate() === d; });
       
-      html += '<div style="padding:8px;min-height:80px;border-bottom:1px solid var(--border-color);border-right:1px solid var(--border-color);' + (isToday ? 'background:rgba(99,102,241,0.08)' : '') + '">';
-      html += '<div style="font-weight:' + (isToday ? '800' : '600') + ';font-size:0.85rem;margin-bottom:4px;color:' + (isToday ? 'var(--accent-primary)' : 'var(--text-primary)') + '">' + d + '</div>';
+      var dateStr = currentYear + '-' + String(currentMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      html += '<div onclick="newEventModal(\'' + dateStr + '\')" style="padding:8px;min-height:100px;cursor:pointer;border-bottom:1px solid var(--border-color);border-right:1px solid var(--border-color);transition:background 0.2s;' + (isToday ? 'background:rgba(37,99,235,0.08)' : '') + '" onmouseover="this.style.background=\'var(--bg-tertiary)\'" onmouseout="this.style.background=\'' + (isToday ? 'rgba(37,99,235,0.08)' : 'transparent') + '\'">';
+      html += '<div style="font-weight:' + (isToday ? '800' : '600') + ';font-size:0.85rem;margin-bottom:6px;color:' + (isToday ? 'var(--accent-primary)' : 'var(--text-primary)') + '">' + d + '</div>';
       dayEvents.slice(0, 3).forEach(function(ev) {
-        var colors = {meeting:'#6366f1',deadline:'#ef4444',holiday:'#22c55e',reminder:'#f59e0b',other:'#8b5cf6'};
-        html += '<div style="font-size:0.7rem;padding:2px 4px;border-radius:3px;margin-bottom:2px;background:' + (colors[ev.event_type] || '#6366f1') + '20;color:' + (colors[ev.event_type] || '#6366f1') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" title="' + ev.title + '">' + ev.title + '</div>';
+        var colors = {meeting:'#3b82f6',deadline:'#ef4444',holiday:'#10b981',reminder:'#f59e0b',other:'#8b5cf6'};
+        html += '<div onclick="event.stopPropagation()" style="font-size:0.7rem;font-weight:600;padding:4px 6px;border-radius:4px;margin-bottom:4px;background:' + (colors[ev.event_type] || '#3b82f6') + '25;color:' + (colors[ev.event_type] || '#3b82f6') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default" title="' + ev.title + '">' + ev.title + '</div>';
       });
       if (dayEvents.length > 3) html += '<div style="font-size:0.65rem;color:var(--text-muted)">+' + (dayEvents.length - 3) + ' more</div>';
       html += '</div>';
@@ -355,13 +356,21 @@ Pages.calendar = function(el) {
     loadEvents();
   };
 
-  window.newEventModal = function() {
-    var body = '<div class="form-field"><label>Title *</label><input type="text" id="ev-title" class="form-input"></div>';
-    body += '<div class="form-row"><div class="form-field"><label>Type</label><select id="ev-type" class="form-input"><option value="meeting">Meeting</option><option value="deadline">Deadline</option><option value="holiday">Holiday</option><option value="reminder">Reminder</option><option value="other">Other</option></select></div>';
-    body += '<div class="form-field"><label>All Day?</label><select id="ev-allday" class="form-input"><option value="0">No</option><option value="1">Yes</option></select></div></div>';
-    body += '<div class="form-row"><div class="form-field"><label>Start</label><input type="datetime-local" id="ev-start" class="form-input"></div>';
-    body += '<div class="form-field"><label>End</label><input type="datetime-local" id="ev-end" class="form-input"></div></div>';
-    body += '<div class="form-field"><label>Description</label><textarea id="ev-desc" class="form-input" rows="2"></textarea></div>';
+  window.newEventModal = function(selectedDateStr) {
+    var now = new Date();
+    if (selectedDateStr) {
+      now = new Date(selectedDateStr);
+      now.setHours(9, 0, 0, 0); // Default to 9:00 AM
+    }
+    var tzOffset = now.getTimezoneOffset() * 60000;
+    var localISOTime = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 16);
+
+    var body = '<div class="form-field"><label>Title (العنوان) *</label><input type="text" id="ev-title" class="form-input"></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Type (النوع)</label><select id="ev-type" class="form-input"><option value="meeting">Meeting (اجتماع)</option><option value="deadline">Deadline (موعد نهائي)</option><option value="holiday">Holiday (إجازة)</option><option value="reminder">Reminder (تذكير)</option><option value="other">Other (أخرى)</option></select></div>';
+    body += '<div class="form-field"><label>All Day? (طوال اليوم؟)</label><select id="ev-allday" class="form-input"><option value="0">No</option><option value="1">Yes</option></select></div></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Start (بداية)</label><input type="datetime-local" id="ev-start" class="form-input" value="' + localISOTime + '"></div>';
+    body += '<div class="form-field"><label>End (نهاية)</label><input type="datetime-local" id="ev-end" class="form-input"></div></div>';
+    body += '<div class="form-field"><label>Description (الوصف)</label><textarea id="ev-desc" class="form-input" rows="3"></textarea></div>';
     var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-ev-btn">Save Event</button>';
     App.showModal('New Event', body, footer);
 
