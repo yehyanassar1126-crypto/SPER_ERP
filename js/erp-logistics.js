@@ -37,21 +37,7 @@ window.ERPLogistics = {
       html += '<p style="color:var(--text-muted)">Manage drivers, vehicles, gate logs, and destinations</p></div>';
       html += '</div>';
 
-      // ==========================================
-      // DRIVER GATE SCANNER (For Drivers)
-      // ==========================================
       if (App.user.role === 'driver') {
-        html += '<div class="card" style="background:var(--bg-card); border-radius:var(--radius-lg); padding:24px; border:1px solid var(--border-color); margin-bottom: 32px;">';
-        html += '<h3 style="font-size:1.3rem; font-weight:700; margin-bottom:16px;">Gate In/Out Scanner (تسجيل الخروج والدخول من المصنع)</h3>';
-        html += '<p style="color:var(--text-muted); margin-bottom: 16px;">Scan the main factory QR code to register your Gate Out and Gate In.</p>';
-        html += '<div style="display:flex; gap:16px;">';
-        html += '<button class="btn btn-primary" id="gate-out-btn">' + icon('arrowUpRight', 16) + ' Scan GATE OUT (خروج)</button>';
-        html += '<button class="btn btn-secondary" id="gate-in-btn">' + icon('arrowDownLeft', 16) + ' Scan GATE IN (دخول)</button>';
-        html += '</div>';
-        html += '<div id="gate-scanner-container" style="margin-top:20px; width:100%; max-width:400px; display:none;"></div>';
-        
-        html += '</div>';
-        
         // Driver Dashboard Monthly Stats
         let totalTrips = movements.length;
         let totalHrs = 0;
@@ -77,23 +63,6 @@ window.ERPLogistics = {
         html += '</div></div>';
       }
       
-      // ==========================================
-      // GATE LOGS (For Both Drivers & Managers)
-      // ==========================================
-      if (gateLogs.length > 0) {
-        html += '<div class="card" style="background:var(--bg-card); border-radius:var(--radius-lg); padding:24px; border:1px solid var(--border-color); margin-bottom: 32px;">';
-        html += '<h3 style="font-size:1.3rem; font-weight:700; margin-bottom:16px;">Gate Logs (سجل البوابة)</h3>';
-        html += '<div class="table-responsive" style="overflow-x:auto; width:100%;"><table class="table" style="width:100%; margin-top:8px; min-width:500px;"><thead><tr style="text-align:left; border-bottom:1px solid #eee;"><th>Time</th><th>Driver</th><th>Action</th></tr></thead><tbody>';
-        gateLogs.forEach(log => {
-          let color = log.scan_type === 'Gate In' ? '#16a34a' : '#ef4444';
-          html += `<tr>
-            <td style="padding:8px">${new Date(log.scan_time).toLocaleString()}</td>
-            <td style="padding:8px">${log.driver_name}</td>
-            <td style="padding:8px"><span style="color:${color}; font-weight:600;">${log.scan_type}</span></td>
-          </tr>`;
-        });
-        html += '</tbody></table></div></div>';
-      }
       // ==========================================
       // DRIVERS SECTION
       // ==========================================
@@ -230,64 +199,6 @@ window.ERPLogistics = {
       // EVENTS
       // ==========================================
 
-      // 1. Gate In/Out Scanner
-      function startGateScanner(scanType) {
-        let container = document.getElementById('gate-scanner-container');
-        if (!container) return;
-        container.style.display = 'block';
-        container.innerHTML = 'Starting camera...';
-        
-        if (typeof Html5Qrcode === 'undefined') {
-          container.innerHTML = '<div style="color:red">QR Library not loaded. Check internet connection.</div>';
-          return;
-        }
-        
-        var html5QrCode = new Html5Qrcode("gate-scanner-container");
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            function(decodedText) {
-                html5QrCode.stop().then(function() {
-                    container.style.display = 'none';
-                    try {
-                        var data = JSON.parse(decodedText);
-                        if(data.hr_id === 'qr-station') {
-                            sbClient.from('logistics_gate_logs').insert({
-                                driver_id: App.user.id, // Auth User ID
-                                driver_name: App.user.full_name,
-                                scan_type: scanType
-                            }).then(function(res) {
-                                if (res.error) {
-                                    alert('Error saving log.');
-                                    return;
-                                }
-                                alert('Success! ' + scanType + ' registered.');
-                                App.navigate('logistics');
-                            });
-                        } else {
-                            alert('Invalid QR code.');
-                        }
-                    } catch(e) {
-                        alert('Invalid QR code format.');
-                    }
-                });
-            },
-            function(errorMessage) {
-                // Ignore background scanning errors
-            }
-        ).catch(function(err) {
-            container.innerHTML = '<div style="color:red">Failed to start camera: ' + err + '</div>';
-        });
-      }
-
-      let gateOutBtn = document.getElementById('gate-out-btn');
-      if (gateOutBtn) {
-          gateOutBtn.addEventListener('click', function() { startGateScanner('Gate Out'); });
-      }
-      let gateInBtn = document.getElementById('gate-in-btn');
-      if (gateInBtn) {
-          gateInBtn.addEventListener('click', function() { startGateScanner('Gate In'); });
-      }      // 2. New Driver
       let newDriverBtn = document.getElementById('new-driver-btn');
       if (newDriverBtn) {
         newDriverBtn.addEventListener('click', function() {
