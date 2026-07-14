@@ -469,6 +469,27 @@ var App = {
         });
       }
 
+      if (App.user && App.user.role === 'driver') {
+        menu = [
+          { section: 'Transportation (النقل)', items: [{ id: 'logistics', label: 'Vehicle Movement (حركة العربيات)', icon: 'truck' }] },
+          { section: 'Collaboration (التواصل)', items: [{ id: 'chat', label: 'Internal Chat (المحادثات)', icon: 'messageSquare' }] }
+        ];
+        
+        var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>HR & ERP</p></div></div>';
+        html += '<nav class="sidebar-nav">';
+        menu.forEach(function (section) {
+          html += '<div class="sidebar-section"><div class="sidebar-section-title">' + section.section + '</div>';
+          section.items.forEach(function (item) {
+            html += '<button class="sidebar-item' + (App.activePage === item.id ? ' active' : '') + '" data-page="' + item.id + '" id="nav-' + item.id + '">' +
+              '<span class="sidebar-item-icon">' + icon(item.icon) + '</span><span>' + item.label + '</span></button>';
+          });
+          html += '</div>';
+        });
+        html += '</nav>';
+        document.getElementById('sidebar').innerHTML = html;
+        return;
+      }
+
       var canViewInventory = App.isOwner() || (App.user && (App.user.department === 'Warehouse' || App.user.role === 'warehouse manager' || App.user.role === 'sales coordinator' || App.user.department === 'Planning' || App.user.role === 'planning manager'));
       var canViewProcurement = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
 

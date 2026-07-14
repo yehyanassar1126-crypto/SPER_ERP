@@ -33,8 +33,35 @@ window.ERPLogistics = {
       html += '<p style="color:var(--text-muted)">Manage drivers, vehicles, gate logs, and destinations</p></div>';
       html += '</div>';
 
-
-      
+      // ==========================================
+      // DRIVER GATE SCANNER (For Drivers)
+      // ==========================================
+      if (App.user.role === 'driver' || App.user.department === 'Logistics' || App.user.role === 'owner') {
+        html += '<div class="card" style="background:var(--bg-card); border-radius:var(--radius-lg); padding:24px; border:1px solid var(--border-color); margin-bottom: 32px;">';
+        html += '<h3 style="font-size:1.3rem; font-weight:700; margin-bottom:16px;">Gate In/Out Scanner (تسجيل الخروج والدخول من المصنع)</h3>';
+        html += '<p style="color:var(--text-muted); margin-bottom: 16px;">Scan the main factory QR code to register your Gate Out and Gate In.</p>';
+        html += '<div style="display:flex; gap:16px;">';
+        html += '<button class="btn btn-primary" id="gate-out-btn">' + icon('arrowUpRight', 16) + ' Scan GATE OUT (خروج)</button>';
+        html += '<button class="btn btn-secondary" id="gate-in-btn">' + icon('arrowDownLeft', 16) + ' Scan GATE IN (دخول)</button>';
+        html += '</div>';
+        html += '<div id="gate-scanner-container" style="margin-top:20px; width:100%; max-width:400px; display:none;"></div>';
+        
+        if (gateLogs.length > 0) {
+          html += '<h4 style="margin-top:24px; font-weight:600;">Recent Gate Logs</h4>';
+          html += '<table class="table" style="width:100%; margin-top:8px;"><thead><tr style="text-align:left; border-bottom:1px solid #eee;"><th>Time</th><th>Driver</th><th>Action</th></tr></thead><tbody>';
+          gateLogs.forEach(log => {
+            let color = log.scan_type === 'Gate In' ? '#16a34a' : '#ef4444';
+            html += `<tr>
+              <td style="padding:8px">${new Date(log.scan_time).toLocaleString()}</td>
+              <td style="padding:8px">${log.driver_name}</td>
+              <td style="padding:8px"><span style="color:${color}; font-weight:600;">${log.scan_type}</span></td>
+            </tr>`;
+          });
+          html += '</tbody></table>';
+        }
+        
+        html += '</div>';
+      }
       // ==========================================
       // DRIVERS SECTION
       // ==========================================
@@ -109,29 +136,130 @@ window.ERPLogistics = {
       // EVENTS
       // ==========================================
 
+      // 1. Gate In/Out Scanner
+      function startGateScanner(scanType) {
+        let container = document.getElementById('gate-scanner-container');
+        if (!container) return;
+        container.style.display = 'block';
+        container.innerHTML = 'Starting camera...';
+        
+        if (typeof Html5Qrcode === 'undefined') {
+          container.innerHTML = '<div style="color:red">QR Library not loaded. Check internet connection.</div>';
+          return;
+        }
+        
+        var html5QrCode = new Html5Qrcode("gate-scanner-container");
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            function(decodedText) {
+                html5QrCode.stop().then(function() {
+                    container.style.display = 'none';
+                    try {
+                        var data = JSON.parse(decodedText);
+                        if(data.hr_id === 'qr-station') {
+                            sbClient.from('logistics_gate_logs').insert({
+                                driver_id: App.user.id, // Auth User ID
+                                driver_name: App.user.full_name,
+                                scan_type: scanType
+                            }).then(function(res) {
+                                if (res.error) {
+                                    alert('Error saving log.');
+                                    return;
+                                }
+                                alert('Success! ' + scanType + ' registered.');
+                                App.navigate('logistics');
+                            });
+                        } else {
+                            alert('Invalid QR code.');
+                        }
+                    } catch(e) {
+                        alert('Invalid QR code format.');
+                    }
+                });
+            },
+            function(errorMessage) {
+                // Ignore background scanning errors
+            }
+        ).catch(function(err) {
+            container.innerHTML = '<div style="color:red">Failed to start camera: ' + err + '</div>';
+        });
+      }
 
-
-      // 2. New Driver
+      let gateOutBtn = document.getElementById('gate-out-btn');
+      if (gateOutBtn) {
+          gateOutBtn.addEventListener('click', function() { startGateScanner('Gate Out'); });
+      }
+      let gateInBtn = document.getElementById('gate-in-btn');
+      if (gateInBtn) {
+          gateInBtn.addEventListener('click', function() { startGateScanner('Gate In'); });
+      }      // 2. New Driver
       let newDriverBtn = document.getElementById('new-driver-btn');
       if (newDriverBtn) {
         newDriverBtn.addEventListener('click', function() {
           let formHtml = '<div class="form-group"><label class="form-label">Driver Name (اسم السائق)</label><input type="text" class="form-input" id="driver-name" required></div>';
+          formHtml += '<div class="form-group"><label class="form-label">Phone Number (رقم الهاتف) - Use as Login</label><input type="text" class="form-input" id="driver-phone" placeholder="e.g. 01012345678" required></div>';
           formHtml += '<div class="form-group"><label class="form-label">Vehicle Number (رقم العربية)</label><input type="text" class="form-input" id="car-number" required></div>';
           
-          let footerHtml = '<button class="btn btn-outline" id="cancel-driver">Cancel</button><button class="btn btn-primary" id="save-driver">Save Driver</button>';
+          let footerHtml = '<button class="btn btn-outline" id="cancel-driver">Cancel</button><button class="btn btn-primary" id="save-driver">Save & Create Account</button>';
           App.showModal('Register New Driver', formHtml, footerHtml);
           
           document.getElementById('cancel-driver').addEventListener('click', App.closeModal);
           document.getElementById('save-driver').addEventListener('click', function() {
             let dName = document.getElementById('driver-name').value.trim();
+            let dPhone = document.getElementById('driver-phone').value.trim();
             let cNum = document.getElementById('car-number').value.trim();
-            if (!dName || !cNum) { alert('Please enter both details.'); return; }
+            if (!dName || !cNum || !dPhone) { alert('Please enter Name, Phone, and Car number.'); return; }
             
             let btn = this;
             btn.disabled = true;
-            btn.innerHTML = 'Saving...';
-            sbClient.from('logistics_drivers').insert({ employee_id: App.user.id, driver_name: dName, car_number: cNum }).then(function() {
-              App.closeModal(); App.navigate('logistics');
+            btn.innerHTML = 'Creating Account...';
+            
+            // 1. Create User Account in users table
+            sbClient.from('users').insert({
+              username: dPhone,
+              full_name: dName,
+              password_hash: '123456', // Default password
+              role: 'driver',
+              department: 'Logistics',
+              status: 'active'
+            }).select().single().then(function(uRes) {
+              if (uRes.error) {
+                alert('Failed to create user account. Maybe phone already exists?');
+                btn.disabled = false; btn.innerHTML = 'Save & Create Account';
+                return;
+              }
+              
+              let newUserId = uRes.data.id;
+              
+              // 2. Insert into logistics_drivers
+              sbClient.from('logistics_drivers').insert({ 
+                id: newUserId, 
+                employee_id: App.user.id, 
+                driver_name: dName, 
+                car_number: cNum 
+              }).then(function() {
+                
+                // 3. Add to Drivers & Logistics Chat Group
+                sbClient.from('chat_channels').select('*').eq('name', 'Drivers & Logistics').single().then(function(chRes) {
+                  if (chRes.data) {
+                    let members = chRes.data.members || [];
+                    if (!members.includes(newUserId)) members.push(newUserId);
+                    if (!members.includes(App.user.id)) members.push(App.user.id);
+                    sbClient.from('chat_channels').update({ members: members }).eq('id', chRes.data.id).then(function() {
+                      App.closeModal(); App.navigate('logistics'); showToast('Driver added & Group Updated', 'success');
+                    });
+                  } else {
+                    sbClient.from('chat_channels').insert({
+                      name: 'Drivers & Logistics',
+                      channel_type: 'department',
+                      members: [App.user.id, newUserId]
+                    }).then(function() {
+                      App.closeModal(); App.navigate('logistics'); showToast('Driver added & Group Created', 'success');
+                    });
+                  }
+                });
+              });
             });
           });
         });
