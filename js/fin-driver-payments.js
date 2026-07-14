@@ -6,7 +6,7 @@ Pages.driverPayments = function(el) {
   sbClient.from('logistics_movements')
     .select('*')
     .in('cost_status', ['pending_payment', 'paid'])
-    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
     .then(function(res) {
       if (res.error) {
         el.innerHTML = '<div class="alert alert-danger">Error loading data: ' + res.error.message + '</div>';
@@ -40,7 +40,7 @@ Pages.driverPayments = function(el) {
         
         pendingTrips.forEach(function(m) {
           html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)">';
-          html += '<td style="padding:12px">' + new Date(m.updated_at).toLocaleString() + '</td>';
+          html += '<td style="padding:12px">' + new Date(m.created_at).toLocaleString() + '</td>';
           html += '<td style="padding:12px"><div style="font-weight:600">' + m.driver_name + '</div></td>';
           html += '<td style="padding:12px">' + (m.destination || 'N/A') + '</td>';
           html += '<td style="padding:12px"><strong style="color:#f59e0b; font-size:1.1rem;">' + m.trip_cost + ' EGP</strong></td>';
@@ -69,7 +69,7 @@ Pages.driverPayments = function(el) {
         
         paidTrips.forEach(function(m) {
           html += '<tr style="border-bottom:1px solid rgba(0,0,0,0.05)">';
-          html += '<td style="padding:12px">' + new Date(m.updated_at).toLocaleString() + '</td>';
+          html += '<td style="padding:12px">' + new Date(m.created_at).toLocaleString() + '</td>';
           html += '<td style="padding:12px"><div style="font-weight:600">' + m.driver_name + '</div></td>';
           html += '<td style="padding:12px">' + (m.destination || 'N/A') + '</td>';
           html += '<td style="padding:12px"><strong>' + m.trip_cost + ' EGP</strong></td>';

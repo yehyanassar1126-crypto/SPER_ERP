@@ -496,7 +496,9 @@ var App = {
           finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
           finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
           finItems.push({ id: 'financial-reports', label: '📊 Financial Reports (التقارير المالية)', icon: 'barChart' });
-          finItems.push({ id: 'driver-payments', label: 'Driver Payments (حسابات السائقين)', icon: 'truck' });
+          if (App.isOwner() || (App.user && App.user.department === 'Finance')) {
+            finItems.push({ id: 'driver-payments', label: 'Driver Payments (حسابات السائقين)', icon: 'truck' });
+          }
         }
 
         // Avoid duplicate "Petty Cash" section if both Finance and Procurement
