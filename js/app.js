@@ -1747,7 +1747,7 @@ Pages.employees = function (el) {
         base_salary: dailyChecked ? (rawSalary * 30) : rawSalary,
         shift_system: document.getElementById('ef-shift-system').value,
         shift: document.getElementById('ef-shift').value,
-        hire_date: document.getElementById('ef-hire').value,
+        hire_date: document.getElementById('ef-hire').value || null,
         insurance_start: insVal || null,
         insurance_active: dailyChecked ? false : hasInsurance,
         insurance_salary: Number(document.getElementById('ef-ins-salary').value || 0),
