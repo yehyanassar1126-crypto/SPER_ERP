@@ -1607,7 +1607,7 @@ Pages.employees = function (el) {
     if (myLevel >= 2) roleOptions += '<option value="employee" ' + (!emp || emp.role === 'employee' ? 'selected' : '') + '>Employee (موظف)</option>';
 
     body += '<div class="form-row"><div class="form-field"><label>System Role *</label><select id="ef-role">' + roleOptions + '</select></div><div class="form-field"><label>Department *</label><select id="ef-dept">';
-    DEPARTMENTS.forEach(function (d) { body += '<option value="' + d + '"' + (emp && emp.department === d ? ' selected' : '') + '>' + d + '</option>'; });
+    DEPARTMENTS.forEach(function (d) { body += '<option value="' + d + '"' + (emp && emp.department === d ? ' selected' : '') + '>' + (window.t ? t(d) : d) + '</option>'; });
     body += '</select></div></div>';
     
     // Driver Type (only shown if role == driver)
@@ -1620,30 +1620,32 @@ Pages.employees = function (el) {
     body += '<div class="form-row"><div class="form-field"><label>Position / Title *</label><select id="ef-pos">';
     var currentPos = emp ? (emp.position || '').replace(' (عامل يومية)', '') : '';
     var positionsList = [
-      'General Manager (مدير عام)', 'Factory Manager (مدير مصنع)',
-      'HR Manager (مدير موارد بشرية)', 'HR Specialist (أخصائي موارد بشرية)',
-      'Finance Manager (مدير حسابات)', 'Accountant (محاسب)',
-      'Procurement Manager (مدير مشتروات)', 'Procurement Specialist (أخصائي مشتروات)',
-      'Warehouse Manager (أمين مخزن)', 'Warehouse Clerk (عامل مخزن)',
-      'Production Manager (مدير إنتاج)', 'Hall Manager (مدير صالة)', 'Hall Supervisor (مشرف صالة)', 'Production Worker (عامل إنتاج)',
-      'Maintenance Manager (مدير صيانة)', 'Technician (فني صيانة)',
-      'Quality Manager (مدير جودة)', 'QA Inspector (مراقب جودة)',
-      'Sales Manager (مدير مبيعات)', 'Sales Representative (مندوب مبيعات)',
-      'Planning Manager (مدير تخطيط)', 'Planning Specialist (أخصائي تخطيط)',
-      'Engineering Manager (مدير الإدارة الهندسية)', 'Engineering Projects Manager (مدير المشاريع الهندسية)',
-      'Operations & Maintenance Manager (مدير العمليات والصيانة)', 'Facilities Manager (مدير إدارة المرافق)',
-      'Civil Engineer (مهندس مدني)', 'Electrical Engineer (مهندس كهرباء)',
-      'Mechanical Engineer (مهندس ميكانيكا)', 'Technical Office Engineer (مهندس مكتب فني)',
-      'Spare Parts Inspector (مراقب قطع غيار)',
-      'IT Support (دعم فني)',
-      'Nursing Manager (مدير تمريض)', 'Nurse (ممرض/ة)',
-      'Logistics Manager (مدير حركة/نقل)', 'Driver (سائق)',
-      'Safety & Security Officer (أمن وسلامة)', 'Secretary (سكرتارية)',
-      'Lawyer (محامي)',
-      'Employee (موظف عادي)'
+      'General Manager', 'Factory Manager',
+      'HR Manager', 'HR Specialist',
+      'Finance Manager', 'Accountant',
+      'Procurement Manager', 'Procurement Specialist',
+      'Warehouse Manager', 'Warehouse Clerk',
+      'Production Manager', 'Hall Manager', 'Hall Supervisor', 'Production Worker',
+      'Maintenance Manager', 'Technician',
+      'Quality Manager', 'QA Inspector',
+      'Sales Manager', 'Sales Representative',
+      'Planning Manager', 'Planning Specialist',
+      'Engineering Manager', 'Engineering Projects Manager',
+      'Operations & Maintenance Manager', 'Facilities Manager',
+      'Civil Engineer', 'Electrical Engineer',
+      'Mechanical Engineer', 'Technical Office Engineer',
+      'Spare Parts Inspector',
+      'IT Support',
+      'Nursing Manager', 'Nurse',
+      'Logistics Manager', 'Driver',
+      'Safety & Security Officer', 'Secretary',
+      'Lawyer',
+      'Employee'
     ];
     positionsList.forEach(function (p) {
-      body += '<option value="' + p + '"' + (currentPos === p ? ' selected' : '') + '>' + p + '</option>';
+      // Check if DB value has the old mixed format so selection still works
+      var isSelected = (currentPos === p || currentPos.startsWith(p));
+      body += '<option value="' + p + '"' + (isSelected ? ' selected' : '') + '>' + (window.t ? t(p) : p) + '</option>';
     });
     body += '</select></div><div></div></div>';
 
