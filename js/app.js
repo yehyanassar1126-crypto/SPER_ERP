@@ -1016,6 +1016,38 @@ Pages.ownerDashboard = function (el) {
     html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(14,165,233,0.1); color: #0ea5e9; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
     html += '</div>';
 
+    // Legal Affairs Module
+    html += '<div onclick="App.navigate(\'legal-affairs\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f43f5e\'; this.style.boxShadow=\'0 12px 30px rgba(244,63,94,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(244,63,94,0.1); color: #f43f5e; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('shield', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Legal Affairs (الشئون القانونية)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Company investigations, legal issues, and employee penalties.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(244,63,94,0.1); color: #f43f5e; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '</div>';
+
+    // Suppliers Module
+    html += '<div onclick="App.navigate(\'erp-suppliers\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f59e0b\'; this.style.boxShadow=\'0 12px 30px rgba(245,158,11,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(245,158,11,0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('truck', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Suppliers (الموردين)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Manage supplier directory, vendor ratings, and external contracts.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(245,158,11,0.1); color: #f59e0b; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '</div>';
+
+    // Spare Parts Module
+    html += '<div onclick="App.navigate(\'erp-spare-parts\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#10b981\'; this.style.boxShadow=\'0 12px 30px rgba(16,185,129,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(16,185,129,0.1); color: #10b981; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('settings', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Spare Parts (قطع الغيار)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Spare parts inventory tracking, consumption, and requests.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(16,185,129,0.1); color: #10b981; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '</div>';
+
+    // Cost Centers Module
+    html += '<div onclick="App.navigate(\'cost-centers\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#2563eb\'; this.style.boxShadow=\'0 12px 30px rgba(37,99,235,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(37,99,235,0.1); color: #2563eb; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('pieChart', 26) + '</div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Cost Centers (تكلفة الإدارات)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Department costs, analytics, expenses, and budget allocation.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(37,99,235,0.1); color: #2563eb; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '</div>';
+
     html += '</div>'; // End grid
     el.innerHTML = html;
   });
