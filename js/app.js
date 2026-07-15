@@ -280,12 +280,16 @@ var App = {
       var isHR = App.isHR();
       var isManager = App.isManager();
       if (isHR) {
-        menu = [
-          {
+        menu = [];
+        if (!App.isOwner()) {
+          menu.push({
             section: 'Overview', items: [
               { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' }
             ]
-          },
+          });
+        }
+        
+        var hrItems = [
           {
             section: 'Management', items: [
               { id: 'employees', label: 'Employees', icon: 'users' },
@@ -348,7 +352,14 @@ var App = {
               { id: 'system-settings', label: '⚙️ Settings (الإعدادات)', icon: 'settings' },
             ]
           },
-          {
+            ]
+          }
+        ];
+        
+        menu = menu.concat(hrItems);
+        
+        if (!App.isOwner()) {
+          menu.push({
             section: 'My Info (بياناتي)', items: [
               { id: 'hr-personal', label: '👤 My Profile (ملفي الشخصي)', icon: 'user' },
               { id: 'my-attendance', label: 'My Attendance (حضوري)', icon: 'calendarCheck' },
@@ -363,8 +374,8 @@ var App = {
               { id: 'my-missions', label: 'My Missions (مأمورياتي)', icon: 'briefcase' },
               { id: 'my-expenses', label: 'My Expenses (مصروفاتي)', icon: 'receipt' },
             ]
-          },
-        ];
+          });
+        }
       } else if (isManager) {
         menu = [
           {
@@ -471,7 +482,9 @@ var App = {
         menu.unshift({
           section: 'ERP Control', items: [
             { id: 'owner-dashboard', label: 'Owner Dashboard (لوحة المالك)', icon: 'globe' },
-            { id: 'cost-centers', label: 'Cost Centers (تكلفة الإدارات)', icon: 'pieChart' }
+            { id: 'ceo-dashboard', label: 'CEO Dashboard (لوحة المدير)', icon: 'trendingUp' },
+            { id: 'cost-centers', label: 'Cost Centers (تكلفة الإدارات)', icon: 'pieChart' },
+            { id: 'activity-timeline', label: 'Activity Timeline (سجل العمليات)', icon: 'clock' }
           ]
         });
       }
@@ -532,7 +545,7 @@ var App = {
         });
       }
       
-      var canViewLegal = App.isOwner() || App.isManager() || App.isHR() || (App.user && App.user.role === 'lawyer');
+      var canViewLegal = App.isOwner() || (App.user && App.user.role === 'lawyer');
       if (canViewLegal) {
         menu.push({
           section: 'Legal & Compliance', items: [
@@ -602,7 +615,10 @@ var App = {
 
       var canViewLogistics = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Logistics' || App.user.role === 'logistics manager' || App.user.role === 'driver'));
       if (canViewLogistics) {
-        menu.push({ section: 'Transportation (النقل والحركة)', items: [{ id: 'logistics', label: 'Vehicle Movement (حركة العربيات)', icon: 'truck' }] });
+        menu.push({ section: 'Transportation (النقل والحركة)', items: [
+          { id: 'logistics', label: 'Vehicle Movement (حركة العربيات)', icon: 'truck' },
+          { id: 'erp-fleet', label: 'Fleet & Drivers (إدارة الأسطول)', icon: 'map' }
+        ]});
       }
 
       var canViewSupplierPortal = App.isOwner() || (App.user && (
@@ -704,6 +720,7 @@ var App = {
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
       'logistics': { title: 'Transportation & Logistics', sub: 'Manage driver and vehicle movements' },
+      'erp-fleet': { title: 'Fleet & Drivers (إدارة الأسطول والسائقين)', sub: 'Manage drivers, vehicles, and trips' },
       'kpi-dashboard': { title: '📊 KPI Dashboard', sub: 'Real-time performance indicators' },
       'login-history': { title: '🔐 Login History', sub: 'Track all login attempts' },
       'activity-log-page': { title: '📋 Activity Log', sub: 'Detailed system activity tracking' },
@@ -717,7 +734,9 @@ var App = {
       'performance-reviews': { title: '⭐ Performance Reviews', sub: 'Employee performance evaluation' },
       'training': { title: '🎓 Training & Development', sub: 'Courses and skill development' },
       'asset-assignment': { title: '💻 Asset Assignment', sub: 'Track company assets and custody' },
-      'employee-warnings': { title: '⚠️ Employee Warnings', sub: 'Disciplinary actions and penalties' }
+      'employee-warnings': { title: '⚠️ Employee Warnings', sub: 'Disciplinary actions and penalties' },
+      'ceo-dashboard': { title: '📊 CEO Dashboard', sub: 'Enterprise High-Level Overview' },
+      'activity-timeline': { title: '🕐 Activity Timeline', sub: 'Real-time audit of all operations' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -829,6 +848,7 @@ var App = {
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
       case 'logistics': Pages.logistics(el); break;
+      case 'erp-fleet': Pages['erp-fleet'](el); break;
       case 'hr-ats': Pages.hrATS(el); break;
       case 'kpi-dashboard': Pages.kpiDashboard(el); break;
       case 'login-history': Pages.loginHistory(el); break;
@@ -844,6 +864,12 @@ var App = {
       case 'training': Pages.training(el); break;
       case 'asset-assignment': Pages.assetAssignment(el); break;
       case 'employee-warnings': Pages.employeeWarnings(el); break;
+      case 'ceo-dashboard': if (Pages['ceo-dashboard']) Pages['ceo-dashboard'](el); else el.innerHTML = 'Module loading...'; break;
+      case 'activity-timeline': if (Pages['activity-timeline']) Pages['activity-timeline'](el); else el.innerHTML = 'Module loading...'; break;
+      case 'dashboard':
+        if (App.isOwner() && Pages['ceo-dashboard']) Pages['ceo-dashboard'](el);
+        else Pages.empDashboard(el);
+        break;
       default: Pages.empDashboard(el);
     }
   },
@@ -1015,12 +1041,14 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Legal Affairs Module
-    html += '<div onclick="App.navigate(\'legal-affairs\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f43f5e\'; this.style.boxShadow=\'0 12px 30px rgba(244,63,94,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
-    html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(244,63,94,0.1); color: #f43f5e; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('shield', 26) + '</div>';
-    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Legal Affairs (الشئون القانونية)</h3>';
-    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Company investigations, legal issues, and employee penalties.</p>';
-    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(244,63,94,0.1); color: #f43f5e; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
-    html += '</div>';
+    if (App.isOwner() || (App.user && App.user.role === 'lawyer')) {
+      html += '<div onclick="App.navigate(\'legal-affairs\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f43f5e\'; this.style.boxShadow=\'0 12px 30px rgba(244,63,94,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+      html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(244,63,94,0.1); color: #f43f5e; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('shield', 26) + '</div>';
+      html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Legal Affairs (الشئون القانونية)</h3>';
+      html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Company investigations, legal issues, and employee penalties.</p>';
+      html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(244,63,94,0.1); color: #f43f5e; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+      html += '</div>';
+    }
 
     // Suppliers Module
     html += '<div onclick="App.navigate(\'erp-suppliers\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f59e0b\'; this.style.boxShadow=\'0 12px 30px rgba(245,158,11,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';

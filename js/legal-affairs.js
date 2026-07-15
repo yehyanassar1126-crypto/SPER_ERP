@@ -1,6 +1,14 @@
 window.Pages = window.Pages || {};
 
 Pages.legalAffairs = function(el) {
+  let isLawyer = App.user && App.user.role === 'lawyer';
+  let canManage = isLawyer || App.isOwner();
+  
+  if (!canManage) {
+    el.innerHTML = '<div class="empty-state"><div style="font-size:3rem;margin-bottom:16px">⛔</div><h3>Access Denied</h3><p>You do not have permission to view Legal Affairs.</p></div>';
+    return;
+  }
+
   el.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span><p>Loading Legal Affairs...</p></div>';
 
   sbClient.from('legal_issues').select('*').order('created_at', { ascending: false }).then(function(res) {
@@ -11,13 +19,13 @@ Pages.legalAffairs = function(el) {
     
     let issues = res.data || [];
     let isLawyer = App.user && App.user.role === 'lawyer';
-    let canManage = isLawyer || App.isOwner() || App.isManager();
+    let canManage = isLawyer || App.isOwner();
 
     let html = '<div class="module-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">';
     html += '<div><h2 style="font-size:1.8rem; font-weight:700; margin-bottom:4px;">Legal Affairs & Investigations (الشئون القانونية)</h2>';
     html += '<p style="color:var(--text-muted)">Manage internal disputes, legal issues, and employee investigations.</p></div>';
     
-    if (App.isHR() || App.isManager() || App.isOwner()) {
+    if (canManage) {
       html += '<button class="btn btn-primary" id="new-issue-btn">' + icon('plus', 16) + ' Report Issue</button>';
     }
     html += '</div>';
@@ -28,8 +36,8 @@ Pages.legalAffairs = function(el) {
       html += '<div style="grid-column:1/-1; padding:24px; text-align:center; background:var(--bg-card); border-radius:8px; border:1px dashed var(--border-color); color:var(--text-muted);">No legal issues or investigations reported.</div>';
     } else {
       issues.forEach(function(iss) {
-        let stColor = iss.status === 'closed' ? '#16a34a' : (iss.status === 'in_progress' ? '#f59e0b' : '#ef4444');
-        let stBadge = `<span style="background:${stColor}22; color:${stColor}; padding:4px 8px; border-radius:4px; font-size:0.8rem; font-weight:600;">${iss.status.toUpperCase()}</span>`;
+        let stColor = iss.status === 'closed' ? '#16a34a' : (iss.status === 'in_progress' ? '#f59e0b' : (iss.status === 'escalated_to_owner' ? '#8b5cf6' : '#ef4444'));
+        let stBadge = `<span style="background:${stColor}22; color:${stColor}; padding:4px 8px; border-radius:4px; font-size:0.8rem; font-weight:600;">${iss.status.replace(/_/g, ' ').toUpperCase()}</span>`;
         
         html += `<div class="card" style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:20px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
@@ -44,9 +52,15 @@ Pages.legalAffairs = function(el) {
         `;
         
         if (canManage && iss.status !== 'closed') {
-          html += `<div style="display:flex; gap:8px; border-top:1px solid #eee; padding-top:12px;">`;
+          html += `<div style="display:flex; gap:8px; border-top:1px solid var(--border-color); padding-top:12px; flex-wrap:wrap;">`;
           if (iss.status === 'open') {
              html += `<button class="btn btn-warning btn-sm update-issue-btn" data-id="${iss.id}" data-status="in_progress">Investigate</button>`;
+          }
+          if (isLawyer && (iss.status === 'open' || iss.status === 'in_progress')) {
+             html += `<button class="btn btn-primary btn-sm update-issue-btn" data-id="${iss.id}" data-status="escalated_to_owner">Send to Owner</button>`;
+          }
+          if (App.isOwner() && iss.status === 'escalated_to_owner') {
+             html += `<button class="btn btn-warning btn-sm update-issue-btn" data-id="${iss.id}" data-status="in_progress">Return to Lawyer</button>`;
           }
           html += `<button class="btn btn-success btn-sm update-issue-btn" data-id="${iss.id}" data-status="closed">Close Case</button>`;
           html += `</div>`;
