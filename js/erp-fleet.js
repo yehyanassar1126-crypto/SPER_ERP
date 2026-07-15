@@ -199,22 +199,19 @@ var FleetModule = {
   renderExternalDrivers: function () {
     var c = document.getElementById('fleet-content');
     var canManage = App.isOwner() || (App.user && (App.user.department === 'Logistics' || App.user.role === 'logistics manager' || App.user.role === 'hr manager'));
-    var addBtnHtml = canManage ? '<button class="btn btn-primary" onclick="alert(\'سيتم إضافة شاشة الإدخال قريباً\')">' + icon('plus') + ' إضافة مورد نقل</button>' : '';
+    var addBtnHtml = canManage ? '<button class="btn btn-primary" onclick="FleetModule.showExternalDriverModal()">' + icon('plus') + ' إضافة مورد نقل</button>' : '';
 
-    c.innerHTML = '<div class="card">' +
-      '<div style="display:flex; justify-content:space-between; margin-bottom:15px;">' +
-      '<h3>شركات النقل والسائقين الخارجيين</h3>' + addBtnHtml +
-      '</div>' +
-      '<div class="table-responsive"><table class="table" id="ext-drivers-table">' +
+    c.innerHTML = '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h3>' + icon('users') + ' شركات النقل والسائقين الخارجيين</h3></div>' + addBtnHtml + '</div>' +
+      '<div class="card-body no-pad"><div class="table-responsive"><table class="table" id="ext-drivers-table">' +
       '<thead><tr><th>السائق / الشركة</th><th>بيانات التواصل</th><th>رقم السيارة</th><th>النوع</th><th>الحمولة</th><th>سعر النقل</th><th>الحالة</th></tr></thead>' +
-      '<tbody><tr><td colspan="7" class="text-center">جاري التحميل...</td></tr></tbody>' +
-      '</table></div></div>';
+      '<tbody><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">جاري التحميل...</td></tr></tbody>' +
+      '</table></div></div></div>';
 
     if (typeof sbClient !== 'undefined') {
       sbClient.from('fleet_external_drivers').select('*').order('created_at', { ascending: false }).then(function (res) {
         var tbody = document.querySelector('#ext-drivers-table tbody');
         if (res.error || !res.data || res.data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد بيانات</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">' + icon('users') + ' لا توجد بيانات</td></tr>';
           return;
         }
         var html = '';
@@ -226,12 +223,44 @@ var FleetModule = {
             '<td>' + (d.car_type || '-') + '</td>' +
             '<td>' + (d.capacity || '-') + '</td>' +
             '<td>' + (d.transport_rate || '-') + '</td>' +
-            '<td><span class="badge badge-info">' + d.status + '</span></td>' +
+            '<td><span class="badge badge-info">' + (d.status || 'متاح') + '</span></td>' +
             '</tr>';
         });
         tbody.innerHTML = html;
       });
     }
+  },
+
+  showExternalDriverModal: function () {
+    App.openModal('إضافة مورد نقل / سائق خارجي',
+      '<form id="ext-drv-form" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">' +
+      '<div class="form-group"><label class="form-label">اسم السائق</label><input type="text" id="ed_name" class="form-input" required></div>' +
+      '<div class="form-group"><label class="form-label">اسم الشركة</label><input type="text" id="ed_company" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">بيانات التواصل</label><input type="text" id="ed_contact" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">رقم السيارة</label><input type="text" id="ed_car" class="form-input" required></div>' +
+      '<div class="form-group"><label class="form-label">نوع السيارة</label><input type="text" id="ed_type" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">الحمولة (طن)</label><input type="number" id="ed_cap" class="form-input" step="0.1"></div>' +
+      '<div class="form-group"><label class="form-label">سعر النقل</label><input type="number" id="ed_rate" class="form-input" step="0.01"></div>' +
+      '<div class="form-group"><label class="form-label">مناطق العمل</label><input type="text" id="ed_areas" class="form-input"></div>' +
+      '<div style="grid-column:span 2;text-align:left;"><button type="submit" class="btn btn-primary">حفظ البيانات</button></div></form>',
+      '');
+    document.getElementById('ext-drv-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      sbClient.from('fleet_external_drivers').insert({
+        driver_name: document.getElementById('ed_name').value,
+        company_name: document.getElementById('ed_company').value,
+        contact_info: document.getElementById('ed_contact').value,
+        car_number: document.getElementById('ed_car').value,
+        car_type: document.getElementById('ed_type').value,
+        capacity: parseFloat(document.getElementById('ed_cap').value) || 0,
+        transport_rate: parseFloat(document.getElementById('ed_rate').value) || 0,
+        operating_areas: document.getElementById('ed_areas').value,
+        status: 'متاح'
+      }).then(function (r) {
+        if (r.error) alert('Error: ' + r.error.message);
+        else { App.closeModal(); FleetModule.renderExternalDrivers(); }
+      });
+    });
   },
 
   // =====================================
@@ -240,38 +269,73 @@ var FleetModule = {
   renderVehicles: function () {
     var c = document.getElementById('fleet-content');
     var canManage = App.isOwner() || (App.user && (App.user.department === 'Logistics' || App.user.role === 'logistics manager' || App.user.role === 'hr manager'));
-    var addBtnHtml = canManage ? '<button class="btn btn-primary" onclick="alert(\'سيتم إضافة شاشة الإدخال قريباً\')">' + icon('plus') + ' إضافة سيارة</button>' : '';
+    var addBtnHtml = canManage ? '<button class="btn btn-primary" onclick="FleetModule.showVehicleModal()">' + icon('plus') + ' إضافة سيارة</button>' : '';
 
-    c.innerHTML = '<div class="card">' +
-      '<div style="display:flex; justify-content:space-between; margin-bottom:15px;">' +
-      '<h3>أسطول السيارات</h3>' + addBtnHtml +
-      '</div>' +
-      '<div class="table-responsive"><table class="table" id="vehicles-table">' +
+    c.innerHTML = '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h3>' + icon('truck') + ' أسطول السيارات</h3></div>' + addBtnHtml + '</div>' +
+      '<div class="card-body no-pad"><div class="table-responsive"><table class="table" id="vehicles-table">' +
       '<thead><tr><th>رقم السيارة</th><th>اللوحة</th><th>النوع والموديل</th><th>السائق الحالي</th><th>عداد الكيلومترات</th><th>الحالة</th></tr></thead>' +
-      '<tbody><tr><td colspan="6" class="text-center">جاري التحميل...</td></tr></tbody>' +
-      '</table></div></div>';
+      '<tbody><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">جاري التحميل...</td></tr></tbody>' +
+      '</table></div></div></div>';
 
     if (typeof sbClient !== 'undefined') {
       sbClient.from('fleet_vehicles').select('*, fleet_internal_drivers(driver_name)').order('created_at', { ascending: false }).then(function (res) {
         var tbody = document.querySelector('#vehicles-table tbody');
         if (res.error || !res.data || res.data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" class="text-center">لا توجد بيانات</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">' + icon('truck') + ' لا توجد بيانات</td></tr>';
           return;
         }
         var html = '';
         res.data.forEach(function (d) {
           html += '<tr>' +
-            '<td>' + d.car_number + '</td>' +
-            '<td>' + d.plate_number + '</td>' +
+            '<td>' + (d.car_number || '-') + '</td>' +
+            '<td>' + (d.plate_number || '-') + '</td>' +
             '<td>' + (d.car_type || '') + ' ' + (d.model || '') + ' ' + (d.year || '') + '</td>' +
             '<td>' + (d.fleet_internal_drivers ? d.fleet_internal_drivers.driver_name : 'غير محدد') + '</td>' +
-            '<td>' + d.odometer + ' كم</td>' +
-            '<td><span class="badge badge-' + (d.status === 'متاحة' ? 'success' : 'warning') + '">' + d.status + '</span></td>' +
+            '<td>' + (d.odometer || 0) + ' كم</td>' +
+            '<td><span class="badge badge-' + (d.status === 'متاحة' ? 'success' : d.status === 'في الصيانة' ? 'warning' : 'danger') + '">' + (d.status || '-') + '</span></td>' +
             '</tr>';
         });
         tbody.innerHTML = html;
       });
     }
+  },
+
+  showVehicleModal: function () {
+    App.openModal('إضافة سيارة جديدة',
+      '<form id="veh-form" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">' +
+      '<div class="form-group"><label class="form-label">رقم السيارة</label><input type="text" id="v_num" class="form-input" required></div>' +
+      '<div class="form-group"><label class="form-label">رقم اللوحة</label><input type="text" id="v_plate" class="form-input" required></div>' +
+      '<div class="form-group"><label class="form-label">النوع</label><input type="text" id="v_type" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">الموديل</label><input type="text" id="v_model" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">سنة الصنع</label><input type="number" id="v_year" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">القسم</label><input type="text" id="v_dept" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">عداد الكيلومترات</label><input type="number" id="v_odo" class="form-input" step="0.01"></div>' +
+      '<div class="form-group"><label class="form-label">رقم التأمين</label><input type="text" id="v_ins" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">تاريخ انتهاء التأمين</label><input type="date" id="v_ins_exp" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">تاريخ انتهاء الرخصة</label><input type="date" id="v_lic_exp" class="form-input"></div>' +
+      '<div class="form-group" style="grid-column:span 2;"><label class="form-label">ملاحظات</label><textarea id="v_notes" class="form-input" rows="2"></textarea></div>' +
+      '<div style="grid-column:span 2;text-align:left;"><button type="submit" class="btn btn-primary">حفظ السيارة</button></div></form>',
+      '');
+    document.getElementById('veh-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      sbClient.from('fleet_vehicles').insert({
+        car_number: document.getElementById('v_num').value,
+        plate_number: document.getElementById('v_plate').value,
+        car_type: document.getElementById('v_type').value,
+        model: document.getElementById('v_model').value,
+        year: parseInt(document.getElementById('v_year').value) || null,
+        department: document.getElementById('v_dept').value,
+        odometer: parseFloat(document.getElementById('v_odo').value) || 0,
+        insurance_number: document.getElementById('v_ins').value,
+        insurance_expiry: document.getElementById('v_ins_exp').value || null,
+        license_expiry: document.getElementById('v_lic_exp').value || null,
+        notes: document.getElementById('v_notes').value,
+        status: 'متاحة'
+      }).then(function (r) {
+        if (r.error) alert('Error: ' + r.error.message);
+        else { App.closeModal(); FleetModule.renderVehicles(); }
+      });
+    });
   },
 
   // =====================================
@@ -280,22 +344,19 @@ var FleetModule = {
   renderTrips: function () {
     var c = document.getElementById('fleet-content');
     var canManage = App.isOwner() || (App.user && (App.user.department === 'Logistics' || App.user.role === 'logistics manager' || App.user.role === 'hr manager'));
-    var addBtnHtml = canManage ? '<button class="btn btn-primary" onclick="alert(\'سيتم إضافة شاشة الإدخال قريباً\')">' + icon('plus') + ' إنشاء رحلة جديدة</button>' : '';
+    var addBtnHtml = canManage ? '<button class="btn btn-primary" onclick="FleetModule.showTripModal()">' + icon('plus') + ' إنشاء رحلة جديدة</button>' : '';
 
-    c.innerHTML = '<div class="card">' +
-      '<div style="display:flex; justify-content:space-between; margin-bottom:15px;">' +
-      '<h3>سجل الرحلات (Logistics & Trips)</h3>' + addBtnHtml +
-      '</div>' +
-      '<div class="table-responsive"><table class="table" id="trips-table">' +
+    c.innerHTML = '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h3>' + icon('map') + ' سجل الرحلات (Logistics & Trips)</h3></div>' + addBtnHtml + '</div>' +
+      '<div class="card-body no-pad"><div class="table-responsive"><table class="table" id="trips-table">' +
       '<thead><tr><th>رقم الرحلة</th><th>العميل</th><th>السائق</th><th>السيارة</th><th>الخروج</th><th>الوصول</th><th>الحالة</th></tr></thead>' +
-      '<tbody><tr><td colspan="7" class="text-center">جاري التحميل...</td></tr></tbody>' +
-      '</table></div></div>';
+      '<tbody><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">جاري التحميل...</td></tr></tbody>' +
+      '</table></div></div></div>';
 
     if (typeof sbClient !== 'undefined') {
       sbClient.from('fleet_trips').select('*, fleet_internal_drivers(driver_name), fleet_external_drivers(driver_name), fleet_vehicles(plate_number)').order('created_at', { ascending: false }).then(function (res) {
         var tbody = document.querySelector('#trips-table tbody');
         if (res.error || !res.data || res.data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد بيانات</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">' + icon('map') + ' لا توجد رحلات مسجلة</td></tr>';
           return;
         }
         var html = '';
@@ -303,20 +364,51 @@ var FleetModule = {
           var driver = d.driver_type === 'internal' && d.fleet_internal_drivers ? d.fleet_internal_drivers.driver_name : 
                        (d.fleet_external_drivers ? d.fleet_external_drivers.driver_name : '-');
           var vehicle = d.fleet_vehicles ? d.fleet_vehicles.plate_number : '-';
+          var stColor = d.status === 'تم التوصيل' ? 'success' : d.status === 'في الطريق' ? 'info' : d.status === 'ملغاة' ? 'danger' : 'warning';
           
           html += '<tr>' +
-            '<td>' + d.trip_number + '</td>' +
+            '<td style="font-weight:700;">' + (d.trip_number || '-') + '</td>' +
             '<td>' + (d.client_name || '-') + '</td>' +
             '<td>' + driver + '</td>' +
             '<td>' + vehicle + '</td>' +
             '<td>' + (d.departure_time ? new Date(d.departure_time).toLocaleString() : '-') + '</td>' +
             '<td>' + (d.arrival_time ? new Date(d.arrival_time).toLocaleString() : '-') + '</td>' +
-            '<td><span class="badge badge-info">' + d.status + '</span></td>' +
+            '<td><span class="badge badge-' + stColor + '">' + (d.status || '-') + '</span></td>' +
             '</tr>';
         });
         tbody.innerHTML = html;
       });
     }
+  },
+
+  showTripModal: function () {
+    App.openModal('إنشاء رحلة جديدة',
+      '<form id="trip-form" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">' +
+      '<div class="form-group"><label class="form-label">رقم الرحلة</label><input type="text" id="t_num" class="form-input" required placeholder="TRIP-001"></div>' +
+      '<div class="form-group"><label class="form-label">اسم العميل</label><input type="text" id="t_client" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">نوع السائق</label><select id="t_drv_type" class="form-input"><option value="internal">داخلي</option><option value="external">خارجي</option></select></div>' +
+      '<div class="form-group"><label class="form-label">تاريخ ووقت الخروج</label><input type="datetime-local" id="t_dep" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">المسافة (كم)</label><input type="number" id="t_dist" class="form-input" step="0.1"></div>' +
+      '<div class="form-group"><label class="form-label">تكلفة النقل</label><input type="number" id="t_cost" class="form-input" step="0.01"></div>' +
+      '<div class="form-group" style="grid-column:span 2;"><label class="form-label">ملاحظات</label><textarea id="t_notes" class="form-input" rows="2"></textarea></div>' +
+      '<div style="grid-column:span 2;text-align:left;"><button type="submit" class="btn btn-primary">إنشاء الرحلة</button></div></form>',
+      '');
+    document.getElementById('trip-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      sbClient.from('fleet_trips').insert({
+        trip_number: document.getElementById('t_num').value,
+        client_name: document.getElementById('t_client').value,
+        driver_type: document.getElementById('t_drv_type').value,
+        departure_time: document.getElementById('t_dep').value || null,
+        distance: parseFloat(document.getElementById('t_dist').value) || 0,
+        transport_cost: parseFloat(document.getElementById('t_cost').value) || 0,
+        notes: document.getElementById('t_notes').value,
+        status: 'مجدولة'
+      }).then(function (r) {
+        if (r.error) alert('Error: ' + r.error.message);
+        else { App.closeModal(); FleetModule.renderTrips(); }
+      });
+    });
   },
 
   // =====================================
