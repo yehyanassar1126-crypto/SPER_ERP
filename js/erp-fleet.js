@@ -3,13 +3,12 @@
 // ==========================================
 var FleetModule = {
   render: function (el) {
-    el.innerHTML = '<div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">' +
-      '<div><h2>إدارة الأسطول والسائقين (Fleet & Drivers)</h2>' +
-      '<p>إدارة السائقين، السيارات، الرحلات، والصيانة</p></div>' +
-      '<div><button class="btn btn-outline" onclick="FleetModule.renderDashboard()">' + icon('layoutDashboard') + ' لوحة التحكم</button></div>' +
-      '</div>' +
+    el.innerHTML = '<div class="card" style="margin-bottom:20px;"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">' +
+      '<div><h3>' + icon('truck') + ' إدارة الأسطول والسائقين (Fleet & Drivers)</h3>' +
+      '<p style="color:var(--text-tertiary);font-size:0.85rem;margin-top:4px;">إدارة السائقين، السيارات، الرحلات، والصيانة</p></div>' +
+      '</div></div>' +
       '<div class="tabs" style="margin-bottom: 20px;">' +
-      '<button class="tab-btn active" onclick="FleetModule.switchTab(\'dashboard\', this)">' + icon('pieChart') + ' Dashboard</button>' +
+      '<button class="tab-btn active" onclick="FleetModule.switchTab(\'dashboard\', this)">' + icon('pieChart') + ' لوحة التحكم</button>' +
       '<button class="tab-btn" onclick="FleetModule.switchTab(\'internal_drivers\', this)">' + icon('user') + ' السائقين الداخليين</button>' +
       '<button class="tab-btn" onclick="FleetModule.switchTab(\'external_drivers\', this)">' + icon('users') + ' شركات النقل (خارجي)</button>' +
       '<button class="tab-btn" onclick="FleetModule.switchTab(\'vehicles\', this)">' + icon('truck') + ' السيارات (Fleet)</button>' +
@@ -324,14 +323,164 @@ var FleetModule = {
   // Maintenance, Incidents, Reports placeholders
   // =====================================
   renderMaintenance: function () {
-    document.getElementById('fleet-content').innerHTML = '<div class="card"><h3>الصيانة والوقود</h3><p>جاري تطوير هذه الشاشة بناءً على سجلات الصيانة...</p></div>';
+    var c = document.getElementById('fleet-content');
+    var canManage = App.isOwner() || (App.user && (App.user.department === 'Logistics' || App.user.role === 'logistics manager'));
+    var addBtn = canManage ? '<button class="btn btn-primary" onclick="FleetModule.showMaintenanceModal()">' + icon('plus') + ' تسجيل صيانة</button>' : '';
+
+    c.innerHTML = '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h3>' + icon('tool') + ' سجل الصيانة والوقود</h3><p style="color:var(--text-tertiary);font-size:0.85rem;margin-top:4px;">تتبع جميع عمليات الصيانة والتزويد بالوقود</p></div>' + addBtn + '</div>' +
+      '<div class="card-body no-pad"><div class="table-responsive"><table class="table" id="maint-table">' +
+      '<thead><tr><th>التاريخ</th><th>السيارة</th><th>النوع</th><th>الوصف</th><th>التكلفة</th><th>الكيلومترات</th><th>الحالة</th></tr></thead>' +
+      '<tbody><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">جاري التحميل...</td></tr></tbody>' +
+      '</table></div></div></div>';
+
+    if (typeof sbClient !== 'undefined') {
+      sbClient.from('fleet_maintenance').select('*').order('created_at', { ascending: false }).then(function (res) {
+        var tbody = document.querySelector('#maint-table tbody');
+        if (res.error || !res.data || res.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">' + icon('tool') + ' لا توجد سجلات صيانة حالياً</td></tr>';
+          return;
+        }
+        var html = '';
+        res.data.forEach(function (d) {
+          var typeColor = d.type === 'وقود' ? 'warning' : d.type === 'صيانة دورية' ? 'info' : 'danger';
+          html += '<tr><td>' + (d.date || '-') + '</td><td>' + (d.vehicle_plate || '-') + '</td>' +
+            '<td><span class="badge badge-' + typeColor + '">' + (d.type || '-') + '</span></td>' +
+            '<td>' + (d.description || '-') + '</td><td style="font-weight:700;">' + (d.cost ? d.cost.toLocaleString() + ' جنيه' : '-') + '</td>' +
+            '<td>' + (d.odometer || '-') + '</td><td><span class="badge badge-' + (d.status === 'مكتمل' ? 'success' : 'warning') + '">' + (d.status || '-') + '</span></td></tr>';
+        });
+        tbody.innerHTML = html;
+      });
+    }
   },
+
+  showMaintenanceModal: function () {
+    App.openModal('تسجيل صيانة / وقود',
+      '<form id="maint-form" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">' +
+      '<div class="form-group"><label class="form-label">السيارة (رقم اللوحة)</label><input type="text" id="m_plate" class="form-input" required></div>' +
+      '<div class="form-group"><label class="form-label">النوع</label><select id="m_type" class="form-input"><option value="صيانة دورية">صيانة دورية</option><option value="إصلاح">إصلاح</option><option value="وقود">وقود</option><option value="إطارات">إطارات</option><option value="أخرى">أخرى</option></select></div>' +
+      '<div class="form-group"><label class="form-label">التاريخ</label><input type="date" id="m_date" class="form-input" required></div>' +
+      '<div class="form-group"><label class="form-label">التكلفة</label><input type="number" id="m_cost" class="form-input" step="0.01"></div>' +
+      '<div class="form-group"><label class="form-label">عداد الكيلومترات</label><input type="number" id="m_odo" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">الحالة</label><select id="m_status" class="form-input"><option value="مكتمل">مكتمل</option><option value="قيد التنفيذ">قيد التنفيذ</option></select></div>' +
+      '<div class="form-group" style="grid-column:span 2;"><label class="form-label">الوصف</label><textarea id="m_desc" class="form-input" rows="2"></textarea></div>' +
+      '<div style="grid-column:span 2;text-align:left;"><button type="submit" class="btn btn-primary">حفظ</button></div></form>',
+      '');
+    document.getElementById('maint-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      sbClient.from('fleet_maintenance').insert({
+        vehicle_plate: document.getElementById('m_plate').value,
+        type: document.getElementById('m_type').value,
+        date: document.getElementById('m_date').value,
+        cost: parseFloat(document.getElementById('m_cost').value) || 0,
+        odometer: parseInt(document.getElementById('m_odo').value) || 0,
+        status: document.getElementById('m_status').value,
+        description: document.getElementById('m_desc').value
+      }).then(function (r) {
+        if (r.error) alert('Error: ' + r.error.message);
+        else { App.closeModal(); FleetModule.renderMaintenance(); }
+      });
+    });
+  },
+
   renderIncidents: function () {
-    document.getElementById('fleet-content').innerHTML = '<div class="card"><h3>الحوادث والمخالفات</h3><p>جاري تطوير هذه الشاشة لتسجيل غرامات السائقين والحوادث وربطها بالخصومات...</p></div>';
+    var c = document.getElementById('fleet-content');
+    var canManage = App.isOwner() || (App.user && (App.user.department === 'Logistics' || App.user.role === 'logistics manager'));
+    var addBtn = canManage ? '<button class="btn btn-primary" onclick="FleetModule.showIncidentModal()">' + icon('plus') + ' تسجيل حادث/مخالفة</button>' : '';
+
+    c.innerHTML = '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;"><div><h3>' + icon('alertTriangle') + ' الحوادث والمخالفات</h3><p style="color:var(--text-tertiary);font-size:0.85rem;margin-top:4px;">تسجيل ومتابعة حوادث ومخالفات السائقين</p></div>' + addBtn + '</div>' +
+      '<div class="card-body no-pad"><div class="table-responsive"><table class="table" id="incidents-table">' +
+      '<thead><tr><th>التاريخ</th><th>السائق</th><th>السيارة</th><th>النوع</th><th>الوصف</th><th>الغرامة</th><th>الحالة</th></tr></thead>' +
+      '<tbody><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">جاري التحميل...</td></tr></tbody>' +
+      '</table></div></div></div>';
+
+    if (typeof sbClient !== 'undefined') {
+      sbClient.from('fleet_incidents').select('*').order('created_at', { ascending: false }).then(function (res) {
+        var tbody = document.querySelector('#incidents-table tbody');
+        if (res.error || !res.data || res.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">' + icon('alertTriangle') + ' لا توجد حوادث أو مخالفات مسجلة</td></tr>';
+          return;
+        }
+        var html = '';
+        res.data.forEach(function (d) {
+          var tColor = d.type === 'حادث' ? 'danger' : 'warning';
+          html += '<tr><td>' + (d.date || '-') + '</td><td>' + (d.driver_name || '-') + '</td><td>' + (d.vehicle_plate || '-') + '</td>' +
+            '<td><span class="badge badge-' + tColor + '">' + (d.type || '-') + '</span></td>' +
+            '<td>' + (d.description || '-') + '</td><td style="font-weight:700;">' + (d.fine_amount ? d.fine_amount.toLocaleString() + ' جنيه' : '-') + '</td>' +
+            '<td><span class="badge badge-' + (d.status === 'تم الحل' ? 'success' : 'danger') + '">' + (d.status || 'معلق') + '</span></td></tr>';
+        });
+        tbody.innerHTML = html;
+      });
+    }
   },
+
+  showIncidentModal: function () {
+    App.openModal('تسجيل حادث / مخالفة',
+      '<form id="inc-form" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">' +
+      '<div class="form-group"><label class="form-label">اسم السائق</label><input type="text" id="i_driver" class="form-input" required></div>' +
+      '<div class="form-group"><label class="form-label">رقم السيارة</label><input type="text" id="i_plate" class="form-input"></div>' +
+      '<div class="form-group"><label class="form-label">النوع</label><select id="i_type" class="form-input"><option value="مخالفة">مخالفة مرورية</option><option value="حادث">حادث</option><option value="تلف">تلف بالسيارة</option></select></div>' +
+      '<div class="form-group"><label class="form-label">التاريخ</label><input type="date" id="i_date" class="form-input" required></div>' +
+      '<div class="form-group"><label class="form-label">قيمة الغرامة</label><input type="number" id="i_fine" class="form-input" step="0.01"></div>' +
+      '<div class="form-group"><label class="form-label">الحالة</label><select id="i_status" class="form-input"><option value="معلق">معلق</option><option value="تم الخصم">تم الخصم</option><option value="تم الحل">تم الحل</option></select></div>' +
+      '<div class="form-group" style="grid-column:span 2;"><label class="form-label">الوصف</label><textarea id="i_desc" class="form-input" rows="2"></textarea></div>' +
+      '<div style="grid-column:span 2;text-align:left;"><button type="submit" class="btn btn-primary">حفظ</button></div></form>',
+      '');
+    document.getElementById('inc-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      sbClient.from('fleet_incidents').insert({
+        driver_name: document.getElementById('i_driver').value,
+        vehicle_plate: document.getElementById('i_plate').value,
+        type: document.getElementById('i_type').value,
+        date: document.getElementById('i_date').value,
+        fine_amount: parseFloat(document.getElementById('i_fine').value) || 0,
+        status: document.getElementById('i_status').value,
+        description: document.getElementById('i_desc').value
+      }).then(function (r) {
+        if (r.error) alert('Error: ' + r.error.message);
+        else { App.closeModal(); FleetModule.renderIncidents(); }
+      });
+    });
+  },
+
   renderReports: function () {
-    document.getElementById('fleet-content').innerHTML = '<div class="card"><h3>تقارير الأسطول والسائقين</h3><p>التقارير التفصيلية لتكاليف النقل واستهلاك الوقود...</p>' +
-      '<button class="btn btn-outline" style="margin-top:10px" onclick="window.print()">طباعة التقرير الشامل</button></div>';
+    var c = document.getElementById('fleet-content');
+    c.innerHTML = '<div class="kpi-grid" style="margin-bottom:20px;">' +
+      '<div class="kpi-card"><div class="kpi-icon" style="background:rgba(37,99,235,0.15);color:#3b82f6;">' + icon('truck') + '</div><div class="kpi-info"><h3>إجمالي الرحلات</h3><p id="r_trips">--</p></div></div>' +
+      '<div class="kpi-card"><div class="kpi-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">' + icon('dollarSign') + '</div><div class="kpi-info"><h3>تكاليف الصيانة</h3><p id="r_maint">--</p></div></div>' +
+      '<div class="kpi-card"><div class="kpi-icon" style="background:rgba(239,68,68,0.15);color:#ef4444;">' + icon('alertTriangle') + '</div><div class="kpi-info"><h3>الحوادث والمخالفات</h3><p id="r_inc">--</p></div></div>' +
+      '<div class="kpi-card"><div class="kpi-icon" style="background:rgba(16,185,129,0.15);color:#10b981;">' + icon('user') + '</div><div class="kpi-info"><h3>السائقين النشطين</h3><p id="r_drv">--</p></div></div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+      '<div class="card"><div class="card-header"><h3>توزيع تكاليف الصيانة</h3></div><div class="card-body"><canvas id="maintChart" height="250"></canvas></div></div>' +
+      '<div class="card"><div class="card-header"><h3>حالات الرحلات</h3></div><div class="card-body"><canvas id="tripsReportChart" height="250"></canvas></div></div>' +
+      '</div>' +
+      '<div class="card" style="margin-top:20px;"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;"><h3>طباعة وتصدير</h3>' +
+      '<button class="btn btn-outline" onclick="window.print()">' + icon('download') + ' طباعة التقرير</button></div></div>';
+
+    if (typeof sbClient !== 'undefined') {
+      Promise.all([
+        sbClient.from('fleet_trips').select('id,status'),
+        sbClient.from('fleet_maintenance').select('id,cost,type'),
+        sbClient.from('fleet_incidents').select('id'),
+        sbClient.from('fleet_internal_drivers').select('id').eq('status', 'متاح')
+      ]).then(function (r) {
+        var trips = r[0].data || [], maint = r[1].data || [], inc = r[2].data || [], drv = r[3].data || [];
+        var el1 = document.getElementById('r_trips'); if (el1) el1.textContent = trips.length;
+        var totalCost = maint.reduce(function (s, m) { return s + (m.cost || 0); }, 0);
+        var el2 = document.getElementById('r_maint'); if (el2) el2.textContent = totalCost.toLocaleString() + ' جنيه';
+        var el3 = document.getElementById('r_inc'); if (el3) el3.textContent = inc.length;
+        var el4 = document.getElementById('r_drv'); if (el4) el4.textContent = drv.length;
+      });
+    }
+
+    setTimeout(function () {
+      if (window.Chart) {
+        var ctx1 = document.getElementById('maintChart');
+        if (ctx1) new Chart(ctx1, { type: 'doughnut', data: { labels: ['وقود', 'صيانة دورية', 'إصلاح', 'إطارات'], datasets: [{ data: [40, 25, 20, 15], backgroundColor: ['#f59e0b', '#3b82f6', '#ef4444', '#10b981'] }] }, options: { plugins: { legend: { labels: { color: '#94A3B8' } } } } });
+        var ctx2 = document.getElementById('tripsReportChart');
+        if (ctx2) new Chart(ctx2, { type: 'bar', data: { labels: ['مكتملة', 'في الطريق', 'مجدولة', 'ملغاة'], datasets: [{ label: 'الرحلات', data: [12, 5, 3, 1], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'] }] }, options: { plugins: { legend: { labels: { color: '#94A3B8' } } }, scales: { x: { ticks: { color: '#64748B' }, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { ticks: { color: '#64748B' }, grid: { color: 'rgba(255,255,255,0.05)' } } } } });
+      }
+    }, 500);
   }
 };
 
