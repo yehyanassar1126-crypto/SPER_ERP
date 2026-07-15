@@ -126,7 +126,7 @@ body::before {
   z-index: 0;
   pointer-events: none;
 }
-#app { height: 100vh; overflow: hidden; }
+#app { height: 100vh; overflow: hidden; position: relative; z-index: 1; }
 input, button, select, textarea { font-family: inherit; font-size: inherit; }
 a { color: var(--accent-primary); text-decoration: none; transition: color var(--transition-fast); }
 a:hover { color: var(--accent-primary-hover); }

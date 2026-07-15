@@ -351,8 +351,6 @@ var App = {
             section: 'Administration', items: [
               { id: 'system-settings', label: '⚙️ Settings (الإعدادات)', icon: 'settings' },
             ]
-          },
-            ]
           }
         ];
         
