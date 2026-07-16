@@ -286,13 +286,29 @@ Pages.hrATS = function(el) {
       var summarySentences = cvText.split(/(?:\. |\n)/).filter(function(s) { return s.trim().length > 30; }).slice(0, 6).join('. ') + '.';
       if (summarySentences.length < 50) summarySentences = 'لا يوجد نص كافي في السيرة الذاتية لتوليد ملخص تنفيذي مفصل.';
       
+      var recommendations = [];
+      if (missing.length > 0) {
+        recommendations.push("• يجب تعلم أو إبراز المهارات التالية بشكل أوضح إن كانت متوفرة: " + missing.join('، '));
+      }
+      if (cvText.length < 500) {
+        recommendations.push("• السيرة الذاتية قصيرة جداً. يُنصح بإضافة تفاصيل أعمق حول الخبرات والمشاريع السابقة.");
+      }
+      if (eduScore === 0) {
+        recommendations.push("• لم يتم التعرف على المؤهل الأكاديمي. يُرجى إبراز قسم التعليم (الجامعة، الشهادة) بوضوح.");
+      }
+      if (exp === 0) {
+         recommendations.push("• لا يوجد ذكر واضح لعدد سنوات الخبرة. يُرجى توضيح فترات العمل بوضوح (من - إلى).");
+      }
+      
       var report = "تقرير تحليل السيرة الذاتية (AI Summary Report):\n";
       report += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
       report += "✅ المهارات المتوفرة (نقاط القوة): " + (matched.join('، ') || 'لم يتم العثور على مهارات متطابقة بشكل صريح.') + "\n\n";
       report += "❌ المهارات الناقصة (نقاط الضعف): " + (missing.join('، ') || 'لا توجد نواقص في المهارات المطلوبة.') + "\n\n";
-      report += "📝 ملخص تنفيذي للمرشح (Executive Summary):\n";
+      report += "📝 ملخص تنفيذي للمرشح:\n";
       report += summarySentences + "\n\n";
-      report += "سنوات الخبرة المستنتجة: " + exp + " سنوات.";
+      report += "سنوات الخبرة المستنتجة: " + exp + " سنوات.\n\n";
+      report += "💡 ملاحظات للتحسين (ما يجب تعديله في الـ CV):\n";
+      report += recommendations.length > 0 ? recommendations.join('\n') : "• السيرة الذاتية ممتازة وتغطي جميع المتطلبات بشكل رائع.";
 
       record.ai_analysis = report;
       record.skills_matched = matched.join(', ');
