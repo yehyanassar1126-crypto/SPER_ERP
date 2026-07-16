@@ -296,7 +296,8 @@ var App = {
               { id: 'attendance', label: 'Attendance', icon: 'calendarCheck' },
               { id: 'all-delays', label: 'Delays Log', icon: 'alertTriangle' },
               { id: 'all-missions', label: 'Missions', icon: 'briefcase' },
-              { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
+              { id: 'absence-leave', label: '?????? ?????????', icon: 'calendarDays' },
+          { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
               { id: 'shifts', label: 'Shift Management', icon: 'clock' },
               { id: 'overtime', label: 'Overtime', icon: 'timer' },
               ...(App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }] : []),
@@ -732,6 +733,7 @@ var App = {
       'performance-reviews': { title: '⭐ Performance Reviews', sub: 'Employee performance evaluation' },
       'training': { title: '🎓 Training & Development', sub: 'Courses and skill development' },
       'asset-assignment': { title: '💻 Asset Assignment', sub: 'Track company assets and custody' },
+      'absence-leave': { title: '?? ?????? ?????????', sub: '???? ?????? ???? ???????? ??????????' },
       'employee-warnings': { title: '⚠️ Employee Warnings', sub: 'Disciplinary actions and penalties' },
       'ceo-dashboard': { title: '📊 CEO Dashboard', sub: 'Enterprise High-Level Overview' },
       'activity-timeline': { title: '🕐 Activity Timeline', sub: 'Real-time audit of all operations' }
@@ -861,6 +863,10 @@ var App = {
       case 'performance-reviews': Pages.performanceReviews(el); break;
       case 'training': Pages.training(el); break;
       case 'asset-assignment': Pages.assetAssignment(el); break;
+      case 'absence-leave':
+        if (typeof HRAbsenceModule !== 'undefined') HRAbsenceModule.renderDashboard(c);
+        else c.innerHTML = '<p>Error loading Absence module.</p>';
+        break;
       case 'employee-warnings': Pages.employeeWarnings(el); break;
       case 'ceo-dashboard': if (Pages['ceo-dashboard']) Pages['ceo-dashboard'](el); else el.innerHTML = 'Module loading...'; break;
       case 'activity-timeline': if (Pages['activity-timeline']) Pages['activity-timeline'](el); else el.innerHTML = 'Module loading...'; break;
@@ -3718,7 +3724,8 @@ Pages.reports = function (el) {
 
   function render() {
     var html = '<div style="margin-bottom:24px;border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:4px;background:var(--bg-card);display:inline-flex;gap:0;flex-wrap:wrap;">';
-    var tabs = [{ id: 'attendance', label: '📊 Attendance' }, { id: 'absenteeism', label: '🔴 Absenteeism' }, { id: 'performance', label: '📈 Dept Performance' }, { id: 'leaves', label: '🏖️ Leave Analytics' }, { id: 'procurement', label: '🛒 Procurement' }, { id: 'inventory', label: '📦 Inventory' }, { id: 'expenses', label: '💰 Expenses' }];
+    var tabs = [{ id: 'attendance', label: '📊 Attendance' }, { id: 'absenteeism', label: '🔴 Absenteeism' }, { id: 'performance', label: '📈 Dept Performance' }, { id: 'absence-leave', label: '?????? ?????????', icon: 'calendarDays' },
+          { id: 'leaves', label: '🏖️ Leave Analytics' }, { id: 'procurement', label: '🛒 Procurement' }, { id: 'inventory', label: '📦 Inventory' }, { id: 'expenses', label: '💰 Expenses' }];
     tabs.forEach(function (tab) {
       html += '<button class="tab' + (activeReport === tab.id ? ' active' : '') + '" data-report="' + tab.id + '" style="border-bottom:none;border-radius:var(--radius-md);margin:0;background:' + (activeReport === tab.id ? 'var(--accent-primary-soft)' : 'transparent') + '">' + tab.label + '</button>';
     });
@@ -4523,3 +4530,5 @@ function _statCard(color, iconName, value, label, trendHtml) {
 
 // ========== START APP ==========
 document.addEventListener('DOMContentLoaded', function () { App.init(); });
+
+
