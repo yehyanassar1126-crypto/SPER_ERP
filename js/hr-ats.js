@@ -2,12 +2,12 @@
 window.Pages = window.Pages || {};
 
 Pages.hrATS = function(el) {
-  if (!App.isHR()) { el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied</h2></div>'; return; }
+  if (!App.isHR()) { el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 غير مصرح بالدخول</h2></div>'; return; }
 
   var applications = [];
 
   function loadData() {
-    el.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span> Loading ATS...</div>';
+    el.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span> جاري تحميل نظام فحص السير الذاتية...</div>';
     sbClient.from('ats_applications').select('*').order('created_at', {ascending: false}).then(function(r) {
       applications = r.data || [];
       render();
@@ -21,28 +21,28 @@ Pages.hrATS = function(el) {
     var hired = applications.filter(function(a) { return a.status === 'hired'; }).length;
     var rejected = applications.filter(function(a) { return a.status === 'rejected'; }).length;
 
-    var html = '<div style="margin-bottom:20px"><h3 style="margin:0">🤖 AI-Powered Applicant Tracking System (نظام تتبع المتقدمين بالذكاء الاصطناعي)</h3><p style="color:var(--text-muted)">Upload CVs as PDF and let AI analyze candidate suitability</p></div>';
+    var html = '<div style="margin-bottom:20px"><h3 style="margin:0">🤖 نظام تتبع المتقدمين وفحص السير الذاتية بالذكاء الاصطناعي</h3><p style="color:var(--text-muted)">ارفع السيرة الذاتية كملف PDF واترك الذكاء الاصطناعي يحللها تلقائياً</p></div>';
 
     html += '<div class="stats-grid">';
-    html += _statCard('#f59e0b','clock',pending,'Pending (معلق)');
-    html += _statCard('#6366f1','search',screening,'Screening (فحص)');
-    html += _statCard('#3b82f6','users',interview,'Interview (مقابلة)');
-    html += _statCard('#22c55e','userCheck',hired,'Hired (تم التعيين)');
-    html += _statCard('#ef4444','xCircle',rejected,'Rejected (مرفوض)');
+    html += _statCard('#f59e0b','clock',pending,'معلق');
+    html += _statCard('#6366f1','search',screening,'قيد الفحص');
+    html += _statCard('#3b82f6','users',interview,'مقابلة');
+    html += _statCard('#22c55e','userCheck',hired,'تم التعيين');
+    html += _statCard('#ef4444','xCircle',rejected,'مرفوض');
     html += '</div>';
 
     html += '<div class="toolbar" style="display:flex;justify-content:space-between;margin-bottom:16px">';
     html += '<div style="display:flex;gap:8px">';
-    html += '<button class="btn btn-outline" id="ats-tab-apps" style="border-color:var(--accent-primary);color:var(--accent-primary)">📋 Applications (المتقدمين)</button>';
-    html += '<button class="btn btn-ghost" id="ats-tab-add">➕ Add Candidate (إضافة متقدم)</button>';
+    html += '<button class="btn btn-outline" id="ats-tab-apps" style="border-color:var(--accent-primary);color:var(--accent-primary)">📋 المتقدمين</button>';
+    html += '<button class="btn btn-ghost" id="ats-tab-add">➕ إضافة متقدم</button>';
     html += '</div>';
-    html += '<select class="filter-select" id="ats-filter"><option value="">All Status</option><option value="pending">Pending</option><option value="screening">Screening</option><option value="interview">Interview</option><option value="offered">Offered</option><option value="hired">Hired</option><option value="rejected">Rejected</option></select>';
+    html += '<select class="filter-select" id="ats-filter"><option value="">كل الحالات</option><option value="pending">معلق</option><option value="screening">قيد الفحص</option><option value="interview">مقابلة</option><option value="offered">عرض وظيفي</option><option value="hired">تم التعيين</option><option value="rejected">مرفوض</option></select>';
     html += '</div>';
 
     // Applications Table
     html += '<div id="ats-view-apps">';
-    html += '<div class="card"><div class="card-header"><h3>All Applications (' + applications.length + ')</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr>';
-    html += '<th>المتقدم</th><th>الوظيفة</th><th>القسم</th><th>AI Score</th><th>AI Verdict</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th>';
+    html += '<div class="card"><div class="card-header"><h3>جميع المتقدمين (' + applications.length + ')</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr>';
+    html += '<th>المتقدم</th><th>الوظيفة</th><th>القسم</th><th>تقييم الذكاء الاصطناعي</th><th>الحكم</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th>';
     html += '</tr></thead><tbody>';
 
     applications.forEach(function(app) {
@@ -66,30 +66,30 @@ Pages.hrATS = function(el) {
       }
       html += '</div></td></tr>';
     });
-    if (applications.length === 0) html += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">No applications yet — لا يوجد متقدمين</td></tr>';
+    if (applications.length === 0) html += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">لا يوجد متقدمين حتى الآن</td></tr>';
     html += '</tbody></table></div></div></div>';
 
     // Add Candidate Form
     html += '<div id="ats-view-add" style="display:none">';
-    html += '<div class="card"><div class="card-header"><h3>➕ إضافة متقدم جديد (Add New Candidate)</h3></div><div class="card-body">';
+    html += '<div class="card"><div class="card-header"><h3>➕ إضافة متقدم جديد</h3></div><div class="card-body">';
     html += '<div class="grid-2">';
-    html += '<div class="form-field"><label>اسم المتقدم (Candidate Name) *</label><input type="text" id="ats-name" class="form-input" placeholder="الاسم بالكامل"></div>';
-    html += '<div class="form-field"><label>الوظيفة المطلوبة (Job Title) *</label><input type="text" id="ats-job" class="form-input" placeholder="مثلاً: مهندس إنتاج"></div>';
-    html += '<div class="form-field"><label>البريد الإلكتروني (Email)</label><input type="email" id="ats-email" class="form-input"></div>';
-    html += '<div class="form-field"><label>الهاتف (Phone)</label><input type="text" id="ats-phone" class="form-input"></div>';
-    html += '<div class="form-field"><label>القسم (Department)</label><select id="ats-dept" class="form-input"><option value="">اختر القسم</option>';
+    html += '<div class="form-field"><label>اسم المتقدم *</label><input type="text" id="ats-name" class="form-input" placeholder="الاسم بالكامل"></div>';
+    html += '<div class="form-field"><label>الوظيفة المطلوبة *</label><input type="text" id="ats-job" class="form-input" placeholder="مثلاً: مهندس إنتاج"></div>';
+    html += '<div class="form-field"><label>البريد الإلكتروني</label><input type="email" id="ats-email" class="form-input"></div>';
+    html += '<div class="form-field"><label>الهاتف</label><input type="text" id="ats-phone" class="form-input"></div>';
+    html += '<div class="form-field"><label>القسم</label><select id="ats-dept" class="form-input"><option value="">اختر القسم</option>';
     if (typeof DEPARTMENTS !== 'undefined') DEPARTMENTS.forEach(function(d) { html += '<option>' + d + '</option>'; });
     html += '</select></div>';
-    html += '<div class="form-field"><label>سنوات الخبرة (Experience)</label><input type="number" id="ats-exp" class="form-input" min="0" step="0.5"></div>';
+    html += '<div class="form-field"><label>سنوات الخبرة</label><input type="number" id="ats-exp" class="form-input" min="0" step="0.5"></div>';
     html += '</div>';
 
     // PDF Upload
     html += '<div class="form-field" style="margin-top:16px">';
-    html += '<label>📄 رفع السيرة الذاتية PDF (Upload CV)</label>';
+    html += '<label>📄 رفع السيرة الذاتية (ملف PDF)</label>';
     html += '<div id="ats-dropzone" style="border:2px dashed var(--border-color);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all 0.3s;background:var(--bg-secondary)">';
     html += '<div style="font-size:2.5rem;margin-bottom:8px">📎</div>';
     html += '<p style="margin:0;font-weight:600">اضغط هنا أو اسحب ملف PDF</p>';
-    html += '<p style="margin:4px 0 0;color:var(--text-muted);font-size:0.8rem">Click or drag & drop a PDF file</p>';
+    html += '<p style="margin:4px 0 0;color:var(--text-muted);font-size:0.8rem">اضغط أو اسحب ملف PDF هنا</p>';
     html += '<input type="file" id="ats-pdf" accept=".pdf" style="display:none">';
     html += '</div>';
     html += '<div id="ats-pdf-status" style="margin-top:8px;display:none;padding:10px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2)">';
@@ -102,7 +102,7 @@ Pages.hrATS = function(el) {
     // Hidden textarea for extracted text
     html += '<textarea id="ats-cv" style="display:none"></textarea>';
 
-    html += '<div class="form-field"><label>المهارات المطلوبة (Required Skills) — مفصولة بفاصلة</label><input type="text" id="ats-skills" class="form-input" placeholder="مثلاً: AutoCAD, Excel, Leadership, إدارة الجودة"></div>';
+    html += '<div class="form-field"><label>المهارات المطلوبة — مفصولة بفاصلة</label><input type="text" id="ats-skills" class="form-input" placeholder="مثلاً: AutoCAD, Excel, Leadership, إدارة الجودة"></div>';
     html += '<div style="margin-top:16px;display:flex;gap:10px">';
     html += '<button class="btn btn-primary" id="ats-analyze" disabled>🤖 تحليل بالذكاء الاصطناعي وحفظ</button>';
     html += '<button class="btn btn-outline" id="ats-save-only">💾 حفظ بدون تحليل</button>';
@@ -170,9 +170,9 @@ Pages.hrATS = function(el) {
         
         if (typeof pdfjsLib === 'undefined') {
           // Fallback if PDF.js not loaded
-          document.getElementById('ats-extract-progress').innerHTML = '⚠️ PDF.js not loaded — please paste CV text manually';
+          document.getElementById('ats-extract-progress').innerHTML = '⚠️ لم يتم تحميل مكتبة PDF — يرجى لصق نص السيرة الذاتية يدوياً';
           document.getElementById('ats-cv').style.display = 'block';
-          document.getElementById('ats-cv').placeholder = 'الصق نص السيرة الذاتية هنا يدوياً...';
+          document.getElementById('ats-cv').placeholder = 'الصق نص السيرة الذاتية هنا يدوياً...';  
           document.getElementById('ats-analyze').disabled = false;
           return;
         }
@@ -180,7 +180,7 @@ Pages.hrATS = function(el) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
         
         pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
-          document.getElementById('ats-pdf-pages').textContent = '(' + pdf.numPages + ' pages)';
+          document.getElementById('ats-pdf-pages').textContent = '(' + pdf.numPages + ' صفحة)';
           var allText = '';
           var promises = [];
 
@@ -197,11 +197,11 @@ Pages.hrATS = function(el) {
           Promise.all(promises).then(function(pageTexts) {
             allText = pageTexts.join('\n');
             document.getElementById('ats-cv').value = allText;
-            document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-success);font-weight:600">✅ تم استخراج النص بنجاح (' + allText.length + ' حرف)</span>';
+            document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-success);font-weight:600">✅ تم استخراج النص بنجاح (' + allText.length + ' حرف)</span>';  
             document.getElementById('ats-analyze').disabled = false;
           });
         }).catch(function(err) {
-          document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-danger)">❌ Error reading PDF: ' + err.message + '</span>';
+          document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-danger)">❌ خطأ في قراءة ملف PDF: ' + err.message + '</span>';
         });
       };
       reader.readAsArrayBuffer(file);
@@ -317,8 +317,8 @@ Pages.hrATS = function(el) {
     }
 
     sbClient.from('ats_applications').insert([record]).then(function(r) {
-      if (r.error) return alert('Error: ' + r.error.message);
-      showToast('✅ تم إضافة المتقدم' + (useAI ? ' مع تحليل AI!' : '!'), 'success');
+      if (r.error) return alert('خطأ: ' + r.error.message);
+      showToast('✅ تم إضافة المتقدم' + (useAI ? ' مع تحليل الذكاء الاصطناعي!' : '!'), 'success');
       loadData();
     });
   }
@@ -331,7 +331,7 @@ Pages.hrATS = function(el) {
     var body = '<div style="display:flex;gap:20px;margin-bottom:16px">';
     body += '<div style="flex:1;padding:16px;background:var(--bg-tertiary);border-radius:12px;text-align:center">';
     body += '<div style="font-size:2.5rem;font-weight:900;color:' + scoreColor + '">' + (app.ai_score || '—') + '%</div>';
-    body += '<div style="color:var(--text-muted)">AI Score</div></div>';
+    body += '<div style="color:var(--text-muted)">تقييم الذكاء الاصطناعي</div></div>';
     body += '<div style="flex:2"><h4 style="margin:0">' + app.candidate_name + '</h4>';
     body += '<p style="color:var(--text-muted);margin:4px 0">' + app.job_title + ' | ' + (app.department || '-') + '</p>';
     body += '<p style="margin:4px 0">' + (app.candidate_email || '') + ' | ' + (app.candidate_phone || '') + '</p>';
@@ -342,7 +342,7 @@ Pages.hrATS = function(el) {
     }
     if (app.skills_matched) body += '<p><b style="color:var(--accent-success)">✅ مهارات متطابقة:</b> ' + app.skills_matched + '</p>';
     if (app.skills_missing) body += '<p><b style="color:var(--accent-danger)">❌ مهارات ناقصة:</b> ' + app.skills_missing + '</p>';
-    if (app.cv_text) body += '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">📄 عرض نص CV المستخرج</summary><pre style="white-space:pre-wrap;max-height:200px;overflow:auto;padding:10px;background:var(--bg-tertiary);border-radius:8px;font-size:0.8rem;margin-top:8px">' + app.cv_text.substring(0, 3000) + '</pre></details>';
+    if (app.cv_text) body += '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">📄 عرض نص السيرة الذاتية المستخرج</summary><pre style="white-space:pre-wrap;max-height:200px;overflow:auto;padding:10px;background:var(--bg-tertiary);border-radius:8px;font-size:0.8rem;margin-top:8px">' + app.cv_text.substring(0, 3000) + '</pre></details>';
 
     body += '<div class="form-field" style="margin-top:12px"><label>ملاحظات HR</label><textarea id="ats-notes" class="form-input" rows="2">' + (app.notes || '') + '</textarea></div>';
 
