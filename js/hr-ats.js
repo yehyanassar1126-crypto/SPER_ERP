@@ -283,8 +283,19 @@ Pages.hrATS = function(el) {
 
       record.ai_score = score;
       record.ai_verdict = score >= 70 ? 'accepted' : score >= 40 ? 'review' : 'rejected';
-      var summarySentences = cvText.split(/(?:\. |\n)/).filter(function(s) { return s.trim().length > 30; }).slice(0, 6).join('. ') + '.';
-      if (summarySentences.length < 50) summarySentences = 'لا يوجد نص كافي في السيرة الذاتية لتوليد ملخص تنفيذي مفصل.';
+      var summarySentences = "المرشح (" + name + ") يتقدم لوظيفة [" + job + "]. ";
+      if (exp > 0) summarySentences += "يمتلك المرشح خبرة عملية تُقدر بحوالي " + exp + " سنوات. ";
+      else summarySentences += "يبدو أن المرشح في بداية مسيرته المهنية أو لم يوضح سنوات الخبرة بدقة. ";
+      
+      if (matched.length > 0) {
+        summarySentences += "أظهرت السيرة الذاتية كفاءة في بعض المهارات المطلوبة للوظيفة مثل: (" + matched.slice(0, 3).join('، ') + "). ";
+      }
+      
+      if (eduScore > 0) {
+        summarySentences += "كما يمتلك المرشح خلفية أكاديمية ودرجة علمية مذكورة في السيرة الذاتية. ";
+      }
+      
+      summarySentences += "بناءً على الفحص الشامل، حصل المرشح على تقييم " + score + "% مما يجعله " + (score >= 70 ? "مرشحاً قوياً ومناسباً للمقابلة." : score >= 40 ? "مرشحاً مقبولاً ويحتاج لمراجعة يدوية لتأكيد الكفاءة." : "مرشحاً ضعيفاً ولا يلبي المتطلبات الأساسية للوظيفة حالياً.");
       
       var recommendations = [];
       if (missing.length > 0) {
