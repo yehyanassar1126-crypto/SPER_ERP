@@ -2208,8 +2208,10 @@ Pages.pettyCash = function(el) {
               return matchRequester || matchProcurement;
             });
             
-            // Name to display for finance actions: Prefer procurement person if they have the custody, else requester
-            var actionEmpName = (empAdvance && procurementPerson && empAdvance.employee_name.indexOf(procurementPerson.split(' (')[0]) !== -1) ? procurementPerson : requestedBy;
+            // Name to display for finance actions: Prefer procurement person, fallback to requester
+            var actionEmpName = requestedBy;
+            if (procurementPerson) actionEmpName = procurementPerson;
+            if (empAdvance && empAdvance.employee_name) actionEmpName = empAdvance.employee_name;
 
             var custodyAmt = empAdvance ? Number(empAdvance.amount) : 0;
             var treasuryPay = 0;
