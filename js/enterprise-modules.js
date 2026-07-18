@@ -1455,27 +1455,29 @@ Pages.purchaseRequests = function(el) {
   };
 
   window.approveQuote = function(reqId, orderId, price, itemId, supplier) {
-    if(confirm('Approve this quote and request EGP ' + price + ' petty cash?')) {
-      sbClient.from('purchase_orders').delete().eq('request_id', reqId).neq('id', orderId).then(function() {
-        sbClient.from('purchase_orders').update({petty_cash_amount: price}).eq('id', orderId).then(function() {
-          sbClient.from('purchase_requests').update({status: 'pending_finance'}).eq('id', reqId).then(function() {
-             
+    if(confirm('Approve this quote and request EGP ' + price + ' petty cash? (الموافقة وطلب عهدة؟)')) {
+      sbClient.from('purchase_orders').delete().eq('request_id', reqId).neq('id', orderId).then(function(r1) {
+        if (r1 && r1.error) { alert('Error deleting old quotes: ' + r1.error.message); console.error(r1.error); }
+        sbClient.from('purchase_orders').update({petty_cash_amount: price, status: 'approved'}).eq('id', orderId).then(function(r2) {
+          if (r2 && r2.error) { alert('Error updating order: ' + r2.error.message); return; }
+          sbClient.from('purchase_requests').update({status: 'pending_finance'}).eq('id', reqId).then(function(r3) {
+             if (r3 && r3.error) { alert('Error updating request: ' + r3.error.message); return; }
              // Update inventory item if it exists
              if (itemId && itemId !== 'null' && itemId !== 'undefined') {
                 sbClient.from('inventory_items').update({
                   last_purchase_price: price,
                   supplier_name: supplier
-                }).eq('id', itemId).then(function() {
+                }).eq('id', itemId).then(function(r4) {
+                  if (r4 && r4.error) console.error('Error updating inventory item: ', r4.error.message);
                   App.closeModal();
-                  loadData();
+                  if(typeof loadData === 'function') loadData();
                   showToast('Quote approved & price updated. Sent to Finance for settlement.', 'success');
                 });
              } else {
                 App.closeModal();
-                loadData();
+                if(typeof loadData === 'function') loadData();
                 showToast('Quote approved. Sent to Finance for settlement.', 'success');
              }
-
           });
         });
       });
@@ -1483,11 +1485,13 @@ Pages.purchaseRequests = function(el) {
   };
 
   window.rejectAllQuotes = function(reqId) {
-    if(confirm('Reject all quotes? The specialist will need to submit new quotes.')) {
-      sbClient.from('purchase_orders').delete().eq('request_id', reqId).then(function() {
-        sbClient.from('purchase_requests').update({status: 'pending'}).eq('id', reqId).then(function() {
+    if(confirm('Reject all quotes? The specialist will need to submit new quotes. (رفض جميع العروض؟)')) {
+      sbClient.from('purchase_orders').delete().eq('request_id', reqId).then(function(r1) {
+        if (r1 && r1.error) { alert('Error deleting quotes: ' + r1.error.message); console.error(r1.error); }
+        sbClient.from('purchase_requests').update({status: 'pending'}).eq('id', reqId).then(function(r2) {
+           if (r2 && r2.error) { alert('Error updating request: ' + r2.error.message); return; }
            App.closeModal();
-           loadData();
+           if(typeof loadData === 'function') loadData();
            showToast('Quotes rejected.', 'warning');
         });
       });

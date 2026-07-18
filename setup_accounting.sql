@@ -266,3 +266,5 @@ CREATE TABLE IF NOT EXISTS finance_payments (
 
 ALTER TABLE finance_payments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "finance_payments_all" ON finance_payments FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Purchase orders delete policy" ON purchase_orders FOR DELETE USING (true);

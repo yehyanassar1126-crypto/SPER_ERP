@@ -6,6 +6,7 @@ const ARABIC_DICT = {
   "Employees": "الموظفين",
   "Attendance": "الحضور والانصراف",
   "Leave Requests": "طلبات الإجازة",
+  "Permission Requests": "طلبات الأذونات",
   "Shift Management": "إدارة الورديات",
   "Overtime": "الوقت الإضافي",
   "Payroll": "الرواتب",

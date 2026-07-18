@@ -109,6 +109,8 @@ var EmployeeChatbot = {
     if (q.match(/(ازاى|ازاي|كيف|طريقة|خطوات|عمل|how to|how do i)/)) {
       if (q.match(/(اجازة|إجازة|leave|vacation)/)) {
         response = "عشان تقدم على إجازة، اتبع الخطوات دي:\n1. افتح القائمة الجانبية.\n2. اختار 'Leave Requests'.\n3. اضغط على زر 'New Request'.\n4. اختار نوع الإجازة، وتاريخ البداية والنهاية، واكتب السبب.\n5. اضغط 'Submit' واستنى موافقة الـ HR.";
+      } else if (q.match(/(إذن|اذن|أذونات|استئذان|permission|استاذان)/)) {
+        response = "لطلب إذن انصراف أو تأخير (Permission Request):\n1. افتح القائمة الجانبية.\n2. اختار 'Permission Requests' (الأذونات).\n3. املأ بيانات الإذن (التاريخ، المدة، والسبب).\n4. اضغط إرسال للـ HR أو مديرك المباشر.";
       } else if (q.match(/(حضور|انصراف|check|بصمة|تسجيل)/)) {
         response = "عشان تسجل حضورك أو انصرافك:\n1. في الصفحة الرئيسية (Dashboard)، هتلاقي زرار 'QR Check-In' فوق.\n2. اضغط عليه ووجه الكاميرا لـ QR Code الخاص بالشركة.\n3. لو تم بنجاح، هيتسجل وقت حضورك/انصرافك فوراً.";
       } else if (q.match(/(سلفة|سلفه|قرض|loan)/)) {
@@ -146,6 +148,9 @@ var EmployeeChatbot = {
       } else {
         response = "عشان أقدر أساعدك بالخطوات، ياريت تحددلي إنت عايز تعمل إيه بالظبط؟ (مثلاً: ازاي اقدم على اجازة، دعم فني، سلفة، أو تسوية عهدة).";
       }
+    }
+    else if (q.match(/(إذن|اذن|أذونات|استئذان|permission|استاذان)/)) {
+      response = "إدارة الأذونات (استئذان انصراف مبكر أو تأخير) بتتم من صفحة 'Permission Requests' (الأذونات) في القائمة الجانبية. تقدر تقدم إذن جديد وتتابع حالة طلباتك.";
     }
     else if (q.match(/(إجازات|اجازة|اجازات|إجازاتي|اجازاتي|leave|vacation|رصيد)/)) {
       var remaining = App.user.annual_leave_balance !== undefined && App.user.annual_leave_balance !== null ? App.user.annual_leave_balance : 24;
