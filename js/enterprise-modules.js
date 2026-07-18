@@ -2182,7 +2182,7 @@ Pages.pettyCash = function(el) {
           var allOrders = results[0].data || [];
           var unsettledAdvances = results[1].data || [];
 
-          var h = '<table class="data-table"><thead><tr>';
+          var h = '<div style="overflow-x: auto; width: 100%;"><table class="data-table" style="min-width: 1400px; white-space: nowrap;"><thead><tr>';
           h += '<th>رقم PO</th><th>التاريخ</th><th>الصنف</th><th>المورد</th>';
           h += '<th>الموظف</th><th>الكمية</th><th>سعر الوحدة</th>';
           h += '<th>إجمالي الشراء</th><th>عهدة الموظف</th>';
@@ -2263,7 +2263,7 @@ Pages.pettyCash = function(el) {
             h += '</tr>';
           });
 
-          h += '</tbody></table>';
+          h += '</tbody></table></div>';
           con.innerHTML = h;
         });
       });
