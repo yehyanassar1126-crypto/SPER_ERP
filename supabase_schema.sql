@@ -441,7 +441,7 @@ CREATE TABLE purchase_requests (
   description TEXT,
   unit TEXT DEFAULT 'Piece',
   delivery_date DATE,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'pending_warehouse', 'dispensed', 'approved', 'rejected', 'quotation_requested', 'purchased')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'pending_warehouse', 'dispensed', 'approved', 'rejected', 'quotation_requested', 'purchased', 'pending_finance')),
   requested_by TEXT,
   approved_by TEXT, -- Procurement manager
   created_at TIMESTAMPTZ DEFAULT NOW(),
