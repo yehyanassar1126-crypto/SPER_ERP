@@ -2320,6 +2320,22 @@ Pages.pettyCash = function(el) {
         
         var method = settleAction === 'pay_shortage' ? document.getElementById('shortage-method').value : 'advance_deduction';
 
+        if (settleAction === 'pay_shortage') {
+          if (method === 'cash') {
+            if (!safes || safes.length === 0 || safes[0].balance < shortage) {
+              alert('❌ عذراً، رصيد الخزينة لا يكفي لصرف العجز المطلوب!');
+              this.disabled = false; this.textContent = '✔️ تأكيد وتسوية (Confirm & Settle)';
+              return;
+            }
+          } else if (method === 'bank_transfer') {
+            if (!banks || banks.length === 0 || banks[0].balance < shortage) {
+              alert('❌ عذراً، رصيد البنك لا يكفي لصرف العجز المطلوب!');
+              this.disabled = false; this.textContent = '✔️ تأكيد وتسوية (Confirm & Settle)';
+              return;
+            }
+          }
+        }
+
         // 1. Update purchase request → purchased
         sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r1) {
           if (r1 && r1.error) { alert('خطأ في التحديث: ' + r1.error.message); return; }
@@ -2384,6 +2400,19 @@ Pages.pettyCash = function(el) {
 
         var method = document.getElementById('pc-method').value;
         var notes = document.getElementById('pc-notes').value;
+
+        if (method === 'cash') {
+          if (!safes || safes.length === 0 || safes[0].balance < price) {
+            alert('❌ عذراً، رصيد الخزينة لا يكفي لإتمام عملية الصرف!');
+            return;
+          }
+        } else if (method === 'bank_transfer') {
+          if (!banks || banks.length === 0 || banks[0].balance < price) {
+            alert('❌ عذراً، رصيد البنك لا يكفي لإتمام عملية الصرف!');
+            return;
+          }
+        }
+
         this.disabled = true;
         this.textContent = '⏳ جاري المعالجة...';
 
