@@ -1741,7 +1741,7 @@ Pages.employees = function (el) {
     var canEditSalary = true;
     if (App.user && App.user.role === 'hr') {
       var perms = App.user.permissions || {};
-      if (!perms.can_edit_salary) canEditSalary = false;
+      if (!perms.can_edit_salary && emp) canEditSalary = false;
     }
     body += '<div style="margin-bottom:12px"><label style="display:inline-flex;align-items:center;gap:8px;font-weight:600;cursor:pointer"><input type="checkbox" id="ef-is-daily" ' + (isDaily ? 'checked' : '') + ' ' + (canEditSalary ? '' : 'disabled') + '> عامل يومية (Daily Worker - Paid per attended day)</label></div>';
     body += '<div class="form-row"><div class="form-field"><label id="ef-salary-label">' + (isDaily ? 'Daily Wage (EGP) *' : 'Monthly Base Salary (EGP) *') + '</label><input type="number" id="ef-salary" value="' + baseVal + '" placeholder="0" ' + (canEditSalary ? '' : 'disabled title="Restricted"') + '>' + (!canEditSalary ? '<div style="font-size:0.7rem;color:var(--accent-danger);margin-top:4px">Access Restricted</div>' : '') + '</div><div class="form-field"><label>Shift System *</label><select id="ef-shift-system">';
@@ -1755,6 +1755,8 @@ Pages.employees = function (el) {
     var monthValStr = new Date().toISOString().substring(0, 7) + '-01';
     body += '<div class="form-row"><div class="form-field"><label>Insurance Start Date <span style="color:var(--text-muted);font-size:0.75rem">(leave blank = no insurance)</span></label><input type="date" id="ef-ins" value="' + (emp ? (emp.insurance_start || '') : monthValStr) + '"></div>';
     body += '<div class="form-field"><label>Insurance Salary (EGP) <span style="color:var(--text-muted);font-size:0.75rem">(المرتب التأميني)</span></label><input type="number" id="ef-ins-salary" value="' + (emp ? (emp.insurance_salary || 0) : 0) + '"></div></div>';
+    var insDeductionVal = Math.round((emp ? (emp.insurance_salary || 0) : 0) * 0.10);
+    body += '<div class="form-row"><div class="form-field"><label>Monthly Insurance Deduction (10%) <span style="color:var(--text-muted);font-size:0.75rem">(خصم التأمينات الشهري)</span></label><input type="text" id="ef-ins-deduction" value="EGP ' + insDeductionVal.toLocaleString() + '" readonly style="background:var(--bg-secondary);font-weight:700;color:var(--accent-warning)"></div><div></div></div>';
 
     if (myLevel >= 5) {
       var p = emp ? (emp.permissions || {}) : {};
