@@ -1314,7 +1314,7 @@ Pages.purchaseRequests = function(el) {
                 html += '<span style="color:var(--text-muted);font-size:0.8rem">Awaiting Quotes (Specialist)</span>';
              }
           } else if (isProcurementMgr && req.status === 'quotation_requested') {
-             html += '<button class="btn btn-xs btn-warning" onclick="reviewQuotesModal(\'' + req.id + '\', \'' + req.item_id + '\')">Review Quotes</button>';
+             html += '<button class="btn btn-xs btn-warning" onclick="reviewQuotesModal(\'' + req.id + '\', \'' + req.item_id + '\', ' + req.requested_quantity + ')">Review Quotes</button>';
           } else if (req.status === 'quotation_requested') {
              html += '<span style="color:var(--text-muted);font-size:0.8rem">Awaiting Manager</span>';
           } else if (req.status === 'pending_finance') {
@@ -1361,9 +1361,12 @@ Pages.purchaseRequests = function(el) {
       var matchedItem = inventoryItems.find(function(i) { return i.name.toLowerCase() === nameInput.toLowerCase(); });
       var itemId = matchedItem ? matchedItem.id : null;
 
+      var initStatus = 'pending_manager';
+      if (App.isManager() || App.isHR() || App.isOwner()) initStatus = 'pending_warehouse'; // Skip mgr approval if already mgr
+
       sbClient.from('purchase_requests').insert([{
         item_id: itemId, item_name: nameInput, requested_quantity: qty,
-        requested_by: App.user.full_name, status: 'pending_warehouse'
+        requested_by: App.user.full_name, department: App.user.department, status: initStatus
       }]).then(function(r) {
         if(r.error) return alert(r.error.message);
         App.closeModal();
@@ -1429,7 +1432,8 @@ Pages.purchaseRequests = function(el) {
     });
   };
 
-  window.reviewQuotesModal = function(reqId, itemId) {
+  window.reviewQuotesModal = function(reqId, itemId, qty) {
+    qty = Number(qty) || 1;
     App.showModal('Review Quotes', '<div style="padding:20px;text-align:center">Loading Quotes...</div>', '');
     
     sbClient.from('purchase_orders').select('*').eq('request_id', reqId).then(function(res) {
@@ -1442,15 +1446,16 @@ Pages.purchaseRequests = function(el) {
       var body = '<p>Select the best quote to approve for Petty Cash:</p>';
       body += '<div style="display:flex; flex-direction:column; gap:12px">';
       quotes.forEach(function(q, idx) {
+        var totalCost = q.price * qty;
         body += '<div style="border:1px solid var(--border-color); padding:16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; background:var(--bg-tertiary)">';
-        body += '<div><div style="font-weight:600">' + q.supplier_name + '</div><div style="color:var(--text-secondary)">Item: ' + q.item_name + '<br>Price: EGP ' + q.price + '</div></div>';
-        body += '<button class="btn btn-sm btn-success" onclick="approveQuote(\'' + reqId + '\', \'' + q.id + '\', ' + q.price + ', \'' + itemId + '\', \'' + q.supplier_name.replace(/'/g, "\\'") + '\')">Approve This</button>';
+        body += '<div><div style="font-weight:600">' + q.supplier_name + '</div><div style="color:var(--text-secondary)">الصنف (Item): ' + q.item_name + '<br>سعر الوحدة (Unit Price): EGP ' + q.price + '<br>الكمية (Quantity): ' + qty + '<br><b>إجمالي التكلفة (Total Cost): EGP ' + totalCost + '</b></div></div>';
+        body += '<button class="btn btn-sm btn-success" onclick="approveQuote(\'' + reqId + '\', \'' + q.id + '\', ' + totalCost + ', \'' + itemId + '\', \'' + q.supplier_name.replace(/'/g, "\\'") + '\')">Approve This</button>';
         body += '</div>';
       });
       body += '</div>';
       var footer = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-danger" onclick="rejectAllQuotes(\'' + reqId + '\')">Reject All (لا أوافق)</button>';
       
-      App.showModal('Review Quotes', body, footer);
+      App.showModal('Review Quotes (مراجعة عروض الأسعار)', body, footer);
     });
   };
 
@@ -1614,6 +1619,82 @@ Pages.purchaseRequests = function(el) {
 };
 
 // ==========================================
+// MANAGER PURCHASE APPROVALS
+// ==========================================
+Pages.deptPurchaseApprovals = function(el) {
+  if (!App.isManager()) {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-danger)"><h3>Access Denied</h3><p>This page is for Department Managers only.</p></div>';
+    return;
+  }
+
+  var requests = [];
+
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted)">Loading Requests...</div>';
+    sbClient.from('purchase_requests').select('*').eq('department', App.user.department).order('created_at', {ascending: false}).then(function(res) {
+      requests = res.data || [];
+      render();
+    });
+  }
+
+  window.approveDeptPurchase = function(id) {
+    sbClient.from('purchase_requests').update({status: 'pending_warehouse'}).eq('id', id).then(function(r) {
+      if(r.error) return alert(r.error.message);
+      loadData();
+      showToast('Purchase request approved and sent to Warehouse.', 'success');
+    });
+  };
+
+  window.rejectDeptPurchase = function(id) {
+    var reason = prompt('Please enter rejection reason:');
+    if(reason === null) return;
+    sbClient.from('purchase_requests').update({status: 'rejected'}).eq('id', id).then(function(r) {
+      if(r.error) return alert(r.error.message);
+      loadData();
+      showToast('Purchase request rejected.', 'error');
+    });
+  };
+
+  function render() {
+    var html = '<div class="toolbar"><h3>Department Purchase Approvals</h3></div>';
+    html += '<div class="card"><div class="card-header"><div><h3>Purchase Requests</h3><p>Awaiting your approval for your department (' + App.user.department + ')</p></div></div><div class="card-body no-pad">';
+    html += '<div class="table-container"><table class="data-table"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Requested By</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    
+    if (requests.length === 0) {
+      html += '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">No purchase requests found for your department.</td></tr>';
+    } else {
+      requests.forEach(function(req) {
+        var statusColor = 'warning';
+        if(req.status === 'approved' || req.status === 'purchased' || req.status === 'pending_finance' || req.status === 'dispensed') statusColor = 'success';
+        if(req.status === 'rejected') statusColor = 'danger';
+        
+        var displayStatus = req.status.replace('_', ' ').toUpperCase();
+        
+        html += '<tr>';
+        html += '<td>' + formatDate(req.created_at) + '</td>';
+        html += '<td style="font-weight:600">' + req.item_name + '</td>';
+        html += '<td>' + req.requested_quantity + '</td>';
+        html += '<td>' + (req.requested_by || '-') + '</td>';
+        html += '<td><span class="badge badge-' + statusColor + '">' + displayStatus + '</span></td>';
+        
+        html += '<td>';
+        if (req.status === 'pending_manager') {
+           html += '<button class="btn btn-xs btn-success" style="margin-right:4px" onclick="approveDeptPurchase(\'' + req.id + '\')">' + icon('check') + ' Approve</button>';
+           html += '<button class="btn btn-xs btn-danger" onclick="rejectDeptPurchase(\'' + req.id + '\')">' + icon('x') + ' Reject</button>';
+        } else {
+           html += '<span style="color:var(--text-muted);font-size:0.8rem">No Action Required</span>';
+        }
+        html += '</td></tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+    el.innerHTML = html;
+  }
+
+  loadData();
+};
+
+// ==========================================
 // MODULE 10: Petty Cash & Settlements (Finance)
 // ==========================================
 Pages.pettyCash = function(el) {
@@ -1691,12 +1772,14 @@ Pages.pettyCash = function(el) {
       html += '<button class="btn btn-ghost" id="tab-assets">🏢 Assets (الأصول)</button>';
       html += '<button class="btn btn-ghost" id="tab-taxes">⚖️ Taxes (الضرائب)</button>';
       html += '<button class="btn btn-ghost" id="tab-petty">💸 Petty Cash (العهد)</button>';
+      html += '<button class="btn btn-ghost" id="tab-purchase-settlements" style="color:var(--accent-warning)">🛒 Purchase Settlements (تسويات الشراء)</button>';
       if (isOwner || isChiefAcc || isCFO) {
         html += '<button class="btn btn-ghost" id="tab-reports">📊 Financial Reports</button>';
         html += '<button class="btn btn-ghost" id="tab-closing">🔒 Period Closing</button>';
       }
     } else {
       html += '<button class="btn btn-outline" id="tab-petty" style="border-color:var(--accent-primary);color:var(--accent-primary)">💸 Petty Cash (العهد)</button>';
+      html += '<button class="btn btn-ghost" id="tab-purchase-settlements" style="color:var(--accent-warning)">🛒 Purchase Settlements (تسويات الشراء)</button>';
     }
     
     html += '</div></div>';
@@ -1851,7 +1934,15 @@ Pages.pettyCash = function(el) {
       html += '<tr><td>'+formatDate(t.created_at)+'</td><td>'+empName+'</td><td>'+(t.description||'-')+'</td><td>'+t.method+'</td><td style="color:var(--accent-danger);font-weight:bold">-' + t.amount + '</td><td>'+chkStatus+'</td><td>'+settleCol+'</td></tr>'; 
     });
     if(pcTxs.length===0) html += '<tr><td colspan="7" style="text-align:center">لا يوجد عهد أو شيكات</td></tr>';
-    html += '</tbody></table></div></div></div>';
+    html += '</tbody></table></div></div>';
+
+    html += '</div>';
+
+    // === Purchase Settlements (تسويات الشراء) TAB ===
+    html += '<div id="view-purchase-settlements" style="display:none">';
+    html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.05))"><h3>🛒 تسويات الشراء وفواتير الموردين (Purchase Settlements)</h3></div>';
+    html += '<div class="card-body no-pad" id="purchase-settlements-container"><div style="padding:20px;text-align:center;color:var(--text-muted)">جاري تحميل طلبات الشراء المعلقة...</div></div></div>';
+    html += '</div>';
 
     // 7. Reports
     html += '<div id="view-reports" style="display:none">';
@@ -1881,8 +1972,8 @@ Pages.pettyCash = function(el) {
 
     el.innerHTML = html;
 
-    var allTabs = isProcurementOnly ? ['tab-petty'] : ['tab-treasury','tab-ap-ar','tab-journal','tab-assets','tab-taxes','tab-petty','tab-reports','tab-closing'];
-    var allViews = isProcurementOnly ? ['view-petty'] : ['view-treasury','view-ap-ar','view-journal','view-assets','view-taxes','view-petty','view-reports','view-closing'];
+    var allTabs = isProcurementOnly ? ['tab-petty', 'tab-purchase-settlements'] : ['tab-treasury','tab-ap-ar','tab-journal','tab-assets','tab-taxes','tab-petty','tab-purchase-settlements','tab-reports','tab-closing'];
+    var allViews = isProcurementOnly ? ['view-petty', 'view-purchase-settlements'] : ['view-treasury','view-ap-ar','view-journal','view-assets','view-taxes','view-petty','view-purchase-settlements','view-reports','view-closing'];
     
     allTabs.forEach((tid, idx) => {
       var btn = document.getElementById(tid);
@@ -1893,6 +1984,7 @@ Pages.pettyCash = function(el) {
           allViews.forEach(v => { var vEl=document.getElementById(v); if(vEl) vEl.style.display='none'; });
           var target = document.getElementById(allViews[idx]);
           if(target) target.style.display='block';
+          if(allViews[idx] === 'view-purchase-settlements') loadPurchaseSettlements();
         });
       }
     });
@@ -2067,6 +2159,265 @@ Pages.pettyCash = function(el) {
       });
     }
     loadPendingPayments();
+
+    // --- Load Purchase Settlements (تسويات الشراء) ---
+    function loadPurchaseSettlements() {
+      var con = document.getElementById('purchase-settlements-container');
+      if (!con) return;
+
+      // Load ALL purchase_requests with status pending_finance
+      sbClient.from('purchase_requests').select('*').eq('status', 'pending_finance').order('created_at', {ascending: false}).then(function(reqRes) {
+        if (reqRes.error) { con.innerHTML = '<div style="padding:20px;text-align:center;color:var(--accent-danger)">Error: ' + reqRes.error.message + '</div>'; return; }
+        var pendingReqs = reqRes.data || [];
+        if (pendingReqs.length === 0) {
+          con.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">لا يوجد طلبات شراء معلقة للتسوية ✅</div>';
+          return;
+        }
+
+        var reqIds = pendingReqs.map(function(r) { return r.id; });
+        Promise.all([
+          sbClient.from('purchase_orders').select('*').in('request_id', reqIds),
+          sbClient.from('finance_treasury_tx').select('*').eq('type', 'petty_cash').is('settlement_status', null)
+        ]).then(function(results) {
+          var allOrders = results[0].data || [];
+          var unsettledAdvances = results[1].data || [];
+
+          var h = '<table class="data-table"><thead><tr>';
+          h += '<th>رقم PO</th><th>التاريخ</th><th>الصنف</th><th>المورد</th>';
+          h += '<th>الموظف</th><th>الكمية</th><th>سعر الوحدة</th>';
+          h += '<th>إجمالي الشراء</th><th>عهدة الموظف</th>';
+          h += '<th>صرف من الخزينة</th><th>متبقي عهدة</th><th>رصيد مستحق</th>';
+          h += '<th>حالة التسوية</th><th>إجراء</th>';
+          h += '</tr></thead><tbody>';
+
+          pendingReqs.forEach(function(req) {
+            var order = allOrders.find(function(o) { return o.request_id === req.id && o.petty_cash_amount > 0; });
+            var unitPrice = order ? Number(order.price || order.petty_cash_amount) : 0;
+            var totalCost = order ? Number(order.petty_cash_amount) : 0;
+            var qty = req.requested_quantity || 1;
+            var supplierName = order ? order.supplier_name : '-';
+            var requestedBy = req.requested_by || '-';
+            var procurementPerson = order ? (order.specialist_name || order.manager_name) : null;
+            var poNum = order ? order.id.split('-')[0].toUpperCase() : req.id.split('-')[0].toUpperCase();
+
+            // Check if the procurement person OR the original requester has an unsettled petty cash advance
+            var empAdvance = unsettledAdvances.find(function(a) {
+              if (!a.employee_name) return false;
+              var matchRequester = requestedBy && a.employee_name.indexOf(requestedBy.split(' (')[0]) !== -1;
+              var matchProcurement = procurementPerson && a.employee_name.indexOf(procurementPerson.split(' (')[0]) !== -1;
+              return matchRequester || matchProcurement;
+            });
+            
+            // Name to display for finance actions: Prefer procurement person if they have the custody, else requester
+            var actionEmpName = (empAdvance && procurementPerson && empAdvance.employee_name.indexOf(procurementPerson.split(' (')[0]) !== -1) ? procurementPerson : requestedBy;
+
+            var custodyAmt = empAdvance ? Number(empAdvance.amount) : 0;
+            var treasuryPay = 0;
+            var remainCustody = 0;
+            var empOwes = 0;
+            var settlementLabel = '';
+            var settlementColor = '';
+
+            if (custodyAmt > 0) {
+              if (custodyAmt > totalCost) {
+                remainCustody = custodyAmt - totalCost;
+                settlementLabel = 'متبقي عهدة (Remaining)';
+                settlementColor = 'var(--accent-info)';
+              } else if (custodyAmt < totalCost) {
+                treasuryPay = totalCost - custodyAmt;
+                settlementLabel = 'مطلوب صرف (Pay Required)';
+                settlementColor = 'var(--accent-warning)';
+              } else {
+                settlementLabel = 'تسوية كاملة (Fully Settled)';
+                settlementColor = 'var(--accent-success)';
+              }
+            } else {
+              treasuryPay = totalCost;
+              settlementLabel = 'لا توجد عهدة (No Custody)';
+              settlementColor = 'var(--accent-danger)';
+            }
+
+            h += '<tr>';
+            h += '<td style="font-weight:bold">' + poNum + '</td>';
+            h += '<td>' + formatDate(req.created_at) + '</td>';
+            h += '<td style="font-weight:600">' + req.item_name + '</td>';
+            h += '<td>' + supplierName + '</td>';
+            h += '<td>' + requestedBy + (procurementPerson ? '<br><small style="color:var(--text-muted)">مشتريات: ' + procurementPerson + '</small>' : '') + '</td>';
+            h += '<td>' + qty + '</td>';
+            h += '<td>' + Number(unitPrice).toLocaleString() + '</td>';
+            h += '<td style="font-weight:bold;color:var(--accent-primary)">' + Number(totalCost).toLocaleString() + ' EGP</td>';
+            h += '<td style="color:var(--accent-success);font-weight:600">' + (custodyAmt > 0 ? Number(custodyAmt).toLocaleString() + ' EGP' : '—') + '</td>';
+            h += '<td style="color:var(--accent-danger);font-weight:600">' + (treasuryPay > 0 ? Number(treasuryPay).toLocaleString() + ' EGP' : '—') + '</td>';
+            h += '<td style="color:var(--accent-info);font-weight:600">' + (remainCustody > 0 ? Number(remainCustody).toLocaleString() + ' EGP' : '—') + '</td>';
+            h += '<td style="font-weight:600">' + (empOwes > 0 ? Number(empOwes).toLocaleString() + ' EGP' : '—') + '</td>';
+            h += '<td><span style="color:' + settlementColor + ';font-weight:bold;font-size:0.8rem">' + settlementLabel + '</span></td>';
+
+            // Action buttons
+            h += '<td>';
+            if (empAdvance) {
+              h += '<button class="btn btn-xs btn-success" onclick="window.settlePurchaseFromAdvance(\'' + req.id + '\',\'' + (order ? order.id : '') + '\',' + totalCost + ',\'' + empAdvance.id + '\',' + empAdvance.amount + ',\'' + actionEmpName.replace(/'/g, "\\'") + '\')">✅ تسوية من العهدة</button>';
+            } else {
+              h += '<button class="btn btn-xs btn-primary" onclick="window.issueCashForPurchase(\'' + req.id + '\',\'' + (order ? order.id : '') + '\',' + totalCost + ',\'' + actionEmpName.replace(/'/g, "\\'") + '\',\'' + req.item_name.replace(/'/g, "\\'") + '\')">💰 صرف كاش</button>';
+            }
+            h += '</td>';
+            h += '</tr>';
+          });
+
+          h += '</tbody></table>';
+          con.innerHTML = h;
+        });
+      });
+    }
+    loadPurchaseSettlements();
+
+    // --- Settle Purchase from existing advance ---
+    window.settlePurchaseFromAdvance = function(reqId, orderId, price, advanceId, advanceAmount, empName) {
+      var remaining = advanceAmount - price;
+      
+      var body = '<table class="data-table" style="margin-bottom:15px"><tbody>';
+      body += '<tr><td>رقم الطلب (PO Number)</td><td style="font-weight:bold">' + reqId.split('-')[0].toUpperCase() + '</td></tr>';
+      body += '<tr><td>الموظف (Employee)</td><td>' + empName + '</td></tr>';
+      body += '<tr><td>إجمالي الشراء (Total Purchase)</td><td style="color:var(--accent-primary);font-weight:bold">' + Number(price).toLocaleString() + ' EGP</td></tr>';
+      body += '<tr><td>رصيد العهدة (Custody Amount)</td><td style="color:var(--accent-success);font-weight:bold">' + Number(advanceAmount).toLocaleString() + ' EGP</td></tr>';
+      body += '</tbody></table>';
+
+      var actionMsg = '';
+      var settleAction = 'settle_only';
+      var shortage = 0;
+
+      if (remaining > 0) {
+        // Case 1: Custody > Purchase Total
+        body += '<div class="alert alert-info" style="padding:15px;background:rgba(59,130,246,0.1);border-left:4px solid var(--accent-info)">';
+        body += '<h4>العهدة أكبر من الشراء (Remaining Custody Balance)</h4>';
+        body += '<p>سيتم تسوية الفاتورة ويتبقى مع الموظف: <b>' + Number(remaining).toLocaleString() + ' EGP</b></p>';
+        body += '</div>';
+      } else if (remaining < 0) {
+        // Case 2: Custody < Purchase Total
+        shortage = Math.abs(remaining);
+        settleAction = 'pay_shortage';
+        body += '<div class="alert alert-warning" style="padding:15px;background:rgba(245,158,11,0.1);border-left:4px solid var(--accent-warning)">';
+        body += '<h4>عجز في العهدة (Treasury Payment Required)</h4>';
+        body += '<p>العهدة غير كافية. مطلوب صرف الفرق للموظف: <b>' + Number(shortage).toLocaleString() + ' EGP</b></p>';
+        body += '<div class="form-field" style="margin-top:10px"><label>طريقة صرف الفرق من الخزينة *</label><select id="shortage-method" class="form-input"><option value="cash">كاش (Cash)</option><option value="bank_transfer">تحويل (Transfer)</option></select></div>';
+        body += '</div>';
+      } else {
+        // Case 3: Custody == Total
+        body += '<div class="alert alert-success" style="padding:15px;background:rgba(16,185,129,0.1);border-left:4px solid var(--accent-success)">';
+        body += '<h4>تسوية كاملة (Fully Settled)</h4>';
+        body += '<p>العهدة تغطي الفاتورة بالكامل، لا توجد فروقات.</p>';
+        body += '</div>';
+      }
+
+      var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="btn-settle-adv">✔️ تأكيد وتسوية (Confirm & Settle)</button>';
+      
+      App.showModal('تسوية مالية من العهدة (Custody Settlement)', body, footer);
+
+      document.getElementById('btn-settle-adv').addEventListener('click', function() {
+        this.disabled = true;
+        this.textContent = '⏳ جاري المعالجة...';
+        
+        var method = settleAction === 'pay_shortage' ? document.getElementById('shortage-method').value : 'advance_deduction';
+
+        // 1. Update purchase request → purchased
+        sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r1) {
+          if (r1 && r1.error) { alert('خطأ في التحديث: ' + r1.error.message); return; }
+
+          // 2. Update purchase order
+          if (orderId) sbClient.from('purchase_orders').update({status: 'purchased'}).eq('id', orderId).then(function() {});
+
+          // 3. Update the existing advance's settlement status
+          var settleNotes = 'تمت تسوية الفاتورة بمبلغ ' + price;
+          if (remaining > 0) settleNotes += ' | متبقي عهدة ' + remaining;
+          if (remaining < 0) settleNotes += ' | عجز وتم صرف ' + shortage;
+          
+          sbClient.from('finance_treasury_tx').update({
+            settlement_status: 'settled',
+            amount_spent: price,
+            amount_returned: remaining > 0 ? remaining : 0,
+            settlement_notes: settleNotes
+          }).eq('id', advanceId).then(function() {
+            
+            // 4. If there is a shortage, create a new transaction for the extra payment
+            if (settleAction === 'pay_shortage') {
+              sbClient.from('finance_treasury_tx').insert({
+                type: 'petty_cash', method: method, amount: shortage,
+                description: 'صرف عجز فاتورة مشتريات (PO: ' + reqId.split('-')[0] + ')',
+                employee_name: empName, status: 'cleared',
+                created_by: App.user.id, created_by_name: App.user.full_name
+              }).then(function() {});
+              
+              if (method === 'cash' && safes.length > 0) {
+                 sbClient.from('finance_safes').update({balance: Number(safes[0].balance) - shortage}).eq('id', safes[0].id).then(function(){});
+              }
+            }
+
+            App.closeModal();
+            showToast('✅ تمت التسوية بنجاح وتم إرسال الطلب للمخزن (Fully Settled)', 'success');
+            loadData();
+          });
+        });
+      });
+    };
+
+    // --- Issue new cash for purchase ---
+    window.issueCashForPurchase = function(reqId, orderId, price, empName, itemName) {
+      var body = '';
+      if (price <= 0) {
+        body += '<div class="alert alert-warning" style="margin-bottom:15px;padding:10px">لم يتم تحديد التكلفة مسبقاً (Old Request). يرجى إدخال المبلغ:</div>';
+        body += '<div class="form-field"><label>مبلغ الصرف (Amount) *</label><input type="number" id="pc-manual-price" class="form-input" min="1" placeholder="أدخل المبلغ"></div>';
+      } else {
+        body += '<p>صرف <b>' + Number(price).toLocaleString() + ' EGP</b> لـ <b>' + empName + '</b> لشراء <b>' + itemName + '</b></p>';
+      }
+      body += '<div class="form-field"><label>طريقة الصرف *</label><select id="pc-method" class="form-input"><option value="cash">كاش من الخزنة (Cash)</option><option value="bank_transfer">تحويل بنكي (Bank Transfer)</option><option value="check">شيك (Check)</option></select></div>';
+      body += '<div class="form-field"><label>ملاحظات</label><input type="text" id="pc-notes" class="form-input" placeholder="ملاحظات إضافية"></div>';
+      var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="pc-issue-btn">💰 صرف وإرسال للمخزن</button>';
+      App.showModal('صرف نقدية لشراء — ' + itemName, body, footer);
+
+      document.getElementById('pc-issue-btn').addEventListener('click', function() {
+        if (price <= 0) {
+           var mp = parseFloat(document.getElementById('pc-manual-price').value);
+           if (!mp || isNaN(mp) || mp <= 0) { alert('Please enter a valid amount.'); return; }
+           price = mp;
+        }
+
+        var method = document.getElementById('pc-method').value;
+        var notes = document.getElementById('pc-notes').value;
+        this.disabled = true;
+        this.textContent = '⏳ جاري المعالجة...';
+
+        // 1. Update purchase request → purchased
+        sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r1) {
+          if (r1 && r1.error) { alert('خطأ: ' + r1.error.message); return; }
+
+          // 2. Update purchase order
+          if (orderId) {
+            sbClient.from('purchase_orders').update({status: 'purchased'}).eq('id', orderId).then(function() {});
+          }
+
+          // 3. Record treasury transaction (marked as settled since it's a direct payment)
+          sbClient.from('finance_treasury_tx').insert({
+            type: 'petty_cash', method: method, amount: price,
+            description: 'صرف مباشر لشراء: ' + itemName + ' — ' + (notes || ''),
+            employee_name: empName, status: method === 'check' ? 'pending' : 'cleared',
+            settlement_status: 'settled', amount_spent: price, amount_returned: 0,
+            created_by: App.user.id, created_by_name: App.user.full_name
+          }).then(function(r2) {
+            if (r2 && r2.error) { alert('خطأ في تسجيل العملية: ' + r2.error.message); return; }
+
+            // 4. Deduct from safe or bank
+            if (method === 'cash' && safes.length > 0) {
+              sbClient.from('finance_safes').update({balance: Number(safes[0].balance) - price}).eq('id', safes[0].id).then(function() {});
+            } else if (method === 'bank_transfer' && banks.length > 0) {
+              sbClient.from('finance_banks').update({balance: Number(banks[0].balance) - price}).eq('id', banks[0].id).then(function() {});
+            }
+
+            App.closeModal();
+            showToast('✅ تم صرف ' + price + ' EGP وإرسال الطلب للمخزن لاستلام البضاعة', 'success');
+            loadData();
+          });
+        });
+      });
+    };
   }
 
   // ===== ADD MODALS FOR EACH FINANCIAL TAB =====
@@ -2266,12 +2617,14 @@ Pages.pettyCash = function(el) {
           var empId = document.getElementById('fin-employee').value;
           var empName = document.getElementById('fin-employee').options[document.getElementById('fin-employee').selectedIndex].text.split(' (')[0];
           var method = document.getElementById('fin-method').value;
+          var amt = parseFloat(document.getElementById('fin-amount').value) || 0;
           if (!empId) return alert('اختر الموظف');
+          
           sbClient.from('finance_treasury_tx').insert({
             type: method === 'check' ? 'check_issued' : 'petty_cash', 
             status: method === 'check' ? 'pending' : 'cleared',
             method: method,
-            amount: parseFloat(document.getElementById('fin-amount').value) || 0,
+            amount: amt,
             description: document.getElementById('fin-desc').value,
             employee_id: empId, 
             employee_name: empName,
@@ -2279,6 +2632,14 @@ Pages.pettyCash = function(el) {
             created_by_name: App.user.full_name
           }).then(function(r) {
             if (r.error) return alert(r.error.message);
+            
+            // Deduct from safe or bank
+            if (method === 'cash' && safes.length > 0) {
+              sbClient.from('finance_safes').update({balance: Number(safes[0].balance) - amt}).eq('id', safes[0].id).then(function() {});
+            } else if (method === 'bank_transfer' && banks.length > 0) {
+              sbClient.from('finance_banks').update({balance: Number(banks[0].balance) - amt}).eq('id', banks[0].id).then(function() {});
+            }
+
             showToast('✅ تم صرف النقدية', 'success'); App.closeModal(); loadData();
           });
         }

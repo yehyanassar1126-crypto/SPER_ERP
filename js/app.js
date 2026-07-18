@@ -384,6 +384,8 @@ var App = {
           },
           {
             section: 'Team Management', items: [
+              { id: 'leaves', label: '📋 Leave Approvals (موافقات الإجازات)', icon: 'calendarDays' },
+              { id: 'dept-purchase-approvals', label: '📦 Purchase Approvals (موافقات المشتريات)', icon: 'shoppingCart' },
               { id: 'friday-work', label: 'Friday Work (عمل الجمعة)', icon: 'calendarPlus' },
               { id: 'team-adjustments', label: 'Team Adjustments', icon: 'fileText' },
             ]
@@ -736,7 +738,8 @@ var App = {
       'absence-leave': { title: 'Permission Requests (الأذونات)', sub: 'Manage employee early leave/absence permissions' },
       'employee-warnings': { title: '⚠️ Employee Warnings', sub: 'Disciplinary actions and penalties' },
       'ceo-dashboard': { title: '📊 CEO Dashboard', sub: 'Enterprise High-Level Overview' },
-      'activity-timeline': { title: '🕐 Activity Timeline', sub: 'Real-time audit of all operations' }
+      'activity-timeline': { title: '🕐 Activity Timeline', sub: 'Real-time audit of all operations' },
+      'dept-purchase-approvals': { title: '📦 موافقات طلبات الشراء', sub: 'Department Purchase Approvals — موافقة المدير على طلبات الشراء' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
@@ -870,6 +873,7 @@ var App = {
       case 'employee-warnings': Pages.employeeWarnings(el); break;
       case 'ceo-dashboard': if (Pages['ceo-dashboard']) Pages['ceo-dashboard'](el); else el.innerHTML = 'Module loading...'; break;
       case 'activity-timeline': if (Pages['activity-timeline']) Pages['activity-timeline'](el); else el.innerHTML = 'Module loading...'; break;
+      case 'dept-purchase-approvals': if (Pages['deptPurchaseApprovals']) Pages['deptPurchaseApprovals'](el); else el.innerHTML = 'Module loading...'; break;
       case 'dashboard':
         if (App.isOwner() && Pages['ceo-dashboard']) Pages['ceo-dashboard'](el);
         else Pages.empDashboard(el);
@@ -2671,12 +2675,11 @@ Pages.hrPersonal = function(el) {
 // ----- LEAVES -----
 Pages.leaves = function (el) {
   var isPersonalView = (App.activePage === 'my-leaves');
-  var isHR = App.isHR() && !isPersonalView;
-  var leaves = isHR ? [] : [].filter(function (l) { return l.employee_id === App.user.id; });
-
-  var search = '';
-  var statusFilter = '';
-  var deptFilter = '';
+  var isHR = (App.isHR() || App.isOwner()) && !isPersonalView;
+  var isManagerView = App.isManager() && !isHR && !isPersonalView;
+  var canApprove = isHR || isManagerView;
+  
+  var leaves = [];
 
   var search = '';
   var statusFilter = '';
@@ -2692,27 +2695,39 @@ Pages.leaves = function (el) {
     html += '</div>';
 
     html += '<div class="card"><div class="card-header"><div><h3>' + (isHR ? 'All Leave Requests' : 'My Leave Requests') + '</h3><p>' + data.length + ' requests</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
-    if (isHR) html += '<th>Employee</th><th>Department</th>';
+    if (canApprove) html += '<th>Employee</th><th>Department</th>';
     html += '<th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th>';
-    if (isHR) html += '<th>Actions</th>';
+    if (canApprove) html += '<th>Actions</th>';
     html += '</tr></thead><tbody>';
     data.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); }).forEach(function (l) {
       html += '<tr>';
-      if (isHR) html += '<td style="color:var(--text-primary);font-weight:500">' + l.employee_name + '</td><td>' + l.department + '</td>';
+      if (canApprove) html += '<td style="color:var(--text-primary);font-weight:500">' + l.employee_name + '</td><td>' + l.department + '</td>';
       html += '<td><span class="badge badge-info">' + l.type + '</span></td><td>' + formatDate(l.start_date) + '</td><td>' + formatDate(l.end_date) + '</td><td style="font-weight:600">' + l.days + '</td>';
       html += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">' + l.reason + '</td>';
       var badge = l.status === 'approved' ? 'badge-success' : l.status === 'rejected' ? 'badge-danger' : 'badge-warning';
-      html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + l.status.charAt(0).toUpperCase() + l.status.slice(1) + '</span></td>';
-      if (isHR) {
+      var statusText = l.status;
+      if (statusText === 'pending_manager') statusText = 'Pending Manager';
+      if (statusText === 'pending_hr') statusText = 'Pending HR';
+      if (statusText === 'pending_owner') statusText = 'Pending Owner';
+      if (statusText === 'pending') statusText = 'Pending';
+      
+      var rejectHtml = l.rejection_reason ? '<br><small style="color:var(--accent-danger)">' + l.rejection_reason + '</small>' : '';
+      
+      html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + statusText + '</span>' + rejectHtml + '</td>';
+      
+      if (canApprove) {
         html += '<td>';
-        if (l.status === 'pending') {
-          if (typeof canApprove === 'function' && canApprove(l.employee_id, l.requester_role)) {
+        var canApproveThis = false;
+        if (l.status === 'pending_manager' && isManagerView) canApproveThis = true;
+        if ((l.status === 'pending_hr' || l.status === 'pending') && App.isHR()) canApproveThis = true;
+        if (l.status === 'pending_owner' && App.isOwner()) canApproveThis = true;
+
+        if (canApproveThis) {
             html += '<div style="display:flex;gap:4px"><button class="btn btn-success btn-xs" data-approve="' + l.id + '">' + icon('checkCircle') + ' Approve</button><button class="btn btn-danger btn-xs" data-reject="' + l.id + '">' + icon('xCircle') + ' Reject</button></div>';
-          } else {
-            html += '<span style="font-size:0.75rem;color:var(--text-muted)">Waiting Higher Approval</span>';
-          }
+        } else if (l.status.indexOf('pending') !== -1) {
+            html += '<span style="font-size:0.75rem;color:var(--text-muted)">Waiting Approval</span>';
         } else {
-          html += '<span style="font-size:0.75rem;color:var(--text-muted)">By ' + l.approved_by + '</span>';
+            html += '<span style="font-size:0.75rem;color:var(--text-muted)">By ' + (l.approved_by || 'System') + '</span>';
         }
         html += '</td>';
       }
@@ -2772,6 +2787,19 @@ Pages.leaves = function (el) {
         if (!end) end = start;
 
         var sDate = new Date(start);
+        
+        // 24-Hour Rule
+        if (App.user.role !== 'hr') {
+          var now = new Date();
+          var requestTime = new Date(sDate);
+          requestTime.setHours(0, 0, 0, 0);
+          var timeDiff = requestTime - now;
+          if (timeDiff < 24 * 60 * 60 * 1000) {
+             alert('Leave requests must be submitted at least 24 hours before the requested leave date. (يجب تقديم الطلب قبل 24 ساعة على الأقل)');
+             return;
+          }
+        }
+
         var eDate = new Date(end);
         var duration = Math.ceil((eDate - sDate) / 86400000) + 1;
         var days = 0;
@@ -2786,7 +2814,16 @@ Pages.leaves = function (el) {
           }
         }
 
-        var newLeave = { employee_id: App.user.id, employee_name: App.user.full_name, department: App.user.department, type: type, start_date: start, end_date: end, days: days, reason: reason, status: 'pending', created_at: new Date().toISOString() };
+        var initialStatus = 'pending_manager';
+        if (App.user.position && App.user.position.toLowerCase().includes('manager')) {
+           if (App.user.role === 'hr manager') {
+               initialStatus = 'pending_owner';
+           } else {
+               initialStatus = 'pending_hr';
+           }
+        }
+
+        var newLeave = { employee_id: App.user.id, employee_name: App.user.full_name, department: App.user.department, type: type, start_date: start, end_date: end, days: days, reason: reason, status: initialStatus, created_at: new Date().toISOString() };
         sbClient.from('leave_requests').insert([newLeave]).select().single().then(function (r) {
           if (r.error) { alert('DB Error: ' + r.error.message + (r.error.details ? ' - ' + r.error.details : '')); console.error(r.error); }
           if (r.data) leaves.unshift(r.data); render(leaves);
@@ -2816,10 +2853,25 @@ Pages.leaves = function (el) {
     var l = leaves.find(function (x) { return x.id === id; });
     if (!l) return;
 
-    sbClient.from('leave_requests').update({ status: action, approved_by: App.user.full_name }).eq('id', id).then(function (r) {
+    var newStatus = action;
+    var rejectionReason = null;
+
+    if (action === 'rejected') {
+       rejectionReason = prompt('برجاء كتابة سبب الرفض (Please enter rejection reason):');
+       if (rejectionReason === null) return; // User cancelled
+    } else if (action === 'approved') {
+       if (l.status === 'pending_manager' && isManagerView) {
+           newStatus = 'pending_hr'; // Manager approved, goes to HR
+       }
+    }
+
+    var updates = { status: newStatus, approved_by: App.user.full_name };
+    if (rejectionReason) updates.rejection_reason = rejectionReason;
+
+    sbClient.from('leave_requests').update(updates).eq('id', id).then(function (r) {
       if (r && r.error) { console.error("Supabase Error:", r.error); alert("DB Error: " + r.error.message); return; }
 
-      if (action === 'approved') {
+      if (newStatus === 'approved') {
         if (l.type === 'Annual') {
           sbClient.from('users').select('annual_leave_balance').eq('id', l.employee_id).single().then(function (res) {
             if (res.data) {
@@ -2860,22 +2912,31 @@ Pages.leaves = function (el) {
       }
     });
 
-    sbClient.from('audit_log').insert({ action: action === 'approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED', user_name: App.user.full_name, user_id: App.user.id, details: (action === 'approved' ? 'Approved' : 'Rejected') + ' leave request ID: ' + id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); } });
+    sbClient.from('audit_log').insert({ action: action === 'approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED', user_name: App.user.full_name, user_id: App.user.id, details: 'Leave status changed to ' + newStatus + ' for ID: ' + id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); } });
 
     leaves = leaves.map(function (l) {
       if (l.id === id) {
-        App.addNotification({ user_id: l.employee_id, type: action === 'approved' ? 'leave_approved' : 'leave_rejected', title: 'Leave ' + (action === 'approved' ? 'Approved ✅' : 'Rejected ❌'), message: 'Your ' + l.type + ' leave (' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + ') has been ' + action + '.' });
-        return Object.assign({}, l, { status: action, approved_by: App.user.full_name });
+        var nMsg = 'Your ' + l.type + ' leave (' + formatDate(l.start_date) + ' - ' + formatDate(l.end_date) + ') status updated to ' + newStatus;
+        if (rejectionReason) nMsg += '. Reason: ' + rejectionReason;
+        App.addNotification({ user_id: l.employee_id, type: 'leave_update', title: 'Leave Update', message: nMsg });
+        
+        var upd = { status: newStatus, approved_by: App.user.full_name };
+        if (rejectionReason) upd.rejection_reason = rejectionReason;
+        return Object.assign({}, l, upd);
       }
       return l;
     });
     render(leaves);
-    showToast('Leave ' + action + '!', action === 'approved' ? 'success' : 'error');
+    showToast('Leave action applied successfully!', 'success');
   }
 
   {
     var query = sbClient.from('leave_requests').select('*').order('created_at', { ascending: false });
-    if (!isHR) query = query.eq('employee_id', App.user.id);
+    if (isPersonalView) {
+       query = query.eq('employee_id', App.user.id);
+    } else if (isManagerView) {
+       query = query.eq('department', App.user.department);
+    }
     query.then(function (res) { if (res.data) { leaves = res.data; render(leaves); } });
   }
   render(leaves);

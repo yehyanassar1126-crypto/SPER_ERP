@@ -63,7 +63,8 @@ CREATE TABLE leave_requests (
   end_date DATE NOT NULL,
   days NUMERIC(4, 1) NOT NULL,
   reason TEXT,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  status TEXT DEFAULT 'pending_manager' CHECK (status IN ('pending', 'pending_manager', 'pending_hr', 'pending_owner', 'approved', 'rejected')),
+  rejection_reason TEXT,
   approved_by TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -441,8 +442,9 @@ CREATE TABLE purchase_requests (
   description TEXT,
   unit TEXT DEFAULT 'Piece',
   delivery_date DATE,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'pending_warehouse', 'dispensed', 'approved', 'rejected', 'quotation_requested', 'purchased', 'pending_finance')),
+  status TEXT DEFAULT 'pending_warehouse' CHECK (status IN ('pending', 'pending_warehouse', 'dispensed', 'pending_manager', 'approved', 'rejected', 'quotation_requested', 'purchased', 'pending_finance', 'received')),
   requested_by TEXT,
+  department TEXT,
   approved_by TEXT, -- Procurement manager
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
