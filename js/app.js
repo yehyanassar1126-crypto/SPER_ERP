@@ -1774,6 +1774,15 @@ Pages.employees = function (el) {
       });
     }
 
+    if (document.getElementById('ef-ins-salary')) {
+      document.getElementById('ef-ins-salary').addEventListener('input', function () {
+        var insSal = Number(this.value) || 0;
+        var ded = Math.round(insSal * 0.10);
+        var dedField = document.getElementById('ef-ins-deduction');
+        if (dedField) dedField.value = 'EGP ' + ded.toLocaleString();
+      });
+    }
+
     if (myLevel >= 5 && document.getElementById('ef-role')) {
       var updatePermSection = function () {
         var sec = document.getElementById('hr-permissions-section');
@@ -3325,11 +3334,11 @@ Pages.payroll = function (el) {
 
     if (document.getElementById('add-payroll')) {
       document.getElementById('add-payroll').addEventListener('click', function () {
-        sbClient.from('users').select('id, full_name, base_salary, department, insurance_active, insurance_start, created_at').eq('status', 'active').then(function (res) {
+        sbClient.from('users').select('id, full_name, base_salary, department, insurance_active, insurance_start, created_at, insurance_salary').eq('status', 'active').then(function (res) {
           var users = res.data || [];
           var monthVal = new Date().toISOString().substring(0, 7);
           var b = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="pf-emp"><option value="">-- Select --</option>';
-          users.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-base="' + (u.base_salary || 0) + '" data-dept="' + u.department + '" data-insured="' + (u.insurance_active ? '1' : '0') + '" data-pos="' + (u.position || '') + '" data-hire="' + (u.created_at || '') + '">' + u.full_name + ' - ' + u.department + (u.insurance_active ? '' : ' (No Insurance)') + '</option>'; });
+          users.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-base="' + (u.base_salary || 0) + '" data-dept="' + u.department + '" data-insured="' + (u.insurance_active ? '1' : '0') + '" data-ins-salary="' + (u.insurance_salary || 0) + '" data-pos="' + (u.position || '') + '" data-hire="' + (u.created_at || '') + '">' + u.full_name + ' - ' + u.department + (u.insurance_active ? '' : ' (No Insurance)') + '</option>'; });
           b += '</select></div><div class="form-field"><label>Month *</label><input type="month" id="pf-m" value="' + monthVal + '"></div></div>';
           b += '<div id="pf-calc-result" style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:1px solid var(--border-color);margin-bottom:16px;display:none"><p style="color:var(--text-muted);text-align:center">Select an employee and click Calculate</p></div>';
           b += '<div class="form-row"><div class="form-field"><label>Extra HR Bonus (Manual)</label><input type="number" id="pf-extra-b" value="0"></div><div class="form-field"><label>Extra HR Penalty (Manual)</label><input type="number" id="pf-extra-p" value="0"></div></div>';
@@ -3346,6 +3355,7 @@ Pages.payroll = function (el) {
             var empDept = opt.getAttribute('data-dept') + (opt.getAttribute('data-pos').indexOf('(عامل يومية)') !== -1 ? ' (عامل يومية)' : '');
             var base = Number(opt.getAttribute('data-base')) || 0;
             var isInsured = opt.getAttribute('data-insured') === '1';
+            var insSalary = Number(opt.getAttribute('data-ins-salary')) || 0;
             var hireDateStr = opt.getAttribute('data-hire');
             var month = document.getElementById('pf-m').value;
             if (!month) { alert('Select a month'); return; }
@@ -3461,8 +3471,10 @@ Pages.payroll = function (el) {
               var extraB = Number(document.getElementById('pf-extra-b').value) || 0;
               var extraP = Number(document.getElementById('pf-extra-p').value) || 0;
 
+              var insuranceDeduction = isInsured ? Math.round(insSalary * 0.10) : 0;
+
               var totalEarnings = earnedSoFar + totalOTPay + totalBonuses + extraB + totalMedical;
-              var totalDeductions = totalPenalties + extraP + totalLateDeduction + calculatedAbsenceDeductions;
+              var totalDeductions = totalPenalties + extraP + totalLateDeduction + calculatedAbsenceDeductions + insuranceDeduction;
               var net = totalEarnings - totalDeductions;
 
               calcData = {
@@ -3472,6 +3484,7 @@ Pages.payroll = function (el) {
                 performance_bonus: 0,
                 penalties: totalPenalties + extraP,
                 late_deductions: totalLateDeduction, absence_deductions: calculatedAbsenceDeductions,
+                insurance_deduction: insuranceDeduction,
                 net_salary: net, status: 'processing'
               };
 
@@ -3500,6 +3513,7 @@ Pages.payroll = function (el) {
                 '<div style="color:var(--accent-danger)">Penalties:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + (totalPenalties + extraP).toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-warning)">⏰ Late Deductions:</div><div style="font-weight:600;color:var(--accent-warning)">-EGP ' + totalLateDeduction.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-danger)">🚫 Absence Deductions:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + calculatedAbsenceDeductions.toLocaleString() + ' (' + totalMissedDays + ' days)</div>' +
+                (insuranceDeduction > 0 ? '<div style="color:var(--accent-danger)">🛡️ Insurance Deduction (10%):</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + insuranceDeduction.toLocaleString() + '</div>' : '') +
                 '</div>' +
                 '<div style="border-top:2px solid var(--accent-primary);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;font-size:1rem">NET SALARY</span><span style="font-weight:900;font-size:1.3rem;color:var(--accent-primary-hover)">EGP ' + net.toLocaleString() + '</span></div>' +
                 cumulativeHtml;
@@ -3602,7 +3616,7 @@ Pages.payroll = function (el) {
           body += '<div style="display:flex;justify-content:space-between;font-size:0.88rem"><span style="color:var(--text-secondary)">' + item[0] + '</span><span style="font-weight:600">EGP ' + (item[1] || 0).toLocaleString() + '</span></div>';
         });
         body += '</div><h4 style="font-size:0.8rem;font-weight:700;color:var(--accent-danger);margin-bottom:12px">DEDUCTIONS</h4><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">';
-        [['Penalties', p.penalties || 0], ['Late Deductions', p.late_deductions || 0], ['Absence Deductions', p.absence_deductions || 0]].forEach(function (item) {
+        [['Penalties', p.penalties || 0], ['Late Deductions', p.late_deductions || 0], ['Absence Deductions', p.absence_deductions || 0], ['Insurance Deduction', p.insurance_deduction || 0]].forEach(function (item) {
           body += '<div style="display:flex;justify-content:space-between;font-size:0.88rem"><span style="color:var(--text-secondary)">' + item[0] + '</span><span style="font-weight:600;color:' + (item[1] > 0 ? 'var(--accent-danger)' : 'inherit') + '">' + (item[1] > 0 ? '-EGP ' + (item[1] || 0).toLocaleString() : 'EGP 0') + '</span></div>';
         });
         body += '</div><div style="border-top:2px solid var(--accent-primary);padding-top:16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:1rem;font-weight:800">NET SALARY</span><span style="font-size:1.4rem;font-weight:900;color:var(--accent-primary-hover)">EGP ' + (p.net_salary || 0).toLocaleString() + '</span></div>';
