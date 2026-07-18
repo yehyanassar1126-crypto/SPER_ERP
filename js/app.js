@@ -1695,9 +1695,10 @@ Pages.employees = function (el) {
     if (myLevel >= 2) roleOptions += '<option value="lawyer" ' + (emp && emp.role === 'lawyer' ? 'selected' : '') + '>Lawyer (محامي)</option>';
     if (myLevel >= 2) roleOptions += '<option value="employee" ' + (!emp || emp.role === 'employee' ? 'selected' : '') + '>Employee (موظف)</option>';
 
-    body += '<div class="form-row"><div class="form-field"><label>System Role *</label><select id="ef-role">' + roleOptions + '</select></div><div class="form-field"><label>Department *</label><select id="ef-dept">';
-    DEPARTMENTS.forEach(function (d) { body += '<option value="' + d + '"' + (emp && emp.department === d ? ' selected' : '') + '>' + (window.t ? t(d) : d) + '</option>'; });
-    body += '</select></div></div>';
+    body += '<div class="form-row"><div class="form-field"><label>System Role *</label><select id="ef-role">' + roleOptions + '</select></div><div class="form-field"><label>Department *</label><input type="text" id="ef-dept" list="dept-list" class="form-input" placeholder="Type or select..." value="' + (emp && emp.department ? emp.department : '') + '">';
+    body += '<datalist id="dept-list">';
+    DEPARTMENTS.forEach(function (d) { body += '<option value="' + d + '">'; });
+    body += '</datalist></div></div>';
     
     // Driver Type (only shown if role == driver)
     body += '<div class="form-row" id="ef-driver-type-row" style="display:' + (emp && emp.role === 'driver' ? 'flex' : 'none') + '">';
