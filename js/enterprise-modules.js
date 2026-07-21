@@ -2274,118 +2274,113 @@ Pages.pettyCash = function(el) {
 
     // --- Settle Purchase from existing advance ---
     window.settlePurchaseFromAdvance = function(reqId, orderId, price, advanceId, advanceAmount, empName) {
-      var remaining = advanceAmount - price;
-      
-      var body = '<table class="data-table" style="margin-bottom:15px"><tbody>';
-      body += '<tr><td>رقم الطلب (PO Number)</td><td style="font-weight:bold">' + reqId.split('-')[0].toUpperCase() + '</td></tr>';
-      body += '<tr><td>الموظف (Employee)</td><td>' + empName + '</td></tr>';
-      body += '<tr><td>إجمالي الشراء (Total Purchase)</td><td style="color:var(--accent-primary);font-weight:bold">' + Number(price).toLocaleString() + ' EGP</td></tr>';
-      body += '<tr><td>رصيد العهدة (Custody Amount)</td><td style="color:var(--accent-success);font-weight:bold">' + Number(advanceAmount).toLocaleString() + ' EGP</td></tr>';
-      body += '</tbody></table>';
+      Promise.all([
+        sbClient.from('finance_safes').select('id, name, balance'),
+        sbClient.from('finance_bank_accounts').select('id, name, balance')
+      ]).then(function(resAcc) {
+        var safes = resAcc[0].data || [];
+        var banks = resAcc[1].data || [];
 
-      var actionMsg = '';
-      var settleAction = 'settle_only';
-      var shortage = 0;
+        var remaining = advanceAmount - price;
+        var body = '<table class="data-table" style="margin-bottom:15px"><tbody>';
+        body += '<tr><td>رقم الطلب (PO Number)</td><td style="font-weight:bold">' + reqId.split('-')[0].toUpperCase() + '</td></tr>';
+        body += '<tr><td>الموظف (Employee)</td><td>' + empName + '</td></tr>';
+        body += '<tr><td>إجمالي الشراء (Total Purchase)</td><td style="color:var(--accent-primary);font-weight:bold">' + Number(price).toLocaleString() + ' EGP</td></tr>';
+        body += '<tr><td>رصيد العهدة (Custody Amount)</td><td style="color:var(--accent-success);font-weight:bold">' + Number(advanceAmount).toLocaleString() + ' EGP</td></tr>';
+        body += '</tbody></table>';
 
-      if (remaining > 0) {
-        // Case 1: Custody > Purchase Total
-        body += '<div class="alert alert-info" style="padding:15px;background:rgba(59,130,246,0.1);border-left:4px solid var(--accent-info)">';
-        body += '<h4>العهدة أكبر من الشراء (Remaining Custody Balance)</h4>';
-        body += '<p>سيتم تسوية الفاتورة ويتبقى مع الموظف: <b>' + Number(remaining).toLocaleString() + ' EGP</b></p>';
-        body += '</div>';
-      } else if (remaining < 0) {
-        // Case 2: Custody < Purchase Total
-        shortage = Math.abs(remaining);
-        settleAction = 'pay_shortage';
-        body += '<div class="alert alert-warning" style="padding:15px;background:rgba(245,158,11,0.1);border-left:4px solid var(--accent-warning)">';
-        body += '<h4>عجز في العهدة (Treasury Payment Required)</h4>';
-        body += '<p>العهدة غير كافية. مطلوب صرف الفرق للموظف: <b>' + Number(shortage).toLocaleString() + ' EGP</b></p>';
-        body += '<div class="form-field" style="margin-top:10px"><label>طريقة صرف الفرق من الخزينة *</label><select id="shortage-method" class="form-input"><option value="cash">كاش (Cash)</option><option value="bank_transfer">تحويل (Transfer)</option></select></div>';
-        body += '</div>';
-      } else {
-        // Case 3: Custody == Total
-        body += '<div class="alert alert-success" style="padding:15px;background:rgba(16,185,129,0.1);border-left:4px solid var(--accent-success)">';
-        body += '<h4>تسوية كاملة (Fully Settled)</h4>';
-        body += '<p>العهدة تغطي الفاتورة بالكامل، لا توجد فروقات.</p>';
-        body += '</div>';
-      }
+        var settleAction = 'settle_only';
+        var shortage = 0;
 
-      var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="btn-settle-adv">✔️ تأكيد وتسوية (Confirm & Settle)</button>';
-      
-      App.showModal('تسوية مالية من العهدة (Custody Settlement)', body, footer);
-
-      document.getElementById('btn-settle-adv').addEventListener('click', function() {
-        this.disabled = true;
-        this.textContent = '⏳ جاري المعالجة...';
-        
-        var method = settleAction === 'pay_shortage' ? document.getElementById('shortage-method').value : 'advance_deduction';
-
-        var btnElement = this;
-        var checkPromise = Promise.resolve();
-
-        if (settleAction === 'pay_shortage') {
-          if (method === 'cash') {
-            checkPromise = sbClient.from('finance_safes').select('*').order('created_at').limit(1).single().then(function(res) {
-               var safe = res.data;
-               if (!safe || safe.balance < shortage) throw new Error('❌ عذراً، رصيد الخزينة لا يكفي لصرف العجز المطلوب!');
-               return { type: 'safe', id: safe.id, balance: safe.balance };
-            });
-          } else if (method === 'bank_transfer') {
-            checkPromise = sbClient.from('finance_banks').select('*').order('created_at').limit(1).single().then(function(res) {
-               var bank = res.data;
-               if (!bank || bank.balance < shortage) throw new Error('❌ عذراً، رصيد البنك لا يكفي لصرف العجز المطلوب!');
-               return { type: 'bank', id: bank.id, balance: bank.balance };
-            });
-          }
+        if (remaining > 0) {
+          body += '<div class="alert alert-info" style="padding:15px;background:rgba(59,130,246,0.1);border-left:4px solid var(--accent-info)">';
+          body += '<h4>العهدة أكبر من الشراء (Remaining Custody Balance)</h4>';
+          body += '<p>سيتم تسوية الفاتورة ويتبقى مع الموظف: <b>' + Number(remaining).toLocaleString() + ' EGP</b></p>';
+          body += '</div>';
+        } else if (remaining < 0) {
+          shortage = Math.abs(remaining);
+          settleAction = 'pay_shortage';
+          body += '<div class="alert alert-warning" style="padding:15px;background:rgba(245,158,11,0.1);border-left:4px solid var(--accent-warning)">';
+          body += '<h4>عجز في العهدة (Treasury Payment Required)</h4>';
+          body += '<p>العهدة غير كافية. مطلوب صرف الفرق للموظف: <b>' + Number(shortage).toLocaleString() + ' EGP</b></p>';
+          
+          body += '<div class="form-field" style="margin-top:10px"><label>من حساب (From Account) *</label><select id="shortage-account" class="form-input">';
+          safes.forEach(function(s) { body += '<option value="safe|' + s.id + '|' + s.balance + '">خزينة: ' + s.name + ' (رصيد: ' + Number(s.balance).toLocaleString() + ')</option>'; });
+          banks.forEach(function(b) { body += '<option value="bank|' + b.id + '|' + b.balance + '">بنك: ' + b.name + ' (رصيد: ' + Number(b.balance).toLocaleString() + ')</option>'; });
+          body += '<option value="check|null|0">إصدار شيك (Check)</option>';
+          body += '</select></div>';
+          
+          body += '</div>';
+        } else {
+          body += '<div class="alert alert-success" style="padding:15px;background:rgba(16,185,129,0.1);border-left:4px solid var(--accent-success)">';
+          body += '<h4>تسوية كاملة (Fully Settled)</h4>';
+          body += '<p>العهدة تغطي الفاتورة بالكامل، لا توجد فروقات.</p>';
+          body += '</div>';
         }
 
-        checkPromise.then(function(acctData) {
-        // 1. Update purchase request → purchased
-        sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r1) {
-          if (r1 && r1.error) { alert('خطأ في التحديث: ' + r1.error.message); return; }
+        var footer = '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" id="btn-settle-adv">✔️ تأكيد وتسوية (Confirm & Settle)</button>';
+        App.showModal('تسوية مالية من العهدة (Custody Settlement)', body, footer);
 
-          // 2. Update purchase order
-          if (orderId) sbClient.from('purchase_orders').update({status: 'purchased'}).eq('id', orderId).then(function() {});
+        document.getElementById('btn-settle-adv').addEventListener('click', function() {
+          var methodType = 'none';
+          var acctId = null;
+          var acctBalance = 0;
 
-          // 3. Update the existing advance's settlement status
-          var settleNotes = 'تمت تسوية الفاتورة بمبلغ ' + price;
-          if (remaining > 0) settleNotes += ' | متبقي عهدة ' + remaining;
-          if (remaining < 0) settleNotes += ' | عجز وتم صرف ' + shortage;
-          
-          sbClient.from('finance_treasury_tx').update({
-            settlement_status: 'settled',
-            amount_spent: price,
-            amount_returned: remaining > 0 ? remaining : 0,
-            settlement_notes: settleNotes
-          }).eq('id', advanceId).then(function() {
-            
-            // 4. If there is a shortage, create a new transaction for the extra payment
-            if (settleAction === 'pay_shortage') {
-              sbClient.from('finance_treasury_tx').insert({
-                type: 'petty_cash', method: method, amount: shortage,
-                description: 'صرف عجز فاتورة مشتريات (PO: ' + reqId.split('-')[0] + ')',
-                employee_name: empName, status: 'cleared',
-                created_by: App.user.id, created_by_name: App.user.full_name
-              }).then(function() {});
-              
-              if (acctData) {
-                 if (acctData.type === 'safe') {
-                    sbClient.from('finance_safes').update({balance: Number(acctData.balance) - shortage}).eq('id', acctData.id).then(function(){});
-                 } else if (acctData.type === 'bank') {
-                    sbClient.from('finance_banks').update({balance: Number(acctData.balance) - shortage}).eq('id', acctData.id).then(function(){});
-                 }
-              }
+          if (settleAction === 'pay_shortage') {
+            var accVal = document.getElementById('shortage-account').value;
+            var accParts = accVal.split('|');
+            methodType = accParts[0];
+            acctId = accParts[1];
+            acctBalance = Number(accParts[2]);
+
+            if (methodType !== 'check' && acctBalance < shortage) {
+               alert('❌ عذراً، رصيد الحساب المختار لا يكفي لصرف العجز المطلوب!');
+               return;
             }
+          }
 
-            App.closeModal();
-            showToast('✅ تمت التسوية بنجاح وتم إرسال الطلب للمخزن (Fully Settled)', 'success');
-            loadData();
+          this.disabled = true;
+          this.textContent = '⏳ جاري المعالجة...';
+          var btnElement = this;
+
+          sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r1) {
+            if (r1 && r1.error) { alert('خطأ في التحديث: ' + r1.error.message); btnElement.disabled = false; btnElement.textContent = '✔️ تأكيد وتسوية (Confirm & Settle)'; return; }
+
+            if (orderId) sbClient.from('purchase_orders').update({status: 'purchased'}).eq('id', orderId).then(function() {});
+
+            var settleNotes = 'تمت تسوية الفاتورة بمبلغ ' + price;
+            if (remaining > 0) settleNotes += ' | متبقي عهدة ' + remaining;
+            if (remaining < 0) settleNotes += ' | عجز وتم صرف ' + shortage;
+            
+            sbClient.from('finance_treasury_tx').update({
+              settlement_status: 'settled',
+              amount_spent: price,
+              amount_returned: remaining > 0 ? remaining : 0,
+              settlement_notes: settleNotes
+            }).eq('id', advanceId).then(function() {
+              
+              if (settleAction === 'pay_shortage') {
+                var methodMap = { 'safe': 'cash', 'bank': 'bank_transfer', 'check': 'check' };
+                sbClient.from('finance_treasury_tx').insert({
+                  type: 'petty_cash', method: methodMap[methodType], amount: shortage,
+                  description: 'صرف عجز فاتورة مشتريات (PO: ' + reqId.split('-')[0] + ')',
+                  employee_name: empName, status: methodType === 'check' ? 'pending' : 'cleared',
+                  created_by: App.user.id, created_by_name: App.user.full_name
+                }).then(function() {});
+                
+                if (methodType === 'safe') {
+                   sbClient.from('finance_safes').update({balance: acctBalance - shortage}).eq('id', acctId).then(function(){});
+                } else if (methodType === 'bank') {
+                   sbClient.from('finance_bank_accounts').update({balance: acctBalance - shortage}).eq('id', acctId).then(function(){});
+                }
+              }
+
+              App.closeModal();
+              showToast('✅ تمت التسوية بنجاح وتم إرسال الطلب للمخزن (Fully Settled)', 'success');
+              if (typeof loadPurchaseSettlements === 'function') loadPurchaseSettlements();
+              else if (typeof loadData === 'function') loadData();
+            });
           });
-        });
-        }).catch(function(err) {
-          alert(err.message);
-          btnElement.disabled = false;
-          btnElement.textContent = '✔️ تأكيد وتسوية (Confirm & Settle)';
         });
       });
     };
