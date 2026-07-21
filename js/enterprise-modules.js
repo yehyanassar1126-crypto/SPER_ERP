@@ -2387,6 +2387,7 @@ Pages.pettyCash = function(el) {
           btnElement.disabled = false;
           btnElement.textContent = '✔️ تأكيد وتسوية (Confirm & Settle)';
         });
+      });
     };
 
     // --- Issue new cash for purchase ---
