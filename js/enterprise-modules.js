@@ -2192,9 +2192,9 @@ Pages.pettyCash = function(el) {
 
           pendingReqs.forEach(function(req) {
             var order = allOrders.find(function(o) { return o.request_id === req.id && o.petty_cash_amount > 0; });
-            var unitPrice = order ? Number(order.price || order.petty_cash_amount) : 0;
             var qty = req.requested_quantity || 1;
-            var totalCost = order ? Number(order.petty_cash_amount) * qty : 0;
+            var unitPrice = order ? Number(order.price || (order.petty_cash_amount / qty)) : 0;
+            var totalCost = order ? Number(order.petty_cash_amount) : 0;
             var supplierName = order ? order.supplier_name : '-';
             var requestedBy = req.requested_by || '-';
             var procurementPerson = order ? (order.specialist_name || order.manager_name) : null;
