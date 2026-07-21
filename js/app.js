@@ -924,7 +924,7 @@ Pages.ownerDashboard = function (el) {
     var purchOrd = results[5].data || [];
 
     var activeUsers = users.filter(function (u) { return u.status === 'active'; }).length;
-    var presentCount = attendance.filter(function (a) { return a.status === 'present' || a.status === 'checked_in'; }).length;
+    var presentCount = attendance.filter(function (a) { return a.status === 'present' || a.status === 'Closed Automatically' || a.status === 'checked_in'; }).length;
     var lowStock = inventory.filter(function (i) { return i.quantity <= i.min_quantity; }).length;
     var openTickets = tickets.filter(function (t) { return t.status !== 'resolved'; }).length;
     var pendingReqs = purchReq.filter(function (r) { return r.status === 'pending'; }).length;
@@ -1130,7 +1130,7 @@ Pages.hrDashboard = function (el) {
     var pendingExpenses = results[9].data || [];
 
     var totalEmployees = employees.length;
-    var presentToday = attendance.filter(function (a) { return a.status === 'present' || a.status === 'checked_in'; }).length;
+    var presentToday = attendance.filter(function (a) { return a.status === 'present' || a.status === 'Closed Automatically' || a.status === 'checked_in'; }).length;
     var absentToday = totalEmployees - presentToday;
     var pendingLeaves = leaves.filter(function (l) { return l.status === 'pending'; }).length;
     var pendingOvertime = overtime.filter(function (o) { return o.status === 'pending'; }).length;
@@ -2146,7 +2146,7 @@ Pages.attendance = function (el) {
       html += '<td>' + (earlyL > 0 ? '<span style="color:var(--accent-danger);font-weight:600">' + earlyL + 'm</span>' : '<span style="color:var(--text-muted)">0m</span>') + '</td>';
       html += '<td>' + (otH > 0 ? '<span style="color:var(--accent-info);font-weight:600">+' + otH + 'h</span>' : '<span style="color:var(--text-muted)">0h</span>') + '</td>';
 
-      var badge = r.status === 'present' ? 'badge-success' : r.status === 'checked_in' ? 'badge-info' : r.status === 'leave' ? 'badge-warning' : 'badge-danger';
+      var badge = (r.status === 'present' || r.status === 'Closed Automatically') ? 'badge-success' : r.status === 'checked_in' ? 'badge-info' : r.status === 'leave' ? 'badge-warning' : 'badge-danger';
       var statusText = r.status === 'leave' ? 'Leave (اجازة)' : r.status.replace('_', ' ');
       html += '<td><span class="badge ' + badge + '"><span class="badge-dot"></span>' + statusText + '</span></td>';
       if (canEdit) {
@@ -2410,6 +2410,52 @@ function processScan(actionType) {
         showToast('❌ You have already checked in today!', 'danger');
         return;
       }
+
+      // ===== AUTO-CLOSE PREVIOUS UNCLOSED DAYS =====
+      // If employee forgot to check out on a previous day, close it with the official shift end time
+      sbClient.from('attendance').select('*').eq('employee_id', user.id).is('check_out', null).neq('date', dateStr).then(function(unclosedRes) {
+        var unclosed = unclosedRes.data || [];
+        if (unclosed.length > 0) {
+          var empShiftSystem = user.shift_system || '3-shift';
+          var shiftKey = user.shift || 'morning';
+
+          var closePromises = unclosed.map(function(oldRec) {
+            var sConf = getShiftConfig(oldRec.shift || shiftKey, empShiftSystem);
+            var checkOutTime = new Date(oldRec.date + 'T' + sConf.end + ':00');
+            
+            if (sConf.end === '00:00') {
+              checkOutTime = new Date(oldRec.date + 'T23:59:00');
+            } else {
+              var startHour = parseInt(sConf.start.split(':')[0]);
+              var endHour = parseInt(sConf.end.split(':')[0]);
+              // If shift ends next day (night shift)
+              if (endHour <= startHour) {
+                checkOutTime.setDate(checkOutTime.getDate() + 1);
+              }
+            }
+            
+            var checkInTime = new Date(oldRec.check_in);
+            var workHrs = Math.max(0, ((checkOutTime - checkInTime) / 3600000)).toFixed(2);
+
+            return sbClient.from('attendance').update({
+              check_out: checkOutTime.toISOString(),
+              working_hours: parseFloat(workHrs),
+              status: 'Closed Automatically',
+              modification_reason: 'Auto Closed بسبب تسجيل حضور في اليوم التالي'
+            }).eq('id', oldRec.id);
+          });
+
+          Promise.all(closePromises).then(function() {
+            showToast('⚠️ تم إغلاق ' + unclosed.length + ' سجل حضور مفتوح تلقائياً', 'warning');
+            sbClient.from('audit_log').insert({
+              action: 'AUTO_CLOSE_ATTENDANCE',
+              user_name: user.full_name,
+              user_id: user.id,
+              details: 'Auto-closed unclosed days: ' + unclosed.map(function(r) { return r.date; }).join(', ')
+            }).then(function(){});
+          });
+        }
+      });
       
       // Validation check for leaves/missions/etc.
       Promise.all([
@@ -2575,7 +2621,7 @@ Pages.hrPersonal = function(el) {
     var missions = res[3].data || [];
 
     var totalDays = att.length;
-    var presentDays = att.filter(function(a) { return a.status === 'present'; }).length;
+    var presentDays = att.filter(function(a) { return a.status === 'present' || a.status === 'Closed Automatically'; }).length;
     var totalDelay = att.reduce(function(s,a) { return s + (a.delay_minutes || 0); }, 0);
     var totalOT = att.reduce(function(s,a) { return s + (parseFloat(a.overtime_hours) || 0); }, 0);
     var pendingLeaves = leaves.filter(function(l) { return l.status === 'pending'; }).length;
@@ -2605,7 +2651,7 @@ Pages.hrPersonal = function(el) {
     html += '<div id="hp-view-att">';
     html += '<div class="card"><div class="card-header"><h3>سجل الحضور والانصراف</h3></div><div class="card-body no-pad"><table class="data-table"><thead><tr><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>ساعات العمل</th><th>التأخير</th><th>الحالة</th></tr></thead><tbody>';
     att.forEach(function(a) {
-      var badge = a.status === 'present' ? 'badge-success' : a.status === 'leave' ? 'badge-warning' : a.status === 'checked_in' ? 'badge-info' : 'badge-danger';
+      var badge = (a.status === 'present' || a.status === 'Closed Automatically') ? 'badge-success' : a.status === 'leave' ? 'badge-warning' : a.status === 'checked_in' ? 'badge-info' : 'badge-danger';
       html += '<tr><td>' + formatDate(a.date) + '</td><td>' + formatTime(a.check_in) + '</td><td>' + formatTime(a.check_out) + '</td><td>' + (a.working_hours || '—') + 'h</td><td>' + (a.delay_minutes > 0 ? '<span style="color:var(--accent-warning);font-weight:600">' + a.delay_minutes + 'm</span>' : '0m') + '</td><td><span class="badge ' + badge + '">' + a.status + '</span></td></tr>';
     });
     if (att.length === 0) html += '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">لا يوجد سجلات</td></tr>';
@@ -3850,7 +3896,7 @@ Pages.reports = function (el) {
       var chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 16, font: { size: 11 } } } }, scales: { x: { ticks: { color: '#64748b' }, grid: { display: false }, border: { display: false } }, y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(148,163,184,0.06)' }, border: { display: false } } } };
       if (activeReport === 'attendance') {
         var attData = {};
-        DEPARTMENTS.forEach(function (d) { var recs = attendance.filter(function (a) { return a.department === d; }); attData[d] = { present: recs.filter(function (a) { return a.status === 'present' || a.status === 'checked_in'; }).length, absent: recs.filter(function (a) { return a.status === 'absent'; }).length, late: recs.filter(function (a) { return a.delay_minutes > 0; }).length }; });
+        DEPARTMENTS.forEach(function (d) { var recs = attendance.filter(function (a) { return a.department === d; }); attData[d] = { present: recs.filter(function (a) { return a.status === 'present' || a.status === 'Closed Automatically' || a.status === 'checked_in'; }).length, absent: recs.filter(function (a) { return a.status === 'absent'; }).length, late: recs.filter(function (a) { return a.delay_minutes > 0; }).length }; });
         new Chart(ctx, { type: 'bar', data: { labels: DEPARTMENTS, datasets: [{ label: 'Present', data: DEPARTMENTS.map(function (d) { return attData[d].present; }), backgroundColor: '#22c55e', borderRadius: 4 }, { label: 'Absent', data: DEPARTMENTS.map(function (d) { return attData[d].absent; }), backgroundColor: '#ef4444', borderRadius: 4 }, { label: 'Late', data: DEPARTMENTS.map(function (d) { return attData[d].late; }), backgroundColor: '#f59e0b', borderRadius: 4 }] }, options: chartOpts });
       } else if (activeReport === 'absenteeism') {
         var empAbsent = {};
