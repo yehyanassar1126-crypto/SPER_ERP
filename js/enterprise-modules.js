@@ -2320,22 +2320,26 @@ Pages.pettyCash = function(el) {
         
         var method = settleAction === 'pay_shortage' ? document.getElementById('shortage-method').value : 'advance_deduction';
 
+        var btnElement = this;
+        var checkPromise = Promise.resolve();
+
         if (settleAction === 'pay_shortage') {
           if (method === 'cash') {
-            if (!safes || safes.length === 0 || safes[0].balance < shortage) {
-              alert('❌ عذراً، رصيد الخزينة لا يكفي لصرف العجز المطلوب!');
-              this.disabled = false; this.textContent = '✔️ تأكيد وتسوية (Confirm & Settle)';
-              return;
-            }
+            checkPromise = sbClient.from('finance_safes').select('*').order('created_at').limit(1).single().then(function(res) {
+               var safe = res.data;
+               if (!safe || safe.balance < shortage) throw new Error('❌ عذراً، رصيد الخزينة لا يكفي لصرف العجز المطلوب!');
+               return { type: 'safe', id: safe.id, balance: safe.balance };
+            });
           } else if (method === 'bank_transfer') {
-            if (!banks || banks.length === 0 || banks[0].balance < shortage) {
-              alert('❌ عذراً، رصيد البنك لا يكفي لصرف العجز المطلوب!');
-              this.disabled = false; this.textContent = '✔️ تأكيد وتسوية (Confirm & Settle)';
-              return;
-            }
+            checkPromise = sbClient.from('finance_banks').select('*').order('created_at').limit(1).single().then(function(res) {
+               var bank = res.data;
+               if (!bank || bank.balance < shortage) throw new Error('❌ عذراً، رصيد البنك لا يكفي لصرف العجز المطلوب!');
+               return { type: 'bank', id: bank.id, balance: bank.balance };
+            });
           }
         }
 
+        checkPromise.then(function(acctData) {
         // 1. Update purchase request → purchased
         sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r1) {
           if (r1 && r1.error) { alert('خطأ في التحديث: ' + r1.error.message); return; }
@@ -2364,8 +2368,12 @@ Pages.pettyCash = function(el) {
                 created_by: App.user.id, created_by_name: App.user.full_name
               }).then(function() {});
               
-              if (method === 'cash' && safes.length > 0) {
-                 sbClient.from('finance_safes').update({balance: Number(safes[0].balance) - shortage}).eq('id', safes[0].id).then(function(){});
+              if (acctData) {
+                 if (acctData.type === 'safe') {
+                    sbClient.from('finance_safes').update({balance: Number(acctData.balance) - shortage}).eq('id', acctData.id).then(function(){});
+                 } else if (acctData.type === 'bank') {
+                    sbClient.from('finance_banks').update({balance: Number(acctData.balance) - shortage}).eq('id', acctData.id).then(function(){});
+                 }
               }
             }
 
@@ -2374,7 +2382,11 @@ Pages.pettyCash = function(el) {
             loadData();
           });
         });
-      });
+        }).catch(function(err) {
+          alert(err.message);
+          btnElement.disabled = false;
+          btnElement.textContent = '✔️ تأكيد وتسوية (Confirm & Settle)';
+        });
     };
 
     // --- Issue new cash for purchase ---
@@ -2401,21 +2413,27 @@ Pages.pettyCash = function(el) {
         var method = document.getElementById('pc-method').value;
         var notes = document.getElementById('pc-notes').value;
 
-        if (method === 'cash') {
-          if (!safes || safes.length === 0 || safes[0].balance < price) {
-            alert('❌ عذراً، رصيد الخزينة لا يكفي لإتمام عملية الصرف!');
-            return;
-          }
-        } else if (method === 'bank_transfer') {
-          if (!banks || banks.length === 0 || banks[0].balance < price) {
-            alert('❌ عذراً، رصيد البنك لا يكفي لإتمام عملية الصرف!');
-            return;
-          }
-        }
-
         this.disabled = true;
         this.textContent = '⏳ جاري المعالجة...';
 
+        var checkPromise = Promise.resolve();
+        if (method === 'cash') {
+          checkPromise = sbClient.from('finance_safes').select('*').order('created_at').limit(1).single().then(function(res) {
+             var safe = res.data;
+             if (!safe || safe.balance < price) throw new Error('❌ عذراً، رصيد الخزينة لا يكفي لإتمام عملية الصرف!');
+             return { type: 'safe', id: safe.id, balance: safe.balance };
+          });
+        } else if (method === 'bank_transfer') {
+          checkPromise = sbClient.from('finance_banks').select('*').order('created_at').limit(1).single().then(function(res) {
+             var bank = res.data;
+             if (!bank || bank.balance < price) throw new Error('❌ عذراً، رصيد البنك لا يكفي لإتمام عملية الصرف!');
+             return { type: 'bank', id: bank.id, balance: bank.balance };
+          });
+        }
+
+        var btnElement = this;
+
+        checkPromise.then(function(acctData) {
         // 1. Update purchase request → purchased
         sbClient.from('purchase_requests').update({status: 'purchased'}).eq('id', reqId).then(function(r1) {
           if (r1 && r1.error) { alert('خطأ: ' + r1.error.message); return; }
@@ -2436,16 +2454,23 @@ Pages.pettyCash = function(el) {
             if (r2 && r2.error) { alert('خطأ في تسجيل العملية: ' + r2.error.message); return; }
 
             // 4. Deduct from safe or bank
-            if (method === 'cash' && safes.length > 0) {
-              sbClient.from('finance_safes').update({balance: Number(safes[0].balance) - price}).eq('id', safes[0].id).then(function() {});
-            } else if (method === 'bank_transfer' && banks.length > 0) {
-              sbClient.from('finance_banks').update({balance: Number(banks[0].balance) - price}).eq('id', banks[0].id).then(function() {});
+            if (acctData) {
+              if (acctData.type === 'safe') {
+                 sbClient.from('finance_safes').update({balance: Number(acctData.balance) - price}).eq('id', acctData.id).then(function() {});
+              } else if (acctData.type === 'bank') {
+                 sbClient.from('finance_banks').update({balance: Number(acctData.balance) - price}).eq('id', acctData.id).then(function() {});
+              }
             }
 
             App.closeModal();
             showToast('✅ تم صرف ' + price + ' EGP وإرسال الطلب للمخزن لاستلام البضاعة', 'success');
             loadData();
           });
+        });
+        }).catch(function(err) {
+          alert(err.message);
+          btnElement.disabled = false;
+          btnElement.textContent = '💰 صرف وإرسال للمخزن';
         });
       });
     };

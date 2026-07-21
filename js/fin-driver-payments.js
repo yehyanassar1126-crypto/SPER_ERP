@@ -92,15 +92,54 @@ Pages.driverPayments = function(el) {
           targetBtn.disabled = true;
           targetBtn.innerHTML = 'Processing...';
           
-          sbClient.from('logistics_movements').update({ cost_status: 'paid' }).eq('id', mId).then(function(updRes) {
-            if (updRes.error) {
-              alert('Error marking as paid: ' + updRes.error.message);
-              targetBtn.disabled = false;
-              targetBtn.innerHTML = 'Pay Now (تم الصرف)';
-              return;
-            }
-            showToast('Payment successful!', 'success');
-            Pages.driverPayments(el); // Re-render page
+          let m = trips.find(t => t.id === mId);
+          if(!m) return;
+          
+          let cost = parseFloat(m.trip_cost);
+          
+          // Deduct from Main Safe (or first available)
+          sbClient.from('finance_safes').select('*').order('created_at').limit(1).single().then(function(resSafe) {
+             let safe = resSafe.data;
+             if (!safe || safe.balance < cost) {
+                alert('❌ عذراً، رصيد الخزينة لا يكفي لإتمام عملية الصرف!');
+                targetBtn.disabled = false;
+                targetBtn.innerHTML = 'Pay Now (تم الصرف)';
+                return;
+             }
+             
+             // Deduct from safe
+             sbClient.from('finance_safes').update({ balance: Number(safe.balance) - cost }).eq('id', safe.id).then(function(updSafe) {
+                if (updSafe.error) {
+                    alert('Error deducting from safe: ' + updSafe.error.message);
+                    targetBtn.disabled = false;
+                    targetBtn.innerHTML = 'Pay Now (تم الصرف)';
+                    return;
+                }
+                
+                // Add transaction
+                sbClient.from('finance_treasury_tx').insert({
+                   type: 'external_driver', method: 'cash', amount: cost,
+                   description: 'صرف حساب سائق خارجي: ' + m.driver_name + (m.destination ? ' (' + m.destination + ')' : ''),
+                   status: 'cleared', settlement_status: 'settled',
+                   amount_spent: cost, amount_returned: 0,
+                   created_by: App.user.id, created_by_name: App.user.full_name
+                }).then(function(insTx) {
+                   if (insTx.error) {
+                      alert('Error recording transaction: ' + insTx.error.message);
+                      return;
+                   }
+                   
+                   // Finally mark as paid
+                   sbClient.from('logistics_movements').update({ cost_status: 'paid' }).eq('id', mId).then(function(updRes) {
+                     if (updRes.error) {
+                       alert('Error marking as paid: ' + updRes.error.message);
+                       return;
+                     }
+                     showToast('Payment successful & deducted from safe!', 'success');
+                     Pages.driverPayments(el); 
+                   });
+                });
+             });
           });
         });
       });

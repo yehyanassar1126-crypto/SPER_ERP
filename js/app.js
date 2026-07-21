@@ -446,6 +446,11 @@ var App = {
           },
           { section: 'Other', items: [{ id: 'announcements', label: 'Announcements', icon: 'megaphone' }] },
         ];
+      } else if (App.user && (App.user.department === 'Legal' || App.user.role === 'lawyer') && !App.isOwner()) {
+        menu = [
+          { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
+          { section: 'Collaboration (التواصل)', items: [{ id: 'internal-chat', label: 'Internal Chat (المحادثات)', icon: 'messageSquare' }] }
+        ];
       } else {
         menu = [
           { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
@@ -546,7 +551,7 @@ var App = {
         });
       }
       
-      var canViewLegal = App.isOwner() || (App.user && App.user.role === 'lawyer');
+      var canViewLegal = App.isOwner() || (App.user && (App.user.department === 'Legal' || App.user.role === 'lawyer'));
       if (canViewLegal) {
         menu.push({
           section: 'Legal & Compliance', items: [
@@ -3439,7 +3444,8 @@ Pages.payroll = function (el) {
               sbClient.from('salary_adjustments').select('type, amount').eq('employee_id', empId).eq('status', 'approved').eq('month', month),
               sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', empId).gte('date', monthStart).lte('date', monthEnd),
               sbClient.from('leave_requests').select('start_date, end_date, days').eq('employee_id', empId).eq('status', 'approved').gte('start_date', monthStart).lte('end_date', monthEnd),
-              sbClient.from('medical_requests').select('amount, created_at').eq('employee_id', empId).eq('status', 'disbursed')
+              sbClient.from('medical_requests').select('amount, created_at').eq('employee_id', empId).eq('status', 'disbursed'),
+              sbClient.from('loans').select('*').eq('employee_id', empId).eq('status', 'active')
             ]).then(function (results) {
               var otRecords = results[0].data || [];
               var adjRecords = results[1].data || [];
@@ -3448,6 +3454,7 @@ Pages.payroll = function (el) {
               var medicalRecords = (results[4].data || []).filter(function(m) {
                 return m.created_at.substring(0, 7) === month;
               });
+              var loanRecords = results[5].data || [];
 
               var dailyRate = Math.round(base / 30);
 
@@ -3467,6 +3474,16 @@ Pages.payroll = function (el) {
               // Medical Disbursed
               var totalMedical = 0;
               medicalRecords.forEach(function (m) { totalMedical += (m.amount || 0); });
+
+              // Loans / Advances Deduction
+              var totalLoanDeduction = 0;
+              loanRecords.forEach(function (loan) {
+                 var deferred = loan.deferred_months || [];
+                 if (deferred.indexOf(month) === -1) {
+                    var deduct = Math.min(loan.monthly_deduction, loan.remaining_amount);
+                    totalLoanDeduction += deduct;
+                 }
+              });
 
               // EXACT MATCH WITH EMPLOYEE DASHBOARD
               var totalLateDeduction = 0;
@@ -3538,7 +3555,7 @@ Pages.payroll = function (el) {
               var insuranceDeduction = isInsured ? Math.round(insSalary * 0.10) : 0;
 
               var totalEarnings = earnedSoFar + totalOTPay + totalBonuses + extraB + totalMedical;
-              var totalDeductions = totalPenalties + extraP + totalLateDeduction + calculatedAbsenceDeductions + insuranceDeduction;
+              var totalDeductions = totalPenalties + extraP + totalLateDeduction + calculatedAbsenceDeductions + insuranceDeduction + totalLoanDeduction;
               var net = totalEarnings - totalDeductions;
 
               calcData = {
@@ -3548,7 +3565,7 @@ Pages.payroll = function (el) {
                 performance_bonus: 0,
                 penalties: totalPenalties + extraP,
                 late_deductions: totalLateDeduction, absence_deductions: calculatedAbsenceDeductions,
-                insurance_deduction: insuranceDeduction,
+                insurance_deduction: insuranceDeduction, loan_deduction: totalLoanDeduction,
                 net_salary: net, status: 'processing'
               };
 
@@ -3578,6 +3595,7 @@ Pages.payroll = function (el) {
                 '<div style="color:var(--accent-warning)">⏰ Late Deductions:</div><div style="font-weight:600;color:var(--accent-warning)">-EGP ' + totalLateDeduction.toLocaleString() + '</div>' +
                 '<div style="color:var(--accent-danger)">🚫 Absence Deductions:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + calculatedAbsenceDeductions.toLocaleString() + ' (' + totalMissedDays + ' days)</div>' +
                 (insuranceDeduction > 0 ? '<div style="color:var(--accent-danger)">🛡️ Insurance Deduction (10%):</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + insuranceDeduction.toLocaleString() + '</div>' : '') +
+                (totalLoanDeduction > 0 ? '<div style="color:var(--accent-danger)">💳 Loan/Advance Installments:</div><div style="font-weight:600;color:var(--accent-danger)">-EGP ' + totalLoanDeduction.toLocaleString() + '</div>' : '') +
                 '</div>' +
                 '<div style="border-top:2px solid var(--accent-primary);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;font-size:1rem">NET SALARY</span><span style="font-weight:900;font-size:1.3rem;color:var(--accent-primary-hover)">EGP ' + net.toLocaleString() + '</span></div>' +
                 cumulativeHtml;
