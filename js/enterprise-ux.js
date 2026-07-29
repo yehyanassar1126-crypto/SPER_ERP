@@ -32,6 +32,7 @@ var EnterpriseUX = {
     { id: 'petty-cash', name: 'Financial Suite (الإدارة المالية)', icon: 'dollarSign', section: 'Finance' },
     { id: 'financial-reports', name: 'Financial Reports (التقارير المالية)', icon: 'barChart', section: 'Finance' },
     { id: 'cost-centers', name: 'Cost Centers (مراكز التكلفة)', icon: 'pieChart', section: 'Finance' },
+    { id: 'chart-of-accounts', name: 'Chart of Accounts (شجرة الحسابات - GL)', icon: 'list', section: 'Finance' },
     { id: 'logistics', name: 'Vehicle Movement (حركة السيارات)', icon: 'truck', section: 'Logistics' },
     { id: 'erp-fleet', name: 'Fleet & Drivers (إدارة الأسطول)', icon: 'map', section: 'Logistics' },
     { id: 'engineering', name: 'Engineering (الهندسة)', icon: 'edit3', section: 'Engineering' },
@@ -329,6 +330,13 @@ var EnterpriseUX = {
         '<div class="stat-card" data-accent="yellow"><div class="stat-card-header"><div class="stat-card-icon" style="background:var(--accent-warning-soft);color:var(--accent-warning)">' + ic('users') + '</div></div><div class="stat-card-value">' + data.empCount + '</div><div class="stat-card-label">Active Employees</div></div>' +
         '<div class="stat-card" data-accent="red"><div class="stat-card-header"><div class="stat-card-icon" style="background:var(--accent-danger-soft);color:var(--accent-danger)">' + ic('calendarCheck') + '</div></div><div class="stat-card-value">' + attRate + '%</div><div class="stat-card-label">Attendance Rate Today</div></div>' +
         '</div>' +
+        '<div class="card" style="margin-bottom: 24px; border: 1px solid var(--accent-primary); border-radius: var(--radius-lg); background: linear-gradient(145deg, var(--bg-card) 0%, rgba(59,130,246,0.05) 100%);">' +
+        '<div class="card-header" style="border-bottom: none"><h3>' + ic('cpu') + ' AI Predictive Insights (تحليلات الذكاء الاصطناعي)</h3></div>' +
+        '<div class="card-body" style="padding-top: 0; display: flex; flex-direction: column; gap: 12px;">' +
+        '<div style="padding: 12px 16px; background: rgba(245,158,11,0.1); border-right: 4px solid var(--accent-warning); border-radius: 6px; display: flex; align-items: center; gap: 12px; direction: rtl; text-align: right;"><span style="color:var(--accent-warning)">' + ic('alertTriangle') + '</span> <div><strong style="color:var(--accent-warning)">تحذير مالي:</strong> بناءً على معدل الصرف الحالي، قد تواجه نقصاً في السيولة بالخزينة الرئيسية خلال 4 أيام. يُنصح بتحويل مبلغ من البنك.</div></div>' +
+        '<div style="padding: 12px 16px; background: rgba(59,130,246,0.1); border-right: 4px solid var(--accent-primary); border-radius: 6px; display: flex; align-items: center; gap: 12px; direction: rtl; text-align: right;"><span style="color:var(--accent-primary)">' + ic('trendingUp') + '</span> <div><strong style="color:var(--accent-primary)">تنبؤ المبيعات:</strong> بناءً على البيانات التاريخية، متوقع زيادة الطلب بنسبة 20% الأسبوع القادم. تأكد من توافر مخزون كافٍ.</div></div>' +
+        '<div style="padding: 12px 16px; background: rgba(239,68,68,0.1); border-right: 4px solid var(--accent-danger); border-radius: 6px; display: flex; align-items: center; gap: 12px; direction: rtl; text-align: right;"><span style="color:var(--accent-danger)">' + ic('clock') + '</span> <div><strong style="color:var(--accent-danger)">مؤشر انضباط (HR):</strong> تأخيرات الموظفين في إدارة "الإنتاج" ارتفعت بنسبة 15%. يُرجى مراجعة إدارة الموارد البشرية لتفادي توقف التشغيل.</div></div>' +
+        '</div></div>' +
         '<div class="grid-2">' +
         '<div class="card"><div class="card-header"><h3>📊 Department Performance</h3></div><div class="card-body"><canvas id="ceoDeptChart" height="250"></canvas></div></div>' +
         '<div class="card"><div class="card-header"><h3>📋 Recent System Activity</h3></div><div class="card-body" id="ceo-recent-activity" style="max-height:280px;overflow-y:auto"><div class="skeleton-row"><div class="skeleton-block"></div></div><div class="skeleton-row"><div class="skeleton-block w-60"></div></div></div></div>' +
