@@ -1339,9 +1339,9 @@ Pages.empDashboard = function (el) {
   var monthEnd = currentMonth + '-' + lastDay;
 
   Promise.all([
-    sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).limit(1).single(),
+    sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).limit(1).maybeSingle(),
     sbClient.from('leave_requests').select('*').eq('employee_id', user.id),
-    sbClient.from('payroll').select('*').eq('employee_id', user.id).order('month', { ascending: false }).limit(1).single(),
+    sbClient.from('payroll').select('*').eq('employee_id', user.id).order('month', { ascending: false }).limit(1).maybeSingle(),
     sbClient.from('overtime').select('hours').eq('employee_id', user.id),
     sbClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(5),
     sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', user.id).gte('date', monthStart).lte('date', monthEnd),
@@ -1588,6 +1588,9 @@ Pages.empDashboard = function (el) {
     html += '</div></div>';
 
     el.innerHTML = html;
+  }).catch(function(err) {
+    console.error('empDashboard Error:', err);
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)"><h3>⚠️ حدث خطأ أثناء تحميل لوحتك</h3><p>' + (err.message || err) + '</p><button class="btn btn-primary" onclick="Pages.empDashboard(document.getElementById(\'main-content\'))">إعادة المحاولة</button></div>';
   });
 };
 
