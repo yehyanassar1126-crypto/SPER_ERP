@@ -1365,15 +1365,15 @@ Pages.empDashboard = function (el) {
     html += '<div style="flex:1"><h3 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--text-primary)">مرتبك التراكمي لشهر ' + currentMonthName + ' (يوم ' + dayOfMonth + ')</h3>';
     html += '<p style="margin:4px 0 0;font-size:0.78rem;color:var(--text-secondary)">يبدأ من 0 يوم 1 في الشهر ويزيد كل يوم حضور بمقدار ' + dailyRate.toLocaleString() + ' ج.م</p></div></div>';
 
-    // Big Net Amount - always the accumulated total (only goes up)
+    // Big Net Amount - always the accumulated total including bonuses/penalties
     html += '<div style="text-align:center;margin-bottom:18px">';
-    html += '<div style="font-size:2.2rem;font-weight:900;color:var(--accent-primary);letter-spacing:-1px">EGP ' + earnedSoFar.toLocaleString() + '</div>';
-    html += '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">إجمالي المرتب المجمّع لحد دلوقتي (' + daysWorked + ' يوم حضور)</div>';
+    html += '<div style="font-size:2.2rem;font-weight:900;color:var(--accent-primary);letter-spacing:-1px">EGP ' + netAccumulated.toLocaleString() + '</div>';
+    html += '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">صافي المرتب التراكمي (شامل المكافآت والجزاءات لـ ' + daysWorked + ' يوم)</div>';
     html += '</div>';
 
     // Progress bar
     html += '<div style="margin-bottom:18px">';
-    html += '<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px"><span>' + earnedSoFar.toLocaleString() + ' ج.م (مكتسب)</span><span>' + baseSalary.toLocaleString() + ' ج.م (المرتب الكامل)</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-bottom:6px"><span>' + netAccumulated.toLocaleString() + ' ج.م (صافي)</span><span>' + baseSalary.toLocaleString() + ' ج.م (المرتب الكامل)</span></div>';
     html += '<div style="width:100%;height:12px;background:var(--bg-secondary);border-radius:6px;overflow:hidden">';
     html += '<div style="width:' + Math.min(salaryProgress, 100) + '%;height:100%;background:linear-gradient(90deg,#6366f1,#06b6d4);border-radius:6px;transition:width 0.6s ease"></div>';
     html += '</div>';
@@ -1382,7 +1382,7 @@ Pages.empDashboard = function (el) {
 
     // Breakdown grid - only positives + penalties if any
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">';
-    html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #6366f1"><div style="font-size:0.7rem;color:var(--text-muted)">المجمّع (' + daysWorked + ' يوم)</div><div style="font-size:1rem;font-weight:800;color:var(--text-primary)">' + earnedSoFar.toLocaleString() + ' ج.م</div></div>';
+    html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #6366f1"><div style="font-size:0.7rem;color:var(--text-muted)">صافي مجمّع</div><div style="font-size:1rem;font-weight:800;color:var(--text-primary)">' + netAccumulated.toLocaleString() + ' ج.م</div></div>';
     html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #06b6d4"><div style="font-size:0.7rem;color:var(--text-muted)">اليومية</div><div style="font-size:1rem;font-weight:800;color:#06b6d4">' + dailyRate.toLocaleString() + ' ج.م</div></div>';
     if (totalBonuses > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #22c55e"><div style="font-size:0.7rem;color:var(--text-muted)">مكافآت</div><div style="font-size:1rem;font-weight:800;color:#22c55e">+' + totalBonuses.toLocaleString() + '</div></div>';
     if (totalPenalties > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #ef4444"><div style="font-size:0.7rem;color:var(--text-muted)">جزاءات</div><div style="font-size:1rem;font-weight:800;color:#ef4444">-' + totalPenalties.toLocaleString() + '</div></div>';
