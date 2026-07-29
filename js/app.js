@@ -1255,9 +1255,15 @@ Pages.empDashboard = function (el) {
   el.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner" style="margin-bottom:16px;"></span><p>Loading Your Dashboard...</p></div>';
 
   var d = new Date();
-  var currentMonth = d.toISOString().substring(0, 7);
+  var displayDate = d;
+  // If today is <= 5th of the month, display the previous month's data so the employee can see their final salary/attendance
+  if (d.getDate() <= 5) {
+    displayDate = new Date(d.getFullYear(), d.getMonth(), 0); // Last day of previous month
+  }
+  
+  var currentMonth = displayDate.toISOString().substring(0, 7);
   var monthStart = currentMonth + '-01';
-  var lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  var lastDay = new Date(displayDate.getFullYear(), displayDate.getMonth() + 1, 0).getDate();
   var monthEnd = currentMonth + '-' + lastDay;
 
   Promise.all([
@@ -1288,10 +1294,10 @@ Pages.empDashboard = function (el) {
     var baseSalary = user.base_salary || 0;
     var dailyRate = Math.round(baseSalary / 30);
     
-    var todayDate = new Date();
-    var dayOfMonth = todayDate.getDate();
+    var todayDate = displayDate;
+    var dayOfMonth = (d.getDate() <= 5) ? lastDay : d.getDate();
     var monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-    var currentMonthName = monthNames[todayDate.getMonth()];
+    var currentMonthName = monthNames[displayDate.getMonth()];
 
     // Build a map of attendance with late deduction per day
     var attDatesMap = {};
@@ -3478,7 +3484,9 @@ Pages.payroll = function (el) {
       document.getElementById('add-payroll').addEventListener('click', function () {
         sbClient.from('users').select('id, full_name, base_salary, department, insurance_active, insurance_start, created_at, insurance_salary').eq('status', 'active').then(function (res) {
           var users = res.data || [];
-          var monthVal = new Date().toISOString().substring(0, 7);
+          var d = new Date();
+          var pD = d.getDate() <= 5 ? new Date(d.getFullYear(), d.getMonth(), 0) : d;
+          var monthVal = pD.toISOString().substring(0, 7);
           var b = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="pf-emp"><option value="">-- Select --</option>';
           users.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-base="' + (u.base_salary || 0) + '" data-dept="' + u.department + '" data-insured="' + (u.insurance_active ? '1' : '0') + '" data-ins-salary="' + (u.insurance_salary || 0) + '" data-pos="' + (u.position || '') + '" data-hire="' + (u.created_at || '') + '">' + u.full_name + ' - ' + u.department + (u.insurance_active ? '' : ' (No Insurance)') + '</option>'; });
           b += '</select></div><div class="form-field"><label>Month *</label><input type="month" id="pf-m" value="' + monthVal + '"></div></div>';
@@ -3707,7 +3715,9 @@ Pages.payroll = function (el) {
       document.getElementById('add-adj-direct-btn').addEventListener('click', function () {
         sbClient.from('users').select('id, full_name, department').eq('status', 'active').then(function (res) {
           var allUsers = res.data || [];
-          var monthVal = new Date().toISOString().substring(0, 7);
+          var d = new Date();
+          var pD = d.getDate() <= 5 ? new Date(d.getFullYear(), d.getMonth(), 0) : d;
+          var monthVal = pD.toISOString().substring(0, 7);
           var b = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="direct-adj-emp"><option value="">-- Select --</option>';
           allUsers.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-dept="' + u.department + '">' + u.full_name + ' - ' + u.department + '</option>'; });
           b += '</select></div><div class="form-field"><label>Type *</label><select id="direct-adj-type"><option value="bonus">🎁 Bonus (Add Money / مكافأة)</option><option value="penalty">⚠️ Penalty (Deduct Money / خصم أو جزاء)</option></select></div></div>';
@@ -4099,7 +4109,9 @@ Pages.teamAdjustments = function (el) {
     loadFridayWork();
 
     document.getElementById('add-adj-btn').addEventListener('click', function () {
-      var monthVal = new Date().toISOString().substring(0, 7);
+      var d = new Date();
+      var pD = d.getDate() <= 5 ? new Date(d.getFullYear(), d.getMonth(), 0) : d;
+      var monthVal = pD.toISOString().substring(0, 7);
       var b = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="adj-emp"><option value="">-- Select --</option>';
       teamMembers.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-dept="' + u.department + '">' + u.full_name + '</option>'; });
       b += '</select></div><div class="form-field"><label>Type *</label><select id="adj-type"><option value="bonus">🎁 Bonus (Reward)</option><option value="penalty">⚠️ Penalty (Deduction)</option></select></div></div>';
