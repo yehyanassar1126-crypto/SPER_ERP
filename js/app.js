@@ -1339,9 +1339,9 @@ Pages.empDashboard = function (el) {
   var monthEnd = currentMonth + '-' + lastDay;
 
   Promise.all([
-    sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).limit(1).maybeSingle(),
+    sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).limit(1).single(),
     sbClient.from('leave_requests').select('*').eq('employee_id', user.id),
-    sbClient.from('payroll').select('*').eq('employee_id', user.id).order('month', { ascending: false }).limit(1).maybeSingle(),
+    sbClient.from('payroll').select('*').eq('employee_id', user.id).order('month', { ascending: false }).limit(1).single(),
     sbClient.from('overtime').select('hours').eq('employee_id', user.id),
     sbClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(5),
     sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', user.id).gte('date', monthStart).lte('date', monthEnd),
