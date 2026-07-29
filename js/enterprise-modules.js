@@ -3221,8 +3221,8 @@ Pages.payrollFunding = function(el) {
 
   loadData();
 };
- 
- // ==========================================
+
+// ==========================================
 // MODULE: Chart of Accounts (General Ledger)
 // ==========================================
 Pages.chartOfAccounts = function(el) {
