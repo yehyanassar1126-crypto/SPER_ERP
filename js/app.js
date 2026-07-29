@@ -1339,17 +1339,17 @@ Pages.empDashboard = function (el) {
   var monthEnd = currentMonth + '-' + lastDay;
 
   Promise.all([
-    sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).limit(1).single(),
+    sbClient.from('attendance').select('*').eq('employee_id', user.id).eq('date', todayStr()).limit(1),
     sbClient.from('leave_requests').select('*').eq('employee_id', user.id),
-    sbClient.from('payroll').select('*').eq('employee_id', user.id).order('month', { ascending: false }).limit(1).single(),
+    sbClient.from('payroll').select('*').eq('employee_id', user.id).order('month', { ascending: false }).limit(1),
     sbClient.from('overtime').select('hours').eq('employee_id', user.id),
     sbClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(5),
     sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', user.id).gte('date', monthStart).lte('date', monthEnd),
     sbClient.from('salary_adjustments').select('*').eq('employee_id', user.id).eq('status', 'approved').eq('month', currentMonth)
   ]).then(function (results) {
-    var todayAtt = results[0].data || null;
+    var todayAtt = (results[0].data && results[0].data[0]) || null;
     var myLeaves = results[1].data || [];
-    var latestPay = results[2].data || null;
+    var latestPay = (results[2].data && results[2].data[0]) || null;
     var myOvertime = results[3].data || [];
     var announcements = results[4].data || [];
     var monthAttendance = results[5].data || [];
