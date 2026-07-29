@@ -136,11 +136,11 @@ var App = {
     if (o) o.classList.remove('open');
   },
 
-  isOwner: function () { return App.user && App.user.role === 'owner'; },
-  isHR: function () { return App.user && ['owner', 'hr manager', 'hr'].indexOf(App.user.role) !== -1; },
-  isManager: function () { return App.user && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager'].indexOf(App.user.role) !== -1; },
-  isNursing: function () { return App.user && App.user.role === 'nursing management'; },
-  getRoleLevel: function (r) { return r === 'owner' ? 6 : r === 'hr manager' ? 5 : r === 'hr' ? 4 : (r === 'hall manager' || r === 'nursing management') ? 3 : r === 'department head' ? 2 : 1; },
+  isOwner: function () { return App.user && App.user.role && App.user.role.toLowerCase() === 'owner'; },
+  isHR: function () { return App.user && App.user.role && ['owner', 'hr manager', 'hr'].indexOf(App.user.role.toLowerCase()) !== -1; },
+  isManager: function () { return App.user && App.user.role && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager'].indexOf(App.user.role.toLowerCase()) !== -1; },
+  isNursing: function () { return App.user && App.user.role && App.user.role.toLowerCase() === 'nursing management'; },
+  getRoleLevel: function (r) { if (!r) return 1; var rl = r.toLowerCase(); return rl === 'owner' ? 6 : rl === 'hr manager' ? 5 : rl === 'hr' ? 4 : (rl === 'hall manager' || rl === 'nursing management') ? 3 : rl === 'department head' ? 2 : 1; },
 
   showLoginError: function (msg) {
     var el = document.getElementById('login-error');
@@ -449,7 +449,34 @@ var App = {
       } else if (App.user && (App.user.department === 'Legal' || App.user.role === 'lawyer') && !App.isOwner()) {
         menu = [
           { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
-          { section: 'Collaboration (التواصل)', items: [{ id: 'internal-chat', label: 'Internal Chat (المحادثات)', icon: 'messageSquare' }] }
+          {
+            section: 'My Info (بياناتي)', items: [
+              { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
+              { id: 'scan-checkin', label: 'Check-In (حضور)', icon: 'logIn' },
+              { id: 'scan-checkout', label: 'Check-Out (انصراف)', icon: 'logOut' },
+              { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
+              { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
+              { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
+              { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
+              { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
+              { id: 'my-delays', label: 'تأخيراتي', icon: 'alertTriangle' },
+              { id: 'my-missions', label: 'المأموريات', icon: 'briefcase' },
+              { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
+              { id: 'complaints', label: 'My Complaints', icon: 'messageSquare' },
+            ]
+          },
+          { section: 'Legal & Compliance (الشؤون القانونية)', items: [
+              { id: 'legal-affairs', label: 'Legal Affairs (الشؤون القانونية)', icon: 'shield' }
+          ]},
+          { section: 'Other', items: [
+              { id: 'announcements', label: 'Announcements', icon: 'megaphone' },
+              { id: 'internal-chat', label: '💬 Chat', icon: 'messageSquare' },
+          ]},
+          { section: 'Workplace', items: [
+              { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' },
+              { id: 'calendar', label: '📅 Calendar', icon: 'calendarDays' },
+              { id: 'task-management', label: '📝 My Tasks', icon: 'checkCircle' },
+          ]},
         ];
       } else {
         menu = [
