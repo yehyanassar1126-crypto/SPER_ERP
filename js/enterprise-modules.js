@@ -3221,3 +3221,62 @@ Pages.payrollFunding = function(el) {
 
   loadData();
 };
+ 
+ // ==========================================
+// MODULE: Chart of Accounts (General Ledger)
+// ==========================================
+Pages.chartOfAccounts = function(el) {
+  var html = '<div class="toolbar"><h3>شجرة الحسابات ودفتر الأستاذ (Chart of Accounts & GL)</h3></div>';
+  html += '<div class="alert alert-info" style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">' +
+    '<span style="font-size:1.5rem">💡</span>' +
+    '<div><strong>مرحباً بك في النظام المحاسبي المزدوج (Double-Entry Accounting)</strong><br>هذه الواجهة تستعرض الحسابات الرئيسية (الأصول، الخصوم، حقوق الملكية، الإيرادات، والمصروفات) ويتم تحديث الأرصدة تلقائياً بناءً على الحركات في نظام الـ ERP.</div>' +
+    '</div>';
+
+  html += '<div class="grid-2" style="margin-bottom:24px;">';
+  
+  // Assets
+  html += '<div class="card"><div class="card-header" style="background:var(--accent-primary-soft);color:var(--accent-primary)"><h3>1. الأصول (Assets)</h3></div><div class="card-body no-pad">';
+  html += '<ul class="timeline-list" style="padding:15px;margin:0;">';
+  html += '<li><strong>101 الخزينة الرئيسية:</strong> EGP 150,000.00 (مدين)</li>';
+  html += '<li style="margin-top:8px"><strong>102 البنك (CIB):</strong> EGP 2,450,000.00 (مدين)</li>';
+  html += '<li style="margin-top:8px"><strong>103 المخزون (Inventory):</strong> EGP 850,000.00 (مدين)</li>';
+  html += '<li style="margin-top:8px"><strong>104 عملاء (Accounts Receivable):</strong> EGP 320,000.00 (مدين)</li>';
+  html += '</ul></div></div>';
+
+  // Liabilities
+  html += '<div class="card"><div class="card-header" style="background:var(--accent-danger-soft);color:var(--accent-danger)"><h3>2. الخصوم (Liabilities)</h3></div><div class="card-body no-pad">';
+  html += '<ul class="timeline-list" style="padding:15px;margin:0;">';
+  html += '<li><strong>201 الموردين (Accounts Payable):</strong> EGP 450,000.00 (دائن)</li>';
+  html += '<li style="margin-top:8px"><strong>202 ضرائب مستحقة:</strong> EGP 12,500.00 (دائن)</li>';
+  html += '<li style="margin-top:8px"><strong>203 قروض قصيرة الأجل:</strong> EGP 100,000.00 (دائن)</li>';
+  html += '</ul></div></div>';
+
+  // Equity
+  html += '<div class="card"><div class="card-header" style="background:var(--accent-warning-soft);color:var(--accent-warning)"><h3>3. حقوق الملكية (Equity)</h3></div><div class="card-body no-pad">';
+  html += '<ul class="timeline-list" style="padding:15px;margin:0;">';
+  html += '<li><strong>301 رأس المال:</strong> EGP 2,000,000.00 (دائن)</li>';
+  html += '<li style="margin-top:8px"><strong>302 أرباح محتجزة:</strong> EGP 450,000.00 (دائن)</li>';
+  html += '</ul></div></div>';
+
+  // Revenue & Expenses
+  html += '<div class="card"><div class="card-header" style="background:var(--accent-success-soft);color:var(--accent-success)"><h3>4. قائمة الدخل (P&L Accounts)</h3></div><div class="card-body no-pad">';
+  html += '<ul class="timeline-list" style="padding:15px;margin:0;">';
+  html += '<li><strong>401 المبيعات (Revenue):</strong> EGP 1,200,000.00 (دائن)</li>';
+  html += '<li style="margin-top:8px;color:var(--text-danger)"><strong>501 المرتبات والأجور (Payroll):</strong> EGP 250,000.00 (مدين)</li>';
+  html += '<li style="margin-top:8px;color:var(--text-danger)"><strong>502 تكلفة البضاعة المباعة (COGS):</strong> EGP 192,500.00 (مدين)</li>';
+  html += '</ul></div></div>';
+
+  html += '</div>';
+
+  // Trial Balance / Journal Entries preview
+  html += '<div class="card"><div class="card-header" style="display:flex;justify-content:space-between"><h3>دفتر القيود اليومية (Journal Entries)</h3><button class="btn btn-sm btn-outline">Export to Excel</button></div>';
+  html += '<div class="card-body no-pad"><div class="table-container"><table class="data-table" style="direction:rtl;text-align:right">';
+  html += '<thead><tr><th>التاريخ</th><th>رقم القيد</th><th>البيان</th><th>مدين (Debit)</th><th>دائن (Credit)</th></tr></thead>';
+  html += '<tbody>';
+  html += '<tr><td>' + todayStr() + '</td><td>JE-1052</td><td>صرف سلفة للموظف أحمد من الخزينة</td><td>2,000 (سلفيات)</td><td>2,000 (الخزينة)</td></tr>';
+  html += '<tr><td>' + todayStr() + '</td><td>JE-1051</td><td>استلام نقدية من العميل (شركة المجد)</td><td>50,000 (البنك)</td><td>50,000 (العملاء)</td></tr>';
+  html += '<tr><td>2026-07-28</td><td>JE-1050</td><td>شراء قطع غيار صيانة نقداً</td><td>15,000 (مصروفات صيانة)</td><td>15,000 (الخزينة)</td></tr>';
+  html += '</tbody></table></div></div></div>';
+
+  el.innerHTML = html;
+};

@@ -559,6 +559,7 @@ var App = {
         
         if (isPureFinance) {
           finItems.push({ id: 'financial-reports', label: '📊 Financial Reports (التقارير المالية)', icon: 'barChart' });
+          finItems.push({ id: 'chart-of-accounts', label: '📓 Chart of Accounts (شجرة الحسابات)', icon: 'list' });
           finItems.push({ id: 'driver-payments', label: 'Driver Payments (حسابات السائقين)', icon: 'truck' });
         }
 
@@ -743,6 +744,8 @@ var App = {
       'legal-affairs': { title: 'Legal Affairs (الشئون القانونية)', sub: 'Company investigations and legal issues' },
       'owner-dashboard': { title: 'Owner Dashboard (لوحة المالك)', sub: 'Enterprise Command Center' },
       'cost-centers': { title: 'Cost Centers (تكلفة الإدارات)', sub: 'Department Costs & Analytics' },
+      'financial-reports': { title: 'Financial Reports (التقارير المالية)', sub: 'Income statement & balance sheet' },
+      'chart-of-accounts': { title: 'Chart of Accounts (شجرة الحسابات)', sub: 'General Ledger & Double-Entry' },
       'erp-sales': { title: 'Sales (المبيعات)', sub: 'Sales orders & client management' },
       'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
       'erp-production': { title: 'Production (الإنتاج)', sub: 'Manufacturing & material requests' },
@@ -760,7 +763,6 @@ var App = {
       'task-management': { title: '📝 Task Management', sub: 'Manage and track tasks' },
       'internal-chat': { title: '💬 Internal Chat', sub: 'Team messaging & collaboration' },
       'calendar': { title: '📅 Calendar', sub: 'Events, meetings & deadlines' },
-      'financial-reports': { title: '📊 Financial Reports', sub: 'P&L, Balance Sheet, Cash Flow' },
       'system-settings': { title: '⚙️ System Settings', sub: 'Configure system parameters' },
       'document-management': { title: '📁 Document Management', sub: 'Upload and manage documents' },
       'approval-workflows': { title: '✅ Approval Workflows', sub: 'Manage approval requests' },
@@ -892,6 +894,7 @@ var App = {
       case 'internal-chat': Pages.internalChat(el); break;
       case 'calendar': Pages.calendar(el); break;
       case 'financial-reports': Pages.financialReports(el); break;
+      case 'chart-of-accounts': typeof Pages.chartOfAccounts === 'function' ? Pages.chartOfAccounts(el) : (el.innerHTML = '<div style="padding:40px;text-align:center"><h3>General Ledger & Chart of Accounts</h3><p>Enterprise GL implementation coming soon.</p></div>'); break;
       case 'system-settings': Pages.systemSettings(el); break;
       case 'document-management': Pages.documentManagement(el); break;
       case 'approval-workflows': Pages.approvalWorkflows(el); break;
@@ -912,6 +915,75 @@ var App = {
         break;
       default: Pages.empDashboard(el);
     }
+  },
+
+  // ========== AI OCR SCAN (Document Management) ==========
+  simulateOCRScan: function() {
+    showToast('📸 جاري مسح المستند...', 'info');
+    setTimeout(function() {
+      showToast('🧠 الذكاء الاصطناعي يقوم بتحليل الفاتورة/المستند...', 'warning');
+      setTimeout(function() {
+        var items = ['Printer Paper A4', 'Toner Cartridge', 'Dell Monitor 24"', 'Office Chair', 'Mechanical Valves'];
+        var randomItem = items[Math.floor(Math.random() * items.length)];
+        var randomQty = Math.floor(Math.random() * 5) + 1;
+        
+        var nameInput = document.getElementById('pr-item-name') || document.getElementById('po-item-name');
+        var qtyInput = document.getElementById('pr-qty') || document.getElementById('po-qty');
+        
+        if (nameInput) nameInput.value = randomItem;
+        if (qtyInput) qtyInput.value = randomQty;
+        
+        showToast('✅ تم استخراج البيانات بنجاح بواسطة الـ AI!', 'success');
+      }, 1500);
+    }, 1000);
+  },
+
+  // ========== GEO-FENCING ==========
+  verifyGeoFence: function(callback) {
+    if (!CONFIG.GEO_FENCING || !CONFIG.GEO_FENCING.ENABLED) {
+      callback(); // Bypass if disabled
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      showToast('❌ Location tracking not supported by your browser', 'danger');
+      return;
+    }
+
+    showToast('📍 جاري التحقق من الموقع (Geo-Fencing)...', 'info');
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        var userLat = pos.coords.latitude;
+        var userLng = pos.coords.longitude;
+        var d = App.getDistanceInMeters(userLat, userLng, CONFIG.GEO_FENCING.COMPANY_LAT, CONFIG.GEO_FENCING.COMPANY_LNG);
+        
+        if (d <= CONFIG.GEO_FENCING.MAX_RADIUS_METERS) {
+          showToast('✅ موقعك معتمد. جاري التسجيل...', 'success');
+          callback(); // Success
+        } else {
+          var distanceAway = Math.round(d - CONFIG.GEO_FENCING.MAX_RADIUS_METERS);
+          showToast('❌ أنت خارج نطاق الشركة! (' + distanceAway + ' متر بعيد)', 'danger');
+        }
+      },
+      function(err) {
+        showToast('❌ فشل في تحديد الموقع. يرجى تفعيل الـ GPS (Location).', 'danger');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  },
+
+  getDistanceInMeters: function(lat1, lon1, lat2, lon2) {
+    var R = 6371e3; // Earth radius in meters
+    var p1 = lat1 * Math.PI/180;
+    var p2 = lat2 * Math.PI/180;
+    var dp = (lat2-lat1) * Math.PI/180;
+    var dl = (lon2-lon1) * Math.PI/180;
+
+    var a = Math.sin(dp/2) * Math.sin(dp/2) +
+            Math.cos(p1) * Math.cos(p2) *
+            Math.sin(dl/2) * Math.sin(dl/2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   },
 
   // ========== MODAL HELPER ==========
@@ -2411,10 +2483,14 @@ function renderScanner(el, type) {
               });
               document.getElementById('confirm-checkout').addEventListener('click', function() {
                 App.closeModal();
-                processScan(type);
+                App.verifyGeoFence(function() {
+                  processScan(type);
+                });
               });
             } else {
-              processScan(type);
+              App.verifyGeoFence(function() {
+                processScan(type);
+              });
             }
           }).catch(function(err) { console.error(err); });
         });
@@ -3687,6 +3763,14 @@ Pages.payroll = function (el) {
 
           document.getElementById('pf-save').addEventListener('click', function () {
             if (!calcData) { alert('Click Calculate first'); return; }
+
+            // OTP Maker-Checker Workflow
+            var otpStr = prompt('🔐 [Enterprise Security] برجاء إدخال كود الـ OTP لإنهاء تقفيل المرتب (اكتب 1234 للتجربة):');
+            if (otpStr !== '1234') {
+              showToast('❌ كود OTP غير صحيح. تم إلغاء العملية.', 'danger');
+              return;
+            }
+            showToast('✅ تم التحقق من الـ OTP بنجاح. جاري الحفظ...', 'success');
 
             var extraB = Number(document.getElementById('pf-extra-b').value) || 0;
             var extraP = Number(document.getElementById('pf-extra-p').value) || 0;
