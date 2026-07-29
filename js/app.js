@@ -1590,7 +1590,7 @@ Pages.empDashboard = function (el) {
     el.innerHTML = html;
   }).catch(function(err) {
     console.error('empDashboard Error:', err);
-    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)"><h3>⚠️ حدث خطأ أثناء تحميل لوحتك</h3><p>' + (err.message || err) + '</p><button class="btn btn-primary" onclick="Pages.empDashboard(document.getElementById(\'main-content\'))">إعادة المحاولة</button></div>';
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)"><h3>⚠️ حدث خطأ أثناء تحميل لوحتك</h3><pre style="text-align:left;direction:ltr;background:#1a1a2e;color:#e94560;padding:16px;border-radius:8px;overflow:auto;font-size:12px;max-height:300px">' + (err.stack || err.message || err) + '</pre><button class="btn btn-primary" onclick="Pages.empDashboard(document.getElementById(\'main-content\'))">إعادة المحاولة</button></div>';
   });
 };
 
