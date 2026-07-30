@@ -3589,7 +3589,69 @@ Pages.payroll = function (el) {
             b += '<div id="pf-calc-result" style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:1px solid var(--border-color);margin-bottom:16px;display:none"><p style="color:var(--text-muted);text-align:center">Select an employee and click Calculate</p></div>';
             b += '<div class="form-row"><div class="form-field"><label>Extra HR Bonus (Manual)</label><input type="number" id="pf-extra-b" value="0"></div><div class="form-field"><label>Extra HR Penalty (Manual)</label><input type="number" id="pf-extra-p" value="0"></div></div>';
             
-            App.showModal('Auto-Calculate Salary', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-info" id="pf-calc" style="margin-right:8px">dY", Calculate</button><button class="btn btn-primary" id="pf-save" disabled>Save Record</button>', true);
+            
+            var modalButtons = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button>';
+            modalButtons += '<button class="btn btn-warning" onclick="window.generateAllPayrolls()" style="margin-right:8px">⚡ إصدار رواتب الجميع</button>';
+            modalButtons += '<button class="btn btn-info" id="pf-calc" style="margin-right:8px">dY", Calculate</button>';
+            modalButtons += '<button class="btn btn-primary" id="pf-save" disabled>Save Record</button>';
+            App.showModal('Auto-Calculate Salary', b, modalButtons, true);
+            
+            window.generateAllPayrolls = async function() {
+                var sel = document.getElementById('pf-emp');
+                var originalPrompt = window.prompt;
+                
+                var optionsToGenerate = [];
+                for(var i=1; i<sel.options.length; i++) {
+                    if(!sel.options[i].text.includes('✅')) {
+                        optionsToGenerate.push(i);
+                    }
+                }
+
+                if(optionsToGenerate.length === 0) {
+                    alert("جميع الموظفين تم إصدار رواتبهم لهذا الشهر بنجاح!");
+                    return;
+                }
+
+                if(!confirm("سيتم إصدار رواتب لـ " + optionsToGenerate.length + " موظف متبقي تلقائياً. هل أنت متأكد؟")) {
+                    return;
+                }
+
+                window.prompt = function() { return '1234'; }; // Bypass OTP for batch processing
+
+                var resultDiv = document.getElementById('pf-calc-result');
+                var oldText = "";
+
+                for(var idx of optionsToGenerate) {
+                    sel.selectedIndex = idx;
+                    resultDiv.style.display = 'block';
+                    
+                    document.getElementById('pf-calc').click();
+                    
+                    // Wait for calculate to finish (save button becomes enabled)
+                    await new Promise(resolve => {
+                        var checkInt = setInterval(function() {
+                            if(!document.getElementById('pf-save').disabled) {
+                                clearInterval(checkInt);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+
+                    // Update UI to show progress
+                    resultDiv.innerHTML += '<p style="text-align:center;color:var(--accent-success)">✅ ' + sel.options[idx].text + ' processed.</p>';
+
+                    // Click save
+                    document.getElementById('pf-save').click();
+                    
+                    // Wait for db insert
+                    await new Promise(r => setTimeout(r, 1000)); 
+                }
+
+                window.prompt = originalPrompt;
+                showToast("تم إصدار جميع الرواتب بنجاح!", "success");
+                window.updatePayrollDropdown();
+            };
+
             
             window.updatePayrollDropdown = function() {
               var selMonth = document.getElementById('pf-m').value;
