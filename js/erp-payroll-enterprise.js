@@ -106,6 +106,9 @@ Pages.payrollFunding = function(el) {
       }
     }
     if (isHR || isOwner) {
+      // Add "Generate Payroll" button right here for HR to easily issue salaries
+      html += '<button class="btn btn-primary" onclick="App.navigate(\'payroll\')"><i data-lucide="calculator"></i> إصدار راتب (Generate Payroll)</button>';
+      
       if(readyCount > 0) {
          html += '<button class="btn btn-success" onclick="window.prDisburseAll()"><i data-lucide="dollar-sign"></i> Disburse All Ready ('+readyCount+')</button>';
       } else {
