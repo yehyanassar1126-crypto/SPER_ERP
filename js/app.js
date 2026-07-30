@@ -3366,7 +3366,7 @@ Pages.overtime = function (el) {
 // ----- PAYROLL -----
 Pages.payroll = function (el) {
   var isPersonalView = (App.activePage === 'my-salary');
-  var isHRManagerOrOwner = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') && !isPersonalView;
+  var isHRManagerOrOwner = App.user && (App.isHR() || App.isOwner()) && !isPersonalView;
   var isFinance = App.user && App.user.department === 'Finance' && !isPersonalView;
   var isHR = isHRManagerOrOwner || isFinance;
   var payroll = isHR ? [] : [].filter(function (p) { return p.employee_id === App.user.id; });
