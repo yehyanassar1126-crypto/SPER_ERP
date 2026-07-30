@@ -3114,8 +3114,8 @@ Pages.itTickets = function(el) {
 Pages.payrollFunding = function(el) {
   var isFinance = App.user && App.user.department === 'Finance';
   var isOwner = App.isOwner();
-  var isHRManager = App.user && App.user.role === 'hr manager';
-  if(!isFinance && !isOwner && !isHRManager) {
+  var isHR = App.isHR();
+  if(!isFinance && !isOwner && !isHR) {
     el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Access Denied. Finance & Management only.</div>';
     return;
   }
@@ -3170,7 +3170,7 @@ Pages.payrollFunding = function(el) {
           html += '<div style="color:var(--text-muted)">⏳ بانتظار موافقة وتسليم الحسابات...</div>';
         }
       } else if (group.status === 'funds_released') {
-        if (isHRManager || isOwner) {
+        if (isHR || isOwner) {
           html += '<div style="display:flex;justify-content:center;gap:16px">';
           html += '<button class="btn btn-success btn-lg" onclick="window.acceptFunds(\'' + k + '\')">✅ استلام العهدة (Accept Funds)</button>';
           html += '<button class="btn btn-outline btn-lg" style="color:var(--accent-danger);border-color:var(--accent-danger)" onclick="window.rejectFunds(\'' + k + '\')">❌ رفض العهدة (Reject)</button>';
