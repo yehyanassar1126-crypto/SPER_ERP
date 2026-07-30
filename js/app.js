@@ -1484,8 +1484,8 @@ Pages.empDashboard = function (el) {
 
     var cumulative = 0;
     var dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    for (var d = 1; d <= dayOfMonth; d++) {
-      var dateStr = currentMonth + '-' + (d < 10 ? '0' + d : d);
+    for (var dayIdx = 1; dayIdx <= dayOfMonth; dayIdx++) {
+      var dateStr = currentMonth + '-' + (dayIdx < 10 ? '0' + dayIdx : dayIdx);
       var dateObj = new Date(dateStr + 'T00:00:00');
       var dayName = dayNames[dateObj.getDay()];
       var isFriday = dateObj.getDay() === 5;
@@ -1497,7 +1497,7 @@ Pages.empDashboard = function (el) {
       var earnLabel = '-';
 
       if (isFriday) {
-        if (d >= firstActiveDay) {
+        if (dayIdx >= firstActiveDay) {
           dayEarned = dailyRate;
           cumulative += dayEarned;
           statusBadge = '<span style="background:rgba(99,102,241,0.1);color:#6366f1;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">إجازة رسمية مدفوعة</span>';
@@ -1525,7 +1525,7 @@ Pages.empDashboard = function (el) {
         statusBadge = '<span style="background:rgba(59,130,246,0.1);color:#3b82f6;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">⛱️ إجازة معتمدة</span>';
         rowBg = 'background:rgba(59,130,246,0.02);';
         earnLabel = '<span style="color:#3b82f6">+' + dayEarned.toLocaleString() + '</span>';
-      } else if (d < dayOfMonth) {
+      } else if (dayIdx < dayOfMonth) {
         statusBadge = '<span style="background:rgba(239,68,68,0.1);color:#ef4444;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">❌ غائب</span>';
         rowBg = 'background:rgba(239,68,68,0.02);';
       } else {
@@ -1535,7 +1535,7 @@ Pages.empDashboard = function (el) {
       var barWidth = baseSalary > 0 ? Math.round((cumulative / baseSalary) * 100) : 0;
       html += '<tr style="border-bottom:1px solid var(--border-color);' + rowBg + '">';
       html += '<td style="padding:8px 12px;font-weight:600;color:var(--text-primary)">' + dayName + '</td>';
-      html += '<td style="padding:8px 12px;color:var(--text-secondary);direction:ltr;text-align:right">' + d + '/' + (todayDate.getMonth() + 1) + '</td>';
+      html += '<td style="padding:8px 12px;color:var(--text-secondary);direction:ltr;text-align:right">' + dayIdx + '/' + (todayDate.getMonth() + 1) + '</td>';
       html += '<td style="padding:8px 12px;text-align:center">' + statusBadge + '</td>';
       html += '<td style="padding:8px 12px;font-weight:700">' + earnLabel + '</td>';
       html += '<td style="padding:8px 12px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;min-width:50px"><div style="width:' + barWidth + '%;height:100%;background:linear-gradient(90deg,#6366f1,#06b6d4);border-radius:3px"></div></div><span style="font-weight:800;color:var(--text-primary);min-width:70px;text-align:left;font-size:0.78rem">' + cumulative.toLocaleString() + '</span></div></td>';
