@@ -300,7 +300,7 @@ var App = {
           { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
               { id: 'shifts', label: 'Shift Management', icon: 'clock' },
               { id: 'overtime', label: 'Overtime', icon: 'timer' },
-              ...(App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }] : []),
+              ...(App.user && (App.isHR() || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }] : []),
               { id: 'hr-adjustments', label: 'Salary Adjustments', icon: 'fileText' },
               { id: 'recruitment', label: 'Recruitment', icon: 'userCheck' },
               { id: 'hr-ats', label: '🤖 AI ATS (فحص السير الذاتية)', icon: 'search' },
