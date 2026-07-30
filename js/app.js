@@ -1376,6 +1376,7 @@ Pages.empDashboard = function (el) {
     var earnedSoFar = 0;
     var totalLateDeduction = 0;
     monthAttendance.forEach(function (att) {
+      if (!att) return;
       var dm = att.delay_minutes || 0;
       var lateDed = 0;
       if (dm > 360) lateDed = dailyRate * 1;
@@ -1394,10 +1395,12 @@ Pages.empDashboard = function (el) {
       firstActiveDay = 99; // no active days, all fridays unpaid
     } else {
       monthAttendance.forEach(function (att) {
+        if (!att || !att.date) return;
         var dayNum = parseInt(att.date.split('-')[2], 10);
         if (dayNum < firstActiveDay) firstActiveDay = dayNum;
       });
       myLeaves.forEach(function(lv) {
+        if (!lv || !lv.start_date) return;
         if (lv.start_date >= monthStart && lv.start_date <= monthEnd && lv.status === 'approved') {
           var dayNum = parseInt(lv.start_date.split('-')[2], 10);
           if (dayNum < firstActiveDay) firstActiveDay = dayNum;
