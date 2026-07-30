@@ -1,7 +1,6 @@
 {
   "lang_en": "English",
   "lang_ar": "العربية",
-  
   "sidebar_dashboard": "لوحة التحكم",
   "sidebar_attendance": "الحضور والانصراف",
   "sidebar_delays_log": "سجل التأخير",
@@ -16,11 +15,11 @@
   "sidebar_recruitment": "التوظيف",
   "sidebar_hr_ats": "الذكاء الاصطناعي للتوظيف",
   "sidebar_documents": "المستندات",
-  "sidebar_performance": "الأداء",
+  "sidebar_performance": "تقييم الأداء",
   "sidebar_uniforms": "الزي الرسمي",
   "sidebar_medical_requests": "الطلبات الطبية",
   "sidebar_medical_approvals": "الموافقات الطبية",
-  "sidebar_loans": "السلف والقروض",
+  "sidebar_loans": "السلفيات والقروض",
   "sidebar_expenses": "المصروفات",
   "sidebar_disciplinary": "الجزاءات والشكاوى",
   "sidebar_friday_work": "عمل الجمعة",
@@ -28,7 +27,6 @@
   "sidebar_financial_reports": "التقارير المالية",
   "sidebar_chart_of_accounts": "دليل الحسابات",
   "sidebar_system_settings": "إعدادات النظام",
-  
   "sidebar_sales_dashboard": "لوحة المبيعات",
   "sidebar_purchase_workflow": "إدارة المشتريات",
   "sidebar_warehouse_inventory": "المخازن",
@@ -36,8 +34,15 @@
   "sidebar_maintenance_fleet": "الصيانة وحركة السيارات",
   "sidebar_legal_affairs": "الشؤون القانونية",
   "sidebar_quality_control": "مراقبة الجودة",
-  
   "btn_logout": "تسجيل الخروج",
   "loading": "جاري التحميل...",
-  "access_denied": "مرفوض الوصول"
+  "access_denied": "مرفوض الوصول",
+  "sidebar_all_delays": "سجل التأخيرات",
+  "sidebar_all_missions": "سجل المأموريات",
+  "sidebar_absence_leave": "طلبات الأذونات",
+  "sidebar_leaves": "طلبات الإجازات",
+  "sidebar_shifts": "إدارة الورديات",
+  "sidebar_hr_adjustments": "تعديلات الرواتب",
+  "sidebar_nursing_medical_approvals": "موافقات التمريض",
+  "sidebar_complaints": "الشكاوى والجزاءات"
 }

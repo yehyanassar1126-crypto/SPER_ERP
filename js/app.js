@@ -4802,6 +4802,12 @@ function _statCard(color, iconName, value, label, trendHtml) {
 }
 
 // ========== START APP ==========
-document.addEventListener('DOMContentLoaded', function () { App.init(); });
+document.addEventListener('DOMContentLoaded', function () { 
+  if (window.I18n) {
+    window.I18n.init(function() { App.init(); });
+  } else {
+    App.init(); 
+  }
+});
 
 

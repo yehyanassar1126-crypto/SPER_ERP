@@ -1,7 +1,6 @@
 {
   "lang_en": "English",
   "lang_ar": "العربية",
-  
   "sidebar_dashboard": "Dashboard",
   "sidebar_attendance": "Attendance",
   "sidebar_delays_log": "Delays Log",
@@ -28,7 +27,6 @@
   "sidebar_financial_reports": "Financial Reports",
   "sidebar_chart_of_accounts": "Chart of Accounts",
   "sidebar_system_settings": "System Settings",
-  
   "sidebar_sales_dashboard": "Sales Dashboard",
   "sidebar_purchase_workflow": "Purchase Workflow",
   "sidebar_warehouse_inventory": "Warehouse / Inventory",
@@ -36,8 +34,15 @@
   "sidebar_maintenance_fleet": "Maintenance & Fleet",
   "sidebar_legal_affairs": "Legal Affairs",
   "sidebar_quality_control": "Quality Control",
-  
   "btn_logout": "Logout",
   "loading": "Loading...",
-  "access_denied": "Access Denied"
+  "access_denied": "Access Denied",
+  "sidebar_all_delays": "Delays Log",
+  "sidebar_all_missions": "Missions Log",
+  "sidebar_absence_leave": "Permission Requests",
+  "sidebar_leaves": "Leave Requests",
+  "sidebar_shifts": "Shift Management",
+  "sidebar_hr_adjustments": "Salary Adjustments",
+  "sidebar_nursing_medical_approvals": "Nursing Approvals",
+  "sidebar_complaints": "Complaints"
 }
