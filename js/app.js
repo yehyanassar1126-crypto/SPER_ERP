@@ -874,6 +874,17 @@ var App = {
       case 'inventory': Pages.inventory(el); break;
       case 'purchase-requests': Pages.purchaseRequests(el); break;
       case 'petty-cash': Pages.pettyCash(el); break;
+      case 'finance-kpi': if (Pages.financeKPI) Pages.financeKPI(el); else el.innerHTML = 'Module loading...'; break;
+      case 'bank-management': if (Pages.bankManagement) Pages.bankManagement(el); else el.innerHTML = 'Module loading...'; break;
+      case 'check-management': if (Pages.checkManagement) Pages.checkManagement(el); else el.innerHTML = 'Module loading...'; break;
+      case 'loans-taxes': if (Pages.loansTaxes) Pages.loansTaxes(el); else el.innerHTML = 'Module loading...'; break;
+      case 'budgets-inventory': if (Pages.budgetsInventory) Pages.budgetsInventory(el); else el.innerHTML = 'Module loading...'; break;
+      case 'fixed-assets': if (Pages.fixedAssets) Pages.fixedAssets(el); else el.innerHTML = 'Module loading...'; break;
+      case 'journal-engine': if (Pages.journalEngine) Pages.journalEngine(el); else el.innerHTML = 'Module loading...'; break;
+      case 'closing-wizard': if (Pages.closingWizard) Pages.closingWizard(el); else el.innerHTML = 'Module loading...'; break;
+      case 'finance-reports-ent': if (Pages.financialReportsEnterprise) Pages.financialReportsEnterprise(el); else el.innerHTML = 'Module loading...'; break;
+      case 'ai-cfo': if (Pages.aiCFO) Pages.aiCFO(el); else el.innerHTML = 'Module loading...'; break;
+
       case 'payroll-funding': Pages.payrollFunding(el); break;
       case 'it-tickets': Pages.itTickets(el); break;
       case 'erp-sales': Pages.sales(el); break;

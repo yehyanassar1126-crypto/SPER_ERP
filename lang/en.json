@@ -44,5 +44,16 @@
   "sidebar_shifts": "Shift Management",
   "sidebar_hr_adjustments": "Salary Adjustments",
   "sidebar_nursing_medical_approvals": "Nursing Approvals",
-  "sidebar_complaints": "Complaints"
+  "sidebar_complaints": "Complaints",
+  "sidebar_finance_kpi": "Financial KPIs",
+  "sidebar_bank_management": "Bank Management",
+  "sidebar_journal_engine": "Journal Engine",
+  "sidebar_checks": "Checks Lifecycle",
+  "sidebar_loans_taxes": "Loans & Taxes",
+  "sidebar_budgets": "Budgets & Valuation",
+  "sidebar_fixed_assets": "Fixed Assets",
+  "sidebar_ai_cfo": "AI CFO & Simulation",
+  "sidebar_closing_wizard": "Closing & Audit",
+  "sidebar_finance_reports_ent": "Professional Reports",
+  "sidebar_driver_payments": "Driver Payments"
 }

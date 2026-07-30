@@ -44,5 +44,16 @@
   "sidebar_shifts": "إدارة الورديات",
   "sidebar_hr_adjustments": "تعديلات الرواتب",
   "sidebar_nursing_medical_approvals": "موافقات التمريض",
-  "sidebar_complaints": "الشكاوى والجزاءات"
+  "sidebar_complaints": "الشكاوى والجزاءات",
+  "sidebar_finance_kpi": "المؤشرات المالية (KPIs)",
+  "sidebar_bank_management": "إدارة البنوك",
+  "sidebar_journal_engine": "محرك القيود اليومية",
+  "sidebar_checks": "دورة حياة الشيكات",
+  "sidebar_loans_taxes": "القروض والضرائب",
+  "sidebar_budgets": "الميزانيات وتقييم المخزون",
+  "sidebar_fixed_assets": "الأصول الثابتة",
+  "sidebar_ai_cfo": "المدير المالي الذكي",
+  "sidebar_closing_wizard": "الإغلاق والمراجعة",
+  "sidebar_finance_reports_ent": "التقارير الاحترافية",
+  "sidebar_driver_payments": "حسابات السائقين"
 }
