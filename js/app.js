@@ -3576,18 +3576,39 @@ Pages.payroll = function (el) {
     document.getElementById('pay-export').addEventListener('click', function () { exportToExcel(data, 'payroll_report'); });
 
     if (document.getElementById('add-payroll')) {
-      document.getElementById('add-payroll').addEventListener('click', function () {
-        sbClient.from('users').select('id, full_name, base_salary, department, insurance_active, insurance_start, created_at, insurance_salary').eq('status', 'active').then(function (res) {
-          var users = res.data || [];
-          var d = new Date();
-          var pD = d.getDate() <= 5 ? new Date(d.getFullYear(), d.getMonth(), 0) : d;
-          var monthVal = pD.toISOString().substring(0, 7);
-          var b = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="pf-emp"><option value="">-- Select --</option>';
-          users.forEach(function (u) { b += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-base="' + (u.base_salary || 0) + '" data-dept="' + u.department + '" data-insured="' + (u.insurance_active ? '1' : '0') + '" data-ins-salary="' + (u.insurance_salary || 0) + '" data-pos="' + (u.position || '') + '" data-hire="' + (u.created_at || '') + '">' + u.full_name + ' - ' + u.department + (u.insurance_active ? '' : ' (No Insurance)') + '</option>'; });
-          b += '</select></div><div class="form-field"><label>Month *</label><input type="month" id="pf-m" value="' + monthVal + '"></div></div>';
-          b += '<div id="pf-calc-result" style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:1px solid var(--border-color);margin-bottom:16px;display:none"><p style="color:var(--text-muted);text-align:center">Select an employee and click Calculate</p></div>';
-          b += '<div class="form-row"><div class="form-field"><label>Extra HR Bonus (Manual)</label><input type="number" id="pf-extra-b" value="0"></div><div class="form-field"><label>Extra HR Penalty (Manual)</label><input type="number" id="pf-extra-p" value="0"></div></div>';
-          App.showModal('Auto-Calculate Salary', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-info" id="pf-calc" style="margin-right:8px">🔄 Calculate</button><button class="btn btn-primary" id="pf-save" disabled>Save Record</button>', true);
+        document.getElementById('add-payroll').addEventListener('click', function () {
+          sbClient.from('users').select('id, full_name, base_salary, department, insurance_active, insurance_start, created_at, insurance_salary').eq('status', 'active').then(function (res) {
+            var users = res.data || [];
+            window._payrollUsersCache = users; // Store for re-rendering
+            var d = new Date();
+            var pD = d.getDate() <= 5 ? new Date(d.getFullYear(), d.getMonth(), 0) : d;
+            var monthVal = pD.toISOString().substring(0, 7);
+            
+            var b = '<div class="form-row"><div class="form-field"><label>Employee *</label><select id="pf-emp"><option value="">-- Select --</option></select></div>';
+            b += '<div class="form-field"><label>Month *</label><input type="month" id="pf-m" value="' + monthVal + '" onchange="window.updatePayrollDropdown()"></div></div>';
+            b += '<div id="pf-calc-result" style="padding:16px;background:var(--bg-tertiary);border-radius:var(--radius-md);border:1px solid var(--border-color);margin-bottom:16px;display:none"><p style="color:var(--text-muted);text-align:center">Select an employee and click Calculate</p></div>';
+            b += '<div class="form-row"><div class="form-field"><label>Extra HR Bonus (Manual)</label><input type="number" id="pf-extra-b" value="0"></div><div class="form-field"><label>Extra HR Penalty (Manual)</label><input type="number" id="pf-extra-p" value="0"></div></div>';
+            
+            App.showModal('Auto-Calculate Salary', b, '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-info" id="pf-calc" style="margin-right:8px">dY", Calculate</button><button class="btn btn-primary" id="pf-save" disabled>Save Record</button>', true);
+            
+            window.updatePayrollDropdown = function() {
+              var selMonth = document.getElementById('pf-m').value;
+              sbClient.from('payroll').select('user_id').eq('month', selMonth).then(function(pRes) {
+                var generatedIds = (pRes.data || []).map(x => x.user_id);
+                var sel = document.getElementById('pf-emp');
+                var prevVal = sel.value;
+                var opts = '<option value="">-- Select --</option>';
+                window._payrollUsersCache.forEach(function (u) { 
+                  var isGenerated = generatedIds.includes(u.id);
+                  var label = u.full_name + ' - ' + u.department + (u.insurance_active ? '' : ' (No Insurance)') + (isGenerated ? ' ✅ (تم الإصدار)' : '');
+                  opts += '<option value="' + u.id + '" data-name="' + u.full_name + '" data-base="' + (u.base_salary || 0) + '" data-dept="' + u.department + '" data-insured="' + (u.insurance_active ? '1' : '0') + '" data-ins-salary="' + (u.insurance_salary || 0) + '" data-pos="' + (u.position || '') + '" data-hire="' + (u.created_at || '') + '">' + label + '</option>'; 
+                });
+                sel.innerHTML = opts;
+                sel.value = prevVal; // restore selection
+              });
+            };
+            
+            window.updatePayrollDropdown(); // initial call
 
           var calcData = null;
 
