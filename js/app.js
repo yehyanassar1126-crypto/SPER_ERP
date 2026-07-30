@@ -3616,6 +3616,11 @@ Pages.payroll = function (el) {
                     return;
                 }
 
+                var userOtp = originalPrompt('أدخل رمز OTP للموافقة على إصدار رواتب الجميع (1234):');
+                if (userOtp !== '1234') {
+                    showToast('تم إلغاء العملية: رمز OTP غير صحيح', 'danger');
+                    return;
+                }
                 window.prompt = function() { return '1234'; }; // Bypass OTP for batch processing
 
                 var resultDiv = document.getElementById('pf-calc-result');
