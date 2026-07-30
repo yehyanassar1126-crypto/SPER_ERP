@@ -1700,13 +1700,13 @@ Pages.deptPurchaseApprovals = function(el) {
 Pages.pettyCash = function(el) {
   var isFinance = App.user && App.user.department === 'Finance';
   var isOwner = App.isOwner();
-  var isHRManager = App.user && App.user.role === 'hr manager';
+  var isHR = App.isHR();
   var isProcManager = App.user && App.user.department === 'Procurement' && (App.user.role === 'procurement manager' || App.user.role === 'manager');
   var isProcEmp = App.user && App.user.department === 'Procurement' && !isProcManager;
   var isChiefAcc = App.user && App.user.role === 'chief accountant';
   var isCFO = App.user && App.user.role === 'cfo';
 
-  var isAllowed = isFinance || isOwner || isHRManager || isProcManager || isProcEmp || isChiefAcc || isCFO;
+  var isAllowed = isFinance || isOwner || isHR || isProcManager || isProcEmp || isChiefAcc || isCFO;
 
   if (!isAllowed) {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to Finance, Procurement, and Management.</p></div>';
