@@ -284,7 +284,7 @@ var App = {
         if (!App.isOwner()) {
           menu.push({
             section: 'Overview', items: [
-              { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard' }
+              { id: 'dashboard', label: window.I18n ? window.I18n.t('sidebar_dashboard') : 'Dashboard', icon: 'layoutDashboard' }
             ]
           });
         }
@@ -293,26 +293,26 @@ var App = {
           {
             section: 'Management', items: [
               { id: 'employees', label: 'Employees', icon: 'users' },
-              { id: 'attendance', label: 'Attendance', icon: 'calendarCheck' },
-              { id: 'all-delays', label: 'Delays Log', icon: 'alertTriangle' },
-              { id: 'all-missions', label: 'Missions', icon: 'briefcase' },
-              { id: 'absence-leave', label: 'Permission Requests', icon: 'calendarDays' },
-          { id: 'leaves', label: 'Leave Requests', icon: 'calendarDays' },
-              { id: 'shifts', label: 'Shift Management', icon: 'clock' },
-              { id: 'overtime', label: 'Overtime', icon: 'timer' },
-              ...(App.user && (App.isHR() || App.user.role === 'owner') ? [{ id: 'payroll', label: 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' }] : []),
-              { id: 'hr-adjustments', label: 'Salary Adjustments', icon: 'fileText' },
-              { id: 'recruitment', label: 'Recruitment', icon: 'userCheck' },
-              { id: 'hr-ats', label: '🤖 AI ATS (فحص السير الذاتية)', icon: 'search' },
-              { id: 'documents', label: 'Documents', icon: 'fileText' },
-              { id: 'performance', label: 'Performance', icon: 'trendingUp' },
-              { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
-              { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
-              { id: 'nursing-medical-approvals', label: '🏥 Medical Approvals (موافقات طبية)', icon: 'heart' },
-              { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
-              { id: 'expenses', label: 'Expenses', icon: 'receipt' },
-              { id: 'complaints', label: 'Disciplinary & Grievances', icon: 'gavel' },
-              { id: 'friday-work', label: 'Friday Work (عمل الجمعة)', icon: 'calendarPlus' },
+              { id: 'attendance', label: window.I18n ? window.I18n.t('sidebar_attendance') : 'Attendance', icon: 'calendarCheck' },
+              { id: 'all-delays', label: window.I18n ? window.I18n.t('sidebar_all_delays') : 'Delays Log', icon: 'alertTriangle' },
+              { id: 'all-missions', label: window.I18n ? window.I18n.t('sidebar_all_missions') : 'Missions', icon: 'briefcase' },
+              { id: 'absence-leave', label: window.I18n ? window.I18n.t('sidebar_absence_leave') : 'Permission Requests', icon: 'calendarDays' },
+          { id: 'leaves', label: window.I18n ? window.I18n.t('sidebar_leaves') : 'Leave Requests', icon: 'calendarDays' },
+              { id: 'shifts', label: window.I18n ? window.I18n.t('sidebar_shifts') : 'Shift Management', icon: 'clock' },
+              { id: 'overtime', label: window.I18n ? window.I18n.t('sidebar_overtime') : 'Overtime', icon: 'timer' },
+              ...(App.user && (App.isHR() || App.user.role === 'owner') ? [{ id: 'payroll', label: window.I18n ? window.I18n.t('sidebar_payroll') : 'Payroll', icon: 'dollarSign' }, { id: 'payroll-funding', label: window.I18n ? window.I18n.t('sidebar_payroll_funding') : 'Payroll Funding', icon: 'briefcase' }] : []),
+              { id: 'hr-adjustments', label: window.I18n ? window.I18n.t('sidebar_hr_adjustments') : 'Salary Adjustments', icon: 'fileText' },
+              { id: 'recruitment', label: window.I18n ? window.I18n.t('sidebar_recruitment') : 'Recruitment', icon: 'userCheck' },
+              { id: 'hr-ats', label: window.I18n ? window.I18n.t('sidebar_hr_ats') : 'AI ATS', icon: 'search' },
+              { id: 'documents', label: window.I18n ? window.I18n.t('sidebar_documents') : 'Documents', icon: 'fileText' },
+              { id: 'performance', label: window.I18n ? window.I18n.t('sidebar_performance') : 'Performance', icon: 'trendingUp' },
+              { id: 'uniforms', label: window.I18n ? window.I18n.t('sidebar_uniforms') : 'Uniforms', icon: 'shield' },
+              { id: 'medical-requests', label: window.I18n ? window.I18n.t('sidebar_medical_requests') : 'Medical Requests', icon: 'heart' },
+              { id: 'nursing-medical-approvals', label: window.I18n ? window.I18n.t('sidebar_nursing_medical_approvals') : 'Medical Approvals', icon: 'heart' },
+              { id: 'loans', label: window.I18n ? window.I18n.t('sidebar_loans') : 'Loans & Advances', icon: 'creditCard' },
+              { id: 'expenses', label: window.I18n ? window.I18n.t('sidebar_expenses') : 'Expenses', icon: 'receipt' },
+              { id: 'complaints', label: window.I18n ? window.I18n.t('sidebar_complaints') : 'Disciplinary & Grievances', icon: 'gavel' },
+              { id: 'friday-work', label: window.I18n ? window.I18n.t('sidebar_friday_work') : 'Friday Work', icon: 'calendarPlus' },
               { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
               { id: 'performance-reviews', label: '⭐ Performance Reviews (تقييم الأداء)', icon: 'trendingUp' },
               { id: 'training', label: '🎓 Training (التدريب)', icon: 'book' },
@@ -386,7 +386,7 @@ var App = {
             section: 'Team Management', items: [
               { id: 'leaves', label: '📋 Leave Approvals (موافقات الإجازات)', icon: 'calendarDays' },
               { id: 'dept-purchase-approvals', label: '📦 Purchase Approvals (موافقات المشتريات)', icon: 'shoppingCart' },
-              { id: 'friday-work', label: 'Friday Work (عمل الجمعة)', icon: 'calendarPlus' },
+              { id: 'friday-work', label: window.I18n ? window.I18n.t('sidebar_friday_work') : 'Friday Work', icon: 'calendarPlus' },
               { id: 'team-adjustments', label: 'Team Adjustments', icon: 'fileText' },
             ]
           },
@@ -425,7 +425,7 @@ var App = {
           { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
           {
             section: 'Nursing Management (إدارة التمريض)', items: [
-              { id: 'nursing-medical-approvals', label: '🏥 Medical Approvals (موافقات طبية)', icon: 'heart' },
+              { id: 'nursing-medical-approvals', label: window.I18n ? window.I18n.t('sidebar_nursing_medical_approvals') : 'Medical Approvals', icon: 'heart' },
             ]
           },
           {
@@ -517,7 +517,8 @@ var App = {
             { id: 'owner-dashboard', label: 'Owner Dashboard (لوحة المالك)', icon: 'globe' },
             { id: 'ceo-dashboard', label: 'CEO Dashboard (لوحة المدير)', icon: 'trendingUp' },
             { id: 'cost-centers', label: 'Cost Centers (تكلفة الإدارات)', icon: 'pieChart' },
-            { id: 'activity-timeline', label: 'Activity Timeline (سجل العمليات)', icon: 'clock' }
+            { id: 'activity-timeline', label: 'Activity Timeline (سجل العمليات)', icon: 'clock' },
+            { id: 'ai-ceo-dashboard', label: '🧠 AI CEO Dashboard (لوحة الذكاء الاصطناعي)', icon: 'brain' }
           ]
         });
       }
@@ -553,7 +554,7 @@ var App = {
         }
         
         if (canViewFinance) {
-          finItems.push({ id: 'payroll-funding', label: 'Payroll Funding (صرف المرتبات)', icon: 'briefcase' });
+          finItems.push({ id: 'payroll-funding', label: window.I18n ? window.I18n.t('sidebar_payroll_funding') : 'Payroll Funding', icon: 'briefcase' });
           finItems.push({ id: 'payroll', label: 'Payroll (سجل الرواتب)', icon: 'dollarSign' });
         }
         
@@ -907,6 +908,7 @@ var App = {
         break;
       case 'employee-warnings': Pages.employeeWarnings(el); break;
       case 'ceo-dashboard': if (Pages['ceo-dashboard']) Pages['ceo-dashboard'](el); else el.innerHTML = 'Module loading...'; break;
+      case 'ai-ceo-dashboard': if (Pages.aiCeoDashboard) Pages.aiCeoDashboard(el); else el.innerHTML = 'AI Module loading...'; break;
       case 'activity-timeline': if (Pages['activity-timeline']) Pages['activity-timeline'](el); else el.innerHTML = 'Module loading...'; break;
       case 'dept-purchase-approvals': if (Pages['deptPurchaseApprovals']) Pages['deptPurchaseApprovals'](el); else el.innerHTML = 'Module loading...'; break;
       case 'dashboard':
@@ -3993,7 +3995,7 @@ Pages.reports = function (el) {
 
   function render() {
     var html = '<div style="margin-bottom:24px;border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:4px;background:var(--bg-card);display:inline-flex;gap:0;flex-wrap:wrap;">';
-    var tabs = [{ id: 'attendance', label: '📊 Attendance' }, { id: 'absenteeism', label: '🔴 Absenteeism' }, { id: 'performance', label: '📈 Dept Performance' }, { id: 'absence-leave', label: 'Permission Requests', icon: 'calendarDays' },
+    var tabs = [{ id: 'attendance', label: '📊 Attendance' }, { id: 'absenteeism', label: '🔴 Absenteeism' }, { id: 'performance', label: '📈 Dept Performance' }, { id: 'absence-leave', label: window.I18n ? window.I18n.t('sidebar_absence_leave') : 'Permission Requests', icon: 'calendarDays' },
           { id: 'leaves', label: '🏖️ Leave Analytics' }, { id: 'procurement', label: '🛒 Procurement' }, { id: 'inventory', label: '📦 Inventory' }, { id: 'expenses', label: '💰 Expenses' }];
     tabs.forEach(function (tab) {
       html += '<button class="tab' + (activeReport === tab.id ? ' active' : '') + '" data-report="' + tab.id + '" style="border-bottom:none;border-radius:var(--radius-md);margin:0;background:' + (activeReport === tab.id ? 'var(--accent-primary-soft)' : 'transparent') + '">' + tab.label + '</button>';
