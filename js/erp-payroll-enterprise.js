@@ -19,7 +19,7 @@ Pages.payrollFunding = function(el) {
     
     Promise.all([
       sbClient.from('payroll').select('*').in('status', ['processing', 'funds_released', 'paid']),
-      sbClient.from('employees').select('id,name,department,employee_id')
+      sbClient.from('users').select('id,full_name,department')
     ]).then(function(res) {
       if(res[0].error || res[1].error) { 
         el.innerHTML = '<div class="alert alert-danger">Database error.</div>'; 
@@ -136,9 +136,9 @@ Pages.payrollFunding = function(el) {
     html += '<tbody>';
     
     filteredPayroll.forEach(p => {
-      var emp = employees.find(e => e.id === p.user_id) || {name: 'Unknown', employee_id: 'N/A', department: 'N/A'};
+      var emp = employees.find(e => e.id === p.user_id) || {full_name: 'Unknown', department: 'N/A'};
       html += '<tr>';
-      html += '<td><strong>'+emp.name+'</strong><br><small class="text-muted">'+emp.department+' | '+emp.employee_id+'</small></td>';
+      html += '<td><strong>'+emp.full_name+'</strong><br><small class="text-muted">'+emp.department+'</small></td>';
       html += '<td>EGP '+Math.round(p.basic_salary||0).toLocaleString()+'</td>';
       html += '<td>EGP '+Math.round(p.overtime_value||0).toLocaleString()+'</td>';
       html += '<td class="text-danger">EGP '+Math.round(p.total_deductions||0).toLocaleString()+'</td>';
@@ -270,9 +270,9 @@ Pages.payrollFunding = function(el) {
 
   window.prViewDetails = function(id) {
     var p = payrollData.find(x => x.id === id);
-    var emp = employees.find(e => e.id === p.user_id);
+    var emp = employees.find(e => e.id === p.user_id) || {full_name: 'Unknown'};
     var body = '<table class="table table-bordered">';
-    body += '<tr><th>Employee</th><td>'+emp.name+'</td></tr>';
+    body += '<tr><th>Employee</th><td>'+emp.full_name+'</td></tr>';
     body += '<tr><th>Basic</th><td>'+(p.basic_salary||0)+'</td></tr>';
     body += '<tr><th>Overtime</th><td>'+(p.overtime_value||0)+'</td></tr>';
     body += '<tr><th>Deductions</th><td>'+(p.total_deductions||0)+'</td></tr>';
