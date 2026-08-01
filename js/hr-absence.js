@@ -1,3 +1,4 @@
+window.icon = window.icon || function(n){return '<i data-lucide="'+n+'"></i>';};
 // ==========================================
 // Absence & Leave Workflow Module
 // ==========================================
@@ -37,18 +38,11 @@ var HRAbsenceModule = {
     }).then(function(){});
   },
 
-  isHR: function() {
-    return App.user && ['hr', 'hr manager', 'owner'].includes(App.user.role.toLowerCase());
-  },
+  isHR: function() { return App.isHR(); },
 
-  isHRManager: function() {
-    return App.user && ['hr manager', 'owner'].includes(App.user.role.toLowerCase());
-  },
+  isHRManager: function() { return App.isOwner() || (App.user && App.user.role && App.user.role.toLowerCase() === 'hr manager'); },
 
-  isManager: function() {
-    if (!App.user) return false;
-    return App.user.role.toLowerCase().includes('manager') || App.user.role.toLowerCase() === 'owner';
-  },
+  isManager: function() { return App.isManager(); },
 
   renderDashboard: function(el) {
     var isEmp = !this.isHR() && !this.isManager();

@@ -66,8 +66,24 @@ Pages.payrollFunding = function(el) {
 
     var html = '<div class="erp-payroll-enterprise" style="direction:rtl;">';
     
+    html += '<style>';
+    html += '@media (max-width: 768px) {';
+    html += '  #pr-table thead { display: none; }';
+    html += '  #pr-table tbody tr { display: flex; flex-direction: column; border: 1px solid var(--border-color); border-radius: 8px; margin: 10px 0; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background: var(--bg-card); }';
+    html += '  #pr-table tbody td { display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; border: none !important; border-bottom: 1px solid rgba(0,0,0,0.05) !important; text-align: left; }';
+    html += '  #pr-table tbody td:last-child { border-bottom: none !important; justify-content: center; gap: 10px; margin-top: 10px; }';
+    html += '  #pr-table tbody td::before { content: attr(data-label); font-weight: 700; color: var(--text-muted); font-size: 0.85rem; margin-left: auto; padding-left: 10px; text-align: right; }';
+    html += '  .payroll-header-card .card-body { flex-direction: column; text-align: center; gap: 20px; }';
+    html += '  .payroll-header-card .card-body > div { width: 100%; justify-content: center !important; text-align: center !important; }';
+    html += '  .erp-payroll-enterprise .card-header { flex-direction: column; gap: 10px; align-items: stretch !important; }';
+    html += '  .erp-payroll-enterprise .card-header input { width: 100% !important; }';
+    html += '  .actions-card-body { flex-direction: column; align-items: stretch !important; }';
+    html += '  .actions-card-body select, .actions-card-body button { width: 100% !important; margin-left: 0 !important; }';
+    html += '}';
+    html += '</style>';
+
     // ── Header ──
-    html += '<div class="card mb-3" style="background:linear-gradient(135deg, #1e1b4b, #312e81); border:none; border-radius:12px;">';
+    html += '<div class="card mb-3 payroll-header-card" style="background:linear-gradient(135deg, #1e1b4b, #312e81); border:none; border-radius:12px;">';
     html += '<div class="card-body" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:20px 24px;">';
     html += '<div>';
     html += '<h2 style="color:#fff; margin:0 0 4px 0; font-size:1.3rem; font-weight:700;">💰 صرف المرتبات - ' + (selectedMonth || 'لا يوجد') + '</h2>';
@@ -103,7 +119,7 @@ Pages.payrollFunding = function(el) {
     html += '</div></div></div>';
 
     // ── Actions & Month Selection ──
-    html += '<div class="card mb-3"><div class="card-body" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:14px 20px;">';
+    html += '<div class="card mb-3"><div class="card-body actions-card-body" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:14px 20px;">';
     // Month selector
     html += '<select class="form-select" style="width:160px;" onchange="window.prSelectMonth(this.value)">';
     var allMonths = [...new Set(payrollData.map(p => p.month))].sort().reverse();
@@ -152,14 +168,14 @@ Pages.payrollFunding = function(el) {
       var isPaid = p.status === 'paid' || p.status === 'collected';
       
       html += '<tr>';
-      html += '<td><strong>' + emp.full_name + '</strong></td>';
-      html += '<td>' + emp.department + '</td>';
-      html += '<td>' + (p.base_salary||0).toLocaleString() + '</td>';
-      html += '<td style="color:#10b981;">' + ((p.overtime_pay||0) + (p.bonuses||0)).toLocaleString() + '</td>';
-      html += '<td style="color:#ef4444;">' + ((p.penalties||0) + (p.late_deductions||0) + (p.absence_deductions||0) + (p.insurance_deduction||0) + (p.loan_deduction||0)).toLocaleString() + '</td>';
-      html += '<td><strong>EGP ' + (p.net_salary||0).toLocaleString() + '</strong></td>';
+      html += '<td data-label="الموظف"><strong>' + emp.full_name + '</strong></td>';
+      html += '<td data-label="القسم">' + emp.department + '</td>';
+      html += '<td data-label="الراتب الأساسي">' + (p.base_salary||0).toLocaleString() + '</td>';
+      html += '<td data-label="الإضافي" style="color:#10b981;">' + ((p.overtime_pay||0) + (p.bonuses||0)).toLocaleString() + '</td>';
+      html += '<td data-label="الخصومات" style="color:#ef4444;">' + ((p.penalties||0) + (p.late_deductions||0) + (p.absence_deductions||0) + (p.insurance_deduction||0) + (p.loan_deduction||0)).toLocaleString() + '</td>';
+      html += '<td data-label="صافي الراتب"><strong>EGP ' + (p.net_salary||0).toLocaleString() + '</strong></td>';
       
-      html += '<td>';
+      html += '<td data-label="الحالة">';
       if (!isPaid) {
         html += '<button class="btn btn-sm" onclick="window.prMarkPaidIndividual(\'' + p.id + '\')" style="background:#f59e0b; color:#fff; border-radius:20px; padding:4px 16px; border:none; font-weight:bold; transition:0.3s; cursor:pointer;" onmouseover="this.style.background=\'#d97706\'" onmouseout="this.style.background=\'#f59e0b\'">اصرف</button>';
       } else {
@@ -167,7 +183,7 @@ Pages.payrollFunding = function(el) {
       }
       html += '</td>';
 
-      html += '<td>';
+      html += '<td data-label="إجراء">';
       html += '<button class="btn btn-sm btn-outline-secondary" onclick="window.prViewDetails(\'' + p.id + '\')">تفاصيل</button>';
       html += '</td>';
       html += '</tr>';
