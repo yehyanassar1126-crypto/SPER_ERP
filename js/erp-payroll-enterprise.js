@@ -1,5 +1,5 @@
 // ===== ENTERPRISE PAYROLL FUNDING MODULE =====
-// Replaces old Pages.payrollFunding
+// Clean, professional, no animations
 
 Pages.payrollFunding = function(el) {
   var isFinance = App.user && App.user.department === 'Finance';
@@ -13,32 +13,31 @@ Pages.payrollFunding = function(el) {
   var payrollData = [];
   var employees = [];
   var selectedMonth = '';
+  var isLoading = true;
 
-  var isFirstLoad = true;
   function loadData() {
-    if(isFirstLoad) {
-      el.innerHTML = '<div style="padding:100px; text-align:center;"><div class="spinner" style="width:60px;height:60px;border-width:4px;"></div><h4 style="margin-top:20px;font-weight:700;background:linear-gradient(90deg, #6366f1, #a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">جاري تحميل نظام الرواتب المؤسسي...</h4></div>';
+    if(isLoading) {
+      el.innerHTML = '<div style="padding:60px; text-align:center;"><div class="spinner" style="width:48px;height:48px;border-width:3px;"></div><p style="margin-top:16px;color:var(--text-muted)">جاري تحميل نظام الرواتب...</p></div>';
     }
     
     Promise.all([
-      sbClient.from('payroll').select('*').in('status', ['processing', 'funds_released', 'paid']),
+      sbClient.from('payroll').select('*').in('status', ['processing', 'funds_released', 'paid', 'collected']),
       sbClient.from('users').select('id,full_name,department')
     ]).then(function(res) {
       if(res[0].error || res[1].error) { 
-        el.innerHTML = '<div class="alert alert-danger">Database error.</div>'; 
+        el.innerHTML = '<div class="alert alert-danger">خطأ في تحميل البيانات.</div>'; 
         return; 
       }
       
       payrollData = res[0].data || [];
       employees = res[1].data || [];
       
-      // Auto-select latest month if not set
       if(!selectedMonth && payrollData.length > 0) {
         var months = [...new Set(payrollData.map(p => p.month))].sort().reverse();
         selectedMonth = months[0];
       }
       
-      isFirstLoad = false;
+      isLoading = false;
       renderUI();
     });
   }
@@ -47,161 +46,142 @@ Pages.payrollFunding = function(el) {
     var filteredPayroll = payrollData.filter(p => p.month === selectedMonth);
     
     var totalAmount = 0;
-    var readyCount = 0;
-    var waitingHRCount = 0;
+    var processingCount = 0;
+    var releasedCount = 0;
     var paidCount = 0;
+    var collectedCount = 0;
     
     filteredPayroll.forEach(p => {
       totalAmount += p.net_salary || 0;
-      if(p.status === 'processing') waitingHRCount++;
-      if(p.status === 'funds_released') readyCount++;
+      if(p.status === 'processing') processingCount++;
+      if(p.status === 'funds_released') releasedCount++;
       if(p.status === 'paid') paidCount++;
+      if(p.status === 'collected') collectedCount++;
     });
     
     var totalEmp = filteredPayroll.length;
-    var progress = totalEmp ? Math.round((paidCount / totalEmp) * 100) : 0;
+    var doneCount = paidCount + collectedCount;
+    var progress = totalEmp ? Math.round((doneCount / totalEmp) * 100) : 0;
 
-    var html = '<style>\
-    .erp-payroll-enterprise { font-family: "Inter", "Tajawal", sans-serif; animation: fadeIn 0.4s ease-out; }\
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }\
-    .erp-card-premium { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); overflow: hidden; position: relative; }\
-    .erp-card-premium::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 50%); pointer-events: none; }\
-    .erp-stat-box { transition: all 0.3s ease; border-radius: 12px; background: rgba(255,255,255,0.02) !important; border: 1px solid rgba(255,255,255,0.05) !important; backdrop-filter: blur(10px); }\
-    .erp-stat-box:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); border-color: rgba(99,102,241,0.3) !important; }\
-    .erp-table { background: rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; }\
-    .erp-table th { background: rgba(255,255,255,0.05); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; padding: 16px !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; }\
-    .erp-table td { padding: 16px !important; border-bottom: 1px solid rgba(255,255,255,0.02) !important; vertical-align: middle; }\
-    .erp-table tr:hover td { background: rgba(255,255,255,0.02); }\
-    .erp-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px; }\
-    .erp-timeline-step { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; transition: all 0.3s ease; }\
-    .erp-timeline-step.active { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.3); transform: scale(1.02); }\
-    .erp-btn-glow { background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; box-shadow: 0 4px 15px rgba(99,102,241,0.4); transition: all 0.3s ease; color: white !important; font-weight: 600; border-radius: 8px; padding: 8px 20px; }\
-    .erp-btn-glow:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.6); transform: translateY(-2px); filter: brightness(1.1); }\
-    </style><div class="erp-payroll-enterprise">';
+    var html = '<div class="erp-payroll-enterprise" style="direction:rtl;">';
     
-    // 1. Enterprise Header
-    html += '<div class="erp-card-premium mb-4 p-4">';
-    html += '<div class="d-flex justify-content-between align-items-center" style="position:relative; z-index:2;">';
+    // ── Header ──
+    html += '<div class="card mb-3" style="background:linear-gradient(135deg, #1e1b4b, #312e81); border:none; border-radius:12px;">';
+    html += '<div class="card-body" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:20px 24px;">';
     html += '<div>';
-    html += '<h2 style="color:#fff; margin-bottom:4px;">💰 Payroll Funding (صرف المرتبات) - '+(selectedMonth||'No Data')+'</h2>';
-    html += '<p style="opacity:0.8; margin:0;">Enterprise Payroll Disbursement & Accounting Integration</p>';
+    html += '<h2 style="color:#fff; margin:0 0 4px 0; font-size:1.3rem; font-weight:700;">💰 صرف المرتبات - ' + (selectedMonth || 'لا يوجد') + '</h2>';
+    html += '<p style="color:rgba(255,255,255,0.6); margin:0; font-size:0.85rem;">نظام صرف المرتبات المؤسسي</p>';
     html += '</div>';
-    html += '<div class="text-right">';
-    html += '<h1 style="color:#fff; margin:0; font-weight:900;">EGP '+totalAmount.toLocaleString()+'</h1>';
-    html += '<p style="opacity:0.8; margin:0;">Total Payroll Amount</p>';
+    html += '<div style="text-align:left;">';
+    html += '<h2 style="color:#fff; margin:0; font-weight:900; font-size:1.6rem;">EGP ' + totalAmount.toLocaleString() + '</h2>';
+    html += '<p style="color:rgba(255,255,255,0.6); margin:0; font-size:0.8rem;">إجمالي المرتبات</p>';
     html += '</div>';
     html += '</div></div>';
 
-    // 2. Summary Cards
-    html += '<div class="row mb-4">';
-    html += _statBox('Total Employees', totalEmp, 'users', 'primary');
-    html += _statBox('Waiting for HR', waitingHRCount, 'clock', 'warning');
-    html += _statBox('Ready to Pay', readyCount, 'check-circle', 'info');
-    html += _statBox('Already Paid', paidCount, 'check-double', 'success');
-    html += _statBox('Treasury Balance', 'EGP 1,250,000', 'box', 'secondary');
-    html += _statBox('Bank Balance', 'EGP 5,800,000', 'landmark', 'secondary');
+    // ── KPI Cards ──
+    html += '<div class="row mb-3">';
+    html += _kpi('إجمالي الموظفين', totalEmp, '#6366f1');
+    html += _kpi('بانتظار التحويل', processingCount, '#f59e0b');
+    html += _kpi('تم التحويل للـ HR', releasedCount, '#3b82f6');
+    html += _kpi('تم الصرف', paidCount, '#10b981');
+    html += _kpi('تم القبض', collectedCount, '#22c55e');
+    html += _kpi('نسبة الإنجاز', progress + '%', progress === 100 ? '#22c55e' : '#8b5cf6');
     html += '</div>';
 
-    // 3. Progress Bar
-    html += '<div class="card mb-4"><div class="card-body">';
-    html += '<div class="d-flex justify-content-between mb-2"><strong>Payroll Disbursement Progress</strong><span>'+progress+'% Complete ('+paidCount+'/'+totalEmp+')</span></div>';
-    html += '<div class="progress" style="height:12px; border-radius:6px; background:var(--bg-secondary);">';
-    html += '<div class="progress-bar bg-success" style="width:'+progress+'%"></div>';
+    // ── Progress Bar ──
+    html += '<div class="card mb-3"><div class="card-body" style="padding:16px 20px;">';
+    html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>تقدم عملية الصرف</strong><span>' + progress + '% (' + doneCount + '/' + totalEmp + ')</span></div>';
+    html += '<div style="height:10px; border-radius:5px; background:var(--bg-secondary); overflow:hidden;">';
+    html += '<div style="width:' + progress + '%; height:100%; background:linear-gradient(90deg, #6366f1, #22c55e); border-radius:5px;"></div>';
     html += '</div></div></div>';
 
-    // 4. Smart Actions & AI
-    html += '<div class="row mb-4">';
-    html += '<div class="col-md-8">';
-    html += '<div class="card h-100"><div class="card-header d-flex justify-content-between align-items-center"><h3>⚡ Bulk Actions & Month Selection</h3>';
-    html += '<select class="form-select form-select-sm" style="width:150px" onchange="window.prSelectMonth(this.value)">';
+    // ── Actions & Month Selection ──
+    html += '<div class="card mb-3"><div class="card-body" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:14px 20px;">';
+    // Month selector
+    html += '<select class="form-select" style="width:160px;" onchange="window.prSelectMonth(this.value)">';
     var allMonths = [...new Set(payrollData.map(p => p.month))].sort().reverse();
     allMonths.forEach(m => { html += '<option value="'+m+'" '+(m===selectedMonth?'selected':'')+'>'+m+'</option>'; });
-    html += '</select></div>';
-    html += '<div class="card-body d-flex gap-3 align-items-center">';
-    if (isFinance || isOwner) {
-      if(waitingHRCount > 0) {
-         html += '<button class="btn btn-warning" onclick="window.prReleaseFunds()"><i data-lucide="unlock"></i> Release Funds to HR ('+waitingHRCount+')</button>';
-      } else {
-         html += '<button class="btn btn-secondary" disabled>No Funds to Release</button>';
-      }
-    }
-    if (isHR || isOwner) {
-      // Add "Generate Payroll" button right here for HR to easily issue salaries
-      html += '<button class="btn btn-primary" onclick="App.navigate(\'payroll\')"><i data-lucide="calculator"></i> إصدار راتب (Generate Payroll)</button>';
-      
-      if(readyCount > 0) {
-         html += '<button class="btn btn-success" onclick="window.prDisburseAll()"><i data-lucide="dollar-sign"></i> Disburse All Ready ('+readyCount+')</button>';
-      } else {
-         html += '<button class="btn btn-secondary" disabled>No Employees Ready</button>';
-      }
-    }
-    html += '<button class="btn btn-outline-primary" onclick="alert(\'Exporting...\')"><i data-lucide="download"></i> Export Bank Sheet</button>';
-    html += '</div></div></div>';
-    
-    // AI Assistant
-    html += '<div class="col-md-4">';
-    html += '<div class="card h-100" style="border:1px solid #6366f1;"><div class="card-header" style="background:rgba(99,102,241,0.1); color:#6366f1;"><h3>🧠 AI Payroll Assistant</h3></div>';
-    html += '<div class="card-body" style="font-size:13px; line-height:1.6;">';
-    if(totalAmount > 1000000) html += '<p class="text-danger mb-1"><i data-lucide="alert-triangle"></i> Payroll exceeds normal average by 12%.</p>';
-    else html += '<p class="text-success mb-1"><i data-lucide="check"></i> Payroll is within standard budget limits.</p>';
-    html += '<p class="mb-1"><i data-lucide="info"></i> No duplicate employee payments detected.</p>';
-    html += '<p class="mb-0"><i data-lucide="zap"></i> Sufficient funds in Bank Account (CIB) to cover all salaries.</p>';
-    html += '</div></div></div>';
-    html += '</div>';
+    html += '</select>';
 
-    // 5. Data Grid (Table)
-    html += '<div class="card"><div class="card-header d-flex justify-content-between align-items-center">';
-    html += '<h3>Employee Payroll Ledger</h3>';
-    html += '<input type="text" class="form-control form-control-sm" style="width:250px;" placeholder="Search employee..." onkeyup="window.prFilter(this.value)">';
+    // Finance: Release Funds
+    if (isFinance || isOwner) {
+      if(processingCount > 0) {
+        html += '<button class="btn btn-warning" onclick="window.prReleaseFunds()"><i data-lucide="unlock"></i> تحويل الأموال للـ HR (' + processingCount + ')</button>';
+      } else {
+        html += '<button class="btn btn-secondary" disabled>لا يوجد مبالغ للتحويل</button>';
+      }
+    }
+
+    // HR: Generate Payroll
+    if (isHR || isOwner) {
+      html += '<button class="btn btn-primary" onclick="App.navigate(\'payroll\')"><i data-lucide="calculator"></i> إصدار راتب</button>';
+      
+      // HR: Confirm receipt from accountant & disburse
+      if(releasedCount > 0) {
+        html += '<button class="btn btn-success" onclick="window.prConfirmReceiptAndPay()"><i data-lucide="check-circle"></i> تأكيد استلام المرتبات وصرفها (' + releasedCount + ')</button>';
+      }
+    }
+
+    html += '<button class="btn btn-outline-secondary" onclick="loadData()"><i data-lucide="refresh-cw"></i> تحديث</button>';
+    html += '</div></div>';
+
+    // ── Data Table ──
+    html += '<div class="card"><div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">';
+    html += '<h3 style="margin:0;">سجل رواتب الموظفين</h3>';
+    html += '<input type="text" class="form-control form-control-sm" style="width:220px;" placeholder="بحث بالاسم..." onkeyup="window.prFilter(this.value)">';
     html += '</div>';
     html += '<div class="card-body p-0"><div class="table-responsive"><table class="table table-hover m-0" id="pr-table">';
-    html += '<thead style="background:var(--bg-secondary);"><tr><th>Employee</th><th>Basic</th><th>Overtime</th><th>Deduct</th><th>Net Salary</th><th>Status</th><th>Action</th></tr></thead>';
-    html += '<tbody>';
+    html += '<thead style="background:var(--bg-secondary);"><tr>';
+    html += '<th>الموظف</th><th>القسم</th><th>الراتب الأساسي</th><th>الإضافي</th><th>الخصومات</th><th>صافي الراتب</th><th>الحالة</th><th>إجراء</th>';
+    html += '</tr></thead><tbody>';
     
+    if(filteredPayroll.length === 0) {
+      html += '<tr><td colspan="8" class="text-center" style="padding:40px; color:var(--text-muted);">لا توجد رواتب مسجلة لهذا الشهر.</td></tr>';
+    }
+
     filteredPayroll.forEach(p => {
-      var emp = employees.find(e => e.id === p.user_id) || {full_name: 'Unknown', department: 'N/A'};
+      var emp = employees.find(e => e.id === p.employee_id) || {full_name: p.employee_name || 'غير معروف', department: '-'};
+      var statusBadge = _statusBadge(p.status);
+      
       html += '<tr>';
-      html += '<td><strong>'+emp.full_name+'</strong><br><small class="text-muted">'+emp.department+'</small></td>';
-      html += '<td>EGP '+Math.round(p.basic_salary||0).toLocaleString()+'</td>';
-      html += '<td>EGP '+Math.round(p.overtime_value||0).toLocaleString()+'</td>';
-      html += '<td class="text-danger">EGP '+Math.round(p.total_deductions||0).toLocaleString()+'</td>';
-      html += '<td><strong>EGP '+Math.round(p.net_salary||0).toLocaleString()+'</strong></td>';
-      
-      var badge = 'secondary';
-      if(p.status === 'processing') badge = 'warning';
-      if(p.status === 'funds_released') badge = 'info';
-      if(p.status === 'paid') badge = 'success';
-      html += '<td><span class="badge bg-'+badge+'">'+p.status.replace('_',' ').toUpperCase()+'</span></td>';
-      
+      html += '<td><strong>' + emp.full_name + '</strong></td>';
+      html += '<td>' + emp.department + '</td>';
+      html += '<td>' + (p.base_salary||0).toLocaleString() + '</td>';
+      html += '<td style="color:#10b981;">' + ((p.overtime_pay||0) + (p.bonuses||0)).toLocaleString() + '</td>';
+      html += '<td style="color:#ef4444;">' + ((p.penalties||0) + (p.late_deductions||0) + (p.absence_deductions||0) + (p.insurance_deduction||0) + (p.loan_deduction||0)).toLocaleString() + '</td>';
+      html += '<td><strong>EGP ' + (p.net_salary||0).toLocaleString() + '</strong></td>';
+      html += '<td>' + statusBadge + '</td>';
       html += '<td>';
-      html += '<button class="btn btn-sm btn-outline-secondary me-1" onclick="window.prViewDetails(\''+p.id+'\')"><i data-lucide="eye"></i></button>';
-      if(p.status === 'funds_released' && (isHR || isOwner)) {
-         html += '<button class="btn btn-sm btn-success" onclick="window.prDisburseSingle(\''+p.id+'\')"><i data-lucide="check"></i> Pay</button>';
-      }
+      html += '<button class="btn btn-sm btn-outline-secondary" onclick="window.prViewDetails(\'' + p.id + '\')"><i data-lucide="eye"></i></button>';
       html += '</td>';
       html += '</tr>';
     });
     
-    if(filteredPayroll.length === 0) {
-      html += '<tr><td colspan="7" class="text-center p-4">No payroll records found for this month.</td></tr>';
-    }
-    
     html += '</tbody></table></div></div></div>';
 
-    // 6. Timeline (Lifecycle)
-    html += '<div class="card mt-4"><div class="card-header"><h3>🔄 Payroll Lifecycle</h3></div><div class="card-body">';
-    html += '<div class="d-flex justify-content-between text-center" style="position:relative;">';
-    html += '<div style="position:absolute; top:20px; left:10%; right:10%; height:4px; background:var(--border-color); z-index:1;"></div>';
+    // ── Lifecycle Timeline ──
+    html += '<div class="card mt-3"><div class="card-header"><h3 style="margin:0;">🔄 دورة حياة الراتب</h3></div><div class="card-body">';
+    html += '<div style="display:flex; justify-content:space-around; text-align:center; position:relative; flex-wrap:wrap; gap:10px;">';
     
-    var step1 = totalEmp > 0 ? 'success' : 'secondary';
-    var step2 = readyCount > 0 || paidCount > 0 ? 'success' : 'secondary';
-    var step3 = paidCount > 0 ? 'success' : 'secondary';
-    var step4 = progress === 100 && totalEmp > 0 ? 'success' : 'secondary';
+    var steps = [
+      { label: '1. إصدار من HR', done: totalEmp > 0 },
+      { label: '2. تحويل من المحاسب', done: releasedCount > 0 || paidCount > 0 || collectedCount > 0 },
+      { label: '3. تأكيد استلام HR', done: paidCount > 0 || collectedCount > 0 },
+      { label: '4. قبض الموظفين', done: collectedCount > 0 },
+      { label: '5. مكتمل', done: progress === 100 && totalEmp > 0 }
+    ];
     
-    html += _timelineStep('1. Generated by HR', step1);
-    html += _timelineStep('2. Funds Released (Finance)', step2);
-    html += _timelineStep('3. Disbursed (HR)', step3);
-    html += _timelineStep('4. Journal Posted (Auto)', step4);
+    steps.forEach(function(s) {
+      var bg = s.done ? '#22c55e' : 'var(--bg-tertiary, #374151)';
+      var textColor = s.done ? '#fff' : 'var(--text-muted)';
+      html += '<div style="flex:1; min-width:100px; padding:10px;">';
+      html += '<div style="width:36px; height:36px; border-radius:50%; background:' + bg + '; color:' + textColor + '; display:flex; align-items:center; justify-content:center; margin:0 auto 8px auto; font-weight:700; font-size:14px;">';
+      html += s.done ? '✓' : '○';
+      html += '</div>';
+      html += '<strong style="font-size:0.8rem;">' + s.label + '</strong>';
+      html += '</div>';
+    });
+    
     html += '</div></div></div>';
     
     html += '</div>';
@@ -209,17 +189,21 @@ Pages.payrollFunding = function(el) {
     if(window.lucide) lucide.createIcons();
   }
 
-  function _statBox(title, value, iconName, color) {
-    return '<div class="col-md-2 col-6 mb-3"><div class="card h-100 erp-stat-box" style="border-left:4px solid var(--bs-'+color+') !important;"><div class="card-body p-3 text-center">';
-    return '<div class="col-md-2 col-6 mb-3"><div class="card h-100" style="border-left:4px solid var(--bs-'+color+');"><div class="card-body p-3 text-center">' +
-           '<i data-lucide="'+iconName+'" class="text-'+color+' mb-2"></i>' +
-           '<h4 class="mb-1">'+value+'</h4>' +
-           '<small class="text-muted" style="font-size:11px;">'+title+'</small>' +
+  function _kpi(title, value, color) {
+    return '<div class="col-md-2 col-6 mb-2"><div class="card h-100" style="border-right:4px solid ' + color + '; border-radius:8px;"><div class="card-body p-3 text-center">' +
+           '<h4 style="margin:0 0 4px 0; font-weight:800; color:' + color + ';">' + value + '</h4>' +
+           '<small style="color:var(--text-muted); font-size:0.75rem;">' + title + '</small>' +
            '</div></div></div>';
   }
-  
-  function _timelineStep(label, color) {
-    return '<div style="z-index:2; background:var(--card-bg); padding:10px;"><div style="width:40px; height:40px; border-radius:50%; background:var(--bs-'+color+'); color:#fff; display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto;"><i data-lucide="check"></i></div><strong style="font-size:13px;">'+label+'</strong></div>';
+
+  function _statusBadge(status) {
+    var map = {
+      'processing': '<span class="badge" style="background:#f59e0b; color:#000;">بانتظار التحويل</span>',
+      'funds_released': '<span class="badge" style="background:#3b82f6; color:#fff;">تم التحويل</span>',
+      'paid': '<span class="badge" style="background:#10b981; color:#fff;">تم الصرف</span>',
+      'collected': '<span class="badge" style="background:#22c55e; color:#fff;">تم القبض ✓</span>'
+    };
+    return map[status] || '<span class="badge bg-secondary">' + status + '</span>';
   }
 
   // --- Actions ---
@@ -232,76 +216,81 @@ Pages.payrollFunding = function(el) {
     val = val.toLowerCase();
     var rows = document.querySelectorAll('#pr-table tbody tr');
     rows.forEach(r => {
-      var text = r.innerText.toLowerCase();
-      r.style.display = text.includes(val) ? '' : 'none';
+      r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none';
     });
   };
 
+  // Finance: Release funds to HR
   window.prReleaseFunds = function() {
     var toRelease = payrollData.filter(p => p.month === selectedMonth && p.status === 'processing');
     var ids = toRelease.map(p => p.id);
     var amt = toRelease.reduce((s,p) => s + (p.net_salary||0), 0);
     
-    var body = '<h4>Release Funds to HR</h4><p>You are about to release <strong>EGP '+amt.toLocaleString()+'</strong> for '+ids.length+' employees.</p>';
-    body += '<div class="alert alert-info">Sufficient treasury balance available.</div>';
+    var body = '<h4>تحويل الأموال إلى قسم HR</h4>';
+    body += '<p>سيتم تحويل مبلغ <strong>EGP ' + amt.toLocaleString() + '</strong> لعدد <strong>' + ids.length + '</strong> موظف.</p>';
+    body += '<table class="table table-sm" style="font-size:0.85rem;"><tr><th>الشهر</th><td>' + selectedMonth + '</td></tr>';
+    body += '<tr><th>عدد الموظفين</th><td>' + ids.length + '</td></tr>';
+    body += '<tr><th>إجمالي المبلغ</th><td>EGP ' + amt.toLocaleString() + '</td></tr></table>';
+    body += '<div class="alert alert-info" style="font-size:0.85rem;">✅ الرصيد كافي لإتمام العملية.</div>';
     
-    App.showModal('Confirm Fund Release', body, '<button class="btn btn-secondary" onclick="App.closeModal()">Cancel</button> <button class="btn btn-warning" id="pr-confirm-release">Confirm Release</button>');
+    App.showModal('تأكيد تحويل الأموال', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-warning" id="pr-confirm-release">تأكيد التحويل</button>');
     
     document.getElementById('pr-confirm-release').onclick = function() {
-      this.disabled = true; this.innerHTML = 'Processing...';
+      this.disabled = true; this.innerHTML = 'جاري المعالجة...';
       sbClient.from('payroll').update({status: 'funds_released'}).in('id', ids).then(r => {
         App.closeModal();
         if(r.error) return alert(r.error.message);
-        showToast('Funds released successfully. Journal Entry staged.', 'success');
+        showToast('تم تحويل الأموال بنجاح إلى قسم HR.', 'success');
         loadData();
       });
     };
   };
 
-  window.prDisburseAll = function() {
-    var toDisburse = payrollData.filter(p => p.month === selectedMonth && p.status === 'funds_released');
-    var ids = toDisburse.map(p => p.id);
-    var amt = toDisburse.reduce((s,p) => s + (p.net_salary||0), 0);
-    
-    var body = '<h4>Disburse Salaries</h4><p>You are about to pay <strong>EGP '+amt.toLocaleString()+'</strong> for '+ids.length+' employees.</p>';
-    body += '<ul style="font-size:13px; color:var(--text-secondary)">';
-    body += '<li>✅ Validating safe balances... OK</li>';
-    body += '<li>✅ Checking for duplicates... OK</li>';
-    body += '<li>✅ Finance Approval... PRESENT</li>';
-    body += '</ul>';
-    
-    App.showModal('Confirm Disbursement', body, '<button class="btn btn-secondary" onclick="App.closeModal()">Cancel</button> <button class="btn btn-success" id="pr-confirm-disburse">Confirm & Post Journal</button>');
-    
-    document.getElementById('pr-confirm-disburse').onclick = function() {
-      this.disabled = true; this.innerHTML = 'Processing...';
+  // HR: Confirm receipt from accountant and mark as paid
+  window.prConfirmReceiptAndPay = function() {
+    var toConfirm = payrollData.filter(p => p.month === selectedMonth && p.status === 'funds_released');
+    var ids = toConfirm.map(p => p.id);
+    var amt = toConfirm.reduce((s,p) => s + (p.net_salary||0), 0);
+
+    var body = '<h4>تأكيد استلام المرتبات من المحاسب</h4>';
+    body += '<p>هل أنت متأكد من استلام مرتبات هذا الشهر من قسم الحسابات؟</p>';
+    body += '<table class="table table-sm" style="font-size:0.85rem;"><tr><th>الشهر</th><td>' + selectedMonth + '</td></tr>';
+    body += '<tr><th>عدد الموظفين</th><td>' + ids.length + '</td></tr>';
+    body += '<tr><th>إجمالي المبلغ</th><td>EGP ' + amt.toLocaleString() + '</td></tr></table>';
+    body += '<div class="alert alert-warning" style="font-size:0.85rem;">⚠️ بعد التأكيد، ستظهر أسماء الموظفين في صفحة "قبض الموظفين" لتسجيل الاستلام الفردي.</div>';
+
+    App.showModal('تأكيد استلام المرتبات', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-success" id="pr-confirm-receipt">تأكيد الاستلام ✓</button>');
+
+    document.getElementById('pr-confirm-receipt').onclick = function() {
+      this.disabled = true; this.innerHTML = 'جاري المعالجة...';
       sbClient.from('payroll').update({status: 'paid'}).in('id', ids).then(r => {
         App.closeModal();
         if(r.error) return alert(r.error.message);
-        showToast('Salaries disbursed! Auto Journal Entry created.', 'success');
+        showToast('تم تأكيد استلام المرتبات بنجاح! يمكنك الآن الانتقال لصفحة "قبض الموظفين".', 'success');
         loadData();
       });
     };
   };
 
-  window.prDisburseSingle = function(id) {
-    sbClient.from('payroll').update({status: 'paid'}).eq('id', id).then(r => {
-        if(r.error) return alert(r.error.message);
-        showToast('Salary disbursed!', 'success');
-        loadData();
-    });
-  };
-
   window.prViewDetails = function(id) {
-    var p = payrollData.find(x => x.id === id);
-    var emp = employees.find(e => e.id === p.user_id) || {full_name: 'Unknown'};
-    var body = '<table class="table table-bordered">';
-    body += '<tr><th>Employee</th><td>'+emp.full_name+'</td></tr>';
-    body += '<tr><th>Basic</th><td>'+(p.basic_salary||0)+'</td></tr>';
-    body += '<tr><th>Overtime</th><td>'+(p.overtime_value||0)+'</td></tr>';
-    body += '<tr><th>Deductions</th><td>'+(p.total_deductions||0)+'</td></tr>';
-    body += '<tr><th>Net Pay</th><td><strong>'+(p.net_salary||0)+'</strong></td></tr>';
+    var p = payrollData.find(x => x.id == id);
+    if(!p) return;
+    var emp = employees.find(e => e.id === p.employee_id) || {full_name: p.employee_name || 'غير معروف'};
+    var body = '<table class="table table-bordered" style="font-size:0.9rem;">';
+    body += '<tr><th>الموظف</th><td>' + emp.full_name + '</td></tr>';
+    body += '<tr><th>الشهر</th><td>' + p.month + '</td></tr>';
+    body += '<tr><th>الراتب الأساسي</th><td>' + (p.base_salary||0).toLocaleString() + '</td></tr>';
+    body += '<tr><th>الإضافي (عمل إضافي)</th><td>' + (p.overtime_pay||0).toLocaleString() + '</td></tr>';
+    body += '<tr><th>المكافآت</th><td>' + (p.bonuses||0).toLocaleString() + '</td></tr>';
+    body += '<tr><th>الجزاءات</th><td style="color:#ef4444;">' + (p.penalties||0).toLocaleString() + '</td></tr>';
+    body += '<tr><th>خصم التأخير</th><td style="color:#ef4444;">' + (p.late_deductions||0).toLocaleString() + '</td></tr>';
+    body += '<tr><th>خصم الغياب</th><td style="color:#ef4444;">' + (p.absence_deductions||0).toLocaleString() + '</td></tr>';
+    body += '<tr><th>خصم التأمينات</th><td style="color:#ef4444;">' + (p.insurance_deduction||0).toLocaleString() + '</td></tr>';
+    body += '<tr><th>خصم السلف</th><td style="color:#ef4444;">' + (p.loan_deduction||0).toLocaleString() + '</td></tr>';
+    body += '<tr style="background:var(--bg-secondary);"><th><strong>صافي الراتب</strong></th><td><strong style="font-size:1.1rem;">EGP ' + (p.net_salary||0).toLocaleString() + '</strong></td></tr>';
+    body += '<tr><th>الحالة</th><td>' + _statusBadge(p.status) + '</td></tr>';
     body += '</table>';
-    App.showModal('Payroll Details', body, '<button class="btn btn-secondary" onclick="App.closeModal()">Close</button>');
+    App.showModal('تفاصيل الراتب', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إغلاق</button>');
   };
 
   loadData();

@@ -3111,118 +3111,6 @@ Pages.itTickets = function(el) {
   loadData();
 };
 // MODULE 12: Payroll Funding (Finance)
-Pages.payrollFunding = function(el) {
-  var isFinance = App.user && App.user.department === 'Finance';
-  var isOwner = App.isOwner();
-  var isHR = App.isHR();
-  if(!isFinance && !isOwner && !isHR) {
-    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Access Denied. Finance & Management only.</div>';
-    return;
-  }
-
-  var processingPayroll = [];
-
-  function loadData() {
-    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading payroll funds...</div>';
-    sbClient.from('payroll').select('*').in('status', ['processing', 'funds_released']).then(function(r) {
-      if(r.error) { el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--accent-danger)">Error: ' + r.error.message + '</div>'; return; }
-      processingPayroll = r.data || [];
-      render();
-    });
-  }
-
-  function render() {
-    var fundsGroups = {};
-    processingPayroll.forEach(function(p) {
-      var key = p.month + '|' + p.status;
-      if(!fundsGroups[key]) fundsGroups[key] = { month: p.month, status: p.status, records: [], total: 0 };
-      fundsGroups[key].records.push(p);
-      fundsGroups[key].total += p.net_salary || 0;
-    });
-
-    var html = '<div class="card" style="margin-bottom:24px;border: 1px solid var(--border-color); background: var(--bg-tertiary); padding: 24px; border-radius: var(--radius-lg);">';
-    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
-    html += '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent-success-soft);display:flex;align-items:center;justify-content:center;color:var(--accent-success)">' + icon('briefcase', 22) + '</div>';
-    html += '<h3 style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin:0">صرف المرتبات للـ HR (Payroll Funding)</h3>';
-    html += '</div>';
-    html += '<p style="color:var(--text-secondary);direction:rtl;text-align:right">دورة صرف الرواتب: 1) مراجعة الحسابات وتسليم العهدة 2) استلام الـ HR للعهدة 3) الدفع للموظفين.</p>';
-    html += '</div>';
-
-    var keys = Object.keys(fundsGroups).sort(function(a, b) { return a > b ? -1 : 1; });
-
-    if(keys.length === 0) {
-      html += '<div class="empty-state" style="padding:60px">' + icon('checkCircle', 40) + '<p>No pending salaries require funding or acceptance.</p></div>';
-      el.innerHTML = html;
-      return;
-    }
-
-    keys.forEach(function(k) {
-      var group = fundsGroups[k];
-      html += '<div class="card" style="margin-bottom:20px"><div class="card-header"><div><h3>' + group.month + ' - ' + (group.status === 'processing' ? 'Pending Finance Funding' : 'Awaiting HR Acceptance') + '</h3><p>' + group.records.length + ' employees need payment</p></div></div>';
-      html += '<div class="card-body" style="text-align:center;padding:30px">';
-      html += '<div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:8px">إجمالي المبلغ المطلوب</div>';
-      html += '<div style="font-size:2.5rem;font-weight:900;color:var(--accent-primary);margin-bottom:24px">EGP ' + group.total.toLocaleString() + '</div>';
-      
-      if (group.status === 'processing') {
-        if (isFinance || isOwner) {
-          html += '<button class="btn btn-success btn-lg" onclick="window.releaseFunds(\'' + k + '\')">💰 تسليم العهدة للـ HR (Release Funds)</button>';
-        } else {
-          html += '<div style="color:var(--text-muted)">⏳ بانتظار موافقة وتسليم الحسابات...</div>';
-        }
-      } else if (group.status === 'funds_released') {
-        if (isHR || isOwner) {
-          html += '<div style="display:flex;justify-content:center;gap:16px">';
-          html += '<button class="btn btn-success btn-lg" onclick="window.acceptFunds(\'' + k + '\')">✅ استلام العهدة (Accept Funds)</button>';
-          html += '<button class="btn btn-outline btn-lg" style="color:var(--accent-danger);border-color:var(--accent-danger)" onclick="window.rejectFunds(\'' + k + '\')">❌ رفض العهدة (Reject)</button>';
-          html += '</div>';
-        } else {
-          html += '<div style="color:var(--text-muted)">⏳ بانتظار استلام الـ HR للعهدة...</div>';
-        }
-      }
-      
-      html += '</div></div>';
-    });
-
-    el.innerHTML = html;
-
-    window.releaseFunds = function(k) {
-      var group = fundsGroups[k];
-      if(!confirm('Are you sure you want to release EGP ' + group.total.toLocaleString() + ' to HR?')) return;
-      var recordIds = group.records.map(function(r) { return r.id; });
-      sbClient.from('payroll').update({ status: 'funds_released' }).in('id', recordIds).then(function(r) {
-        if(r.error) return alert(r.error.message);
-        showToast('Funds released successfully. HR must now accept them.', 'success');
-        loadData();
-      });
-    };
-
-    window.acceptFunds = function(k) {
-      var group = fundsGroups[k];
-      if(!confirm('Are you sure you want to Accept EGP ' + group.total.toLocaleString() + ' from Finance?')) return;
-      var recordIds = group.records.map(function(r) { return r.id; });
-      sbClient.from('payroll').update({ status: 'funds_accepted' }).in('id', recordIds).then(function(r) {
-        if(r.error) return alert(r.error.message);
-        showToast('Funds accepted! You can now mark salaries as paid.', 'success');
-        loadData();
-      });
-    };
-
-    window.rejectFunds = function(k) {
-      var group = fundsGroups[k];
-      if(!confirm('Are you sure you want to Reject this funding and return it to Finance?')) return;
-      var recordIds = group.records.map(function(r) { return r.id; });
-      sbClient.from('payroll').update({ status: 'processing' }).in('id', recordIds).then(function(r) {
-        if(r.error) return alert(r.error.message);
-        showToast('Funds rejected and returned to Finance.', 'warning');
-        loadData();
-      });
-    };
-  }
-
-  loadData();
-};
-
-// ==========================================
 // MODULE: Chart of Accounts (General Ledger)
 // ==========================================
 Pages.chartOfAccounts = function(el) {
@@ -3282,32 +3170,33 @@ Pages.chartOfAccounts = function(el) {
 };
 
 // ==========================================
-// HR Employee Payment Collection Module
+// HR Employee Payment Collection Module  
 // ==========================================
 Pages.hrEmployeePayment = function(el) {
   if (!App.isHR() && !App.isOwner()) {
-    el.innerHTML = '<div class="alert alert-danger">Access Denied.</div>';
+    el.innerHTML = '<div class="alert alert-danger" style="text-align:center; margin:40px;">\u063A\u064A\u0631 \u0645\u0635\u0631\u062D \u0644\u0643 \u0628\u0627\u0644\u062F\u062E\u0648\u0644.</div>';
     return;
   }
 
-  el.innerHTML = '<div class="spinner-border text-primary m-4"></div> Loading...';
-  
   var selectedMonth = '';
   var payrollData = [];
   var employees = {};
+  var filterStatus = 'all';
 
   function loadData() {
+    el.innerHTML = '<div style="padding:60px; text-align:center;"><div class="spinner" style="width:48px;height:48px;border-width:3px;"></div><p style="margin-top:16px;color:var(--text-muted)">\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0642\u0628\u0636...</p></div>';
+
     Promise.all([
       sbClient.from('payroll').select('*').in('status', ['paid', 'collected']),
       sbClient.from('users').select('id, full_name, department')
     ]).then(function(res) {
-      if(res[0].error || res[1].error) { el.innerHTML = 'Error loading.'; return; }
+      if(res[0].error || res[1].error) { el.innerHTML = '<div class="alert alert-danger">\u062E\u0637\u0623 \u0641\u064A \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A.</div>'; return; }
       payrollData = res[0].data || [];
       var emps = res[1].data || [];
-      emps.forEach(e => employees[e.id] = e);
-      
+      emps.forEach(function(e) { employees[e.id] = e; });
+
       if(!selectedMonth && payrollData.length > 0) {
-        var months = [...new Set(payrollData.map(p => p.month))].sort().reverse();
+        var months = [...new Set(payrollData.map(function(p){ return p.month; }))].sort().reverse();
         selectedMonth = months[0] || '';
       }
       render();
@@ -3315,91 +3204,132 @@ Pages.hrEmployeePayment = function(el) {
   }
 
   function render() {
-    var filtered = payrollData.filter(p => p.month === selectedMonth);
-    var totalEmp = filtered.length;
-    var collectedCount = filtered.filter(p => p.status === 'collected').length;
-    var uncollectedCount = totalEmp - collectedCount;
-    var totalAmount = filtered.reduce((s,p) => s + (p.net_salary||0), 0);
-    var collectedAmount = filtered.filter(p => p.status === 'collected').reduce((s,p) => s + (p.net_salary||0), 0);
-    var remainingAmount = totalAmount - collectedAmount;
+    var filtered = payrollData.filter(function(p){ return p.month === selectedMonth; });
+    if(filterStatus === 'collected') filtered = filtered.filter(function(p){ return p.status === 'collected'; });
+    if(filterStatus === 'pending') filtered = filtered.filter(function(p){ return p.status !== 'collected'; });
 
-    var html = '<div class="hr-employee-payment fade-in">';
-    
-    // Summary Cards
-    html += '<h2 class="mb-4">OOO O U,U.U^O,U?USU+ (' + (selectedMonth || 'N/A') + ')</h2>';
-    html += '<div class="row mb-4 text-center">';
-    html += _kpi('OOU.O U,US O U,U.U^O,U?USU+', totalEmp, 'users', 'primary');
-    html += _kpi('OU. O U,OOO', collectedCount, 'check-circle', 'success');
-    html += _kpi('U,U. USOU,OU^O', uncollectedCount, 'clock', 'warning');
-    html += _kpi('OOU.O U,US O U,OU^OOO"', totalAmount.toLocaleString() + ' EGP', 'dollar-sign', 'info');
-    html += _kpi('OU. O1OU?Oc', collectedAmount.toLocaleString() + ' EGP', 'credit-card', 'success');
-    html += _kpi('O U,U.OO"U,US', remainingAmount.toLocaleString() + ' EGP', 'alert-circle', 'danger');
+    var allMonthData = payrollData.filter(function(p){ return p.month === selectedMonth; });
+    var totalEmp = allMonthData.length;
+    var collectedCount = allMonthData.filter(function(p){ return p.status === 'collected'; }).length;
+    var uncollectedCount = totalEmp - collectedCount;
+    var totalAmount = allMonthData.reduce(function(s,p){ return s + (p.net_salary||0); }, 0);
+    var collectedAmount = allMonthData.filter(function(p){ return p.status === 'collected'; }).reduce(function(s,p){ return s + (p.net_salary||0); }, 0);
+    var remainingAmount = totalAmount - collectedAmount;
+    var progress = totalEmp ? Math.round((collectedCount / totalEmp) * 100) : 0;
+
+    var html = '<div style="direction:rtl;">';
+
+    // Header
+    html += '<div class="card mb-3" style="background:linear-gradient(135deg, #065f46, #047857); border:none; border-radius:12px;">';
+    html += '<div class="card-body" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:20px 24px;">';
+    html += '<div>';
+    html += '<h2 style="color:#fff; margin:0 0 4px 0; font-size:1.3rem; font-weight:700;">\uD83D\uDCB5 \u0642\u0628\u0636 \u0627\u0644\u0645\u0648\u0638\u0641\u064A\u0646 - ' + (selectedMonth || '\u0644\u0627 \u064A\u0648\u062C\u062F') + '</h2>';
+    html += '<p style="color:rgba(255,255,255,0.7); margin:0; font-size:0.85rem;">\u062A\u0633\u062C\u064A\u0644 \u0627\u0633\u062A\u0644\u0627\u0645 \u0643\u0644 \u0645\u0648\u0638\u0641 \u0644\u0631\u0627\u062A\u0628\u0647</p>';
+    html += '</div>';
+    html += '<div style="text-align:left;">';
+    if(progress === 100 && totalEmp > 0) {
+      html += '<div style="background:rgba(255,255,255,0.2); padding:8px 16px; border-radius:8px;"><strong style="color:#fff; font-size:1rem;">\u2705 \u062A\u0645 \u0627\u0644\u0627\u0646\u062A\u0647\u0627\u0621 \u0645\u0646 \u0635\u0631\u0641 \u062C\u0645\u064A\u0639 \u0645\u0631\u062A\u0628\u0627\u062A \u0627\u0644\u0634\u0647\u0631</strong></div>';
+    } else {
+      html += '<h3 style="color:#fff; margin:0; font-weight:800;">' + progress + '% \u0645\u0643\u062A\u0645\u0644</h3>';
+    }
+    html += '</div></div></div>';
+
+    // KPI Cards
+    html += '<div class="row mb-3">';
+    html += _kpi('\uD83D\uDC65 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0648\u0638\u0641\u064A\u0646', totalEmp, '#6366f1');
+    html += _kpi('\u2705 \u062A\u0645 \u0627\u0644\u0642\u0628\u0636', collectedCount, '#22c55e');
+    html += _kpi('\u23F3 \u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u0642\u0628\u0636', uncollectedCount, '#f59e0b');
+    html += _kpi('\uD83D\uDCB0 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0631\u062A\u0628\u0627\u062A', totalAmount.toLocaleString() + ' EGP', '#3b82f6');
+    html += _kpi('\uD83D\uDCB5 \u062A\u0645 \u0635\u0631\u0641\u0647', collectedAmount.toLocaleString() + ' EGP', '#10b981');
+    html += _kpi('\uD83D\uDCB3 \u0627\u0644\u0645\u062A\u0628\u0642\u064A', remainingAmount.toLocaleString() + ' EGP', '#ef4444');
     html += '</div>';
 
-    // Filters & Controls
-    html += '<div class="card mb-3"><div class="card-body d-flex gap-3 align-items-center">';
-    html += '<select id="hep-month" class="form-select" style="width:200px;" onchange="window.hepChangeMonth(this.value)">';
-    var months = [...new Set(payrollData.map(p => p.month))].sort().reverse();
-    months.forEach(m => { html += '<option value="'+m+'" '+(m===selectedMonth?'selected':'')+'>'+m+'</option>'; });
+    // Progress Bar
+    html += '<div class="card mb-3"><div class="card-body" style="padding:14px 20px;">';
+    html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.9rem;"><strong>\u062A\u0642\u062F\u0645 \u0627\u0644\u0642\u0628\u0636</strong><span>' + collectedCount + ' / ' + totalEmp + '</span></div>';
+    html += '<div style="height:10px; border-radius:5px; background:var(--bg-secondary); overflow:hidden;">';
+    html += '<div style="width:' + progress + '%; height:100%; background:linear-gradient(90deg, #10b981, #22c55e); border-radius:5px;"></div>';
+    html += '</div></div></div>';
+
+    // Search & Filters
+    html += '<div class="card mb-3"><div class="card-body" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:14px 20px;">';
+    html += '<select class="form-select" style="width:160px;" onchange="window.hepChangeMonth(this.value)">';
+    var months = [...new Set(payrollData.map(function(p){ return p.month; }))].sort().reverse();
+    months.forEach(function(m) { html += '<option value="'+m+'" '+(m===selectedMonth?'selected':'')+'>'+m+'</option>'; });
     html += '</select>';
-    html += '<input type="text" id="hep-search" class="form-control" placeholder="OO-O+ O"OO3U. O U,U.U^O,U?..." onkeyup="window.hepSearch(this.value)">';
+    html += '<select class="form-select" style="width:160px;" onchange="window.hepFilterStatus(this.value)">';
+    html += '<option value="all"' + (filterStatus==='all'?' selected':'') + '>\u0627\u0644\u0643\u0644</option>';
+    html += '<option value="pending"' + (filterStatus==='pending'?' selected':'') + '>\u0644\u0645 \u064A\u0642\u0628\u0636</option>';
+    html += '<option value="collected"' + (filterStatus==='collected'?' selected':'') + '>\u062A\u0645 \u0627\u0644\u0642\u0628\u0636</option>';
+    html += '</select>';
+    html += '<input type="text" class="form-control" style="flex:1; min-width:200px;" placeholder="\u0628\u062D\u062B \u0628\u0627\u0644\u0627\u0633\u0645 \u0623\u0648 \u0627\u0644\u0642\u0633\u0645..." onkeyup="window.hepSearch(this.value)">';
     html += '</div></div>';
 
     // Table
-    html += '<div class="card"><div class="card-body p-0 table-responsive">';
-    html += '<table class="table table-hover mb-0" id="hep-table">';
-    html += '<thead class="table-light"><tr><th>O U,U.U^O,U?</th><th>O U,U,O3U.</th><th>OOU?US O U,OOO"</th><th>O-OU,Oc O U,OOO</th><th>OOOOO</th></tr></thead><tbody>';
-    
-    if(filtered.length === 0) {
-      html += '<tr><td colspan="5" class="text-center p-4 text-muted">OOUSO O"USOU+OO U,OO_O O U,OU,O (U,U. USOU,U. O U,U.O-OO3O" O"OO3U,USU. OU^OOO" O U,OU,O O"OO_)</td></tr>';
+    if(totalEmp === 0) {
+      html += '<div class="card"><div class="card-body" style="text-align:center; padding:60px; color:var(--text-muted);">';
+      html += '<p style="font-size:1.1rem; margin-bottom:8px;">\u0644\u0627 \u062A\u0648\u062C\u062F \u0628\u064A\u0627\u0646\u0627\u062A \u0642\u0628\u0636 \u0644\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631</p>';
+      html += '<p style="font-size:0.85rem;">\u064A\u062C\u0628 \u0639\u0644\u0649 \u0627\u0644\u0645\u062D\u0627\u0633\u0628 \u062A\u062D\u0648\u064A\u0644 \u0627\u0644\u0645\u0631\u062A\u0628\u0627\u062A \u0623\u0648\u0644\u0627\u064B\u060C \u062B\u0645 \u062A\u0623\u0643\u064A\u062F \u0627\u0633\u062A\u0644\u0627\u0645\u0647\u0627 \u0645\u0646 \u0635\u0641\u062D\u0629 "\u0635\u0631\u0641 \u0627\u0644\u0645\u0631\u062A\u0628\u0627\u062A" \u0642\u0628\u0644 \u0638\u0647\u0648\u0631 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0647\u0646\u0627.</p>';
+      html += '</div></div>';
+    } else {
+      html += '<div class="card"><div class="card-body p-0"><div class="table-responsive">';
+      html += '<table class="table table-hover mb-0" id="hep-table">';
+      html += '<thead style="background:var(--bg-secondary);"><tr>';
+      html += '<th>#</th><th>\u0627\u0644\u0645\u0648\u0638\u0641</th><th>\u0627\u0644\u0642\u0633\u0645</th><th>\u0635\u0627\u0641\u064A \u0627\u0644\u0631\u0627\u062A\u0628</th><th>\u062D\u0627\u0644\u0629 \u0627\u0644\u0642\u0628\u0636</th><th>\u0627\u0644\u0625\u062C\u0631\u0627\u0621</th>';
+      html += '</tr></thead><tbody>';
+
+      filtered.forEach(function(p, idx) {
+        var emp = employees[p.employee_id] || {full_name: p.employee_name || '\u063A\u064A\u0631 \u0645\u0639\u0631\u0648\u0641', department: '-'};
+        var isCollected = p.status === 'collected';
+        html += '<tr>';
+        html += '<td>' + (idx + 1) + '</td>';
+        html += '<td><strong>' + emp.full_name + '</strong></td>';
+        html += '<td>' + (emp.department || '-') + '</td>';
+        html += '<td style="font-weight:700; color:var(--accent-primary);">EGP ' + (p.net_salary||0).toLocaleString() + '</td>';
+        if(isCollected) {
+          html += '<td><span class="badge" style="background:#22c55e; color:#fff; padding:6px 12px; border-radius:20px;">\u062A\u0645 \u0627\u0644\u0642\u0628\u0636 \u2713</span></td>';
+          html += '<td><button class="btn btn-sm btn-secondary" disabled style="opacity:0.6;">\u062A\u0645 \u2713</button></td>';
+        } else {
+          html += '<td><span class="badge" style="background:#f59e0b; color:#000; padding:6px 12px; border-radius:20px;">\u0644\u0645 \u064A\u0642\u0628\u0636</span></td>';
+          html += '<td><button class="btn btn-sm btn-success" onclick="window.hepMarkCollected(' + p.id + ')">\u062A\u0645 \u2713</button></td>';
+        }
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div></div></div>';
     }
 
-    filtered.forEach(p => {
-      var emp = employees[p.employee_id] || {full_name: 'Unknown', department: '-'};
-      var isCollected = p.status === 'collected';
-      html += '<tr>';
-      html += '<td><strong>' + emp.full_name + '</strong></td>';
-      html += '<td>' + emp.department + '</td>';
-      html += '<td style="font-weight:bold; color:var(--accent-primary)">' + (p.net_salary||0).toLocaleString() + ' EGP</td>';
-      
-      if(isCollected) {
-        html += '<td><span class="badge bg-success">OU. O U,OOO</span></td>';
-        html += '<td><button class="btn btn-sm btn-secondary" disabled>OU. O U,OOO '+window.icon('check')+'</button></td>';
-      } else {
-        html += '<td><span class="badge bg-warning text-dark">U,U. USOU,O</span></td>';
-        html += '<td><button class="btn btn-sm btn-primary" onclick="window.hepMarkCollected('+p.id+')">OU. '+window.icon('check')+'</button></td>';
-      }
-      html += '</tr>';
-    });
-
-    html += '</tbody></table></div></div>';
     html += '</div>';
-
     el.innerHTML = html;
     if(window.lucide) window.lucide.createIcons();
   }
 
-  function _kpi(title, value, iconName, color) {
-    return '<div class="col-md-2 col-6 mb-3"><div class="card h-100 border-0 shadow-sm" style="border-bottom:4px solid var(--bs-'+color+')!important"><div class="card-body p-3 text-center"><h6 class="text-muted" style="font-size:0.75rem">'+title+'</h6><h4 class="mb-0 text-'+color+'">'+value+'</h4></div></div></div>';
+  function _kpi(title, value, color) {
+    return '<div class="col-md-2 col-6 mb-2"><div class="card h-100" style="border-right:4px solid ' + color + '; border-radius:8px;"><div class="card-body p-3 text-center">' +
+           '<h4 style="margin:0 0 4px 0; font-weight:800; color:' + color + ';">' + value + '</h4>' +
+           '<small style="color:var(--text-muted); font-size:0.75rem;">' + title + '</small>' +
+           '</div></div></div>';
   }
 
   window.hepChangeMonth = function(m) { selectedMonth = m; render(); };
+  window.hepFilterStatus = function(s) { filterStatus = s; render(); };
   window.hepSearch = function(q) {
     var trs = document.querySelectorAll('#hep-table tbody tr');
     q = q.toLowerCase();
-    trs.forEach(tr => {
-      if(tr.innerText.toLowerCase().includes(q)) tr.style.display = '';
-      else tr.style.display = 'none';
+    trs.forEach(function(tr) {
+      tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
     });
   };
 
   window.hepMarkCollected = function(pid) {
-    if(!confirm("OU, OU+O U.OOUO_ OU+ O U,U.U^O,U? OO3OU,U. OOO"OcY")) return;
-    sbClient.from('payroll').update({status: 'collected'}).eq('id', pid).then(r => {
+    var p = payrollData.find(function(x){ return x.id === pid; });
+    var emp = p ? (employees[p.employee_id] || {}) : {};
+    var empName = emp.full_name || '\u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0638\u0641';
+    if(!confirm('\u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F \u0623\u0646 \u0627\u0644\u0645\u0648\u0638\u0641 "' + empName + '" \u0627\u0633\u062A\u0644\u0645 \u0631\u0627\u062A\u0628\u0647\u061F')) return;
+    sbClient.from('payroll').update({status: 'collected'}).eq('id', pid).then(function(r) {
       if(r.error) return alert(r.error.message);
-      var p = payrollData.find(x => x.id === pid);
       if(p) p.status = 'collected';
-      window.showToast("OU. OO3OUSU, OO3OU,OU. OOO" O U,U.U^O,U? O"U+OO!", "success");
+      showToast('\u062A\u0645 \u062A\u0633\u062C\u064A\u0644 \u0627\u0633\u062A\u0644\u0627\u0645 \u0631\u0627\u062A\u0628 \u0627\u0644\u0645\u0648\u0638\u0641 \u0628\u0646\u062C\u0627\u062D \u2713', 'success');
       render();
     });
   };

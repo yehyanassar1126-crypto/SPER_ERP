@@ -846,7 +846,7 @@ var App = {
       case 'overtime': case 'my-overtime': Pages.overtime(el); break;
       case 'payroll': case 'my-salary': Pages.payroll(el); break;
       case 'payroll-funding': Pages.payrollFunding(el); break;
-        case 'hr-employee-payment': Pages.hrEmployeePayment(el); break;
+      case 'hr-employee-payment': Pages.hrEmployeePayment(el); break;
       case 'driver-payments': if (Pages.driverPayments) Pages.driverPayments(el); else el.innerHTML = 'Module missing'; break;
       case 'announcements': Pages.announcements(el); break;
       case 'reports': App.isHR() ? Pages.reports(el) : Pages.empDashboard(el); break;
@@ -915,8 +915,8 @@ var App = {
       case 'training': Pages.training(el); break;
       case 'asset-assignment': Pages.assetAssignment(el); break;
       case 'absence-leave':
-        if (typeof HRAbsenceModule !== 'undefined') HRAbsenceModule.renderDashboard(c);
-        else c.innerHTML = '<p>Error loading Absence module.</p>';
+        if (typeof HRAbsenceModule !== 'undefined') HRAbsenceModule.renderDashboard(el);
+        else el.innerHTML = '<p>Error loading Absence module.</p>';
         break;
       case 'employee-warnings': Pages.employeeWarnings(el); break;
       case 'ceo-dashboard': if (Pages['ceo-dashboard']) Pages['ceo-dashboard'](el); else el.innerHTML = 'Module loading...'; break;
