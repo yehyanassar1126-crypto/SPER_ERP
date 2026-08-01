@@ -277,8 +277,9 @@ Pages.payrollFunding = function(el) {
         sbClient.from('finance_treasury_tx').insert({
           type: 'out',
           amount: amt,
-          category: 'Payroll',
+          method: 'Cash',
           description: 'صرف رواتب موظفين لشهر ' + selectedMonth,
+          notes: 'Payroll',
           status: 'cleared',
           cleared_account: selectedAccount,
           created_by: App.user.id
