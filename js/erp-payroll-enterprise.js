@@ -318,24 +318,49 @@ Pages.payrollFunding = function(el) {
     var ids = toConfirm.map(p => p.id);
     var amt = toConfirm.reduce((s,p) => s + (p.net_salary||0), 0);
 
-    var body = '<h4>تأكيد استلام المرتبات من المحاسب</h4>';
-    body += '<p>هل أنت متأكد من استلام مرتبات هذا الشهر من قسم الحسابات؟</p>';
-    body += '<table class="table table-sm" style="font-size:0.85rem;"><tr><th>الشهر</th><td>' + selectedMonth + '</td></tr>';
-    body += '<tr><th>عدد الموظفين</th><td>' + ids.length + '</td></tr>';
-    body += '<tr><th>إجمالي المبلغ</th><td>EGP ' + amt.toLocaleString() + '</td></tr></table>';
-    body += '<div class="alert alert-warning" style="font-size:0.85rem;">⚠️ بعد التأكيد، ستظهر أسماء الموظفين في صفحة "قبض الموظفين" لتسجيل الاستلام الفردي.</div>';
-
-    App.showModal('تأكيد استلام المرتبات', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-success" id="pr-confirm-receipt">تأكيد الاستلام ✓</button>');
-
-    document.getElementById('pr-confirm-receipt').onclick = function() {
-      this.disabled = true; this.innerHTML = 'جاري المعالجة...';
-      sbClient.from('payroll').update({status: 'paid'}).in('id', ids).then(r => {
-        App.closeModal();
-        if(r.error) return alert(r.error.message);
-        showToast('تم تأكيد استلام المرتبات بنجاح! يمكنك الآن الانتقال لصفحة "قبض الموظفين".', 'success');
-        loadData();
+    sbClient.from('finance_safes').select('*').then(function(sres) {
+      var safes = sres.data || [];
+      var body = '<h4>تأكيد استلام المرتبات من المحاسب</h4>';
+      body += '<p>هل أنت متأكد من استلام مرتبات هذا الشهر من قسم الحسابات؟</p>';
+      body += '<table class="table table-sm" style="font-size:0.85rem;"><tr><th>الشهر</th><td>' + selectedMonth + '</td></tr>';
+      body += '<tr><th>عدد الموظفين</th><td>' + ids.length + '</td></tr>';
+      body += '<tr><th>إجمالي المبلغ</th><td>EGP ' + amt.toLocaleString() + '</td></tr></table>';
+      
+      body += '<div style="margin-top:15px; padding:15px; background:var(--bg-secondary); border-radius:8px;">';
+      body += '<label style="font-weight:bold; margin-bottom:8px; display:block;">اختر الخزينة للخصم منها:</label>';
+      body += '<select id="pr-hr-safe" class="form-select" style="width:100%; border:1px solid var(--border-color); padding:8px; border-radius:4px;">';
+      safes.forEach(function(s) {
+        body += '<option value="' + s.id + '|' + s.balance + '">' + s.name + ' (الرصيد: ' + Number(s.balance).toLocaleString() + ')</option>';
       });
-    };
+      body += '</select></div>';
+      body += '<div class="alert alert-warning mt-3" style="font-size:0.85rem;">⚠️ بعد التأكيد، سيتم خصم المبلغ المذكور من الخزينة المختارة.</div>';
+
+      App.showModal('تأكيد استلام المرتبات', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-success" id="pr-confirm-receipt">تأكيد الاستلام والخصم ✓</button>');
+
+      document.getElementById('pr-confirm-receipt').onclick = function() {
+        var safeVal = document.getElementById('pr-hr-safe').value;
+        if(!safeVal) return alert('يرجى اختيار الخزينة');
+        var parts = safeVal.split('|');
+        var safeId = parts[0];
+        var safeBalance = Number(parts[1]);
+
+        this.disabled = true; this.innerHTML = 'جاري المعالجة...';
+        
+        // Deduct from safe
+        sbClient.from('finance_safes').update({ balance: safeBalance - amt }).eq('id', safeId).then(function(safeUpdate) {
+          if(safeUpdate.error) {
+            App.closeModal();
+            return alert('خطأ في خصم الرصيد: ' + safeUpdate.error.message);
+          }
+          sbClient.from('payroll').update({status: 'paid'}).in('id', ids).then(r => {
+            App.closeModal();
+            if(r.error) return alert(r.error.message);
+            showToast('تم الخصم وتأكيد استلام المرتبات بنجاح!', 'success');
+            loadData();
+          });
+        });
+      };
+    });
   };
 
   window.prViewDetails = function(id) {
@@ -360,14 +385,47 @@ Pages.payrollFunding = function(el) {
   };
 
   window.prMarkPaidIndividual = function(id) {
-    if(!confirm('هل أنت متأكد من صرف راتب هذا الموظف؟')) return;
-    sbClient.from('payroll').update({status: 'paid'}).eq('id', id).then(r => {
-      if(r.error) {
-        showToast('حدث خطأ أثناء حفظ الحالة.', 'danger');
-        return;
-      }
-      showToast('تم صرف الراتب وخصمه من الإجمالي بنجاح.', 'success');
-      loadData();
+    var p = payrollData.find(x => x.id == id);
+    if(!p) return;
+    
+    sbClient.from('finance_safes').select('*').then(function(sres) {
+      var safes = sres.data || [];
+      var body = '<p>سيتم صرف مبلغ <strong>EGP ' + (p.net_salary||0).toLocaleString() + '</strong> للموظف.</p>';
+      body += '<div style="margin-top:15px; padding:15px; background:var(--bg-secondary); border-radius:8px;">';
+      body += '<label style="font-weight:bold; margin-bottom:8px; display:block;">اختر الخزينة للخصم منها:</label>';
+      body += '<select id="pr-indiv-safe" class="form-select" style="width:100%; padding:8px; border-radius:4px;">';
+      safes.forEach(function(s) {
+        body += '<option value="' + s.id + '|' + s.balance + '">' + s.name + ' (الرصيد: ' + Number(s.balance).toLocaleString() + ')</option>';
+      });
+      body += '</select></div>';
+
+      App.showModal('صرف راتب فردي', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-warning" id="pr-confirm-indiv">صرف وخصم</button>');
+
+      document.getElementById('pr-confirm-indiv').onclick = function() {
+        var safeVal = document.getElementById('pr-indiv-safe').value;
+        if(!safeVal) return alert('يرجى اختيار الخزينة');
+        var parts = safeVal.split('|');
+        var safeId = parts[0];
+        var safeBalance = Number(parts[1]);
+
+        this.disabled = true; this.innerHTML = 'جاري المعالجة...';
+        
+        sbClient.from('finance_safes').update({ balance: safeBalance - p.net_salary }).eq('id', safeId).then(function(safeUpdate) {
+          if(safeUpdate.error) {
+            App.closeModal();
+            return alert('خطأ في خصم الرصيد: ' + safeUpdate.error.message);
+          }
+          sbClient.from('payroll').update({status: 'paid'}).eq('id', id).then(r => {
+            App.closeModal();
+            if(r.error) {
+              showToast('حدث خطأ أثناء حفظ الحالة.', 'danger');
+              return;
+            }
+            showToast('تم صرف الراتب وخصمه من الخزينة بنجاح.', 'success');
+            loadData();
+          });
+        });
+      };
     });
   };
 
