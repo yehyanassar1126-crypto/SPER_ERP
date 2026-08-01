@@ -3280,3 +3280,129 @@ Pages.chartOfAccounts = function(el) {
 
   el.innerHTML = html;
 };
+
+// ==========================================
+// HR Employee Payment Collection Module
+// ==========================================
+Pages.hrEmployeePayment = function(el) {
+  if (!App.isHR() && !App.isOwner()) {
+    el.innerHTML = '<div class="alert alert-danger">Access Denied.</div>';
+    return;
+  }
+
+  el.innerHTML = '<div class="spinner-border text-primary m-4"></div> Loading...';
+  
+  var selectedMonth = '';
+  var payrollData = [];
+  var employees = {};
+
+  function loadData() {
+    Promise.all([
+      sbClient.from('payroll').select('*').in('status', ['paid', 'collected']),
+      sbClient.from('users').select('id, full_name, department')
+    ]).then(function(res) {
+      if(res[0].error || res[1].error) { el.innerHTML = 'Error loading.'; return; }
+      payrollData = res[0].data || [];
+      var emps = res[1].data || [];
+      emps.forEach(e => employees[e.id] = e);
+      
+      if(!selectedMonth && payrollData.length > 0) {
+        var months = [...new Set(payrollData.map(p => p.month))].sort().reverse();
+        selectedMonth = months[0] || '';
+      }
+      render();
+    });
+  }
+
+  function render() {
+    var filtered = payrollData.filter(p => p.month === selectedMonth);
+    var totalEmp = filtered.length;
+    var collectedCount = filtered.filter(p => p.status === 'collected').length;
+    var uncollectedCount = totalEmp - collectedCount;
+    var totalAmount = filtered.reduce((s,p) => s + (p.net_salary||0), 0);
+    var collectedAmount = filtered.filter(p => p.status === 'collected').reduce((s,p) => s + (p.net_salary||0), 0);
+    var remainingAmount = totalAmount - collectedAmount;
+
+    var html = '<div class="hr-employee-payment fade-in">';
+    
+    // Summary Cards
+    html += '<h2 class="mb-4">OOO O U,U.U^O,U?USU+ (' + (selectedMonth || 'N/A') + ')</h2>';
+    html += '<div class="row mb-4 text-center">';
+    html += _kpi('OOU.O U,US O U,U.U^O,U?USU+', totalEmp, 'users', 'primary');
+    html += _kpi('OU. O U,OOO', collectedCount, 'check-circle', 'success');
+    html += _kpi('U,U. USOU,OU^O', uncollectedCount, 'clock', 'warning');
+    html += _kpi('OOU.O U,US O U,OU^OOO"', totalAmount.toLocaleString() + ' EGP', 'dollar-sign', 'info');
+    html += _kpi('OU. O1OU?Oc', collectedAmount.toLocaleString() + ' EGP', 'credit-card', 'success');
+    html += _kpi('O U,U.OO"U,US', remainingAmount.toLocaleString() + ' EGP', 'alert-circle', 'danger');
+    html += '</div>';
+
+    // Filters & Controls
+    html += '<div class="card mb-3"><div class="card-body d-flex gap-3 align-items-center">';
+    html += '<select id="hep-month" class="form-select" style="width:200px;" onchange="window.hepChangeMonth(this.value)">';
+    var months = [...new Set(payrollData.map(p => p.month))].sort().reverse();
+    months.forEach(m => { html += '<option value="'+m+'" '+(m===selectedMonth?'selected':'')+'>'+m+'</option>'; });
+    html += '</select>';
+    html += '<input type="text" id="hep-search" class="form-control" placeholder="OO-O+ O"OO3U. O U,U.U^O,U?..." onkeyup="window.hepSearch(this.value)">';
+    html += '</div></div>';
+
+    // Table
+    html += '<div class="card"><div class="card-body p-0 table-responsive">';
+    html += '<table class="table table-hover mb-0" id="hep-table">';
+    html += '<thead class="table-light"><tr><th>O U,U.U^O,U?</th><th>O U,U,O3U.</th><th>OOU?US O U,OOO"</th><th>O-OU,Oc O U,OOO</th><th>OOOOO</th></tr></thead><tbody>';
+    
+    if(filtered.length === 0) {
+      html += '<tr><td colspan="5" class="text-center p-4 text-muted">OOUSO O"USOU+OO U,OO_O O U,OU,O (U,U. USOU,U. O U,U.O-OO3O" O"OO3U,USU. OU^OOO" O U,OU,O O"OO_)</td></tr>';
+    }
+
+    filtered.forEach(p => {
+      var emp = employees[p.employee_id] || {full_name: 'Unknown', department: '-'};
+      var isCollected = p.status === 'collected';
+      html += '<tr>';
+      html += '<td><strong>' + emp.full_name + '</strong></td>';
+      html += '<td>' + emp.department + '</td>';
+      html += '<td style="font-weight:bold; color:var(--accent-primary)">' + (p.net_salary||0).toLocaleString() + ' EGP</td>';
+      
+      if(isCollected) {
+        html += '<td><span class="badge bg-success">OU. O U,OOO</span></td>';
+        html += '<td><button class="btn btn-sm btn-secondary" disabled>OU. O U,OOO '+window.icon('check')+'</button></td>';
+      } else {
+        html += '<td><span class="badge bg-warning text-dark">U,U. USOU,O</span></td>';
+        html += '<td><button class="btn btn-sm btn-primary" onclick="window.hepMarkCollected('+p.id+')">OU. '+window.icon('check')+'</button></td>';
+      }
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div></div>';
+    html += '</div>';
+
+    el.innerHTML = html;
+    if(window.lucide) window.lucide.createIcons();
+  }
+
+  function _kpi(title, value, iconName, color) {
+    return '<div class="col-md-2 col-6 mb-3"><div class="card h-100 border-0 shadow-sm" style="border-bottom:4px solid var(--bs-'+color+')!important"><div class="card-body p-3 text-center"><h6 class="text-muted" style="font-size:0.75rem">'+title+'</h6><h4 class="mb-0 text-'+color+'">'+value+'</h4></div></div></div>';
+  }
+
+  window.hepChangeMonth = function(m) { selectedMonth = m; render(); };
+  window.hepSearch = function(q) {
+    var trs = document.querySelectorAll('#hep-table tbody tr');
+    q = q.toLowerCase();
+    trs.forEach(tr => {
+      if(tr.innerText.toLowerCase().includes(q)) tr.style.display = '';
+      else tr.style.display = 'none';
+    });
+  };
+
+  window.hepMarkCollected = function(pid) {
+    if(!confirm("OU, OU+O U.OOUO_ OU+ O U,U.U^O,U? OO3OU,U. OOO"OcY")) return;
+    sbClient.from('payroll').update({status: 'collected'}).eq('id', pid).then(r => {
+      if(r.error) return alert(r.error.message);
+      var p = payrollData.find(x => x.id === pid);
+      if(p) p.status = 'collected';
+      window.showToast("OU. OO3OUSU, OO3OU,OU. OOO" O U,U.U^O,U? O"U+OO!", "success");
+      render();
+    });
+  };
+
+  loadData();
+};

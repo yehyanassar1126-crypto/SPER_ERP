@@ -17,7 +17,7 @@ Pages.payrollFunding = function(el) {
   var isFirstLoad = true;
   function loadData() {
     if(isFirstLoad) {
-      el.innerHTML = '<div style="padding:100px; text-align:center;"><div class="spinner" style="width:60px;height:60px;border-width:4px;"></div><h4 style="margin-top:20px;font-weight:700;background:linear-gradient(90deg, #6366f1, #a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:pulse 2s infinite;">جاري تحميل نظام الرواتب المؤسسي...</h4></div>';
+      el.innerHTML = '<div style="padding:100px; text-align:center;"><div class="spinner" style="width:60px;height:60px;border-width:4px;"></div><h4 style="margin-top:20px;font-weight:700;background:linear-gradient(90deg, #6366f1, #a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">جاري تحميل نظام الرواتب المؤسسي...</h4></div>';
     }
     
     Promise.all([

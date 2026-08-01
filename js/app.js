@@ -846,6 +846,7 @@ var App = {
       case 'overtime': case 'my-overtime': Pages.overtime(el); break;
       case 'payroll': case 'my-salary': Pages.payroll(el); break;
       case 'payroll-funding': Pages.payrollFunding(el); break;
+        case 'hr-employee-payment': Pages.hrEmployeePayment(el); break;
       case 'driver-payments': if (Pages.driverPayments) Pages.driverPayments(el); else el.innerHTML = 'Module missing'; break;
       case 'announcements': Pages.announcements(el); break;
       case 'reports': App.isHR() ? Pages.reports(el) : Pages.empDashboard(el); break;
@@ -3825,6 +3826,8 @@ Pages.payroll = function (el) {
               var totalEarnings = earnedSoFar + totalOTPay + totalBonuses + extraB + totalMedical;
               var totalDeductions = totalPenalties + extraP + totalLateDeduction + calculatedAbsenceDeductions + insuranceDeduction + totalLoanDeduction;
               var net = totalEarnings - totalDeductions;
+                // Fix negative net salary issue
+                if (net < 0) net = 0;
 
               calcData = {
                 employee_id: empId, employee_name: empName, department: empDept,
@@ -3894,7 +3897,7 @@ Pages.payroll = function (el) {
               promises.push(sbClient.from('salary_adjustments').insert([{ employee_id: calcData.employee_id, employee_name: calcData.employee_name, department: calcData.department, type: 'penalty', amount: extraP, month: calcData.month, reason: 'HR Manual Extra Penalty during Payroll', status: 'approved' }]));
             }
 
-            promises.push(sbClient.from('payroll').insert([calcData]).select().single().then(function (s) { return s; }));
+            promises.push(sbClient.from('payroll').upsert([calcData], { onConflict: 'employee_id, month' }).select().single().then(function (s) { return s; }));
 
             Promise.all(promises).then(function (results) {
               var s = results[results.length - 1]; // payroll result
