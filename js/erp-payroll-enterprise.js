@@ -46,6 +46,7 @@ Pages.payrollFunding = function(el) {
     var filteredPayroll = payrollData.filter(p => p.month === selectedMonth);
     
     var totalAmount = 0;
+    var remainingAmount = 0;
     var processingCount = 0;
     var releasedCount = 0;
     var paidCount = 0;
@@ -53,10 +54,10 @@ Pages.payrollFunding = function(el) {
     
     filteredPayroll.forEach(p => {
       totalAmount += p.net_salary || 0;
-      if(p.status === 'processing') processingCount++;
-      if(p.status === 'funds_released') releasedCount++;
-      if(p.status === 'paid') paidCount++;
-      if(p.status === 'collected') collectedCount++;
+      if(p.status === 'processing') { processingCount++; remainingAmount += p.net_salary || 0; }
+      else if(p.status === 'funds_released') { releasedCount++; remainingAmount += p.net_salary || 0; }
+      else if(p.status === 'paid') paidCount++;
+      else if(p.status === 'collected') collectedCount++;
     });
     
     var totalEmp = filteredPayroll.length;
@@ -72,9 +73,15 @@ Pages.payrollFunding = function(el) {
     html += '<h2 style="color:#fff; margin:0 0 4px 0; font-size:1.3rem; font-weight:700;">💰 صرف المرتبات - ' + (selectedMonth || 'لا يوجد') + '</h2>';
     html += '<p style="color:rgba(255,255,255,0.6); margin:0; font-size:0.85rem;">نظام صرف المرتبات المؤسسي</p>';
     html += '</div>';
-    html += '<div style="text-align:left;">';
-    html += '<h2 style="color:#fff; margin:0; font-weight:900; font-size:1.6rem;">EGP ' + totalAmount.toLocaleString() + '</h2>';
-    html += '<p style="color:rgba(255,255,255,0.6); margin:0; font-size:0.8rem;">إجمالي المرتبات</p>';
+    html += '<div style="display:flex; gap:30px; text-align:left;">';
+    html += '<div>';
+    html += '<h2 style="color:#22c55e; margin:0; font-weight:900; font-size:1.6rem;">EGP ' + remainingAmount.toLocaleString() + '</h2>';
+    html += '<p style="color:rgba(255,255,255,0.6); margin:0; font-size:0.8rem;">المبلغ المتبقي للصرف</p>';
+    html += '</div>';
+    html += '<div style="opacity:0.6;">';
+    html += '<h2 style="color:#fff; margin:0; font-weight:700; font-size:1.2rem; text-decoration:line-through;">EGP ' + totalAmount.toLocaleString() + '</h2>';
+    html += '<p style="color:#fff; margin:0; font-size:0.7rem;">الإجمالي العام</p>';
+    html += '</div>';
     html += '</div>';
     html += '</div></div>';
 
@@ -141,7 +148,8 @@ Pages.payrollFunding = function(el) {
 
     filteredPayroll.forEach(p => {
       var emp = employees.find(e => e.id === p.employee_id) || {full_name: p.employee_name || 'غير معروف', department: '-'};
-      var statusBadge = _statusBadge(p.status);
+      
+      var isPaid = p.status === 'paid' || p.status === 'collected';
       
       html += '<tr>';
       html += '<td><strong>' + emp.full_name + '</strong></td>';
@@ -150,9 +158,17 @@ Pages.payrollFunding = function(el) {
       html += '<td style="color:#10b981;">' + ((p.overtime_pay||0) + (p.bonuses||0)).toLocaleString() + '</td>';
       html += '<td style="color:#ef4444;">' + ((p.penalties||0) + (p.late_deductions||0) + (p.absence_deductions||0) + (p.insurance_deduction||0) + (p.loan_deduction||0)).toLocaleString() + '</td>';
       html += '<td><strong>EGP ' + (p.net_salary||0).toLocaleString() + '</strong></td>';
-      html += '<td>' + statusBadge + '</td>';
+      
       html += '<td>';
-      html += '<button class="btn btn-sm btn-outline-secondary" onclick="window.prViewDetails(\'' + p.id + '\')"><i data-lucide="eye"></i></button>';
+      if (!isPaid) {
+        html += '<button class="btn btn-sm" onclick="window.prMarkPaidIndividual(' + p.id + ')" style="background:#f59e0b; color:#fff; border-radius:20px; padding:4px 16px; border:none; font-weight:bold; transition:0.3s; cursor:pointer;" onmouseover="this.style.background=\'#d97706\'" onmouseout="this.style.background=\'#f59e0b\'">اصرف</button>';
+      } else {
+        html += '<span class="badge" style="background:#10b981; color:#fff; padding:6px 12px; border-radius:20px;">تم الصرف ✓</span>';
+      }
+      html += '</td>';
+
+      html += '<td>';
+      html += '<button class="btn btn-sm btn-outline-secondary" onclick="window.prViewDetails(\'' + p.id + '\')">تفاصيل</button>';
       html += '</td>';
       html += '</tr>';
     });
@@ -291,6 +307,18 @@ Pages.payrollFunding = function(el) {
     body += '<tr><th>الحالة</th><td>' + _statusBadge(p.status) + '</td></tr>';
     body += '</table>';
     App.showModal('تفاصيل الراتب', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إغلاق</button>');
+  };
+
+  window.prMarkPaidIndividual = function(id) {
+    if(!confirm('هل أنت متأكد من صرف راتب هذا الموظف؟')) return;
+    sbClient.from('payroll').update({status: 'paid'}).eq('id', id).then(r => {
+      if(r.error) {
+        showToast('حدث خطأ أثناء حفظ الحالة.', 'danger');
+        return;
+      }
+      showToast('تم صرف الراتب وخصمه من الإجمالي بنجاح.', 'success');
+      loadData();
+    });
   };
 
   loadData();
