@@ -1341,12 +1341,8 @@ Pages.empDashboard = function (el) {
 
   var d = new Date();
   var displayDate = d;
-  // If today is <= 5th of the month, display the previous month's data so the employee can see their final salary/attendance
-  if (d.getDate() <= 5) {
-    displayDate = new Date(d.getFullYear(), d.getMonth(), 0); // Last day of previous month
-  }
-  
-  var currentMonth = displayDate.toISOString().substring(0, 7);
+  // Always show current month
+    var currentMonth = displayDate.toISOString().substring(0, 7);
   var monthStart = currentMonth + '-01';
   var lastDay = new Date(displayDate.getFullYear(), displayDate.getMonth() + 1, 0).getDate();
   var monthEnd = currentMonth + '-' + lastDay;
@@ -3622,6 +3618,10 @@ Pages.payroll = function (el) {
                     return;
                 }
                 window.prompt = function() { return '1234'; }; // Bypass OTP for batch processing
+                
+                // CRITICAL FIX: Prevent modal from closing after each save
+                var originalCloseModal = App.closeModal;
+                App.closeModal = function() {};
 
                 var resultDiv = document.getElementById('pf-calc-result');
                 var oldText = "";
@@ -3653,8 +3653,12 @@ Pages.payroll = function (el) {
                 }
 
                 window.prompt = originalPrompt;
+                App.closeModal = originalCloseModal;
+                App.closeModal(); // Close the modal once the batch is fully complete
                 showToast("تم إصدار جميع الرواتب بنجاح!", "success");
-                window.updatePayrollDropdown();
+                
+                // Force a page reload to refresh the main payroll table
+                setTimeout(function(){ App.navigate('payroll'); }, 1000);
             };
 
             
