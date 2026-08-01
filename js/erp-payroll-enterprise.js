@@ -14,8 +14,11 @@ Pages.payrollFunding = function(el) {
   var employees = [];
   var selectedMonth = '';
 
+  var isFirstLoad = true;
   function loadData() {
-    el.innerHTML = '<div class="spinner-border text-primary m-4" role="status"></div> Loading Enterprise Payroll...';
+    if(isFirstLoad) {
+      el.innerHTML = '<div style="padding:100px; text-align:center;"><div class="spinner" style="width:60px;height:60px;border-width:4px;"></div><h4 style="margin-top:20px;font-weight:700;background:linear-gradient(90deg, #6366f1, #a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:pulse 2s infinite;">جاري تحميل نظام الرواتب المؤسسي...</h4></div>';
+    }
     
     Promise.all([
       sbClient.from('payroll').select('*').in('status', ['processing', 'funds_released', 'paid']),
@@ -35,6 +38,7 @@ Pages.payrollFunding = function(el) {
         selectedMonth = months[0];
       }
       
+      isFirstLoad = false;
       renderUI();
     });
   }
@@ -57,11 +61,27 @@ Pages.payrollFunding = function(el) {
     var totalEmp = filteredPayroll.length;
     var progress = totalEmp ? Math.round((paidCount / totalEmp) * 100) : 0;
 
-    var html = '<div class="erp-payroll-enterprise">';
+    var html = '<style>\
+    .erp-payroll-enterprise { font-family: "Inter", "Tajawal", sans-serif; animation: fadeIn 0.4s ease-out; }\
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }\
+    .erp-card-premium { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); overflow: hidden; position: relative; }\
+    .erp-card-premium::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 50%); pointer-events: none; }\
+    .erp-stat-box { transition: all 0.3s ease; border-radius: 12px; background: rgba(255,255,255,0.02) !important; border: 1px solid rgba(255,255,255,0.05) !important; backdrop-filter: blur(10px); }\
+    .erp-stat-box:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); border-color: rgba(99,102,241,0.3) !important; }\
+    .erp-table { background: rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; }\
+    .erp-table th { background: rgba(255,255,255,0.05); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; padding: 16px !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important; }\
+    .erp-table td { padding: 16px !important; border-bottom: 1px solid rgba(255,255,255,0.02) !important; vertical-align: middle; }\
+    .erp-table tr:hover td { background: rgba(255,255,255,0.02); }\
+    .erp-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px; }\
+    .erp-timeline-step { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; transition: all 0.3s ease; }\
+    .erp-timeline-step.active { background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.3); transform: scale(1.02); }\
+    .erp-btn-glow { background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; box-shadow: 0 4px 15px rgba(99,102,241,0.4); transition: all 0.3s ease; color: white !important; font-weight: 600; border-radius: 8px; padding: 8px 20px; }\
+    .erp-btn-glow:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.6); transform: translateY(-2px); filter: brightness(1.1); }\
+    </style><div class="erp-payroll-enterprise">';
     
     // 1. Enterprise Header
-    html += '<div class="card mb-4" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color:#fff; border:none; border-radius:12px;">';
-    html += '<div class="card-body d-flex justify-content-between align-items-center">';
+    html += '<div class="erp-card-premium mb-4 p-4">';
+    html += '<div class="d-flex justify-content-between align-items-center" style="position:relative; z-index:2;">';
     html += '<div>';
     html += '<h2 style="color:#fff; margin-bottom:4px;">💰 Payroll Funding (صرف المرتبات) - '+(selectedMonth||'No Data')+'</h2>';
     html += '<p style="opacity:0.8; margin:0;">Enterprise Payroll Disbursement & Accounting Integration</p>';
@@ -190,7 +210,7 @@ Pages.payrollFunding = function(el) {
   }
 
   function _statBox(title, value, iconName, color) {
-    return '<div class="col-md-2 col-6 mb-3"><div class="card h-100" style="border-left:4px solid var(--bs-'+color+');"><div class="card-body p-3 text-center">';
+    return '<div class="col-md-2 col-6 mb-3"><div class="card h-100 erp-stat-box" style="border-left:4px solid var(--bs-'+color+') !important;"><div class="card-body p-3 text-center">';
     return '<div class="col-md-2 col-6 mb-3"><div class="card h-100" style="border-left:4px solid var(--bs-'+color+');"><div class="card-body p-3 text-center">' +
            '<i data-lucide="'+iconName+'" class="text-'+color+' mb-2"></i>' +
            '<h4 class="mb-1">'+value+'</h4>' +

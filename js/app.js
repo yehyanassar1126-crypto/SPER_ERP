@@ -1376,7 +1376,7 @@ Pages.empDashboard = function (el) {
     var dailyRate = Math.round(baseSalary / 30);
     
     var todayDate = displayDate;
-    var dayOfMonth = (d.getDate() <= 5) ? lastDay : d.getDate();
+    var dayOfMonth = d.getDate(); // Fixed: always use current day of month per user request
     var monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
     var currentMonthName = monthNames[displayDate.getMonth()];
 
