@@ -161,7 +161,7 @@ Pages.payrollFunding = function(el) {
       
       html += '<td>';
       if (!isPaid) {
-        html += '<button class="btn btn-sm" onclick="window.prMarkPaidIndividual(' + p.id + ')" style="background:#f59e0b; color:#fff; border-radius:20px; padding:4px 16px; border:none; font-weight:bold; transition:0.3s; cursor:pointer;" onmouseover="this.style.background=\'#d97706\'" onmouseout="this.style.background=\'#f59e0b\'">اصرف</button>';
+        html += '<button class="btn btn-sm" onclick="window.prMarkPaidIndividual(\'' + p.id + '\')" style="background:#f59e0b; color:#fff; border-radius:20px; padding:4px 16px; border:none; font-weight:bold; transition:0.3s; cursor:pointer;" onmouseover="this.style.background=\'#d97706\'" onmouseout="this.style.background=\'#f59e0b\'">اصرف</button>';
       } else {
         html += '<span class="badge" style="background:#10b981; color:#fff; padding:6px 12px; border-radius:20px;">تم الصرف ✓</span>';
       }
