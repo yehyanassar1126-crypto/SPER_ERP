@@ -247,17 +247,50 @@ Pages.payrollFunding = function(el) {
     body += '<table class="table table-sm" style="font-size:0.85rem;"><tr><th>الشهر</th><td>' + selectedMonth + '</td></tr>';
     body += '<tr><th>عدد الموظفين</th><td>' + ids.length + '</td></tr>';
     body += '<tr><th>إجمالي المبلغ</th><td>EGP ' + amt.toLocaleString() + '</td></tr></table>';
-    body += '<div class="alert alert-info" style="font-size:0.85rem;">✅ الرصيد كافي لإتمام العملية.</div>';
     
-    App.showModal('تأكيد تحويل الأموال', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-warning" id="pr-confirm-release">تأكيد التحويل</button>');
+    // Add Treasury Selection
+    body += '<div style="margin-top:15px; padding:15px; background:var(--bg-secondary); border-radius:8px;">';
+    body += '<label style="font-weight:bold; margin-bottom:8px; display:block;">اختر حساب الخزينة/البنك للخصم منه:</label>';
+    body += '<select id="pr-treasury-account" class="form-select" style="width:100%; border:1px solid var(--border-color); padding:8px; border-radius:4px;">';
+    body += '<option value="الخزينة الرئيسية">الخزينة الرئيسية (Main Safe)</option>';
+    body += '<option value="البنك الأهلي">البنك الأهلي (NBE)</option>';
+    body += '<option value="CIB Bank">CIB Bank</option>';
+    body += '<option value="بنك مصر">بنك مصر (Banque Misr)</option>';
+    body += '</select>';
+    body += '<small style="color:var(--text-muted); display:block; margin-top:5px;">سيتم إنشاء إذن صرف (Transaction) بهذا المبلغ من الحساب المختار.</small>';
+    body += '</div>';
+
+    App.showModal('تأكيد تحويل الأموال وتسجيل المصروف', body, '<button class="btn btn-secondary" onclick="App.closeModal()">إلغاء</button> <button class="btn btn-warning" id="pr-confirm-release">تأكيد التحويل والخصم</button>');
     
     document.getElementById('pr-confirm-release').onclick = function() {
+      var selectedAccount = document.getElementById('pr-treasury-account').value;
       this.disabled = true; this.innerHTML = 'جاري المعالجة...';
+      
+      // Update payroll status
       sbClient.from('payroll').update({status: 'funds_released'}).in('id', ids).then(r => {
-        App.closeModal();
-        if(r.error) return alert(r.error.message);
-        showToast('تم تحويل الأموال بنجاح إلى قسم HR.', 'success');
-        loadData();
+        if(r.error) {
+          App.closeModal();
+          return alert(r.error.message);
+        }
+        
+        // Register transaction in Treasury
+        sbClient.from('finance_treasury_tx').insert({
+          type: 'out',
+          amount: amt,
+          category: 'Payroll',
+          description: 'صرف رواتب موظفين لشهر ' + selectedMonth,
+          status: 'cleared',
+          cleared_account: selectedAccount,
+          created_by: App.user.id
+        }).then(txRes => {
+          App.closeModal();
+          if (txRes.error) {
+             showToast('تم التحويل ولكن فشل تسجيله في الخزينة: ' + txRes.error.message, 'danger');
+          } else {
+             showToast('تم تحويل الأموال بنجاح وتم تسجيل الخصم في الخزينة (' + selectedAccount + ').', 'success');
+          }
+          loadData();
+        });
       });
     };
   };
