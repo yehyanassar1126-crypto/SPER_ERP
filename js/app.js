@@ -1343,7 +1343,7 @@ Pages.empDashboard = function (el) {
   var d = new Date();
   var displayDate = d;
   // Always show current month
-    var currentMonth = displayDate.toISOString().substring(0, 7);
+  var currentMonth = displayDate.toISOString().substring(0, 7);
   var monthStart = currentMonth + '-01';
   var lastDay = new Date(displayDate.getFullYear(), displayDate.getMonth() + 1, 0).getDate();
   var monthEnd = currentMonth + '-' + lastDay;
@@ -1354,7 +1354,7 @@ Pages.empDashboard = function (el) {
     sbClient.from('payroll').select('*').eq('employee_id', user.id).order('month', { ascending: false }).limit(1),
     sbClient.from('overtime').select('hours').eq('employee_id', user.id),
     sbClient.from('announcements').select('*').order('created_at', { ascending: false }).limit(5),
-    sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', user.id).gte('date', monthStart).lte('date', monthEnd),
+    sbClient.from('attendance').select('id, date, delay_minutes, status').eq('employee_id', user.id).gte('date', monthStart).lte('date', monthEnd),
     sbClient.from('salary_adjustments').select('*').eq('employee_id', user.id).eq('status', 'approved').eq('month', currentMonth)
   ]).then(function (results) {
     var todayAtt = (results[0].data && results[0].data[0]) || null;
@@ -1435,8 +1435,24 @@ Pages.empDashboard = function (el) {
       else totalPenalties += (adj.amount || 0);
     });
 
+    var monthLeaves = myLeaves.filter(function (l) { return l.status === 'approved' && l.start_date <= monthEnd && l.end_date >= monthStart; });
+    var unexcusedAbsenceDays = 0;
+    for (var i = firstActiveDay; i < dayOfMonth; i++) {
+       var dStr = currentMonth + '-' + (i < 10 ? '0' + i : i);
+       var dObj = new Date(dStr + 'T00:00:00');
+       var isFriday = dObj.getDay() === 5;
+       if (!isFriday && !attDatesMap[dStr]) {
+          var onLeave = monthLeaves.find(function(l) { return dStr >= l.start_date && dStr <= l.end_date; });
+          if (!onLeave) {
+             unexcusedAbsenceDays++;
+          }
+       }
+    }
+    var absenceMultiplier = (currentMonth >= '2026-08') ? 2 : 1;
+    var extraAbsencePenalty = unexcusedAbsenceDays * dailyRate * (absenceMultiplier - 1);
+
     // Net can only go negative from penalties (جزاءات)
-    var netAccumulated = earnedSoFar + totalBonuses - totalPenalties;
+    var netAccumulated = earnedSoFar + totalBonuses - totalPenalties - extraAbsencePenalty;
     var salaryProgress = baseSalary > 0 ? Math.round((earnedSoFar / baseSalary) * 100) : 0;
 
     var html = '<div class="profile-header" style="flex-wrap:wrap"><div style="display:flex;align-items:center;gap:15px"><div class="profile-avatar" style="background:' + (user.avatar_color || '#6366f1') + '">' + getInitials(user.full_name) + '</div>' +
@@ -1478,6 +1494,7 @@ Pages.empDashboard = function (el) {
     if (totalBonuses > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #22c55e"><div style="font-size:0.7rem;color:var(--text-muted)">مكافآت</div><div style="font-size:1rem;font-weight:800;color:#22c55e">+' + totalBonuses.toLocaleString() + '</div></div>';
     if (totalPenalties > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #ef4444"><div style="font-size:0.7rem;color:var(--text-muted)">جزاءات</div><div style="font-size:1rem;font-weight:800;color:#ef4444">-' + totalPenalties.toLocaleString() + '</div></div>';
     if (totalLateDeduction > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #f59e0b"><div style="font-size:0.7rem;color:var(--text-muted)">إجمالي خصم تأخيرات</div><div style="font-size:1rem;font-weight:800;color:#f59e0b">' + totalLateDeduction.toLocaleString() + ' ج.م</div></div>';
+    if (extraAbsencePenalty > 0) html += '<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-md);border-right:3px solid #ef4444"><div style="font-size:0.7rem;color:var(--text-muted)">جزاء غياب إضافي</div><div style="font-size:1rem;font-weight:800;color:#ef4444">-' + extraAbsencePenalty.toLocaleString() + ' ج.م</div></div>';
     html += '</div>';
 
     // ===== DAY-BY-DAY BREAKDOWN TABLE (from 1st of month) =====
@@ -1539,7 +1556,12 @@ Pages.empDashboard = function (el) {
         rowBg = 'background:rgba(59,130,246,0.02);';
         earnLabel = '<span style="color:#3b82f6">+' + dayEarned.toLocaleString() + '</span>';
       } else if (dayIdx < dayOfMonth) {
-        statusBadge = '<span style="background:rgba(239,68,68,0.1);color:#ef4444;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">❌ غائب</span>';
+        var dayAbsenceMultiplier = (currentMonth >= '2026-08') ? 2 : 1;
+        var penalty = dailyRate * (dayAbsenceMultiplier - 1);
+        if (dayIdx >= firstActiveDay) cumulative -= penalty;
+        
+        statusBadge = '<span style="background:rgba(239,68,68,0.1);color:#ef4444;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">❌ غائب' + (dayAbsenceMultiplier === 2 ? ' (خصم يومين)' : '') + '</span>';
+        if (penalty > 0 && dayIdx >= firstActiveDay) earnLabel = '<span style="color:#ef4444">-' + penalty.toLocaleString() + '</span>';
         rowBg = 'background:rgba(239,68,68,0.02);';
       } else {
         statusBadge = '<span style="background:rgba(245,158,11,0.1);color:#f59e0b;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:600">⏳ اليوم</span>';
@@ -3589,7 +3611,7 @@ Pages.payroll = function (el) {
             
             var modalButtons = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button>';
             modalButtons += '<button class="btn btn-warning" onclick="window.generateAllPayrolls()" style="margin-right:8px">⚡ إصدار رواتب الجميع</button>';
-            modalButtons += '<button class="btn btn-info" id="pf-calc" style="margin-right:8px">dY", Calculate</button>';
+            modalButtons += '<button class="btn btn-info" id="pf-calc" style="margin-right:8px">Calculate</button>';
             modalButtons += '<button class="btn btn-primary" id="pf-save" disabled>Save Record</button>';
             App.showModal('Auto-Calculate Salary', b, modalButtons, true);
             
@@ -3682,44 +3704,39 @@ Pages.payroll = function (el) {
             
             window.updatePayrollDropdown(); // initial call
 
-          var calcData = null;
+            document.getElementById('pf-calc').addEventListener('click', function () {
+              var empId = document.getElementById('pf-emp').value;
+              var month = document.getElementById('pf-m').value;
+              if (!empId || !month) { alert('Select employee and month'); return; }
+              
+              var empOpt = document.getElementById('pf-emp').options[document.getElementById('pf-emp').selectedIndex];
+              var empName = empOpt.getAttribute('data-name');
+              var base = Number(empOpt.getAttribute('data-base'));
+              var empDept = empOpt.getAttribute('data-dept');
+              var isInsured = empOpt.getAttribute('data-insured') === '1';
+              var insSalary = Number(empOpt.getAttribute('data-ins-salary')) || 0;
+              var empHireStr = empOpt.getAttribute('data-hire');
 
-          document.getElementById('pf-calc').addEventListener('click', function () {
-            var sel = document.getElementById('pf-emp');
-            if (!sel.value) { alert('Select an employee first'); return; }
-            var opt = sel.options[sel.selectedIndex];
-            var empId = sel.value;
-            var empName = opt.getAttribute('data-name');
-            var empDept = opt.getAttribute('data-dept') + (opt.getAttribute('data-pos').indexOf('(عامل يومية)') !== -1 ? ' (عامل يومية)' : '');
-            var base = Number(opt.getAttribute('data-base')) || 0;
-            var isInsured = opt.getAttribute('data-insured') === '1';
-            var insSalary = Number(opt.getAttribute('data-ins-salary')) || 0;
-            var hireDateStr = opt.getAttribute('data-hire');
-            var month = document.getElementById('pf-m').value;
-            if (!month) { alert('Select a month'); return; }
+              var monthStart = month + '-01';
+              var lastDay = new Date(Number(month.split('-')[0]), Number(month.split('-')[1]), 0).getDate();
+              var monthEnd = month + '-' + lastDay;
 
-            var resultDiv = document.getElementById('pf-calc-result');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<p style="text-align:center;color:var(--text-muted)">⏳ Calculating...</p>';
+              var resultDiv = document.getElementById('pf-calc-result');
+              resultDiv.innerHTML = '<span class="spinner"></span> Calculating...';
+              resultDiv.style.display = 'block';
 
-            // Fetch overtime, adjustments, attendance (with delay), and approved leaves for the month
-            var monthStart = month + '-01';
-            var [yy, mm] = month.split('-');
-            var lastDay = new Date(Number(yy), Number(mm), 0).getDate();
-            var monthEnd = month + '-' + lastDay;
-
-            Promise.all([
-              sbClient.from('overtime').select('hours, rate').eq('employee_id', empId).eq('status', 'approved').gte('date', monthStart).lte('date', monthEnd),
-              sbClient.from('salary_adjustments').select('type, amount').eq('employee_id', empId).eq('status', 'approved').eq('month', month),
-              sbClient.from('attendance').select('id, date, delay_minutes').eq('employee_id', empId).gte('date', monthStart).lte('date', monthEnd),
-              sbClient.from('leave_requests').select('start_date, end_date, days').eq('employee_id', empId).eq('status', 'approved').gte('start_date', monthStart).lte('end_date', monthEnd),
-              sbClient.from('medical_requests').select('amount, created_at').eq('employee_id', empId).eq('status', 'disbursed'),
-              sbClient.from('loans').select('*').eq('employee_id', empId).eq('status', 'active')
-            ]).then(function (results) {
-              var otRecords = results[0].data || [];
-              var adjRecords = results[1].data || [];
-              var attRecords = results[2].data || [];
-              var leaveRecords = results[3].data || [];
+              Promise.all([
+                sbClient.from('attendance').select('date, status, delay_minutes, delay_excused').eq('employee_id', empId).gte('date', monthStart).lte('date', monthEnd),
+                sbClient.from('overtime').select('date, hours, rate').eq('employee_id', empId).eq('status', 'approved').gte('date', monthStart).lte('date', monthEnd),
+                sbClient.from('salary_adjustments').select('type, amount').eq('employee_id', empId).eq('month', month).eq('status', 'approved'),
+                sbClient.from('leave_requests').select('start_date, end_date, days, status').eq('employee_id', empId).eq('status', 'approved'),
+                sbClient.from('medical_requests').select('amount, created_at').eq('employee_id', empId).eq('status', 'approved'),
+                sbClient.from('loans').select('id, amount, monthly_deduction, remaining_amount, deferred_months').eq('employee_id', empId).eq('status', 'approved').gt('remaining_amount', 0)
+              ]).then(function (results) {
+                var attRecords = results[0].data || [];
+                var otRecords = results[1].data || [];
+                var adjRecords = results[2].data || [];
+                var leaveRecords = results[3].data || [];
               var medicalRecords = (results[4].data || []).filter(function(m) {
                 return m.created_at.substring(0, 7) === month;
               });
