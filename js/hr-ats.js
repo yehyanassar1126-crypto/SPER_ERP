@@ -179,7 +179,13 @@ Pages.hrATS = function(el) {
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
         
-        pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+        var loadingTask = pdfjsLib.getDocument({
+          data: typedarray,
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+          cMapPacked: true
+        });
+
+        loadingTask.promise.then(function(pdf) {
           document.getElementById('ats-pdf-pages').textContent = '(' + pdf.numPages + ' صفحة)';
           var allText = '';
           var promises = [];
@@ -199,6 +205,29 @@ Pages.hrATS = function(el) {
             document.getElementById('ats-cv').value = allText;
             document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-success);font-weight:600">✅ تم استخراج النص بنجاح (' + allText.length + ' حرف)</span>';  
             document.getElementById('ats-analyze').disabled = false;
+            
+            // Auto Fill logic
+            if (allText) {
+              var emailMatch = allText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+              if (emailMatch && !document.getElementById('ats-email').value) document.getElementById('ats-email').value = emailMatch[0];
+              
+              var phoneMatch = allText.match(/(?:\+?20|0)?1[0125]\d{8}/) || allText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}/);
+              if (phoneMatch && !document.getElementById('ats-phone').value) document.getElementById('ats-phone').value = phoneMatch[0];
+              
+              var expMatch = allText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)\s*(?:of\s*)?(?:experience|خبرة)/i);
+              if (expMatch && !document.getElementById('ats-exp').value) document.getElementById('ats-exp').value = expMatch[1];
+              
+              var lines = allText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+              for (var i = 0; i < Math.min(lines.length, 5); i++) {
+                 var line = lines[i].toLowerCase();
+                 if (line.includes('resume') || line.includes('curriculum') || line.includes('cv') || line.includes('سيرة')) continue;
+                 if (lines[i].length < 40 && !document.getElementById('ats-name').value) {
+                     document.getElementById('ats-name').value = lines[i];
+                     break;
+                 }
+              }
+              showToast('✨ تم استخراج بعض البيانات من السيرة الذاتية (الاسم، الإيميل، رقم الهاتف)', 'success');
+            }
           });
         }).catch(function(err) {
           document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-danger)">❌ خطأ في قراءة ملف PDF: ' + err.message + '</span>';
