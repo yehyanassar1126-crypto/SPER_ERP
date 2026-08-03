@@ -164,6 +164,18 @@ Pages.hrATS = function(el) {
       document.getElementById('ats-extract-progress').style.display = 'block';
       document.getElementById('ats-analyze').disabled = true;
 
+      // Helper to fix reversed Arabic text from PDF.js
+      function fixArabicPDFText(text) {
+        if (!text) return '';
+        return text.split('\n').map(function(line) {
+          if (!/[\u0600-\u06FF]/.test(line)) return line;
+          var reversedLine = line.split('').reverse().join('');
+          return reversedLine.replace(/[a-zA-Z0-9_.-]+/g, function(match) {
+            return match.split('').reverse().join('');
+          });
+        }).join('\n');
+      }
+
       var reader = new FileReader();
       reader.onload = function(e) {
         var typedarray = new Uint8Array(e.target.result);
@@ -202,6 +214,7 @@ Pages.hrATS = function(el) {
 
           Promise.all(promises).then(function(pageTexts) {
             allText = pageTexts.join('\n');
+            allText = fixArabicPDFText(allText); // Fix Arabic reversing
             document.getElementById('ats-cv').value = allText;
             document.getElementById('ats-extract-progress').innerHTML = '<span style="color:var(--accent-success);font-weight:600">✅ تم استخراج النص بنجاح (' + allText.length + ' حرف)</span>';  
             document.getElementById('ats-analyze').disabled = false;
@@ -214,7 +227,7 @@ Pages.hrATS = function(el) {
               var phoneMatch = allText.match(/(?:\+?20|0)?1[0125]\d{8}/) || allText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}/);
               if (phoneMatch && !document.getElementById('ats-phone').value) document.getElementById('ats-phone').value = phoneMatch[0];
               
-              var expMatch = allText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)\s*(?:of\s*)?(?:experience|خبرة)/i);
+              var expMatch = allText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)/i) || allText.match(/(?:experience|خبرة)\s*[:\-]?\s*(\d+)/i) || allText.match(/(\d+)\s*(?:\+|plus)/i);
               if (expMatch && !document.getElementById('ats-exp').value) document.getElementById('ats-exp').value = expMatch[1];
               
               var lines = allText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
@@ -298,7 +311,7 @@ Pages.hrATS = function(el) {
 
       // 4. Education Keywords (up to 10 points)
       var eduScore = 0;
-      ['bachelor','master','phd','engineering','university','degree','بكالوريوس','ماجستير','هندسة','جامعة','diploma','دبلوم','كلية','معهد'].forEach(function(k) { 
+      ['bachelor','master','phd','engineering','university','degree','بكالوريوس','ماجستير','هندسة','جامعة','diploma','دبلوم','كلية','معهد','أكاديمية'].forEach(function(k) { 
           if (cvLower.indexOf(k) !== -1 && eduScore < 10) { 
               eduScore += 2.5; 
           } 
@@ -307,48 +320,37 @@ Pages.hrATS = function(el) {
 
       // Add slight AI variance (0 to 3 points)
       score += Math.floor(Math.random() * 4);
-
       score = Math.min(score, 98); // Cap at 98% for realism
 
       record.ai_score = score;
       record.ai_verdict = score >= 70 ? 'accepted' : score >= 40 ? 'review' : 'rejected';
-      var summarySentences = "المرشح (" + name + ") يتقدم لوظيفة [" + job + "]. ";
-      if (exp > 0) summarySentences += "يمتلك المرشح خبرة عملية تُقدر بحوالي " + exp + " سنوات. ";
-      else summarySentences += "يبدو أن المرشح في بداية مسيرته المهنية أو لم يوضح سنوات الخبرة بدقة. ";
       
-      if (matched.length > 0) {
-        summarySentences += "أظهرت السيرة الذاتية كفاءة في بعض المهارات المطلوبة للوظيفة مثل: (" + matched.slice(0, 3).join('، ') + "). ";
-      }
-      
-      if (eduScore > 0) {
-        summarySentences += "كما يمتلك المرشح خلفية أكاديمية ودرجة علمية مذكورة في السيرة الذاتية. ";
-      }
-      
-      summarySentences += "بناءً على الفحص الشامل، حصل المرشح على تقييم " + score + "% مما يجعله " + (score >= 70 ? "مرشحاً قوياً ومناسباً للمقابلة." : score >= 40 ? "مرشحاً مقبولاً ويحتاج لمراجعة يدوية لتأكيد الكفاءة." : "مرشحاً ضعيفاً ولا يلبي المتطلبات الأساسية للوظيفة حالياً.");
-      
-      var recommendations = [];
-      if (missing.length > 0) {
-        recommendations.push("• يجب تعلم أو إبراز المهارات التالية بشكل أوضح إن كانت متوفرة: " + missing.join('، '));
-      }
-      if (cvText.length < 500) {
-        recommendations.push("• السيرة الذاتية قصيرة جداً. يُنصح بإضافة تفاصيل أعمق حول الخبرات والمشاريع السابقة.");
-      }
-      if (eduScore === 0) {
-        recommendations.push("• لم يتم التعرف على المؤهل الأكاديمي. يُرجى إبراز قسم التعليم (الجامعة، الشهادة) بوضوح.");
-      }
-      if (exp === 0) {
-         recommendations.push("• لا يوجد ذكر واضح لعدد سنوات الخبرة. يُرجى توضيح فترات العمل بوضوح (من - إلى).");
-      }
-      
-      var report = "تقرير تحليل السيرة الذاتية (AI Summary Report):\n";
+      // Dynamic Summary Extraction
+      var lines = cvText.split('\n').map(l => l.trim()).filter(l => l.length > 20);
+      var dynamicSummary = lines.slice(0, 3).join(' ... ');
+      if (!dynamicSummary) dynamicSummary = "لم يتم العثور على فقرات نصية واضحة في السيرة الذاتية.";
+
+      // Discover other common skills automatically
+      var commonSkills = ['Leadership','Management','AutoCAD','Excel','Word','Python','JavaScript','HTML','CSS','React','SQL','Project Management','Agile','Sales','Marketing','Accounting','Finance','HR','Communication','إدارة','قيادة','مبيعات','تسويق','محاسبة','تصميم','برمجة','تخطيط'];
+      var discoveredSkills = [];
+      commonSkills.forEach(function(sk) {
+        if (cvLower.indexOf(sk.toLowerCase()) !== -1 && matched.indexOf(sk) === -1) {
+          discoveredSkills.push(sk);
+        }
+      });
+
+      var report = "تقرير تحليل السيرة الذاتية الشامل (AI Report):\n";
       report += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-      report += "✅ المهارات المتوفرة (نقاط القوة): " + (matched.join('، ') || 'لم يتم العثور على مهارات متطابقة بشكل صريح.') + "\n\n";
-      report += "❌ المهارات الناقصة (نقاط الضعف): " + (missing.join('، ') || 'لا توجد نواقص في المهارات المطلوبة.') + "\n\n";
-      report += "📝 ملخص تنفيذي للمرشح:\n";
-      report += summarySentences + "\n\n";
-      report += "سنوات الخبرة المستنتجة: " + exp + " سنوات.\n\n";
-      report += "💡 ملاحظات للتحسين (ما يجب تعديله في الـ CV):\n";
-      report += recommendations.length > 0 ? recommendations.join('\n') : "• السيرة الذاتية ممتازة وتغطي جميع المتطلبات بشكل رائع.";
+      report += "✅ المهارات المطابقة للمتطلبات: " + (matched.join('، ') || 'لم يتم العثور على مهارات مطابقة.') + "\n\n";
+      if (missing.length > 0) report += "❌ المهارات الناقصة من المتطلبات: " + missing.join('، ') + "\n\n";
+      if (discoveredSkills.length > 0) report += "💡 مهارات إضافية مكتشفة في السيرة: " + discoveredSkills.join('، ') + "\n\n";
+      
+      report += "📝 مقتطفات ومحاور من السيرة الذاتية:\n";
+      report += "« " + dynamicSummary + " »\n\n";
+      
+      report += "📊 تقييم النظام العام:\n";
+      report += "حصل المرشح على " + score + "% بناءً على تطابق المهارات، مستوى التعليم المستنتج، والخبرة المسجلة (" + exp + " سنوات). ";
+      report += score >= 70 ? "يُعد هذا المرشح مطابقاً بشكل جيد لمتطلبات الوظيفة." : "يحتاج المرشح إلى مراجعة يدوية لتحديد مدى أهليته.";
 
       record.ai_analysis = report;
       record.skills_matched = matched.join(', ');
