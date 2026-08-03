@@ -103,7 +103,7 @@ window.Pages.hrATS = function(el) {
       score += eduScore;
       score = Math.min(Math.round(score), 98);
 
-      var rec = score >= 80 ? 'Strong' : score >= 50 ? 'Potential' : 'Weak';
+      var rec = score >= 80 ? 'accepted' : score >= 50 ? 'review' : 'rejected';
       var summary = "Candidate with " + expYears + " years of experience. ";
       if (matched.length > 0) summary += "Strong match in: " + matched.join(', ') + ". ";
       if (missing.length > 0) summary += "Lacks direct experience in: " + missing.join(', ') + ". ";
@@ -282,7 +282,8 @@ window.Pages.hrATS = function(el) {
     apps.forEach((app, idx) => {
       var scoreColor = (app.ai_score || 0) >= 80 ? 'var(--accent-success)' : (app.ai_score || 0) >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
       var rec = app.ai_verdict || 'Unknown';
-      var recIcon = rec === 'Strong' ? '🟢' : rec === 'Potential' ? '🟡' : '🔴';
+      var recIcon = rec === 'accepted' ? '🟢' : rec === 'review' ? '🟡' : '🔴';
+      var displayRec = rec === 'accepted' ? 'Strong' : rec === 'review' ? 'Potential' : 'Weak';
       
       var jobTitle = app.job_title;
       if (app.job_id) {
@@ -305,7 +306,7 @@ window.Pages.hrATS = function(el) {
             <span style="font-weight:700; color:${scoreColor}">${app.ai_score||0}%</span>
           </div>
         </td>
-        <td>${recIcon} ${rec}</td>
+        <td>${recIcon} ${displayRec}</td>
         <td><span class="badge badge-primary">${app.status || 'pending'}</span></td>
         <td>
           <button class="btn btn-xs btn-outline btn-view-profile" data-id="${app.id}">AI Profile</button>
@@ -556,7 +557,7 @@ window.Pages.hrATS = function(el) {
           <div style="font-size:3rem; font-weight:900; color:${scoreColor}; line-height:1;">${app.ai_score||0}%</div>
           <div style="font-size:0.85rem; color:var(--text-muted); margin-top:8px;">Overall Match Score</div>
           <div style="margin-top:12px; padding:6px; background:rgba(0,0,0,0.1); border-radius:20px; font-weight:600;">
-            ${app.ai_verdict === 'Strong' ? '🟢 Strong Candidate' : app.ai_verdict === 'Potential' ? '🟡 Potential Match' : '🔴 Weak Match'}
+            ${app.ai_verdict === 'accepted' ? '🟢 Strong Candidate' : app.ai_verdict === 'review' ? '🟡 Potential Match' : '🔴 Weak Match'}
           </div>
         </div>
         <div style="flex:2.5; display:flex; flex-direction:column; justify-content:center;">
