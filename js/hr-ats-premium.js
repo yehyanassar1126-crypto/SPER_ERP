@@ -318,6 +318,14 @@ window.Pages.hrATS = function(el) {
   }
 
   function renderUpload() {
+    var sysJobs = [
+      'General Manager', 'Factory Manager', 'HR Manager', 'HR Specialist',
+      'Finance Manager', 'Accountant', 'Procurement Manager', 'Procurement Specialist',
+      'Warehouse Manager', 'Warehouse Clerk', 'Production Manager', 'Hall Manager', 
+      'Hall Supervisor', 'Production Worker', 'Maintenance Manager', 'Technician',
+      'Quality Manager', 'QA Inspector', 'Sales Manager', 'Sales Representative',
+      'Planning Manager', 'Planning Specialist', 'IT Manager', 'IT Specialist'
+    ];
     return `
       <div class="card" style="max-width:800px; margin:0 auto;">
         <div class="card-header"><h3>⬆️ AI Bulk CV Screening</h3></div>
@@ -326,7 +334,12 @@ window.Pages.hrATS = function(el) {
             <label>Select Target Job</label>
             <select id="upload-job-id" class="form-input">
               <option value="">-- General Pool (No specific job) --</option>
-              ${state.jobs.map(j => `<option value="${j.id}">${j.title}</option>`).join('')}
+              <optgroup label="Custom Job Postings">
+                ${state.jobs.map(j => `<option value="${j.id}">${j.title}</option>`).join('')}
+              </optgroup>
+              <optgroup label="System Positions">
+                ${sysJobs.map(j => `<option value="${j}">${j}</option>`).join('')}
+              </optgroup>
             </select>
           </div>
           
@@ -443,7 +456,10 @@ window.Pages.hrATS = function(el) {
   function handleFiles(files) {
     if (!files || files.length === 0) return;
     var jobId = document.getElementById('upload-job-id').value;
-    var jobData = jobId ? state.jobs.find(j => j.id === jobId) : null;
+    // Check if it's a UUID (custom job) or a System Position name
+    var isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(jobId);
+    var jobData = isUUID ? state.jobs.find(j => j.id === jobId) : null;
+    var jobTitleDisplay = jobData ? jobData.title : (jobId || 'General Applicant');
     
     document.getElementById('upload-queue').style.display = 'block';
     var queueList = document.getElementById('queue-list');
@@ -473,17 +489,19 @@ window.Pages.hrATS = function(el) {
         document.getElementById(qId+'-status').innerText = 'Saving to Database...';
         var parsed = res.parsed;
         
+        var verdictMap = { 'Strong': 'accepted', 'Potential': 'review', 'Weak': 'rejected', 'accepted': 'accepted', 'review': 'review', 'rejected': 'rejected' };
+        
         var record = {
-          job_id: jobId || null,
+          job_id: (jobId && isUUID) ? jobId : null,
           candidate_name: parsed.candidate.name,
           candidate_email: parsed.candidate.email,
           candidate_phone: parsed.candidate.phone,
-          job_title: jobData ? jobData.title : 'General Applicant',
+          job_title: jobTitleDisplay,
           experience_years: parseInt(parsed.experience[0].duration) || 0,
           cv_text: res.text,
           status: 'screening',
           ai_score: parsed.match_score,
-          ai_verdict: parsed.ai_recommendation,
+          ai_verdict: verdictMap[parsed.ai_recommendation] || 'review',
           ai_analysis: parsed.ai_summary,
           skills_matched: parsed.skills.technical.join(', '),
           skills_missing: parsed.missing_requirements.join(', '),
