@@ -1420,8 +1420,8 @@ window.Pages.hrATS = function(el) {
     
     // Auto-navigate and open modal
     setTimeout(function() {
-      if (window.App && window.App.nav) {
-        window.App.nav('hr');
+      if (window.App && window.App.navigate) {
+        window.App.navigate('employees');
         setTimeout(function() {
           var addBtn = document.getElementById('add-emp-btn');
           if (addBtn) addBtn.click();
