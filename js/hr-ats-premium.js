@@ -843,26 +843,33 @@ window.Pages.hrATS = function(el) {
     var missing = data.missing_requirements || (data.job_match ? data.job_match.missing_reqs : []) || [];
     var flags = data.flags || [];
     var iq = data.interview_questions || {hr:[], technical:[]};
+    
+    // Dynamic seniority calculation
+    var totalYrs = (data.candidate && data.candidate.total_years !== undefined) ? data.candidate.total_years : (data.career_analysis?.total_years || app.experience_years || 0);
+    var seniority = data.career_analysis?.seniority || (totalYrs >= 10 ? 'Senior / Expert' : totalYrs >= 5 ? 'Mid-Level' : totalYrs >= 2 ? 'Junior+' : 'Entry Level');
+    var totalSkillsCount = (data.skills?.technical||[]).length + (data.skills?.soft||[]).length;
 
     var scoreColor = (app.ai_score || 0) >= 80 ? 'var(--accent-success)' : (app.ai_score || 0) >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
 
     var body = `
-      <div style="display:flex; gap:20px; margin-bottom:20px;">
-        <div style="flex:1; text-align:center; padding:20px; background:var(--bg-tertiary); border-radius:12px; border-top:4px solid ${scoreColor};">
+      <div style="display:flex; gap:20px; margin-bottom:20px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px; text-align:center; padding:20px; background:var(--bg-tertiary); border-radius:12px; border-top:4px solid ${scoreColor};">
           <div style="font-size:3rem; font-weight:900; color:${scoreColor}; line-height:1;">${app.ai_score||0}%</div>
-          <div style="font-size:0.85rem; color:var(--text-muted); margin-top:8px;">Overall Match Score</div>
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-top:8px;">نسبة التوافق</div>
           <div style="margin-top:12px; padding:6px; background:rgba(0,0,0,0.1); border-radius:20px; font-weight:600;">
-            ${app.ai_verdict === 'accepted' ? '🟢 Strong Candidate' : app.ai_verdict === 'review' ? '🟡 Potential Match' : '🔴 Weak Match'}
+            ${app.ai_verdict === 'accepted' ? '🟢 مرشح قوي' : app.ai_verdict === 'review' ? '🟡 يحتاج مراجعة' : '🔴 غير مناسب'}
           </div>
         </div>
-        <div style="flex:2.5; display:flex; flex-direction:column; justify-content:center;">
-          <h2 style="margin:0;">${app.candidate_name}</h2>
-          <p style="font-size:1.1rem; color:var(--text-muted); margin:4px 0;">${app.job_title || 'Applicant'}</p>
-          <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap;">
-            <span>📧 ${app.candidate_email || 'No email'}</span>
-            <span>📱 ${app.candidate_phone || 'No phone'}</span>
-            <span>💼 ${app.experience_years || 0} Years Exp.</span>
+        <div style="flex:2.5; min-width:250px; display:flex; flex-direction:column; justify-content:center;">
+          <h2 style="margin:0;" dir="auto">${app.candidate_name}</h2>
+          <p style="font-size:1.1rem; color:var(--text-muted); margin:4px 0;" dir="auto">${app.job_title || 'متقدم'}</p>
+          <div style="display:flex; gap:16px; margin-top:12px; flex-wrap:wrap;" dir="auto">
+            <span>📧 ${app.candidate_email || 'غير متوفر'}</span>
+            <span>📱 ${app.candidate_phone || 'غير متوفر'}</span>
+            <span>💼 ${totalYrs} سنوات خبرة</span>
           </div>
+        </div>
+      </div>
       <div class="tabs" style="display:flex; gap:10px; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:8px; overflow-x:auto;">
         <button class="btn btn-ghost active" onclick="switchProfTab(this, 'tab-overview')" style="white-space:nowrap;">📊 نظرة عامة</button>
         <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-experience')" style="white-space:nowrap;">💼 الخبرات</button>
@@ -879,10 +886,10 @@ window.Pages.hrATS = function(el) {
 
       <div id="tab-overview" class="prof-tab">
         <div class="grid-4" style="margin-bottom:16px;">
-          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.candidate && data.candidate.total_years !== undefined) ? data.candidate.total_years : (data.career_analysis?.total_years || app.experience_years || 0)}</div><div style="font-size:0.8rem;">سنوات الخبرة</div></div>
-          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.career_analysis?.seniority || 'Junior'}</div><div style="font-size:0.8rem;">المستوى المهني</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${totalYrs}</div><div style="font-size:0.8rem;">سنوات الخبرة</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${seniority}</div><div style="font-size:0.8rem;">المستوى المهني</div></div>
           <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.ats_analysis?.score || app.ai_score || 0}%</div><div style="font-size:0.8rem;">نقاط الـ ATS</div></div>
-          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.skills?.technical||[]).length + (data.skills?.soft||[]).length}</div><div style="font-size:0.8rem;">إجمالي المهارات</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${totalSkillsCount}</div><div style="font-size:0.8rem;">إجمالي المهارات</div></div>
         </div>
         
         <div style="padding:16px; background:rgba(99,102,241,0.05); border-radius:8px; border-left:4px solid var(--accent-primary); margin-bottom:16px;">
@@ -905,60 +912,60 @@ window.Pages.hrATS = function(el) {
           </div>
         </div>
         
-        ${(data.recommendations||[]).length > 0 ? `
+        ${(data.recommendations||data.top_5_changes||[]).length > 0 ? `
         <div style="margin-top:16px; padding:12px; background:rgba(16, 185, 129, 0.1); border-radius:8px;">
-          <h4 style="margin:0; color:var(--accent-success);">💡 AI Recommendations for Candidate</h4>
+          <h4 style="margin:0; color:var(--accent-success);">💡 أهم 5 تغييرات فورية مطلوبة</h4>
           <ul style="margin:8px 0 0; padding-right:20px;" dir="auto">
-            ${data.recommendations.map(r=>`<li>${r}</li>`).join('')}
+            ${(data.recommendations||data.top_5_changes||[]).map(r=>`<li>${r}</li>`).join('')}
           </ul>
         </div>
         ` : ''}
       </div>
 
       <div id="tab-experience" class="prof-tab" style="display:none;">
-        <h4 dir="rtl">التاريخ الوظيفي (${data.experience?.length || 0})</h4>
+        <h4 dir="auto">التاريخ الوظيفي (${(data.experience||[]).length} وظائف)</h4>
         ${(data.experience||[]).map(exp => `
-          <div style="margin-bottom:16px; padding:16px; background:var(--bg-tertiary); border-radius:8px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-              <strong style="font-size:1.1rem;">${exp.title || 'Unknown Title'}</strong>
-              <span style="color:var(--text-muted); font-size:0.9rem;">${exp.duration || 'Date unknown'}</span>
+          <div style="margin-bottom:16px; padding:16px; background:var(--bg-tertiary); border-radius:8px;" dir="auto">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+              <strong style="font-size:1.1rem;">${exp.title || 'غير محدد'}</strong>
+              <span style="color:var(--text-muted); font-size:0.9rem;">${exp.duration || ''}</span>
             </div>
-            <div style="color:var(--accent-primary); margin-bottom:8px;">🏢 ${exp.company || 'Unknown Company'}</div>
+            <div style="color:var(--accent-primary); margin-bottom:8px;">🏢 ${exp.company || 'غير محدد'}</div>
             ${exp.responsibilities && exp.responsibilities.length ? `
-              <div style="font-size:0.9rem; font-weight:600; margin-bottom:4px;">Responsibilities:</div>
-              <ul style="margin:0; padding-left:20px; font-size:0.9rem; color:var(--text-secondary);">
-                ${exp.responsibilities.map(r=>`<li>${r}</li>`).join('')}
+              <div style="font-size:0.9rem; font-weight:600; margin-bottom:4px;">المسؤوليات:</div>
+              <ul style="margin:0; padding-right:20px; padding-left:20px; font-size:0.9rem; color:var(--text-secondary);">
+                ${(typeof exp.responsibilities === 'string' ? [exp.responsibilities] : exp.responsibilities).map(r=>`<li>${r}</li>`).join('')}
               </ul>
             ` : ''}
             ${exp.achievements && exp.achievements.length ? `
-              <div style="font-size:0.9rem; font-weight:600; margin-top:8px; margin-bottom:4px; color:var(--accent-success);">Achievements:</div>
-              <ul style="margin:0; padding-left:20px; font-size:0.9rem; color:var(--text-secondary);">
+              <div style="font-size:0.9rem; font-weight:600; margin-top:8px; margin-bottom:4px; color:var(--accent-success);">الإنجازات:</div>
+              <ul style="margin:0; padding-right:20px; padding-left:20px; font-size:0.9rem; color:var(--text-secondary);">
                 ${exp.achievements.map(a=>`<li>${a}</li>`).join('')}
               </ul>
             ` : ''}
           </div>
-        `).join('') || '<div style="text-align:center; padding:20px;">No experience detected.</div>'}
+        `).join('') || '<div style="text-align:center; padding:20px; color:var(--text-muted);">لم يتم اكتشاف خبرات وظيفية.</div>'}
       </div>
 
       <div id="tab-education" class="prof-tab" style="display:none;">
-        <h4 dir="rtl">التعليم الأكاديمي</h4>
+        <h4 dir="auto">التعليم الأكاديمي</h4>
         ${(data.education||[]).map(edu => `
-          <div style="margin-bottom:16px; padding:12px; background:var(--bg-tertiary); border-radius:8px;">
-            <strong>🎓 ${edu.degree || 'Degree Unknown'}</strong>
-            <div style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">${edu.university || 'University Unknown'} ${edu.year ? `(${edu.year})` : ''}</div>
+          <div style="margin-bottom:16px; padding:12px; background:var(--bg-tertiary); border-radius:8px;" dir="auto">
+            <strong>🎓 ${edu.degree || 'غير مكتشف'}</strong>
+            <div style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">${edu.university || 'غير معروف'} ${edu.year ? `(${edu.year})` : ''}</div>
           </div>
-        `).join('') || '<div style="text-align:center; padding:20px;">No education detected.</div>'}
+        `).join('') || '<div style="text-align:center; padding:20px; color:var(--text-muted);">لم يتم اكتشاف تعليم أكاديمي.</div>'}
         
-        <h4 dir="rtl" style="margin-top:24px;">الشهادات والدورات (Certifications)</h4>
+        <h4 dir="auto" style="margin-top:24px;">الشهادات والدورات</h4>
         ${(data.certifications||[]).length > 0 ? (data.certifications).map(cert => `
-          <div style="margin-bottom:8px; padding:10px; background:var(--bg-tertiary); border-radius:8px; display:flex; gap:10px; align-items:center;">
+          <div style="margin-bottom:8px; padding:10px; background:var(--bg-tertiary); border-radius:8px; display:flex; gap:10px; align-items:center;" dir="auto">
             <span>📜</span>
             <div>
-              <div style="font-weight:600;">${cert.name || cert}</div>
+              <div style="font-weight:600;" class="notranslate">${cert.name || cert}</div>
               ${cert.provider ? `<div style="font-size:0.8rem; color:var(--text-muted);">${cert.provider} ${cert.date ? `(${cert.date})` : ''}</div>` : ''}
             </div>
           </div>
-        `).join('') : '<div style="text-align:center; padding:20px;">No certifications detected.</div>'}
+        `).join('') : '<div style="text-align:center; padding:20px; color:var(--text-muted);">لم يتم اكتشاف شهادات أو دورات.</div>'}
       </div>
 
       <div id="tab-skills" class="prof-tab" style="display:none;">
@@ -983,19 +990,23 @@ window.Pages.hrATS = function(el) {
       </div>
       
       <div id="tab-projects" class="prof-tab" style="display:none;">
-        <h4 dir="rtl">المشاريع (Projects & Portfolio)</h4>
+        <h4 dir="auto">المشاريع والأعمال</h4>
         ${(data.projects||[]).length > 0 ? data.projects.map(p => `
-          <div style="margin-bottom:16px; padding:16px; background:var(--bg-tertiary); border-radius:8px; border-left:4px solid var(--accent-warning);">
-            <div style="font-weight:bold; font-size:1.1rem; margin-bottom:8px;">🚀 ${p.name || 'Unnamed Project'}</div>
-            ${p.role ? `<div style="font-size:0.9rem; margin-bottom:8px;"><strong>Role:</strong> ${p.role}</div>` : ''}
+          <div style="margin-bottom:16px; padding:16px; background:var(--bg-tertiary); border-radius:8px; border-left:4px solid var(--accent-warning);" dir="auto">
+            <div style="font-weight:bold; font-size:1.1rem; margin-bottom:8px;">🚀 ${p.name || 'مشروع'}</div>
+            ${p.role ? `<div style="font-size:0.9rem; margin-bottom:8px;"><strong>الدور:</strong> ${p.role}</div>` : ''}
             ${p.description ? `<p style="font-size:0.9rem; color:var(--text-secondary); line-height:1.5;">${p.description}</p>` : ''}
             ${p.tech_stack && p.tech_stack.length ? `
               <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                ${p.tech_stack.map(t=>`<span class="badge" style="font-size:0.75rem; background:rgba(0,0,0,0.2);">${t}</span>`).join('')}
+                ${p.tech_stack.map(t=>`<span class="badge notranslate" style="font-size:0.75rem; background:rgba(0,0,0,0.2);">${t}</span>`).join('')}
               </div>
             ` : ''}
           </div>
-        `).join('') : '<div style="text-align:center; padding:30px; color:var(--text-muted);">No detailed projects found in CV.</div>'}
+        `).join('') : `
+        <div style="padding:20px; background:var(--bg-tertiary); border-radius:8px; text-align:center;" dir="auto">
+          <p style="color:var(--text-muted); margin-bottom:12px;">لم يتم العثور على مشاريع مفصلة في السيرة الذاتية.</p>
+          ${(data.projects_recommendation||[]).length > 0 ? '<h4 style="margin-top:0;">💡 مشاريع مقترحة للمرشح:</h4>' + data.projects_recommendation.map(pr => '<div style="text-align:start; margin-bottom:8px; padding:10px; background:rgba(99,102,241,0.1); border-radius:8px;"><strong>'+pr.name+'</strong><br><span style="font-size:0.9rem; color:var(--text-muted);">'+pr.idea+'</span>'+(pr.tech_stack&&pr.tech_stack.length ? '<br><span style="font-size:0.8rem;">Stack: '+pr.tech_stack.join(', ')+'</span>' : '')+'</div>').join('') : ''}
+        </div>`}
       </div>
       
       <div id="tab-ats" class="prof-tab" style="display:none;">
@@ -1133,26 +1144,26 @@ window.Pages.hrATS = function(el) {
 
         <div id="raw-en" dir="ltr" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:left; display:none;">
           <ul style="list-style:disc; margin:0; padding: 0 20px;">
-            ${app.cv_text ? app.cv_text.split('\\n').filter(l=>l.trim().length>3).map(l=>'<li style="margin-bottom:6px;">'+l.trim()+'</li>').join('') : '<li>No raw text available.</li>'}
+            ${app.cv_text ? app.cv_text.split('\n').filter(l=>l.trim().length>3).map(l=>'<li style="margin-bottom:6px;">'+l.trim()+'</li>').join('') : '<li>لا يوجد نص خام متاح.</li>'}
           </ul>
         </div>
       </div>
     `;
 
     var footer = `
-      <div style="display:flex; justify-content:space-between; width:100%;">
+      <div style="display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:8px;">
         <div>
-          <button class="btn btn-outline" onclick="App.closeModal()">Close</button>
+          <button class="btn btn-outline" onclick="App.closeModal()">إغلاق</button>
         </div>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <select id="prof-action-status" class="form-input" style="width:auto; padding:4px 8px;">
-            <option value="screening" ${app.status==='screening'?'selected':''}>Screening</option>
-            <option value="shortlisted" ${app.status==='shortlisted'?'selected':''}>Shortlisted</option>
-            <option value="interview" ${app.status==='interview'?'selected':''}>Interview</option>
-            <option value="rejected" ${app.status==='rejected'?'selected':''}>Rejected</option>
+            <option value="screening" ${app.status==='screening'?'selected':''}>فرز أولي</option>
+            <option value="shortlisted" ${app.status==='shortlisted'?'selected':''}>قائمة مختصرة</option>
+            <option value="interview" ${app.status==='interview'?'selected':''}>مقابلة</option>
+            <option value="rejected" ${app.status==='rejected'?'selected':''}>مرفوض</option>
           </select>
-          <button class="btn btn-primary" onclick="window.atsUpdateAppStatus('${app.id}')">Save Status</button>
-          <button class="btn btn-success" onclick="window.atsConvertToEmp('${app.id}')">Convert to Employee</button>
+          <button class="btn btn-primary" onclick="window.atsUpdateAppStatus('${app.id}')">حفظ الحالة</button>
+          <button class="btn btn-success" onclick="window.atsConvertToEmp('${app.id}')">تحويل لموظف</button>
         </div>
       </div>
     `;
