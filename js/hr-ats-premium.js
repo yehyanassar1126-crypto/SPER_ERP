@@ -454,11 +454,15 @@ window.Pages.hrATS = function(el) {
       else { arabicPts.push('• لم يتم العثور على خبرات مهنية.'); }
       arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
       arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-info);">المهارات المكتشفة:</strong>');
-      var allSkills = matched.concat(techSkills).concat(industrySkills);
-      if (allSkills.length > 0) arabicPts.push('• <strong>تقنية:</strong> ' + allSkills.join(', '));
+      var pureTechSkills = matched.concat(techSkills);
+      if (pureTechSkills.length > 0) arabicPts.push('• <strong>تقنية:</strong> ' + pureTechSkills.join(', '));
+      if (industrySkills.length > 0) arabicPts.push('• <strong>مهنية/صناعية:</strong> ' + industrySkills.join(', '));
       if (softSkills.length > 0) arabicPts.push('• <strong>شخصية:</strong> ' + softSkills.join(', '));
-      if (allSkills.length === 0 && softSkills.length === 0) arabicPts.push('• لم يتم اكتشاف مهارات.');
-      if (detectedLangs.length > 0) arabicPts.push('• <strong>اللغات:</strong> ' + detectedLangs.join(', '));
+      if (pureTechSkills.length === 0 && industrySkills.length === 0 && softSkills.length === 0) arabicPts.push('• لم يتم اكتشاف مهارات.');
+      if (detectedLangs.length > 0) {
+        var langDisplay = detectedLangsObj.map(function(lo) { return lo.name + ' (' + lo.level + ')'; }).join(', ');
+        arabicPts.push('• <strong>اللغات:</strong> ' + langDisplay);
+      }
       arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
       arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-primary);">التقييم العام:</strong>');
       arabicPts.push('• <strong>نسبة التوافق:</strong> ' + score + '%');
@@ -495,7 +499,7 @@ window.Pages.hrATS = function(el) {
         full_cv_arabic_translation_points: arabicPts,
         education: educationArr,
         experience: experienceArr,
-        skills: { technical: matched.concat(techSkills).concat(industrySkills), soft: softSkills, industry: industrySkills, inferred: [] },
+        skills: { technical: matched.concat(techSkills), soft: softSkills, industry: industrySkills, inferred: [] },
         projects: [],
         certifications: detectedCerts.map(c => ({name: c, provider: 'Unknown', date: ''})),
         languages: detectedLangsObj,
@@ -1093,6 +1097,12 @@ window.Pages.hrATS = function(el) {
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;" dir="auto">
           ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary notranslate">${s}</span>`).join('') || '<span class="text-muted">غير مكتشف</span>'}
         </div>
+        ${(data.skills?.industry||[]).length > 0 ? `
+          <h4>المهارات المهنية/الصناعية (${data.skills.industry.length})</h4>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;" dir="auto">
+            ${data.skills.industry.map(s=>`<span class="badge notranslate" style="background:rgba(245,158,11,0.2); color:#f59e0b; border:1px solid rgba(245,158,11,0.3);">${s}</span>`).join('')}
+          </div>
+        ` : ''}
         <h4>المهارات الشخصية (${(data.skills?.soft||[]).length})</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;" dir="auto">
           ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info notranslate">${s}</span>`).join('') || '<span class="text-muted">غير مكتشف</span>'}
