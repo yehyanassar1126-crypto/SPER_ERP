@@ -806,43 +806,43 @@ window.Pages.hrATS = function(el) {
       ` : ''}
 
       <div class="tabs" style="display:flex; gap:10px; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:8px; overflow-x:auto;">
-        <button class="btn btn-ghost active" onclick="switchProfTab(this, 'tab-overview')" style="white-space:nowrap;">📊 Overview</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-experience')" style="white-space:nowrap;">💼 Experience</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-education')" style="white-space:nowrap;">🎓 Edu & Certs</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-skills')" style="white-space:nowrap;">⚡ Skills</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-projects')" style="white-space:nowrap;">🚀 Projects</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-ats')" style="white-space:nowrap;">🎯 ATS & Match</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-modify')" style="white-space:nowrap;">✍️ CV Modify</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-recommend')" style="white-space:nowrap;">📚 Recommend</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-online')" style="white-space:nowrap;">🌐 Online Profile</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-questions')" style="white-space:nowrap;">❓ Q&A</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-raw')" style="white-space:nowrap;">📄 Raw Text</button>
+        <button class="btn btn-ghost active" onclick="switchProfTab(this, 'tab-overview')" style="white-space:nowrap;">📊 نظرة عامة</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-experience')" style="white-space:nowrap;">💼 الخبرات</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-education')" style="white-space:nowrap;">🎓 التعليم والشهادات</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-skills')" style="white-space:nowrap;">⚡ المهارات</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-projects')" style="white-space:nowrap;">🚀 المشاريع</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-ats')" style="white-space:nowrap;">🎯 توافق الوظيفة</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-modify')" style="white-space:nowrap;">✍️ تعديل السيرة</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-recommend')" style="white-space:nowrap;">📚 مقترحات</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-online')" style="white-space:nowrap;">🌐 التواجد الرقمي</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-questions')" style="white-space:nowrap;">❓ أسئلة المقابلة</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-raw')" style="white-space:nowrap;">📄 النص الخام</button>
       </div>
 
       <div id="tab-overview" class="prof-tab">
         <div class="grid-4" style="margin-bottom:16px;">
-          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.candidate && data.candidate.total_years !== undefined) ? data.candidate.total_years : (data.career_analysis?.total_years || app.experience_years || 0)}</div><div style="font-size:0.8rem;">Years Exp</div></div>
-          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.career_analysis?.seniority || 'Junior'}</div><div style="font-size:0.8rem;">Seniority</div></div>
-          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.ats_analysis?.score || app.ai_score || 0}%</div><div style="font-size:0.8rem;">ATS Score</div></div>
-          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.skills?.technical||[]).length + (data.skills?.soft||[]).length}</div><div style="font-size:0.8rem;">Total Skills</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.candidate && data.candidate.total_years !== undefined) ? data.candidate.total_years : (data.career_analysis?.total_years || app.experience_years || 0)}</div><div style="font-size:0.8rem;">سنوات الخبرة</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.career_analysis?.seniority || 'Junior'}</div><div style="font-size:0.8rem;">المستوى المهني</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.ats_analysis?.score || app.ai_score || 0}%</div><div style="font-size:0.8rem;">نقاط الـ ATS</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.skills?.technical||[]).length + (data.skills?.soft||[]).length}</div><div style="font-size:0.8rem;">إجمالي المهارات</div></div>
         </div>
         
         <div style="padding:16px; background:rgba(99,102,241,0.05); border-radius:8px; border-left:4px solid var(--accent-primary); margin-bottom:16px;">
-          <h4 style="margin-top:0;">Profile Summary</h4>
-          <p style="margin-bottom:0; line-height:1.6;" dir="auto">${data.summary?.overview || app.ai_analysis || 'No summary available.'}</p>
+          <h4 style="margin-top:0;">الملخص المهني (Profile Summary)</h4>
+          <p style="margin-bottom:0; line-height:1.6;" dir="auto">${data.summary?.overview || app.ai_analysis || 'لا يوجد ملخص.'}</p>
         </div>
         
         <div class="grid-2">
           <div>
-            <h4 style="color:var(--accent-success);">✅ Strengths</h4>
+            <h4 style="color:var(--accent-success);">✅ نقاط القوة</h4>
             <ul style="padding-right:20px; margin-top:8px;" dir="auto">
-              ${strengths.length>0 ? strengths.map(s=>`<li>${s}</li>`).join('') : '<li>No specific strengths identified.</li>'}
+              ${strengths.length>0 ? strengths.map(s=>`<li>${s}</li>`).join('') : '<li>لا توجد نقاط قوة واضحة.</li>'}
             </ul>
           </div>
           <div>
-            <h4 style="color:var(--accent-danger);">❌ Weaknesses / Missing</h4>
+            <h4 style="color:var(--accent-danger);">❌ نقاط الضعف / النواقص</h4>
             <ul style="padding-right:20px; margin-top:8px;" dir="auto">
-              ${weaknesses.length>0 ? weaknesses.map(w=>`<li>${w}</li>`).join('') : '<li>No major weaknesses found.</li>'}
+              ${weaknesses.length>0 ? weaknesses.map(w=>`<li>${w}</li>`).join('') : '<li>لا توجد نواقص رئيسية.</li>'}
             </ul>
           </div>
         </div>
@@ -904,23 +904,23 @@ window.Pages.hrATS = function(el) {
       </div>
 
       <div id="tab-skills" class="prof-tab" style="display:none;">
-        <h4>Technical Skills (${(data.skills?.technical||[]).length})</h4>
-        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
-          ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary notranslate">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
+        <h4>المهارات التقنية (${(data.skills?.technical||[]).length})</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;" dir="auto">
+          ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary notranslate">${s}</span>`).join('') || '<span class="text-muted">غير مكتشف</span>'}
         </div>
-        <h4>Soft Skills (${(data.skills?.soft||[]).length})</h4>
-        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
-          ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info notranslate">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
+        <h4>المهارات الشخصية (${(data.skills?.soft||[]).length})</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;" dir="auto">
+          ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info notranslate">${s}</span>`).join('') || '<span class="text-muted">غير مكتشف</span>'}
         </div>
         ${(data.skills?.inferred||[]).length > 0 ? `
-          <h4>💡 Inferred Skills (AI Deducted)</h4>
-          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+          <h4>💡 مهارات مستنتجة بالذكاء الاصطناعي</h4>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;" dir="auto">
             ${data.skills.inferred.map(s=>`<span class="badge notranslate" style="background:rgba(99,102,241,0.2); color:var(--accent-primary); border:1px dashed var(--accent-primary);">${s}</span>`).join('')}
           </div>
         ` : ''}
-        <h4>Languages</h4>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          ${(data.languages||[]).length > 0 ? data.languages.map(l=>`<span class="badge badge-success notranslate">${typeof l === 'string' ? l : (l.name + (l.level ? ' - '+l.level : ''))}</span>`).join('') : '<span class="text-muted">Not specified</span>'}
+        <h4>اللغات</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;" dir="auto">
+          ${(data.languages||[]).length > 0 ? data.languages.map(l=>`<span class="badge badge-success notranslate">${typeof l === 'string' ? l : (l.name + (l.level ? ' - '+l.level : ''))}</span>`).join('') : '<span class="text-muted">غير محدد</span>'}
         </div>
       </div>
       
@@ -943,127 +943,139 @@ window.Pages.hrATS = function(el) {
       <div id="tab-ats" class="prof-tab" style="display:none;">
         <div class="grid-2" style="margin-bottom:20px;">
           <div style="padding:20px; background:var(--bg-tertiary); border-radius:12px; text-align:center;">
-            <div style="font-size:0.9rem; color:var(--text-muted);">ATS Compatibility</div>
+            <div style="font-size:0.9rem; color:var(--text-muted);">توافق الـ ATS</div>
             <div style="font-size:2.5rem; font-weight:900; color:var(--accent-primary);">${data.ats_analysis?.score || Math.round(app.ai_score * 0.9) || 0}%</div>
           </div>
           <div style="padding:20px; background:var(--bg-tertiary); border-radius:12px; text-align:center;">
-            <div style="font-size:0.9rem; color:var(--text-muted);">Job Match</div>
+            <div style="font-size:0.9rem; color:var(--text-muted);">توافق الوظيفة</div>
             <div style="font-size:2.5rem; font-weight:900; color:var(--accent-success);">${data.job_match?.match_percentage || app.ai_score || 0}%</div>
           </div>
         </div>
         
-        <h4 style="color:var(--accent-success);">✅ Why this candidate matches:</h4>
-        <p dir="auto" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_matches || strengths[0] || 'Good overall profile.'}</p>
+        <h4 style="color:var(--accent-success);">✅ لماذا هذا المرشح مناسب:</h4>
+        <p dir="auto" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_matches || strengths[0] || 'ملف شخصي جيد بشكل عام.'}</p>
         
-        <h4 style="color:var(--accent-danger); margin-top:16px;">❌ Why they might NOT match:</h4>
-        <p dir="auto" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_not || weaknesses[0] || 'No major red flags.'}</p>
+        <h4 style="color:var(--accent-danger); margin-top:16px;">❌ لماذا قد لا يكون مناسباً:</h4>
+        <p dir="auto" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_not || weaknesses[0] || 'لا توجد مشاكل ملحوظة.'}</p>
         
-        <h4 style="margin-top:16px;">🔍 Missing Keywords / Requirements</h4>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          ${missing.length > 0 ? missing.map(s=>`<span class="badge badge-danger">${s}</span>`).join('') : '<span class="badge badge-success">No missing keywords detected!</span>'}
+        <h4 style="margin-top:16px;">🔍 الكلمات المفتاحية / المتطلبات المفقودة</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;" dir="auto">
+          ${missing.length > 0 ? missing.map(s=>`<span class="badge badge-danger">${s}</span>`).join('') : '<span class="badge badge-success">لا يوجد كلمات مفتاحية مفقودة!</span>'}
         </div>
         
         ${(data.missing_information||flags).length > 0 ? `
-          <h4 style="margin-top:16px;">⚠️ Missing Information in CV</h4>
-          <ul style="padding-left:20px; font-size:0.9rem; color:var(--text-secondary);">
+          <h4 style="margin-top:16px;">⚠️ معلومات مفقودة في السيرة الذاتية</h4>
+          <ul style="padding-left:20px; font-size:0.9rem; color:var(--text-secondary);" dir="auto">
             ${(data.missing_information||flags).map(f=>`<li>${f}</li>`).join('')}
           </ul>
         ` : ''}
       </div>
 
       <div id="tab-modify" class="prof-tab" style="display:none;">
-        <h4 style="color:var(--accent-danger);">🗑️ What to Remove</h4>
+        <h4 style="color:var(--accent-danger);">🗑️ ما يجب حذفه (What to Remove)</h4>
         ${(data.what_to_remove||[]).length > 0 ? data.what_to_remove.map(r => `
           <div style="background:var(--bg-tertiary); padding:10px; margin-bottom:8px; border-radius:8px; border-left:3px solid var(--accent-danger);">
             <strong>${r.item}</strong> (Priority: ${r.priority})<br>
             <span style="font-size:0.85rem; color:var(--text-muted);">${r.why}</span>
           </div>
-        `).join('') : '<div class="text-muted">No items recommended for removal.</div>'}
+        `).join('') : '<div class="text-muted">لا يوجد عناصر مقترحة للحذف.</div>'}
 
-        <h4 style="color:var(--accent-success); margin-top:20px;">➕ What to Add</h4>
+        <h4 style="color:var(--accent-success); margin-top:20px;">➕ ما يجب إضافته (What to Add)</h4>
         ${(data.what_to_add||[]).length > 0 ? data.what_to_add.map(a => `
           <div style="background:var(--bg-tertiary); padding:10px; margin-bottom:8px; border-radius:8px; border-left:3px solid var(--accent-success);">
             <strong>${a.item}</strong> (Priority: ${a.priority})
           </div>
-        `).join('') : '<div class="text-muted">No specific additions recommended.</div>'}
+        `).join('') : '<div class="text-muted">لا توجد إضافات محددة مقترحة.</div>'}
 
-        <h4 style="color:var(--accent-warning); margin-top:20px;">✍️ What to Rewrite</h4>
+        <h4 style="color:var(--accent-warning); margin-top:20px;">✍️ ما يجب إعادة صياغته (What to Rewrite)</h4>
         ${(data.what_to_rewrite||[]).length > 0 ? data.what_to_rewrite.map(w => `
           <div style="background:var(--bg-tertiary); padding:10px; margin-bottom:8px; border-radius:8px; border-left:3px solid var(--accent-warning);">
             <div style="font-size:0.85rem; color:var(--accent-danger); text-decoration:line-through; margin-bottom:4px;">${w.current}</div>
             <div style="font-size:0.85rem; color:var(--accent-success); margin-bottom:4px;">✅ ${w.improved}</div>
-            <div style="font-size:0.8rem; color:var(--text-muted);">Why: ${w.problem}</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">السبب: ${w.problem}</div>
           </div>
-        `).join('') : '<div class="text-muted">No rewrites recommended.</div>'}
+        `).join('') : '<div class="text-muted">لا توجد أجزاء تحتاج إعادة صياغة.</div>'}
       </div>
 
       <div id="tab-recommend" class="prof-tab" style="display:none;">
-        <h4>📚 Recommended Courses</h4>
+        <h4>📚 الكورسات المقترحة (Recommended Courses)</h4>
         ${(data.courses_recommendation||[]).length > 0 ? data.courses_recommendation.map(c => `
           <div style="background:var(--bg-tertiary); padding:10px; margin-bottom:8px; border-radius:8px; border-left:3px solid var(--accent-info);">
             <strong>${c.name}</strong> <span class="badge" style="font-size:0.7rem;">${c.priority || ''}</span><br>
             <span style="font-size:0.85rem; color:var(--text-muted);">${c.why} (Target Skill: ${c.skill})</span>
           </div>
-        `).join('') : '<div class="text-muted">No courses recommended.</div>'}
+        `).join('') : '<div class="text-muted">لا توجد كورسات مقترحة.</div>'}
 
-        <h4 style="margin-top:20px;">📅 30/60/90 Day Plan</h4>
+        <h4 style="margin-top:20px;">📅 خطة 30/60/90 يوم للتطوير</h4>
         <div class="grid-3" style="gap:10px;">
           <div style="background:var(--bg-tertiary); padding:10px; border-radius:8px;">
-            <strong style="color:var(--accent-primary);">30 Days</strong>
-            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;">
-              ${(data.plan_30_60_90?.['30_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>None</li>'}
+            <strong style="color:var(--accent-primary);">خلال 30 يوماً</strong>
+            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;" dir="auto">
+              ${(data.plan_30_60_90?.['30_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>لا يوجد</li>'}
             </ul>
           </div>
           <div style="background:var(--bg-tertiary); padding:10px; border-radius:8px;">
-            <strong style="color:var(--accent-warning);">60 Days</strong>
-            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;">
-              ${(data.plan_30_60_90?.['60_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>None</li>'}
+            <strong style="color:var(--accent-warning);">خلال 60 يوماً</strong>
+            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;" dir="auto">
+              ${(data.plan_30_60_90?.['60_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>لا يوجد</li>'}
             </ul>
           </div>
           <div style="background:var(--bg-tertiary); padding:10px; border-radius:8px;">
-            <strong style="color:var(--accent-success);">90 Days</strong>
-            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;">
-              ${(data.plan_30_60_90?.['90_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>None</li>'}
+            <strong style="color:var(--accent-success);">خلال 90 يوماً</strong>
+            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;" dir="auto">
+              ${(data.plan_30_60_90?.['90_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>لا يوجد</li>'}
             </ul>
           </div>
         </div>
       </div>
 
       <div id="tab-online" class="prof-tab" style="display:none;">
-        <h4>🐙 GitHub Analysis</h4>
+        <h4>🐙 تحليل حساب GitHub</h4>
         <div style="background:var(--bg-tertiary); padding:12px; border-radius:8px; margin-bottom:16px;">
-          <strong>Status:</strong> ${data.github_analysis?.status || 'Unknown'}<br>
-          <ul style="margin:8px 0 0; padding-left:20px; font-size:0.9rem;">
-            ${(data.github_analysis?.recommendations||[]).map(r=>`<li>${r}</li>`).join('') || '<li>No GitHub recommendations.</li>'}
+          <strong>الحالة:</strong> ${data.github_analysis?.status || 'Unknown'}<br>
+          <ul style="margin:8px 0 0; padding-left:20px; font-size:0.9rem;" dir="auto">
+            ${(data.github_analysis?.recommendations||[]).map(r=>`<li>${r}</li>`).join('') || '<li>لا توجد نصائح بخصوص GitHub.</li>'}
           </ul>
         </div>
         
-        <h4>💼 LinkedIn Analysis</h4>
+        <h4>💼 تحليل حساب LinkedIn</h4>
         <div style="background:var(--bg-tertiary); padding:12px; border-radius:8px;">
-          <strong>Status:</strong> ${data.linkedin_analysis?.status || 'Unknown'}<br>
-          <ul style="margin:8px 0 0; padding-left:20px; font-size:0.9rem;">
-            ${(data.linkedin_analysis?.recommendations||[]).map(r=>`<li>${r}</li>`).join('') || '<li>No LinkedIn recommendations.</li>'}
+          <strong>الحالة:</strong> ${data.linkedin_analysis?.status || 'Unknown'}<br>
+          <ul style="margin:8px 0 0; padding-left:20px; font-size:0.9rem;" dir="auto">
+            ${(data.linkedin_analysis?.recommendations||[]).map(r=>`<li>${r}</li>`).join('') || '<li>لا توجد نصائح بخصوص LinkedIn.</li>'}
           </ul>
         </div>
       </div>
 
       <div id="tab-questions" class="prof-tab" style="display:none;">
         <p class="text-muted">أسئلة مقابلة مقترحة بناءً على تحليل الذكاء الاصطناعي للسيرة الذاتية.</p>
-        <h4>Technical Questions</h4>
+        <h4>أسئلة تقنية (Technical)</h4>
         <ul dir="auto" style="padding-right: 20px; padding-left: 20px;">
-          ${(iq.technical||[]).map(q=>`<li>${q}</li>`).join('') || '<li>لا يوجد أسئلة تقنية.</li>'}
+          ${(iq.technical||[]).map(q=>`<li>${q}</li>`).join('') || '<li>لا توجد أسئلة تقنية مقترحة.</li>'}
         </ul>
-        <h4>HR / Behavioral Questions</h4>
+        <h4>أسئلة موارد بشرية (HR / Behavioral)</h4>
         <ul dir="auto" style="padding-right: 20px; padding-left: 20px;">
-          ${(iq.hr||[]).map(q=>`<li>${q}</li>`).join('') || '<li>لا يوجد أسئلة موارد بشرية.</li>'}
+          ${(iq.hr||[]).map(q=>`<li>${q}</li>`).join('') || '<li>لا توجد أسئلة موارد بشرية.</li>'}
         </ul>
       </div>
 
       <div id="tab-raw" class="prof-tab" style="display:none;">
-        <h4 dir="auto">📋 محتوى السيرة الذاتية (مترجم)</h4>
-        <div dir="auto" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:start;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h4 dir="auto" style="margin:0;">📋 محتوى السيرة الذاتية</h4>
+          <button class="btn btn-outline" style="padding:4px 12px; font-size:0.85rem;" onclick="document.getElementById('raw-ar').style.display = document.getElementById('raw-ar').style.display === 'none' ? 'block' : 'none'; document.getElementById('raw-en').style.display = document.getElementById('raw-en').style.display === 'none' ? 'block' : 'none';">
+            🌐 تبديل اللغة (عربي/English)
+          </button>
+        </div>
+        
+        <div id="raw-ar" dir="auto" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:start; display:block;">
           <ul style="list-style:disc; margin:0; padding: 0 20px;">
-            ${(data.full_cv_arabic_translation_points||[]).length > 0 ? data.full_cv_arabic_translation_points.map(function(l){return '<li style="margin-bottom:6px;">'+l+'</li>';}).join('') : '<li>لم يتم استخراج نص أو تعذر الترجمة.</li>'}
+            ${(data.full_cv_arabic_translation_points||[]).length > 0 ? data.full_cv_arabic_translation_points.map(function(l){return '<li style="margin-bottom:6px;">'+l+'</li>';}).join('') : '<li>لم يتم استخراج نص مترجم (استخدم زر تبديل اللغة لعرض النص الأصلي).</li>'}
+          </ul>
+        </div>
+
+        <div id="raw-en" dir="ltr" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:left; display:none;">
+          <ul style="list-style:disc; margin:0; padding: 0 20px;">
+            ${app.cv_text ? app.cv_text.split('\\n').filter(l=>l.trim().length>3).map(l=>'<li style="margin-bottom:6px;">'+l.trim()+'</li>').join('') : '<li>No raw text available.</li>'}
           </ul>
         </div>
       </div>
