@@ -17,20 +17,25 @@ window.Pages.hrATS = function(el) {
     apiKey: localStorage.getItem('erp_ai_key') || null, 
     provider: 'openai', // Can be configured
     
-    analyzeCV: function(cvText, jobData) {
+    analyzeCV: function(cvText, jobData, rawEmail, rawPhone) {
       return new Promise(function(resolve, reject) {
         if (window.AIEngine.apiKey) {
           // Call Real AI API (Implementation ready for OpenAI structured JSON)
           window.AIEngine._callOpenAI(cvText, jobData)
-            .then(resolve)
+            .then(function(res) {
+               // Ensure we inject rawEmail/rawPhone if AI missed them
+               if (!res.candidate.email && rawEmail) res.candidate.email = rawEmail;
+               if (!res.candidate.phone && rawPhone) res.candidate.phone = rawPhone;
+               resolve(res);
+            })
             .catch(function(err) {
               console.warn("AI API Failed, falling back to internal engine", err);
-              resolve(window.AIEngine._fallbackAnalysis(cvText, jobData));
+              resolve(window.AIEngine._fallbackAnalysis(cvText, jobData, rawEmail, rawPhone));
             });
         } else {
           // Fallback to advanced local semantic extraction (Simulated AI)
           setTimeout(function() {
-            resolve(window.AIEngine._fallbackAnalysis(cvText, jobData));
+            resolve(window.AIEngine._fallbackAnalysis(cvText, jobData, rawEmail, rawPhone));
           }, 1500);
         }
       });
@@ -54,7 +59,7 @@ window.Pages.hrATS = function(el) {
       }).then(res => res.json()).then(data => JSON.parse(data.choices[0].message.content));
     },
 
-    _fallbackAnalysis: function(cvText, jobData) {
+    _fallbackAnalysis: function(cvText, jobData, rawEmail, rawPhone) {
       var cvLower = cvText.toLowerCase();
       var reqSkills = jobData ? (jobData.required_skills || '').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean) : [];
       var matched = [], missing = [];
@@ -73,16 +78,19 @@ window.Pages.hrATS = function(el) {
         }
       });
 
-      var emailMatch = cvText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-      var phoneMatch = cvText.match(/(?:\+?20|0)?1[0125]\d{8}/) || cvText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}/);
+      var emailMatch = rawEmail || (cvText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || [])[0] || '';
+      var phoneMatch = rawPhone || (cvText.match(/(?:\+?20|0)?1[0125]\d{8}/) || cvText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}/) || [])[0] || '';
       var expMatch = cvText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)/i) || cvText.match(/(?:experience|خبرة)\s*[:\-]?\s*(\d+)/i);
       
       var lines = cvText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
       var name = "Unknown Candidate";
-      for (var i = 0; i < Math.min(lines.length, 5); i++) {
-        var l = lines[i].toLowerCase();
-        if (l.includes('resume') || l.includes('cv') || l.includes('سيرة')) continue;
-        if (lines[i].length < 40) { name = lines[i]; break; }
+      for (var i = 0; i < Math.min(lines.length, 10); i++) {
+        var cleanLine = lines[i].replace(/[_.-]/g, '').trim();
+        var l = cleanLine.toLowerCase();
+        if (l.includes('resume') || l.includes('cv') || l.includes('سيرة') || cleanLine.length < 5) continue;
+        
+        var wordCount = cleanLine.split(/\s+/).length;
+        if (wordCount >= 2 && wordCount <= 4) { name = cleanLine; break; }
       }
 
       var expYears = expMatch ? parseInt(expMatch[1]) : 0;
@@ -115,8 +123,8 @@ window.Pages.hrATS = function(el) {
       return {
         candidate: {
           name: name,
-          email: emailMatch ? emailMatch[0] : '',
-          phone: phoneMatch ? phoneMatch[0] : '',
+          email: emailMatch,
+          phone: phoneMatch,
           location: '',
           linkedin: ''
         },
@@ -482,9 +490,9 @@ window.Pages.hrATS = function(el) {
       `;
       queueList.insertAdjacentHTML('beforeend', itemHtml);
       
-      processPDFFile(file).then(text => {
+      processPDFFile(file).then(resObj => {
         document.getElementById(qId+'-status').innerText = 'AI Analyzing...';
-        return window.AIEngine.analyzeCV(text, jobData).then(parsed => ({text, parsed}));
+        return window.AIEngine.analyzeCV(resObj.text, jobData, resObj.rawEmail, resObj.rawPhone).then(parsed => ({text: resObj.text, parsed}));
       }).then(res => {
         document.getElementById(qId+'-status').innerText = 'Saving to Database...';
         var parsed = res.parsed;
@@ -547,16 +555,24 @@ window.Pages.hrATS = function(el) {
           }
           return Promise.all(promises);
         }).then(pageTexts => {
-          var allText = pageTexts.join('\n');
-          // Fix Arabic reversing
-          allText = allText.split('\n').map(function(line) {
+          var rawText = pageTexts.join('\n');
+          
+          // Extract Email and Phone before Arabic Reversal (since English chars aren't backwards in raw LTR extraction)
+          var emailMatch = rawText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+          var phoneMatch = rawText.match(/(?:\+?20|0)?1[0125]\d{8}/) || rawText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}/);
+          
+          // Fix Arabic reversing safely
+          var allText = rawText.split('\n').map(function(line) {
             if (!/[\u0600-\u06FF]/.test(line)) return line;
             var reversedLine = line.split('').reverse().join('');
-            return reversedLine.replace(/[a-zA-Z0-9_.-]+/g, function(match) {
+            return reversedLine.replace(/[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+/g, function(match) {
+                return match.split('').reverse().join('');
+            }).replace(/[a-zA-Z0-9_.-]+/g, function(match) {
               return match.split('').reverse().join('');
             });
           }).join('\n');
-          resolve(allText);
+          
+          resolve({text: allText, rawEmail: emailMatch ? emailMatch[0] : null, rawPhone: phoneMatch ? phoneMatch[0] : null});
         }).catch(reject);
       };
       reader.onerror = reject;
