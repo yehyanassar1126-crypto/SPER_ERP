@@ -82,7 +82,7 @@ window.Pages.hrATS = function(el) {
 
       // --- Contact Extraction ---
       var emailMatch = rawEmail || (cvText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || [])[0] || '';
-      var phoneMatch = rawPhone || (cvText.match(/(?:\+?20|0)?1[0125]\d{8}/) || cvText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}/) || [])[0] || '';
+      var phoneMatch = rawPhone || (cvText.match(/(?:\+?20|0)?1[0125]\d{8}/) || cvText.match(/(?:(?:\+?\d{1,3})|(?:\(\+?\d{1,3}\)))?[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}(?:[\s-]?\d{1,4})?/) || [])[0] || '';
 
       // --- Experience Years ---
       var expMatch = cvText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)/i) || cvText.match(/(?:experience|خبرة)\s*[:\-]?\s*(\d+)/i);
@@ -844,7 +844,7 @@ window.Pages.hrATS = function(el) {
           
           // Extract Email and Phone before Arabic Reversal (since English chars aren't backwards in raw LTR extraction)
           var emailMatch = rawText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-          var phoneMatch = rawText.match(/(?:\+?20|0)?1[0125]\d{8}/) || rawText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}/);
+          var phoneMatch = rawText.match(/(?:\+?20|0)?1[0125]\d{8}/) || rawText.match(/(?:(?:\+?\d{1,3})|(?:\(\+?\d{1,3}\)))?[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}(?:[\s-]?\d{1,4})?/);
           
           // Fix Arabic reversing safely
           var allText = rawText.split('\n').map(function(line) {
