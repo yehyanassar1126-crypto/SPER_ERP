@@ -663,6 +663,9 @@ window.Pages.hrATS = function(el) {
         if (j) jobTitle = j.title;
       }
 
+      var statusMap = { 'screening': 'فرز أولي', 'shortlisted': 'قائمة مختصرة', 'interview': 'مقابلة', 'hired': 'تم التعيين', 'rejected': 'مرفوض', 'pending': 'قيد الانتظار' };
+      var displayStatus = statusMap[app.status] || app.status || 'قيد الانتظار';
+
       html += `<tr>
         <td><strong>#${idx+1}</strong></td>
         <td>
@@ -677,8 +680,6 @@ window.Pages.hrATS = function(el) {
             </div>
             <span style="font-weight:700; color:${scoreColor}">${app.ai_score||0}%</span>
           </div>
-        var statusMap = { 'screening': 'فرز أولي', 'shortlisted': 'قائمة مختصرة', 'interview': 'مقابلة', 'hired': 'تم التعيين', 'rejected': 'مرفوض', 'pending': 'قيد الانتظار' };
-        var displayStatus = statusMap[app.status] || app.status || 'قيد الانتظار';
         </td>
         <td>${recIcon} ${displayRec}</td>
         <td><span class="badge badge-primary">${displayStatus}</span></td>
