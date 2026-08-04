@@ -149,8 +149,8 @@ window.Pages.hrATS = function(el) {
       if (!name) name = "مرشح غير معروف";
 
       // --- Education Extraction (Real Data) ---
-      var eduKeywords = ['bachelor','master','phd','mba','diploma','بكالوريوس','ماجستير','دكتوراه','دبلوم','ليسانس','b.sc','b.a'];
-      var uniKeywords = ['university','جامعة','كلية','معهد','أكاديمية','institute','college','academy'];
+      var eduKeywords = ['bachelor','master','phd','mba','diploma','بكالوريوس','ماجستير','دكتوراه','دبلوم','ليسانس','b.sc','b.a','degree','graduate','graduated','faculty'];
+      var uniKeywords = ['university','جامعة','كلية','معهد','أكاديمية','institute','college','academy','faculty'];
       var detectedDegrees = [];
       var detectedUnis = [];
       lines.forEach(function(line) {
@@ -225,8 +225,21 @@ window.Pages.hrATS = function(el) {
       var langKeywords = ['english', 'arabic', 'french', 'german', 'spanish', 'إنجليزية', 'عربية', 'فرنسية'];
       var certKeywords = ['pmp', 'cpa', 'cma', 'aws certified', 'cisco', 'ccna', 'itil', 'six sigma', 'ielts', 'toefl', 'شهادة', 'دورة'];
       var detectedLangs = [];
+      var detectedLangsObj = [];
       var detectedCerts = [];
-      langKeywords.forEach(function(lk) { if (cvLower.indexOf(lk) !== -1) detectedLangs.push(lk); });
+      langKeywords.forEach(function(lk) { 
+        if (cvLower.indexOf(lk) !== -1) {
+           detectedLangs.push(lk);
+           var idx = cvLower.indexOf(lk);
+           var contextStr = cvLower.substring(Math.max(0, idx - 30), Math.min(cvLower.length, idx + 40));
+           var level = 'Native/Bilingual';
+           if (contextStr.includes('fluent') || contextStr.includes('ممتاز') || contextStr.includes('excellent') || contextStr.includes('advanced')) level = 'Fluent';
+           else if (contextStr.includes('good') || contextStr.includes('جيد') || contextStr.includes('working') || contextStr.includes('intermediate')) level = 'Good Command';
+           else if (contextStr.includes('native') || contextStr.includes('أم') || contextStr.includes('mother')) level = 'Native';
+           else if (contextStr.includes('basic') || contextStr.includes('مبتدئ') || contextStr.includes('fair')) level = 'Basic';
+           detectedLangsObj.push({name: lk.charAt(0).toUpperCase() + lk.slice(1), level: level});
+        }
+      });
       certKeywords.forEach(function(ck) { if (cvLower.indexOf(ck) !== -1) detectedCerts.push(ck); });
 
       var reqExp = jobData ? parseFloat(jobData.required_experience_years || 0) : 0;
@@ -485,7 +498,7 @@ window.Pages.hrATS = function(el) {
         skills: { technical: matched.concat(techSkills).concat(industrySkills), soft: softSkills, industry: industrySkills, inferred: [] },
         projects: [],
         certifications: detectedCerts.map(c => ({name: c, provider: 'Unknown', date: ''})),
-        languages: detectedLangs.map(l => ({name: l, level: 'Native/Bilingual'})),
+        languages: detectedLangsObj,
         // Backwards compatibility keys
         match_score: score,
         missing_requirements: missing,
@@ -898,7 +911,17 @@ window.Pages.hrATS = function(el) {
         .promise.then(pdf => {
           var promises = [];
           for (var i = 1; i <= pdf.numPages; i++) {
-            promises.push(pdf.getPage(i).then(page => page.getTextContent().then(c => c.items.map(item => item.str).join(' '))));
+            promises.push(pdf.getPage(i).then(page => page.getTextContent().then(c => {
+              var text = '';
+              var lastY = -1;
+              c.items.forEach(item => {
+                if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 5) { text += '\n'; }
+                else if (lastY !== -1) { text += ' '; }
+                text += item.str;
+                lastY = item.transform[5];
+              });
+              return text;
+            })));
           }
           return Promise.all(promises);
         }).then(pageTexts => {
