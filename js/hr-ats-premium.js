@@ -149,7 +149,7 @@ window.Pages.hrATS = function(el) {
       if (!name) name = "مرشح غير معروف";
 
       // --- Education Extraction (Real Data) ---
-      var eduKeywords = ['bachelor','master','phd','mba','diploma','بكالوريوس','ماجستير','دكتوراه','دبلوم','ليسانس'];
+      var eduKeywords = ['bachelor','master','phd','mba','diploma','بكالوريوس','ماجستير','دكتوراه','دبلوم','ليسانس','b.sc','b.a'];
       var uniKeywords = ['university','جامعة','كلية','معهد','أكاديمية','institute','college','academy'];
       var detectedDegrees = [];
       var detectedUnis = [];
@@ -157,35 +157,61 @@ window.Pages.hrATS = function(el) {
         var ll = line.toLowerCase();
         eduKeywords.forEach(function(ek) {
           if (ll.indexOf(ek) !== -1 && detectedDegrees.indexOf(line) === -1) {
-            detectedDegrees.push(line.substring(0, 80));
+            detectedDegrees.push(line.substring(0, 80).trim());
           }
         });
         uniKeywords.forEach(function(uk) {
           if (ll.indexOf(uk) !== -1 && detectedUnis.indexOf(line) === -1) {
-            detectedUnis.push(line.substring(0, 80));
+            detectedUnis.push(line.substring(0, 80).trim());
           }
         });
       });
+      // Cleanup long strings
+      detectedDegrees = detectedDegrees.filter(function(d) { return d.length > 5; });
+      detectedUnis = detectedUnis.filter(function(u) { return u.length > 5; });
       var eduDegree = detectedDegrees.length > 0 ? detectedDegrees[0] : 'غير مكتشف';
       var eduUni = detectedUnis.length > 0 ? detectedUnis[0] : 'غير معروف';
 
-      // --- Experience Extraction (Real Companies & Titles) ---
+      // --- Experience Extraction (Real Companies, Titles & Responsibilities) ---
       var companyKeywords = ['company','شركة','مصنع','مؤسسة','factory','group','corp','inc','ltd','organization','hospital','مستشفى','بنك','bank'];
       var titleKeywords = ['manager','مدير','engineer','مهندس','supervisor','مشرف','specialist','أخصائي','accountant','محاسب','developer','مبرمج','analyst','محلل','director','رئيس','coordinator','منسق','technician','فني','مندوب','representative','inspector','مفتش','worker','عامل'];
       var detectedCompanies = [];
       var detectedTitles = [];
-      lines.forEach(function(line) {
+      var experienceContexts = [];
+      
+      lines.forEach(function(line, idx) {
         var ll = line.toLowerCase();
-        companyKeywords.forEach(function(ck) {
-          if (ll.indexOf(ck) !== -1 && detectedCompanies.indexOf(line) === -1 && line.length < 100) {
-            detectedCompanies.push(line.substring(0, 80));
-          }
-        });
-        titleKeywords.forEach(function(tk) {
-          if (ll.indexOf(tk) !== -1 && detectedTitles.indexOf(line) === -1 && line.length < 100) {
-            detectedTitles.push(line.substring(0, 80));
-          }
-        });
+        if(line.length < 120) {
+           var foundCompany = false;
+           companyKeywords.forEach(function(ck) {
+             if (ll.indexOf(ck) !== -1 && detectedCompanies.indexOf(line) === -1) {
+               detectedCompanies.push(line.substring(0, 80).trim());
+               foundCompany = true;
+             }
+           });
+           
+           var foundTitle = false;
+           titleKeywords.forEach(function(tk) {
+             if (ll.indexOf(tk) !== -1 && detectedTitles.indexOf(line) === -1) {
+               detectedTitles.push(line.substring(0, 80).trim());
+               foundTitle = true;
+             }
+           });
+           
+           if (foundTitle || foundCompany) {
+              var ctx = [];
+              for(var k = 1; k <= 4; k++) {
+                 if (idx + k < lines.length) {
+                    var nxt = lines[idx+k].trim();
+                    // Grab next lines that look like bullet points or short descriptions
+                    if (nxt.length > 10 && nxt.length < 200 && !nxt.includes('@') && !titleKeywords.some(tk=>nxt.toLowerCase().includes(tk))) {
+                       ctx.push(nxt);
+                    }
+                 }
+              }
+              experienceContexts.push(ctx.join(' - '));
+           }
+        }
       });
 
       // --- Location Extraction ---
@@ -320,11 +346,11 @@ window.Pages.hrATS = function(el) {
             company: detectedCompanies[e] || 'غير محدد',
             title: detectedTitles[e] || (jobData ? jobData.title : 'غير محدد'),
             duration: e === 0 ? (expYears + ' سنوات') : '',
-            responsibilities: ''
+            responsibilities: experienceContexts[e] ? [experienceContexts[e].substring(0, 200) + '...'] : []
           });
         }
       } else {
-        experienceArr.push({company: 'غير محدد', title: jobData ? jobData.title : 'غير محدد', duration: expYears + ' سنوات', responsibilities: ''});
+        experienceArr.push({company: 'غير محدد', title: jobData ? jobData.title : 'غير محدد', duration: expYears + ' سنوات', responsibilities: []});
       }
 
       // Removed old translatedPts
@@ -411,7 +437,7 @@ window.Pages.hrATS = function(el) {
       if (detectedCerts.length > 0) { arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-success); margin-top:8px; display:inline-block;">الشهادات:</strong>'); detectedCerts.forEach(function(c) { arabicPts.push('• ' + c); }); }
       arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
       arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-warning);">الخبرات المهنية:</strong>');
-      if (experienceArr.length > 0) { experienceArr.forEach(function(exp) { var line = '• <strong>' + (exp.title || '') + '</strong>'; if (exp.company && exp.company !== 'غير محدد') line += ' - ' + exp.company; if (exp.duration) line += ' (' + exp.duration + ')'; arabicPts.push(line); }); }
+      if (experienceArr.length > 0) { experienceArr.forEach(function(exp) { var line = '• <strong>' + (exp.title || '') + '</strong>'; if (exp.company && exp.company !== 'غير محدد') line += ' - ' + exp.company; if (exp.duration) line += ' (' + exp.duration + ')'; arabicPts.push(line); if(exp.responsibilities && exp.responsibilities.length > 0 && exp.responsibilities[0].length > 5) { arabicPts.push('<div style="font-size:0.9rem; color:var(--text-muted); margin-top:4px; margin-bottom:8px; margin-right:16px;">↳ ' + exp.responsibilities[0] + '</div>'); } }); }
       else { arabicPts.push('• لم يتم العثور على خبرات مهنية.'); }
       arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
       arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-info);">المهارات المكتشفة:</strong>');
