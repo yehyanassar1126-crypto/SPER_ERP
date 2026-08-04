@@ -157,22 +157,46 @@ window.Pages.hrATS = function(el) {
         if (cvLower.indexOf(loc) !== -1 && !detectedLocation) detectedLocation = loc;
       });
 
+      // --- Languages & Certifications Extraction ---
+      var langKeywords = ['english', 'arabic', 'french', 'german', 'spanish', 'إنجليزية', 'عربية', 'فرنسية'];
+      var certKeywords = ['pmp', 'cpa', 'cma', 'aws certified', 'cisco', 'ccna', 'itil', 'six sigma', 'ielts', 'toefl', 'شهادة', 'دورة'];
+      var detectedLangs = [];
+      var detectedCerts = [];
+      langKeywords.forEach(function(lk) { if (cvLower.indexOf(lk) !== -1) detectedLangs.push(lk); });
+      certKeywords.forEach(function(ck) { if (cvLower.indexOf(ck) !== -1) detectedCerts.push(ck); });
+
       var reqExp = jobData ? parseFloat(jobData.required_experience_years || 0) : 0;
 
       // --- Scoring ---
-      var score = 25;
+      var score = 20; // Base score
       if (reqSkills.length > 0) score += (matched.length / reqSkills.length) * 35;
-      else score += 35;
-      if (expYears >= reqExp && reqExp > 0) score += 20;
-      else if (expYears > 0) score += 10;
-      if (techSkills.length > 3) score += 5;
+      else score += 35; // Free points if no skills required
+      
+      if (reqExp > 0) {
+        if (expYears >= reqExp) score += 20;
+        else if (expYears > 0) score += (expYears / reqExp) * 15; // Partial points for some experience
+      } else {
+        if (expYears > 0) score += 15;
+      }
+      
+      if (techSkills.length > 4) score += 5;
+      else if (techSkills.length > 1) score += 3;
       if (softSkills.length > 2) score += 5;
-      if (cvText.length > 1500) score += 5;
-      else if (cvText.length > 800) score += 3;
+      
+      if (cvText.length > 2000) score += 5;
+      else if (cvText.length > 1000) score += 3;
+      
       var eduScore = 0;
-      if (detectedDegrees.length > 0) eduScore = 10;
+      if (detectedDegrees.length > 0) {
+        eduScore = 5;
+        if (eduDegree.toLowerCase().includes('master') || eduDegree.toLowerCase().includes('phd') || eduDegree.includes('ماجستير') || eduDegree.includes('دكتوراه')) eduScore = 10;
+      }
       score += eduScore;
+      
       if (detectedCompanies.length >= 2) score += 5;
+      if (detectedLangs.length > 1) score += 3;
+      if (detectedCerts.length > 0) score += 2;
+      
       score = Math.min(Math.round(score), 98);
 
       var rec = score >= 75 ? 'accepted' : score >= 45 ? 'review' : 'rejected';
@@ -198,27 +222,30 @@ window.Pages.hrATS = function(el) {
       if (matched.length > 0) strengths.push("يمتلك المهارات المطلوبة: " + matched.join('، '));
       if (expYears >= reqExp && expYears > 0) strengths.push("خبرة " + expYears + " سنوات تلبي أو تتجاوز المطلوب (" + reqExp + ")");
       if (detectedDegrees.length > 0) strengths.push("مؤهل علمي: " + eduDegree);
-      if (detectedCompanies.length >= 2) strengths.push("خبرة متنوعة في " + detectedCompanies.length + " جهات عمل");
+      if (detectedCompanies.length >= 2) strengths.push("خبرة متنوعة في " + detectedCompanies.length + " جهات عمل (" + detectedCompanies.slice(0,2).join('، ') + ")");
       if (techSkills.length > 0) strengths.push("مهارات تقنية إضافية: " + techSkills.slice(0,4).join('، '));
-      if (softSkills.length > 0) strengths.push("مهارات شخصية: " + softSkills.slice(0,3).join('، '));
-      if (strengths.length === 0) strengths.push("السيرة الذاتية تحتاج مراجعة يدوية لتحديد نقاط القوة");
+      if (softSkills.length > 0) strengths.push("مهارات شخصية داعمة: " + softSkills.slice(0,3).join('، '));
+      if (detectedLangs.length > 1) strengths.push("متعدد اللغات (" + detectedLangs.join('، ') + ")");
+      if (detectedCerts.length > 0) strengths.push("يمتلك شهادات إضافية (" + detectedCerts.slice(0,2).join('، ') + ")");
+      if (strengths.length === 0) strengths.push("السيرة الذاتية تحتاج مراجعة يدوية لتحديد نقاط القوة بشكل دقيق");
 
       var weaknesses = [];
-      if (missing.length > 0) missing.forEach(function(s) { weaknesses.push("مهارة مطلوبة غير موجودة: " + s); });
-      if (expYears < reqExp && reqExp > 0) weaknesses.push("الخبرة (" + expYears + " سنوات) أقل من المطلوب (" + reqExp + " سنوات)");
-      if (detectedDegrees.length === 0) weaknesses.push("لم يتم اكتشاف مؤهل علمي واضح في السيرة الذاتية");
-      if (cvText.length < 500) weaknesses.push("السيرة الذاتية قصيرة وتفتقر للتفاصيل الكافية");
+      if (missing.length > 0) missing.forEach(function(s) { weaknesses.push("تفتقر السيرة لمهارة أساسية مطلوبة: " + s); });
+      if (expYears < reqExp && reqExp > 0) weaknesses.push("الخبرة (" + expYears + " سنوات) أقل من الحد الأدنى المطلوب (" + reqExp + " سنوات)");
+      if (detectedDegrees.length === 0) weaknesses.push("لم يتم اكتشاف مؤهل علمي واضح (يفضل مراجعة السيرة يدوياً)");
+      if (cvText.length < 500) weaknesses.push("السيرة الذاتية قصيرة جداً وتفتقر للتفاصيل الكافية للحكم الدقيق");
+      
       // If score < 100, there MUST be weaknesses - generate smart ones based on what's missing
       if (score < 98 && weaknesses.length === 0) {
-        if (softSkills.length < 3) weaknesses.push("عدد المهارات الشخصية المذكورة قليل (" + softSkills.length + " فقط) - يُفضل إبراز مهارات القيادة والتواصل");
-        if (techSkills.length < 4) weaknesses.push("عدد المهارات التقنية محدود (" + techSkills.length + " فقط) - يُنصح بتطوير مهارات تقنية إضافية");
-        if (detectedCompanies.length < 2) weaknesses.push("خبرة عملية محدودة في عدد جهات العمل السابقة");
-        if (!detectedLocation) weaknesses.push("لم يتم ذكر الموقع الجغرافي في السيرة الذاتية");
-        if (cvText.length < 1500) weaknesses.push("السيرة الذاتية تحتاج لمزيد من التفصيل حول المسؤوليات والإنجازات");
+        if (softSkills.length < 3) weaknesses.push("عدد المهارات الشخصية (Soft Skills) المذكورة قليل - يُفضل التركيز عليها في المقابلة");
+        if (techSkills.length < 4) weaknesses.push("النطاق التقني للمرشح يبدو محدوداً نسبياً من خلال النص");
+        if (detectedCompanies.length < 2) weaknesses.push("خبرة عملية محدودة في عدد جهات العمل السابقة (قد يدل على خبرة في بيئة واحدة فقط)");
+        if (!detectedLocation) weaknesses.push("لم يتم تحديد الموقع الجغرافي للمرشح في السيرة الذاتية");
+        if (detectedLangs.length === 0) weaknesses.push("لم يتم تحديد اللغات المتقنة بوضوح في السيرة");
       }
       // Final fallback - always show something if not perfect
       if (score < 98 && weaknesses.length === 0) {
-        weaknesses.push("التقييم لم يصل 100% - يُنصح بمراجعة يدوية لتحديد نقاط التحسين");
+        weaknesses.push("التقييم العام جيد ولكن ينصح باختبار المرشح عملياً للتأكد من المهارات المذكورة");
       }
 
       var flags = [];
@@ -229,15 +256,17 @@ window.Pages.hrATS = function(el) {
 
       // --- Build REAL Interview Questions based on extracted data ---
       var hrQuestions = [];
-      if (detectedCompanies.length > 0) hrQuestions.push("حدثنا عن تجربتك في " + detectedCompanies[0] + " وما أبرز إنجازاتك هناك؟");
-      if (expYears > 0) hrQuestions.push("لديك خبرة " + expYears + " سنوات، ما الذي تعلمته وتريد تطبيقه في هذه الوظيفة؟");
-      hrQuestions.push("لماذا ترغب في الانضمام لفريقنا وما الذي يميزك عن باقي المرشحين؟");
-      if (detectedTitles.length > 1) hrQuestions.push("انتقلت بين عدة مناصب، ما سبب تغييراتك الوظيفية؟");
+      if (detectedCompanies.length > 0) hrQuestions.push(`حدثنا عن تجربتك السابقة في "${detectedCompanies[0]}" وما هي أبرز إنجازاتك هناك؟`);
+      if (expYears > 0) hrQuestions.push(`كيف ستوظف خبرتك التي تمتد لـ ${expYears} سنوات لخدمة أهداف شركتنا؟`);
+      if (detectedTitles.length > 1) hrQuestions.push(`لاحظنا تنوعاً في المسميات الوظيفية لديك، ما هو المسار الذي تفضله أكثر ولماذا؟`);
+      hrQuestions.push("ما هي التحديات التي تبحث عنها في بيئة العمل القادمة وكيف تتعامل مع الضغوط؟");
+      if (softSkills.length > 0) hrQuestions.push(`ذكرت مهارات مثل (${softSkills.slice(0,2).join(', ')}).. اذكر لنا موقفاً حقيقياً طبقت فيه هذه المهارة.`);
 
       var techQuestions = [];
-      matched.forEach(function(s) { techQuestions.push("صف لنا مشروعاً عملياً استخدمت فيه " + s + " وما التحديات التي واجهتها؟"); });
-      missing.forEach(function(s) { techQuestions.push("كيف ستكتسب وتطور مهاراتك في " + s + " خلال أول 3 أشهر؟"); });
-      if (techSkills.length > 0) techQuestions.push("كيف توظف مهاراتك في " + techSkills[0] + " لحل مشكلة عملية في بيئة العمل؟");
+      matched.forEach(function(s) { techQuestions.push(`صف لنا مشروعاً عملياً معقداً استخدمت فيه تقنية/مهارة "${s}" وما دورك الدقيق فيه؟`); });
+      missing.forEach(function(s) { techQuestions.push(`كيف تخطط لاكتساب وتطوير مهاراتك في "${s}" خلال فترة الاختبار (أول 3 أشهر)؟`); });
+      if (techSkills.length > 0) techQuestions.push(`من بين خبراتك المتنوعة (${techSkills.slice(0,2).join(', ')}).. كيف تدمج بينها لحل المشكلات التقنية؟`);
+      if (detectedCerts.length > 0) techQuestions.push(`كيف أضافت الشهادة/الدورة "${detectedCerts[0]}" لقدراتك المهنية عملياً؟`);
 
       // Build education array from real data
       var educationArr = detectedDegrees.length > 0 
