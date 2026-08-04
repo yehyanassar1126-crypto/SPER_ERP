@@ -69,81 +69,198 @@ window.Pages.hrATS = function(el) {
         else missing.push(sk);
       });
 
-      var commonSkills = ['react','node.js','java','python','sql','aws','docker','git','agile','leadership','communication','management','autocad','excel','sales','marketing','finance','hr'];
-      var techSkills = [], softSkills = [];
-      commonSkills.forEach(function(sk) {
-        if (cvLower.indexOf(sk) !== -1 && matched.indexOf(sk) === -1) {
-          if (['leadership','communication','management','agile'].includes(sk)) softSkills.push(sk);
-          else techSkills.push(sk);
-        }
-      });
+      // --- Extended Skills Detection (English + Arabic) ---
+      var allSkillsMap = {
+        tech: ['react','angular','vue','node.js','express','java','python','c++','c#','.net','php','ruby','swift','kotlin','typescript','javascript','html','css','sql','mongodb','postgresql','mysql','firebase','aws','azure','gcp','docker','kubernetes','git','jenkins','ci/cd','rest api','graphql','machine learning','deep learning','tensorflow','autocad','solidworks','matlab','sap','erp','excel','power bi','tableau','photoshop','illustrator','figma','wordpress'],
+        soft: ['leadership','communication','management','agile','teamwork','problem solving','negotiation','presentation','time management','project management','scrum','قيادة','تواصل','إدارة','تفاوض','حل المشكلات','العمل الجماعي','إدارة المشاريع','تنظيم','تخطيط'],
+        industry: ['تسويق','مبيعات','موارد بشرية','هندسة','محاسبة','مالية','تصنيع','إنتاج','جودة','صيانة','مشتريات','مخازن','تخزين','لوجستيك','marketing','sales','procurement','logistics','warehouse','manufacturing','quality','maintenance','accounting','finance','hr','supply chain']
+      };
+      var techSkills = [], softSkills = [], industrySkills = [];
+      allSkillsMap.tech.forEach(function(sk) { if (cvLower.indexOf(sk) !== -1 && matched.indexOf(sk) === -1) techSkills.push(sk); });
+      allSkillsMap.soft.forEach(function(sk) { if (cvLower.indexOf(sk) !== -1 && matched.indexOf(sk) === -1) softSkills.push(sk); });
+      allSkillsMap.industry.forEach(function(sk) { if (cvLower.indexOf(sk) !== -1 && matched.indexOf(sk) === -1) industrySkills.push(sk); });
 
+      // --- Contact Extraction ---
       var emailMatch = rawEmail || (cvText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/) || [])[0] || '';
       var phoneMatch = rawPhone || (cvText.match(/(?:\+?20|0)?1[0125]\d{8}/) || cvText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}/) || [])[0] || '';
+
+      // --- Experience Years ---
       var expMatch = cvText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)/i) || cvText.match(/(?:experience|خبرة)\s*[:\-]?\s*(\d+)/i);
-      
+      var expYears = expMatch ? parseInt(expMatch[1]) : 0;
+
+      // --- Name Extraction ---
       var lines = cvText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-      var name = "Unknown Candidate";
+      var name = "مرشح غير معروف";
       for (var i = 0; i < Math.min(lines.length, 10); i++) {
-        var cleanLine = lines[i].replace(/[_.-]/g, '').trim();
+        var cleanLine = lines[i].replace(/[_.\-]/g, '').trim();
         var l = cleanLine.toLowerCase();
-        if (l.includes('resume') || l.includes('cv') || l.includes('سيرة') || cleanLine.length < 5) continue;
-        
+        if (l.includes('resume') || l.includes('cv') || l.includes('سيرة') || l.includes('ذاتية') || l.includes('page') || l.includes('email') || l.includes('@') || cleanLine.length < 5) continue;
         var wordCount = cleanLine.split(/\s+/).length;
-        if (wordCount >= 2 && wordCount <= 4) { name = cleanLine; break; }
+        if (wordCount >= 2 && wordCount <= 5) { name = cleanLine; break; }
       }
 
-      var expYears = expMatch ? parseInt(expMatch[1]) : 0;
+      // --- Education Extraction (Real Data) ---
+      var eduKeywords = ['bachelor','master','phd','mba','diploma','بكالوريوس','ماجستير','دكتوراه','دبلوم','ليسانس'];
+      var uniKeywords = ['university','جامعة','كلية','معهد','أكاديمية','institute','college','academy'];
+      var detectedDegrees = [];
+      var detectedUnis = [];
+      lines.forEach(function(line) {
+        var ll = line.toLowerCase();
+        eduKeywords.forEach(function(ek) {
+          if (ll.indexOf(ek) !== -1 && detectedDegrees.indexOf(line) === -1) {
+            detectedDegrees.push(line.substring(0, 80));
+          }
+        });
+        uniKeywords.forEach(function(uk) {
+          if (ll.indexOf(uk) !== -1 && detectedUnis.indexOf(line) === -1) {
+            detectedUnis.push(line.substring(0, 80));
+          }
+        });
+      });
+      var eduDegree = detectedDegrees.length > 0 ? detectedDegrees[0] : 'غير مكتشف';
+      var eduUni = detectedUnis.length > 0 ? detectedUnis[0] : 'غير معروف';
+
+      // --- Experience Extraction (Real Companies & Titles) ---
+      var companyKeywords = ['company','شركة','مصنع','مؤسسة','factory','group','corp','inc','ltd','organization','hospital','مستشفى','بنك','bank'];
+      var titleKeywords = ['manager','مدير','engineer','مهندس','supervisor','مشرف','specialist','أخصائي','accountant','محاسب','developer','مبرمج','analyst','محلل','director','رئيس','coordinator','منسق','technician','فني','مندوب','representative','inspector','مفتش','worker','عامل'];
+      var detectedCompanies = [];
+      var detectedTitles = [];
+      lines.forEach(function(line) {
+        var ll = line.toLowerCase();
+        companyKeywords.forEach(function(ck) {
+          if (ll.indexOf(ck) !== -1 && detectedCompanies.indexOf(line) === -1 && line.length < 100) {
+            detectedCompanies.push(line.substring(0, 80));
+          }
+        });
+        titleKeywords.forEach(function(tk) {
+          if (ll.indexOf(tk) !== -1 && detectedTitles.indexOf(line) === -1 && line.length < 100) {
+            detectedTitles.push(line.substring(0, 80));
+          }
+        });
+      });
+
+      // --- Location Extraction ---
+      var locationKeywords = ['القاهرة','الإسكندرية','الجيزة','المنصورة','أسيوط','الأقصر','أسوان','طنطا','الزقازيق','بورسعيد','السويس','دمياط','cairo','alexandria','giza','egypt','مصر','riyadh','jeddah','dubai','الرياض','جدة','دبي'];
+      var detectedLocation = '';
+      locationKeywords.forEach(function(loc) {
+        if (cvLower.indexOf(loc) !== -1 && !detectedLocation) detectedLocation = loc;
+      });
+
       var reqExp = jobData ? parseFloat(jobData.required_experience_years || 0) : 0;
 
-      // Scoring
-      var score = 30; // base
-      if (reqSkills.length > 0) score += (matched.length / reqSkills.length) * 40;
-      else score += 40;
-      if (expYears >= reqExp) score += 20;
+      // --- Scoring ---
+      var score = 25;
+      if (reqSkills.length > 0) score += (matched.length / reqSkills.length) * 35;
+      else score += 35;
+      if (expYears >= reqExp && reqExp > 0) score += 20;
       else if (expYears > 0) score += 10;
-      if (cvText.length > 1000) score += 10;
-
+      if (techSkills.length > 3) score += 5;
+      if (softSkills.length > 2) score += 5;
+      if (cvText.length > 1500) score += 5;
+      else if (cvText.length > 800) score += 3;
       var eduScore = 0;
-      ['bachelor','master','phd','university','بكالوريوس','جامعة','هندسة','دبلوم'].forEach(function(k) { 
-        if (cvLower.indexOf(k) !== -1) eduScore = 10; 
-      });
+      if (detectedDegrees.length > 0) eduScore = 10;
       score += eduScore;
+      if (detectedCompanies.length >= 2) score += 5;
       score = Math.min(Math.round(score), 98);
 
-      var rec = score >= 80 ? 'accepted' : score >= 50 ? 'review' : 'rejected';
-      var summary = "Candidate with " + expYears + " years of experience. ";
-      if (matched.length > 0) summary += "Strong match in: " + matched.join(', ') + ". ";
-      if (missing.length > 0) summary += "Lacks direct experience in: " + missing.join(', ') + ". ";
+      var rec = score >= 75 ? 'accepted' : score >= 45 ? 'review' : 'rejected';
+
+      // --- Build REAL Summary from extracted data ---
+      var summaryParts = [];
+      summaryParts.push(name + " - ");
+      if (expYears > 0) summaryParts.push("خبرة " + expYears + " سنوات");
+      else summaryParts.push("لم يتم تحديد سنوات الخبرة بدقة");
+      if (detectedTitles.length > 0) summaryParts.push(" في مجال: " + detectedTitles[0]);
+      summaryParts.push(". ");
+      if (detectedCompanies.length > 0) summaryParts.push("عمل سابقاً في: " + detectedCompanies.slice(0,2).join(' / ') + ". ");
+      if (eduDegree !== 'غير مكتشف') summaryParts.push("المؤهل: " + eduDegree + ". ");
+      if (detectedLocation) summaryParts.push("الموقع: " + detectedLocation + ". ");
+      var allFoundSkills = matched.concat(techSkills).concat(industrySkills);
+      if (allFoundSkills.length > 0) summaryParts.push("المهارات المكتشفة: " + allFoundSkills.slice(0,6).join('، ') + ". ");
+      if (matched.length > 0) summaryParts.push("تطابق مع المطلوب: " + matched.join('، ') + ". ");
+      if (missing.length > 0) summaryParts.push("مهارات مفقودة: " + missing.join('، ') + ".");
+      var summary = summaryParts.join('');
+
+      // --- Build REAL Strengths & Weaknesses ---
+      var strengths = [];
+      if (matched.length > 0) strengths.push("يمتلك المهارات المطلوبة: " + matched.join('، '));
+      if (expYears >= reqExp && expYears > 0) strengths.push("خبرة " + expYears + " سنوات تلبي أو تتجاوز المطلوب (" + reqExp + ")");
+      if (detectedDegrees.length > 0) strengths.push("مؤهل علمي: " + eduDegree);
+      if (detectedCompanies.length >= 2) strengths.push("خبرة متنوعة في " + detectedCompanies.length + " جهات عمل");
+      if (techSkills.length > 0) strengths.push("مهارات تقنية إضافية: " + techSkills.slice(0,4).join('، '));
+      if (softSkills.length > 0) strengths.push("مهارات شخصية: " + softSkills.slice(0,3).join('، '));
+      if (strengths.length === 0) strengths.push("السيرة الذاتية تحتاج مراجعة يدوية لتحديد نقاط القوة");
+
+      var weaknesses = [];
+      if (missing.length > 0) missing.forEach(function(s) { weaknesses.push("مهارة مطلوبة غير موجودة: " + s); });
+      if (expYears < reqExp && reqExp > 0) weaknesses.push("الخبرة (" + expYears + " سنوات) أقل من المطلوب (" + reqExp + " سنوات)");
+      if (detectedDegrees.length === 0) weaknesses.push("لم يتم اكتشاف مؤهل علمي واضح");
+      if (cvText.length < 500) weaknesses.push("السيرة الذاتية قصيرة وتفتقر للتفاصيل الكافية");
 
       var flags = [];
-      if (expYears === 0) flags.push("No explicit years of experience detected.");
-      if (cvText.length < 300) flags.push("Extremely short CV. May lack detail.");
+      if (expYears === 0) flags.push("لم يتم اكتشاف سنوات خبرة واضحة في النص.");
+      if (cvText.length < 300) flags.push("السيرة الذاتية قصيرة جداً (" + cvText.length + " حرف) وقد تكون غير مكتملة.");
+      if (!emailMatch) flags.push("لم يتم العثور على بريد إلكتروني في السيرة الذاتية.");
+      if (!phoneMatch) flags.push("لم يتم العثور على رقم هاتف في السيرة الذاتية.");
+
+      // --- Build REAL Interview Questions based on extracted data ---
+      var hrQuestions = [];
+      if (detectedCompanies.length > 0) hrQuestions.push("حدثنا عن تجربتك في " + detectedCompanies[0] + " وما أبرز إنجازاتك هناك؟");
+      if (expYears > 0) hrQuestions.push("لديك خبرة " + expYears + " سنوات، ما الذي تعلمته وتريد تطبيقه في هذه الوظيفة؟");
+      hrQuestions.push("لماذا ترغب في الانضمام لفريقنا وما الذي يميزك عن باقي المرشحين؟");
+      if (detectedTitles.length > 1) hrQuestions.push("انتقلت بين عدة مناصب، ما سبب تغييراتك الوظيفية؟");
+
+      var techQuestions = [];
+      matched.forEach(function(s) { techQuestions.push("صف لنا مشروعاً عملياً استخدمت فيه " + s + " وما التحديات التي واجهتها؟"); });
+      missing.forEach(function(s) { techQuestions.push("كيف ستكتسب وتطور مهاراتك في " + s + " خلال أول 3 أشهر؟"); });
+      if (techSkills.length > 0) techQuestions.push("كيف توظف مهاراتك في " + techSkills[0] + " لحل مشكلة عملية في بيئة العمل؟");
+
+      // Build education array from real data
+      var educationArr = detectedDegrees.length > 0 
+        ? detectedDegrees.map(function(d, idx) { return {degree: d, university: detectedUnis[idx] || 'غير محدد', year: ''}; })
+        : [{degree: 'غير مكتشف', university: 'غير معروف', year: ''}];
+
+      // Build experience array from real data
+      var experienceArr = [];
+      if (detectedTitles.length > 0 || detectedCompanies.length > 0) {
+        var maxExp = Math.max(detectedTitles.length, detectedCompanies.length, 1);
+        for (var e = 0; e < Math.min(maxExp, 4); e++) {
+          experienceArr.push({
+            company: detectedCompanies[e] || 'غير محدد',
+            title: detectedTitles[e] || (jobData ? jobData.title : 'غير محدد'),
+            duration: e === 0 ? (expYears + ' سنوات') : '',
+            responsibilities: ''
+          });
+        }
+      } else {
+        experienceArr.push({company: 'غير محدد', title: jobData ? jobData.title : 'غير محدد', duration: expYears + ' سنوات', responsibilities: ''});
+      }
 
       return {
         candidate: {
           name: name,
           email: emailMatch,
           phone: phoneMatch,
-          location: '',
+          location: detectedLocation,
           linkedin: ''
         },
-        education: [{degree: eduScore > 0 ? 'Degree Detected' : 'Not Detected', university: 'Unknown', year: ''}],
-        experience: [{company: 'Extracted from CV', title: jobData ? jobData.title : 'Professional', duration: expYears + ' years', responsibilities: ''}],
+        education: educationArr,
+        experience: experienceArr,
         skills: {
-          technical: matched.concat(techSkills),
+          technical: matched.concat(techSkills).concat(industrySkills),
           soft: softSkills,
           tools: []
         },
         match_score: score,
-        strengths: matched.map(s => "Strong experience with " + s).concat(expYears >= reqExp ? ["Meets experience requirement"] : []),
-        weaknesses: missing.map(s => "Missing requirement: " + s),
+        strengths: strengths,
+        weaknesses: weaknesses,
         missing_requirements: missing,
         ai_recommendation: rec,
         ai_summary: summary,
         interview_questions: {
-          hr: ["Can you walk me through your resume?", "What are your salary expectations?"],
-          technical: matched.map(s => "Can you describe a complex project where you used " + s + "?").concat(missing.map(s => "How would you approach learning " + s + " quickly?"))
+          hr: hrQuestions,
+          technical: techQuestions
         },
         flags: flags
       };
@@ -556,6 +673,8 @@ window.Pages.hrATS = function(el) {
           return Promise.all(promises);
         }).then(pageTexts => {
           var rawText = pageTexts.join('\n');
+          // Strip out weird binary/font symbols entirely before any processing
+          rawText = rawText.replace(/[^\u0600-\u06FFa-zA-Z0-9\s.,:@+()\-\/'"%]/g, ' ');
           
           // Extract Email and Phone before Arabic Reversal (since English chars aren't backwards in raw LTR extraction)
           var emailMatch = rawText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
@@ -622,28 +741,28 @@ window.Pages.hrATS = function(el) {
 
       <div id="tab-ai" class="prof-tab">
         <div style="padding:16px; background:rgba(99,102,241,0.05); border-radius:8px; border-left:4px solid var(--accent-primary); margin-bottom:16px;">
-          <h4 style="margin-top:0;">AI Executive Summary</h4>
-          <p style="margin-bottom:0; line-height:1.6;">${app.ai_analysis || 'No summary generated.'}</p>
+          <h4 style="margin-top:0;">ملخص تحليل الذكاء الاصطناعي</h4>
+          <p style="margin-bottom:0; line-height:1.6;" dir="rtl">${app.ai_analysis || 'لم يتم إنشاء ملخص.'}</p>
         </div>
         
         <div class="grid-2">
           <div>
-            <h4 style="color:var(--accent-success);">✅ Key Strengths</h4>
-            <ul style="padding-left:20px; margin-top:8px;">
-              ${strengths.length>0 ? strengths.map(s=>`<li>${s}</li>`).join('') : '<li>No specific strengths highlighted</li>'}
+            <h4 style="color:var(--accent-success);">✅ نقاط القوة</h4>
+            <ul style="padding-right:20px; margin-top:8px;" dir="rtl">
+              ${strengths.length>0 ? strengths.map(s=>`<li>${s}</li>`).join('') : '<li>لم يتم تحديد نقاط قوة محددة</li>'}
             </ul>
           </div>
           <div>
-            <h4 style="color:var(--accent-danger);">❌ Weaknesses & Missing</h4>
-            <ul style="padding-left:20px; margin-top:8px;">
-              ${weaknesses.length>0 ? weaknesses.map(w=>`<li>${w}</li>`).join('') : '<li>No major weaknesses found</li>'}
+            <h4 style="color:var(--accent-danger);">❌ نقاط الضعف والمهارات المفقودة</h4>
+            <ul style="padding-right:20px; margin-top:8px;" dir="rtl">
+              ${weaknesses.length>0 ? weaknesses.map(w=>`<li>${w}</li>`).join('') : '<li>لا يوجد نقاط ضعف جوهرية</li>'}
             </ul>
           </div>
         </div>
         
         ${flags.length > 0 ? `
           <div style="margin-top:16px; padding:12px; background:rgba(239,68,68,0.1); border-radius:8px; border:1px solid rgba(239,68,68,0.3);">
-            <h4 style="margin:0; color:var(--accent-danger);">⚠️ AI Red Flags (Requires HR Verification)</h4>
+            <h4 style="margin:0; color:var(--accent-danger);">⚠️ تنبيهات ذكاء اصطناعي (تتطلب مراجعة HR)</h4>
             <ul style="margin:8px 0 0; padding-left:20px;">
               ${flags.map(f=>`<li>${f}</li>`).join('')}
             </ul>
@@ -654,32 +773,32 @@ window.Pages.hrATS = function(el) {
       <div id="tab-skills" class="prof-tab" style="display:none;">
         <h4>Technical Skills</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-          ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
+          ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary">${s}</span>`).join('') || '<span class="text-muted">لم يتم اكتشافها</span>'}
         </div>
         <h4>Soft Skills</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-          ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
+          ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info">${s}</span>`).join('') || '<span class="text-muted">لم يتم اكتشافها</span>'}
         </div>
         <h4>Missing Required Skills</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          ${missing.map(s=>`<span class="badge badge-danger">${s}</span>`).join('') || '<span class="badge badge-success">All required skills met!</span>'}
+          ${missing.map(s=>`<span class="badge badge-danger">${s}</span>`).join('') || '<span class="badge badge-success">يطابق جميع المهارات المطلوبة!</span>'}
         </div>
       </div>
 
       <div id="tab-questions" class="prof-tab" style="display:none;">
-        <p class="text-muted">Automatically generated behavioral and technical questions based on CV gaps and strengths.</p>
+        <p class="text-muted">أسئلة مقابلة مقترحة بناءً على تحليل الذكاء الاصطناعي للسيرة الذاتية.</p>
         <h4>Technical Questions</h4>
-        <ul>
-          ${(iq.technical||[]).map(q=>`<li>${q}</li>`).join('') || '<li>No technical questions generated.</li>'}
+        <ul dir="rtl" style="padding-right: 20px;">
+          ${(iq.technical||[]).map(q=>`<li>${q}</li>`).join('') || '<li>لا يوجد أسئلة تقنية.</li>'}
         </ul>
         <h4>HR / Behavioral Questions</h4>
-        <ul>
-          ${(iq.hr||[]).map(q=>`<li>${q}</li>`).join('') || '<li>No HR questions generated.</li>'}
+        <ul dir="rtl" style="padding-right: 20px;">
+          ${(iq.hr||[]).map(q=>`<li>${q}</li>`).join('') || '<li>لا يوجد أسئلة موارد بشرية.</li>'}
         </ul>
       </div>
 
       <div id="tab-raw" class="prof-tab" style="display:none;">
-        <pre style="background:var(--bg-tertiary); padding:16px; border-radius:8px; white-space:pre-wrap; font-size:0.85rem; max-height:400px; overflow:auto;">${app.cv_text || 'No text extracted.'}</pre>
+        <pre dir="rtl" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; white-space:pre-wrap; font-size:0.85rem; max-height:400px; overflow:auto; text-align:right;">${app.cv_text || 'لم يتم استخراج نص.'}</pre>
       </div>
     `;
 
