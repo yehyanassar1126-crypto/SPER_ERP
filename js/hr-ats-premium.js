@@ -52,7 +52,7 @@ window.Pages.hrATS = function(el) {
           model: "gpt-4-turbo-preview",
           response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: "You are an expert AI Recruiter, ATS Expert, Career Advisor, and CV Consultant. Read the CV carefully and extract all data without removing anything. Output strictly in JSON: {\n\"candidate\":{\"name\":\"\",\"title\":\"\",\"email\":\"\",\"phone\":\"\",\"location\":\"\",\"linkedin\":\"\",\"github\":\"\",\"portfolio\":\"\"},\n\"cv_audit\":{\"content_quality\":0,\"professionalism\":0,\"readability\":0,\"ats_compatibility\":0,\"issues\":[{\"problem\":\"\",\"why\":\"\",\"fix\":\"\"}]},\n\"strong_points\":[],\n\"weak_points\":[{\"weakness\":\"\",\"why\":\"\",\"fix\":\"\"}],\n\"what_to_remove\":[{\"item\":\"\",\"why\":\"\",\"priority\":\"High/Medium/Low\"}],\n\"what_to_add\":[{\"item\":\"\",\"priority\":\"Critical/High/Medium/Low\"}],\n\"what_to_rewrite\":[{\"current\":\"\",\"problem\":\"\",\"improved\":\"\"}],\n\"achievements_improvement\":[{\"current\":\"\",\"missing_metric\":\"\",\"suggested_metric\":\"\"}],\n\"skills_gap\":{\"current\":[],\"missing\":[],\"recommended\":[{\"skill\":\"\",\"priority\":\"\"}]},\n\"courses_recommendation\":[{\"name\":\"\",\"skill\":\"\",\"why\":\"\",\"difficulty\":\"\",\"priority\":\"MUST TAKE/HIGH VALUE/OPTIONAL\"}],\n\"certifications_strategy\":{\"current_analysis\":[],\"recommended\":[]},\n\"projects_recommendation\":[{\"name\":\"\",\"idea\":\"\",\"tech_stack\":[],\"impact\":\"High/Medium\"}],\n\"portfolio_improvement\":[],\n\"github_analysis\":{\"status\":\"\",\"recommendations\":[]},\n\"linkedin_analysis\":{\"status\":\"\",\"recommendations\":[]},\n\"job_match\":{\"score\":0,\"matched_reqs\":[],\"missing_reqs\":[]},\n\"career_paths\":[{\"path\":\"\",\"readiness_percent\":0,\"missing_skills\":[],\"next_steps\":[]}],\n\"plan_30_60_90\":{\"30_days\":[],\"60_days\":[],\"90_days\":[]},\n\"action_plan\":[{\"task\":\"\",\"priority\":\"Critical/High\"}],\n\"top_5_changes\":[],\n\"final_career_score\":{\"career_readiness\":0,\"cv_quality\":0,\"interview_readiness\":0},\n\"education\":[],\"experience\":[],\"skills\":{\"technical\":[],\"soft\":[],\"inferred\":[]},\"projects\":[],\"certifications\":[],\"languages\":[],\n\"match_score\":0,\"ai_summary\":\"\",\"ai_recommendation\":\"accepted/review/rejected\",\"missing_requirements\":[],\"flags\":[],\"interview_questions\":{\"hr\":[],\"technical\":[]}\n}\nUse Arabic for text fields. Do not invent information." },
+            { role: "system", content: "You are an expert AI Recruiter, ATS Expert, Career Advisor, and CV Consultant. Read the CV carefully and extract all data without removing anything. Output strictly in JSON: {\n\"candidate\":{\"name\":\"\",\"title\":\"\",\"email\":\"\",\"phone\":\"\",\"location\":\"\",\"linkedin\":\"\",\"github\":\"\",\"portfolio\":\"\"},\n\"cv_audit\":{\"content_quality\":0,\"professionalism\":0,\"readability\":0,\"ats_compatibility\":0,\"issues\":[{\"problem\":\"\",\"why\":\"\",\"fix\":\"\"}]},\n\"strong_points\":[],\n\"weak_points\":[{\"weakness\":\"\",\"why\":\"\",\"fix\":\"\"}],\n\"what_to_remove\":[{\"item\":\"\",\"why\":\"\",\"priority\":\"High/Medium/Low\"}],\n\"what_to_add\":[{\"item\":\"\",\"priority\":\"Critical/High/Medium/Low\"}],\n\"what_to_rewrite\":[{\"current\":\"\",\"problem\":\"\",\"improved\":\"\"}],\n\"achievements_improvement\":[{\"current\":\"\",\"missing_metric\":\"\",\"suggested_metric\":\"\"}],\n\"skills_gap\":{\"current\":[],\"missing\":[],\"recommended\":[{\"skill\":\"\",\"priority\":\"\"}]},\n\"courses_recommendation\":[{\"name\":\"\",\"skill\":\"\",\"why\":\"\",\"difficulty\":\"\",\"priority\":\"MUST TAKE/HIGH VALUE/OPTIONAL\"}],\n\"certifications_strategy\":{\"current_analysis\":[],\"recommended\":[]},\n\"projects_recommendation\":[{\"name\":\"\",\"idea\":\"\",\"tech_stack\":[],\"impact\":\"High/Medium\"}],\n\"portfolio_improvement\":[],\n\"github_analysis\":{\"status\":\"\",\"recommendations\":[]},\n\"linkedin_analysis\":{\"status\":\"\",\"recommendations\":[]},\n\"job_match\":{\"score\":0,\"matched_reqs\":[],\"missing_reqs\":[]},\n\"career_paths\":[{\"path\":\"\",\"readiness_percent\":0,\"missing_skills\":[],\"next_steps\":[]}],\n\"plan_30_60_90\":{\"30_days\":[],\"60_days\":[],\"90_days\":[]},\n\"action_plan\":[{\"task\":\"\",\"priority\":\"Critical/High\"}],\n\"top_5_changes\":[],\n\"final_career_score\":{\"career_readiness\":0,\"cv_quality\":0,\"interview_readiness\":0},\n\"education\":[],\"experience\":[],\"skills\":{\"technical\":[],\"soft\":[],\"inferred\":[]},\"projects\":[],\"certifications\":[],\"languages\":[],\n\"match_score\":0,\"ai_summary\":\"\",\"ai_recommendation\":\"accepted/review/rejected\",\"missing_requirements\":[],\"flags\":[],\"interview_questions\":{\"hr\":[],\"technical\":[]},\n\"full_cv_arabic_translation_points\":[]\n}\nUse Arabic for text fields. Do not invent information. For full_cv_arabic_translation_points, translate the entire raw CV line by line into beautiful Arabic bullet points." },
             { role: "user", content: "Job Req: " + JSON.stringify(jobData) + "\n\nCV Text:\n" + cvText }
           ]
         })
@@ -289,6 +289,8 @@ window.Pages.hrATS = function(el) {
         experienceArr.push({company: 'غير محدد', title: jobData ? jobData.title : 'غير محدد', duration: expYears + ' سنوات', responsibilities: ''});
       }
 
+      var translatedPts = cvText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+      
       return {
         candidate: { name: name, title: detectedTitles[0] || '', phone: phoneMatch, email: emailMatch, location: detectedLocation, linkedin: '', github: '', portfolio: '' },
         cv_audit: { content_quality: 70, professionalism: 80, readability: 75, ats_compatibility: Math.round(score * 0.9), issues: [{problem: "السيرة الذاتية تحتاج تنسيق أفضل", why: "لتسهيل القراءة عبر أنظمة ATS", fix: "استخدم خطوط واضحة ونقاط مختصرة"}] },
@@ -311,6 +313,7 @@ window.Pages.hrATS = function(el) {
         action_plan: [{task: "تحديث السيرة الذاتية بناءً على التوصيات", priority: "Critical"}],
         top_5_changes: ["إضافة أرقام للإنجازات", "إبراز المهارات التقنية", "تحسين قسم الملخص", "حذف الكورسات القديمة", "إضافة رابط GitHub"],
         final_career_score: { career_readiness: score, cv_quality: 75, interview_readiness: 70 },
+        full_cv_arabic_translation_points: translatedPts,
         education: educationArr,
         experience: experienceArr,
         skills: { technical: matched.concat(techSkills).concat(industrySkills), soft: softSkills, industry: industrySkills, inferred: [] },
@@ -894,21 +897,21 @@ window.Pages.hrATS = function(el) {
       <div id="tab-skills" class="prof-tab" style="display:none;">
         <h4>Technical Skills (${(data.skills?.technical||[]).length})</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
-          ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
+          ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary notranslate">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
         </div>
         <h4>Soft Skills (${(data.skills?.soft||[]).length})</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
-          ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
+          ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info notranslate">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
         </div>
         ${(data.skills?.inferred||[]).length > 0 ? `
           <h4>💡 Inferred Skills (AI Deducted)</h4>
           <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
-            ${data.skills.inferred.map(s=>`<span class="badge" style="background:rgba(99,102,241,0.2); color:var(--accent-primary); border:1px dashed var(--accent-primary);">${s}</span>`).join('')}
+            ${data.skills.inferred.map(s=>`<span class="badge notranslate" style="background:rgba(99,102,241,0.2); color:var(--accent-primary); border:1px dashed var(--accent-primary);">${s}</span>`).join('')}
           </div>
         ` : ''}
         <h4>Languages</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          ${(data.languages||[]).length > 0 ? data.languages.map(l=>`<span class="badge badge-success">${typeof l === 'string' ? l : (l.name + (l.level ? ' - '+l.level : ''))}</span>`).join('') : '<span class="text-muted">Not specified</span>'}
+          ${(data.languages||[]).length > 0 ? data.languages.map(l=>`<span class="badge badge-success notranslate">${typeof l === 'string' ? l : (l.name + (l.level ? ' - '+l.level : ''))}</span>`).join('') : '<span class="text-muted">Not specified</span>'}
         </div>
       </div>
       
@@ -1048,37 +1051,10 @@ window.Pages.hrATS = function(el) {
       </div>
 
       <div id="tab-raw" class="prof-tab" style="display:none;">
-        <h4 dir="rtl">📋 محتوى السيرة الذاتية المستخرج</h4>
+        <h4 dir="rtl">📋 محتوى السيرة الذاتية (مترجم)</h4>
         <div dir="rtl" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:right;">
           <ul style="list-style:disc; padding-right:20px; line-height:2; margin:0;">
-            ${(function(){ 
-              var txt = app.cv_text || ''; 
-              // Simple CV translation dictionary
-              var dict = {
-                'experience': 'الخبرات العملية', 'education': 'التعليم', 'skills': 'المهارات', 
-                'projects': 'المشاريع', 'contact': 'بيانات الاتصال', 'email': 'البريد الإلكتروني', 
-                'phone': 'الهاتف', 'mobile': 'الجوال', 'address': 'العنوان', 'work history': 'التاريخ الوظيفي',
-                'summary': 'الملخص', 'objective': 'الهدف الوظيفي', 'certifications': 'الشهادات',
-                'languages': 'اللغات', 'references': 'المراجع', 'personal details': 'البيانات الشخصية',
-                'present': 'حتى الآن', 'current': 'الحالي', 'bachelor': 'بكالوريوس', 'master': 'ماجستير',
-                'university': 'جامعة', 'college': 'كلية', 'january': 'يناير', 'february': 'فبراير',
-                'march': 'مارس', 'april': 'أبريل', 'may': 'مايو', 'june': 'يونيو', 'july': 'يوليو',
-                'august': 'أغسطس', 'september': 'سبتمبر', 'october': 'أكتوبر', 'november': 'نوفمبر', 'december': 'ديسمبر'
-              };
-              var pts = txt.split('\n').map(function(l){
-                var cl = l.trim();
-                if(cl.length < 3) return '';
-                // Translate common words
-                Object.keys(dict).forEach(function(k) {
-                  var regex = new RegExp('\\b' + k + '\\b', 'gi');
-                  cl = cl.replace(regex, dict[k]);
-                });
-                return cl;
-              }).filter(function(l){
-                return l.length > 3 && l.replace(/[\s.,:_\-]/g,'').length > 2;
-              }); 
-              return pts.length > 0 ? pts.map(function(l){return '<li style="margin-bottom:6px;">'+l+'</li>';}).join('') : '<li>لم يتم استخراج نص.</li>'; 
-            })()}
+            ${(data.full_cv_arabic_translation_points||[]).length > 0 ? data.full_cv_arabic_translation_points.map(function(l){return '<li style="margin-bottom:6px;">'+l+'</li>';}).join('') : '<li>لم يتم استخراج نص أو تعذر الترجمة.</li>'}
           </ul>
         </div>
       </div>
