@@ -292,7 +292,7 @@ window.Pages.hrATS = function(el) {
       var translatedPts = cvText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
       
       return {
-        candidate: { name: name, title: detectedTitles[0] || '', phone: phoneMatch, email: emailMatch, location: detectedLocation, linkedin: '', github: '', portfolio: '' },
+        candidate: { name: name, title: detectedTitles[0] || '', phone: phoneMatch, email: emailMatch, location: detectedLocation, linkedin: '', github: '', portfolio: '', total_years: expYears },
         cv_audit: { content_quality: 70, professionalism: 80, readability: 75, ats_compatibility: Math.round(score * 0.9), issues: [{problem: "السيرة الذاتية تحتاج تنسيق أفضل", why: "لتسهيل القراءة عبر أنظمة ATS", fix: "استخدم خطوط واضحة ونقاط مختصرة"}] },
         strong_points: strengths,
         weak_points: weaknesses.map(w => ({weakness: w, why: "تؤثر على فرص القبول", fix: "قم بتحديث السيرة وإضافة التفاصيل الناقصة"})),
@@ -326,7 +326,8 @@ window.Pages.hrATS = function(el) {
         ai_recommendation: rec,
         ai_summary: summary,
         interview_questions: { hr: hrQuestions, technical: techQuestions },
-        flags: flags
+        flags: flags,
+        is_fallback: true
       };
     }
   };
@@ -768,9 +769,10 @@ window.Pages.hrATS = function(el) {
     if (!app) return;
     
     var data = app.ai_structured_data || {};
-    var strengths = data.strengths || [];
-    var weaknesses = data.weaknesses || [];
-    var missing = data.missing_requirements || [];
+    var strengths = data.strong_points || data.strengths || [];
+    var weaknessesRaw = data.weak_points || data.weaknesses || [];
+    var weaknesses = weaknessesRaw.map(w => typeof w === 'string' ? w : (w.weakness || ''));
+    var missing = data.missing_requirements || (data.job_match ? data.job_match.missing_reqs : []) || [];
     var flags = data.flags || [];
     var iq = data.interview_questions || {hr:[], technical:[]};
 
@@ -796,6 +798,13 @@ window.Pages.hrATS = function(el) {
         </div>
       </div>
 
+      ${data.is_fallback ? `
+      <div style="background:rgba(239, 68, 68, 0.1); border-left:4px solid var(--accent-danger); padding:16px; margin-bottom:20px; border-radius:8px;">
+        <h4 style="color:var(--accent-danger); margin-top:0;">⚠️ تنبيه: وضع الاستنتاج المحلي (Offline Mode)</h4>
+        <p dir="auto" style="margin-bottom:0; font-size:0.95rem;">لم يتم العثور على مفتاح <strong>OpenAI API Key</strong>. التحليل المعروض أدناه (نقاط الضعف، خطة التطوير، النصائح) هو <strong>أمثلة ثابتة (Mock Data)</strong> للتجربة فقط ولا يعبر عن السيرة الذاتية الحقيقية.<br>للحصول على تحليل مهني حقيقي مخصص، يرجى إدخال مفتاح الـ API في الإعدادات.</p>
+      </div>
+      ` : ''}
+
       <div class="tabs" style="display:flex; gap:10px; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:8px; overflow-x:auto;">
         <button class="btn btn-ghost active" onclick="switchProfTab(this, 'tab-overview')" style="white-space:nowrap;">📊 Overview</button>
         <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-experience')" style="white-space:nowrap;">💼 Experience</button>
@@ -812,7 +821,7 @@ window.Pages.hrATS = function(el) {
 
       <div id="tab-overview" class="prof-tab">
         <div class="grid-4" style="margin-bottom:16px;">
-          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.career_analysis?.total_years || app.experience_years || 0}</div><div style="font-size:0.8rem;">Years Exp</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.candidate && data.candidate.total_years !== undefined) ? data.candidate.total_years : (data.career_analysis?.total_years || app.experience_years || 0)}</div><div style="font-size:0.8rem;">Years Exp</div></div>
           <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.career_analysis?.seniority || 'Junior'}</div><div style="font-size:0.8rem;">Seniority</div></div>
           <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.ats_analysis?.score || app.ai_score || 0}%</div><div style="font-size:0.8rem;">ATS Score</div></div>
           <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.skills?.technical||[]).length + (data.skills?.soft||[]).length}</div><div style="font-size:0.8rem;">Total Skills</div></div>
@@ -820,19 +829,19 @@ window.Pages.hrATS = function(el) {
         
         <div style="padding:16px; background:rgba(99,102,241,0.05); border-radius:8px; border-left:4px solid var(--accent-primary); margin-bottom:16px;">
           <h4 style="margin-top:0;">Profile Summary</h4>
-          <p style="margin-bottom:0; line-height:1.6;" dir="rtl">${data.summary?.overview || app.ai_analysis || 'No summary available.'}</p>
+          <p style="margin-bottom:0; line-height:1.6;" dir="auto">${data.summary?.overview || app.ai_analysis || 'No summary available.'}</p>
         </div>
         
         <div class="grid-2">
           <div>
             <h4 style="color:var(--accent-success);">✅ Strengths</h4>
-            <ul style="padding-right:20px; margin-top:8px;" dir="rtl">
+            <ul style="padding-right:20px; margin-top:8px;" dir="auto">
               ${strengths.length>0 ? strengths.map(s=>`<li>${s}</li>`).join('') : '<li>No specific strengths identified.</li>'}
             </ul>
           </div>
           <div>
             <h4 style="color:var(--accent-danger);">❌ Weaknesses / Missing</h4>
-            <ul style="padding-right:20px; margin-top:8px;" dir="rtl">
+            <ul style="padding-right:20px; margin-top:8px;" dir="auto">
               ${weaknesses.length>0 ? weaknesses.map(w=>`<li>${w}</li>`).join('') : '<li>No major weaknesses found.</li>'}
             </ul>
           </div>
@@ -841,7 +850,7 @@ window.Pages.hrATS = function(el) {
         ${(data.recommendations||[]).length > 0 ? `
         <div style="margin-top:16px; padding:12px; background:rgba(16, 185, 129, 0.1); border-radius:8px;">
           <h4 style="margin:0; color:var(--accent-success);">💡 AI Recommendations for Candidate</h4>
-          <ul style="margin:8px 0 0; padding-right:20px;" dir="rtl">
+          <ul style="margin:8px 0 0; padding-right:20px;" dir="auto">
             ${data.recommendations.map(r=>`<li>${r}</li>`).join('')}
           </ul>
         </div>
@@ -944,10 +953,10 @@ window.Pages.hrATS = function(el) {
         </div>
         
         <h4 style="color:var(--accent-success);">✅ Why this candidate matches:</h4>
-        <p dir="rtl" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_matches || strengths[0] || 'Good overall profile.'}</p>
+        <p dir="auto" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_matches || strengths[0] || 'Good overall profile.'}</p>
         
         <h4 style="color:var(--accent-danger); margin-top:16px;">❌ Why they might NOT match:</h4>
-        <p dir="rtl" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_not || weaknesses[0] || 'No major red flags.'}</p>
+        <p dir="auto" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_not || weaknesses[0] || 'No major red flags.'}</p>
         
         <h4 style="margin-top:16px;">🔍 Missing Keywords / Requirements</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -1041,19 +1050,19 @@ window.Pages.hrATS = function(el) {
       <div id="tab-questions" class="prof-tab" style="display:none;">
         <p class="text-muted">أسئلة مقابلة مقترحة بناءً على تحليل الذكاء الاصطناعي للسيرة الذاتية.</p>
         <h4>Technical Questions</h4>
-        <ul dir="rtl" style="padding-right: 20px;">
+        <ul dir="auto" style="padding-right: 20px; padding-left: 20px;">
           ${(iq.technical||[]).map(q=>`<li>${q}</li>`).join('') || '<li>لا يوجد أسئلة تقنية.</li>'}
         </ul>
         <h4>HR / Behavioral Questions</h4>
-        <ul dir="rtl" style="padding-right: 20px;">
+        <ul dir="auto" style="padding-right: 20px; padding-left: 20px;">
           ${(iq.hr||[]).map(q=>`<li>${q}</li>`).join('') || '<li>لا يوجد أسئلة موارد بشرية.</li>'}
         </ul>
       </div>
 
       <div id="tab-raw" class="prof-tab" style="display:none;">
-        <h4 dir="rtl">📋 محتوى السيرة الذاتية (مترجم)</h4>
-        <div dir="rtl" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:right;">
-          <ul style="list-style:disc; padding-right:20px; line-height:2; margin:0;">
+        <h4 dir="auto">📋 محتوى السيرة الذاتية (مترجم)</h4>
+        <div dir="auto" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:start;">
+          <ul style="list-style:disc; margin:0; padding: 0 20px;">
             ${(data.full_cv_arabic_translation_points||[]).length > 0 ? data.full_cv_arabic_translation_points.map(function(l){return '<li style="margin-bottom:6px;">'+l+'</li>';}).join('') : '<li>لم يتم استخراج نص أو تعذر الترجمة.</li>'}
           </ul>
         </div>
