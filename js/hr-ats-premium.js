@@ -649,13 +649,13 @@ window.Pages.hrATS = function(el) {
     apps.sort((a,b) => (b.ai_score||0) - (a.ai_score||0));
 
     var html = '<table class="data-table"><thead><tr>';
-    html += '<th>Rank</th><th>Candidate</th><th>Job</th><th>Match Score</th><th>AI Rec</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    html += '<th>الترتيب</th><th>المرشح</th><th>الوظيفة</th><th>نسبة التوافق</th><th>توصية الذكاء الاصطناعي</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>';
     
     apps.forEach((app, idx) => {
       var scoreColor = (app.ai_score || 0) >= 80 ? 'var(--accent-success)' : (app.ai_score || 0) >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
       var rec = app.ai_verdict || 'Unknown';
       var recIcon = rec === 'accepted' ? '🟢' : rec === 'review' ? '🟡' : '🔴';
-      var displayRec = rec === 'accepted' ? 'Strong' : rec === 'review' ? 'Potential' : 'Weak';
+      var displayRec = rec === 'accepted' ? 'قوي' : rec === 'review' ? 'محتمل' : 'ضعيف';
       
       var jobTitle = app.job_title;
       if (app.job_id) {
@@ -677,9 +677,11 @@ window.Pages.hrATS = function(el) {
             </div>
             <span style="font-weight:700; color:${scoreColor}">${app.ai_score||0}%</span>
           </div>
+        var statusMap = { 'screening': 'فرز أولي', 'shortlisted': 'قائمة مختصرة', 'interview': 'مقابلة', 'hired': 'تم التعيين', 'rejected': 'مرفوض', 'pending': 'قيد الانتظار' };
+        var displayStatus = statusMap[app.status] || app.status || 'قيد الانتظار';
         </td>
         <td>${recIcon} ${displayRec}</td>
-        <td><span class="badge badge-primary">${app.status || 'pending'}</span></td>
+        <td><span class="badge badge-primary">${displayStatus}</span></td>
         <td>
           <button class="btn btn-xs btn-outline btn-view-profile" data-id="${app.id}">AI Profile</button>
         </td>
@@ -1312,9 +1314,10 @@ window.Pages.hrATS = function(el) {
     var newStatus = document.getElementById('prof-action-status').value;
     sbClient.from('ats_applications').update({status: newStatus}).eq('id', id).then(r => {
       if(r.error) return alert(r.error.message);
-      showToast('Status Updated', 'success');
+      showToast('تم تحديث الحالة بنجاح', 'success');
       var app = state.applications.find(a => a.id === id);
       if(app) app.status = newStatus;
+      if (typeof App !== 'undefined' && App.closeModal) App.closeModal();
       render();
     });
   };
