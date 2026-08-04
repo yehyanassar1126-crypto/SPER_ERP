@@ -85,8 +85,46 @@ window.Pages.hrATS = function(el) {
       var phoneMatch = rawPhone || (cvText.match(/(?:\+?20|0)?1[0125]\d{8}/) || cvText.match(/(?:(?:\+?\d{1,3})|(?:\(\+?\d{1,3}\)))?[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}(?:[\s-]?\d{1,4})?/) || [])[0] || '';
 
       // --- Experience Years ---
-      var expMatch = cvText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)/i) || cvText.match(/(?:experience|خبرة)\s*[:\-]?\s*(\d+)/i);
-      var expYears = expMatch ? parseInt(expMatch[1]) : 0;
+      var expYears = 0;
+      var totalYearsFromDates = 0;
+      var currentYear = new Date().getFullYear();
+      
+      // 1. Calculate from dates (e.g., 2014 - 2021), using a Set to handle overlapping periods correctly
+      var dateRegex = /\b(19\d\d|20\d\d)\b\s*(?:-|to|إلى|–)\s*\b(19\d\d|20\d\d|present|now|current|الآن|الحاضر)\b/gi;
+      var match;
+      var yearsSet = new Set();
+      while ((match = dateRegex.exec(cvText)) !== null) {
+        var startY = parseInt(match[1]);
+        var endStr = match[2].toLowerCase();
+        var endY = (endStr.includes('present') || endStr.includes('now') || endStr.includes('current') || endStr.includes('الآن') || endStr.includes('الحاضر')) ? currentYear : parseInt(endStr);
+        if (startY >= 1950 && startY <= currentYear && endY >= startY && endY <= currentYear) {
+          for(var y = startY; y <= endY; y++) {
+            yearsSet.add(y);
+          }
+        }
+      }
+      totalYearsFromDates = yearsSet.size > 0 ? yearsSet.size - 1 : 0;
+
+      // 2. Explicit match (strict)
+      var expMatch = cvText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)(?:\s+of)?\s+(?:experience|خبرة)/i) || cvText.match(/(?:experience|خبرة)\s*[:\-]?\s*(\d+)/i);
+      var explicitYears = expMatch ? parseInt(expMatch[1]) : 0;
+
+      // 3. Final decision
+      if (totalYearsFromDates > 0) {
+        // Prefer date calculation if available as it is usually more accurate and avoids fake numbers
+        // But if explicit is much higher and reasonable, they might have older experience not listed with dates
+        if (explicitYears > totalYearsFromDates && explicitYears < 40) {
+           expYears = explicitYears;
+        } else {
+           expYears = totalYearsFromDates;
+        }
+      } else if (explicitYears > 0 && explicitYears < 40) {
+        expYears = explicitYears;
+      } else {
+        // Fallback to broader match
+        var broadMatch = cvText.match(/(\d+)\s*(?:years?|yrs?|سنوات|سنة|سنين)/i);
+        expYears = (broadMatch && parseInt(broadMatch[1]) < 40) ? parseInt(broadMatch[1]) : 0;
+      }
 
       // --- Name Extraction ---
       var lines = cvText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
