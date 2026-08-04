@@ -289,7 +289,7 @@ window.Pages.hrATS = function(el) {
         experienceArr.push({company: 'غير محدد', title: jobData ? jobData.title : 'غير محدد', duration: expYears + ' سنوات', responsibilities: ''});
       }
 
-      var translatedPts = cvText.split('\\n').map(l => l.trim()).filter(l => l.length > 2);
+      // Removed old translatedPts
       
       // --- DYNAMIC INTERNAL MODEL (Advanced Engine) ---
       
@@ -358,8 +358,41 @@ window.Pages.hrATS = function(el) {
         proj_rec.push({name: "دراسة حالة (Case Study)", idea: "إنشاء نموذج عملي موثق يعكس خبرتك العميقة في مجالك وكيفية حل المشاكل", tech_stack: [], impact: "Medium"});
       }
 
-      var translatedPts = cvText.split('\\n').map(l => l.trim()).filter(l => l.length > 2);
-      
+      // --- BUILD ARABIC SUMMARY POINTS (from extracted data) ---
+      var arabicPts = [];
+      arabicPts.push('<strong style="color:var(--accent-primary);">الاسم:</strong> ' + name);
+      if (detectedTitles.length > 0) arabicPts.push('<strong style="color:var(--accent-primary);">المسمى الوظيفي:</strong> ' + detectedTitles.join(' / '));
+      if (emailMatch) arabicPts.push('<strong style="color:var(--accent-primary);">البريد:</strong> ' + emailMatch);
+      if (phoneMatch) arabicPts.push('<strong style="color:var(--accent-primary);">الهاتف:</strong> ' + phoneMatch);
+      if (detectedLocation) arabicPts.push('<strong style="color:var(--accent-primary);">الموقع:</strong> ' + detectedLocation);
+      if (expYears > 0) arabicPts.push('<strong style="color:var(--accent-primary);">سنوات الخبرة:</strong> ' + expYears + ' سنوات');
+      arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
+      arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-success);">التعليم والمؤهلات:</strong>');
+      if (detectedDegrees.length > 0) { detectedDegrees.forEach(function(d, i) { arabicPts.push('• ' + d + (detectedUnis[i] ? ' - ' + detectedUnis[i] : '')); }); }
+      else { arabicPts.push('• لم يتم العثور على مؤهل أكاديمي واضح.'); }
+      if (detectedCerts.length > 0) { arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-success); margin-top:8px; display:inline-block;">الشهادات:</strong>'); detectedCerts.forEach(function(c) { arabicPts.push('• ' + c); }); }
+      arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
+      arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-warning);">الخبرات المهنية:</strong>');
+      if (experienceArr.length > 0) { experienceArr.forEach(function(exp) { var line = '• <strong>' + (exp.title || '') + '</strong>'; if (exp.company && exp.company !== 'غير محدد') line += ' - ' + exp.company; if (exp.duration) line += ' (' + exp.duration + ')'; arabicPts.push(line); }); }
+      else { arabicPts.push('• لم يتم العثور على خبرات مهنية.'); }
+      arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
+      arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-info);">المهارات المكتشفة:</strong>');
+      var allSkills = matched.concat(techSkills).concat(industrySkills);
+      if (allSkills.length > 0) arabicPts.push('• <strong>تقنية:</strong> ' + allSkills.join(', '));
+      if (softSkills.length > 0) arabicPts.push('• <strong>شخصية:</strong> ' + softSkills.join(', '));
+      if (allSkills.length === 0 && softSkills.length === 0) arabicPts.push('• لم يتم اكتشاف مهارات.');
+      if (detectedLangs.length > 0) arabicPts.push('• <strong>اللغات:</strong> ' + detectedLangs.join(', '));
+      arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
+      arabicPts.push('<strong style="font-size:1.1rem; color:var(--accent-primary);">التقييم العام:</strong>');
+      arabicPts.push('• <strong>نسبة التوافق:</strong> ' + score + '%');
+      arabicPts.push('• <strong>التوصية:</strong> ' + (rec === 'accepted' ? 'مرشح قوي' : rec === 'review' ? 'يحتاج مراجعة' : 'غير مناسب'));
+      if (strengths.length > 0) { arabicPts.push('<strong style="font-size:1.05rem; margin-top:8px; display:inline-block; color:var(--accent-success);">نقاط القوة:</strong>'); strengths.forEach(function(s) { arabicPts.push('✅ ' + s); }); }
+      if (weaknesses.length > 0) { arabicPts.push('<strong style="font-size:1.05rem; margin-top:8px; display:inline-block; color:var(--accent-danger);">نقاط الضعف:</strong>'); weaknesses.forEach(function(w) { arabicPts.push('❌ ' + w); }); }
+      if (missing.length > 0) { arabicPts.push('<strong style="font-size:1.05rem; margin-top:8px; display:inline-block; color:var(--accent-warning);">المهارات المفقودة:</strong>'); missing.forEach(function(m) { arabicPts.push('❗ ' + m); }); }
+      arabicPts.push('<hr style="border:none;border-top:1px solid var(--border-color);margin:12px 0;">');
+      arabicPts.push('<strong style="font-size:1.1rem; color:var(--text-color);">الملخص الذكي:</strong>');
+      arabicPts.push('• ' + summary);
+
       return {
         candidate: { name: name, title: detectedTitles[0] || '', phone: phoneMatch, email: emailMatch, location: detectedLocation, linkedin: '', github: '', portfolio: '', total_years: expYears },
         cv_audit: { content_quality: 70, professionalism: 80, readability: 75, ats_compatibility: Math.round(score * 0.9), issues: [{problem: "السيرة الذاتية تحتاج تنسيق يتوافق مع ATS", why: "لتسهيل القراءة الآلية", fix: "استخدم خطوط واضحة ونقاط مختصرة"}] },
@@ -382,7 +415,7 @@ window.Pages.hrATS = function(el) {
         action_plan: [{task: "تحديث السيرة الذاتية فوراً بناءً على هذه التوصيات", priority: "Critical"}],
         top_5_changes: ["إضافة أرقام وإحصائيات للإنجازات", "إبراز المهارات المفقودة التي تتطلبها الوظيفة", "تحسين قسم الملخص المهني", "تنسيق السيرة لسهولة القراءة", "ربط السيرة بحساب LinkedIn"],
         final_career_score: { career_readiness: score, cv_quality: score > 70 ? 80 : 60, interview_readiness: score > 60 ? 75 : 50 },
-        full_cv_arabic_translation_points: translatedPts,
+        full_cv_arabic_translation_points: arabicPts,
         education: educationArr,
         experience: experienceArr,
         skills: { technical: matched.concat(techSkills).concat(industrySkills), soft: softSkills, industry: industrySkills, inferred: [] },
