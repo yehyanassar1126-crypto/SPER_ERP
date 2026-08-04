@@ -90,14 +90,25 @@ window.Pages.hrATS = function(el) {
 
       // --- Name Extraction ---
       var lines = cvText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-      var name = "مرشح غير معروف";
-      for (var i = 0; i < Math.min(lines.length, 10); i++) {
-        var cleanLine = lines[i].replace(/[_.\-]/g, '').trim();
+      var name = "";
+      // Strategy 1: Look for a short line (2-5 words) near the top that looks like a name
+      for (var i = 0; i < Math.min(lines.length, 15); i++) {
+        var cleanLine = lines[i].replace(/[_.\-\|]/g, '').replace(/\s+/g, ' ').trim();
         var l = cleanLine.toLowerCase();
-        if (l.includes('resume') || l.includes('cv') || l.includes('سيرة') || l.includes('ذاتية') || l.includes('page') || l.includes('email') || l.includes('@') || cleanLine.length < 5) continue;
+        if (l.includes('resume') || l.includes('cv') || l.includes('سيرة') || l.includes('ذاتية') || l.includes('page') || l.includes('email') || l.includes('@') || l.includes('phone') || l.includes('mobile') || l.includes('address') || l.includes('objective') || cleanLine.length < 4) continue;
+        // Skip lines that are mostly numbers or symbols
+        if (cleanLine.replace(/[^a-zA-Z\u0600-\u06FF]/g, '').length < 4) continue;
         var wordCount = cleanLine.split(/\s+/).length;
-        if (wordCount >= 2 && wordCount <= 5) { name = cleanLine; break; }
+        if (wordCount >= 2 && wordCount <= 5 && cleanLine.length < 50) { name = cleanLine; break; }
       }
+      // Strategy 2: Try to extract name from email (e.g. samiraliseada@gmail.com -> Samir Ali Seada)
+      if (!name && emailMatch) {
+        var emailName = emailMatch.split('@')[0].replace(/[._\-0-9]/g, ' ').trim();
+        if (emailName.length > 3) {
+          name = emailName.split(' ').map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+        }
+      }
+      if (!name) name = "مرشح غير معروف";
 
       // --- Education Extraction (Real Data) ---
       var eduKeywords = ['bachelor','master','phd','mba','diploma','بكالوريوس','ماجستير','دكتوراه','دبلوم','ليسانس'];
@@ -195,8 +206,20 @@ window.Pages.hrATS = function(el) {
       var weaknesses = [];
       if (missing.length > 0) missing.forEach(function(s) { weaknesses.push("مهارة مطلوبة غير موجودة: " + s); });
       if (expYears < reqExp && reqExp > 0) weaknesses.push("الخبرة (" + expYears + " سنوات) أقل من المطلوب (" + reqExp + " سنوات)");
-      if (detectedDegrees.length === 0) weaknesses.push("لم يتم اكتشاف مؤهل علمي واضح");
+      if (detectedDegrees.length === 0) weaknesses.push("لم يتم اكتشاف مؤهل علمي واضح في السيرة الذاتية");
       if (cvText.length < 500) weaknesses.push("السيرة الذاتية قصيرة وتفتقر للتفاصيل الكافية");
+      // If score < 100, there MUST be weaknesses - generate smart ones based on what's missing
+      if (score < 98 && weaknesses.length === 0) {
+        if (softSkills.length < 3) weaknesses.push("عدد المهارات الشخصية المذكورة قليل (" + softSkills.length + " فقط) - يُفضل إبراز مهارات القيادة والتواصل");
+        if (techSkills.length < 4) weaknesses.push("عدد المهارات التقنية محدود (" + techSkills.length + " فقط) - يُنصح بتطوير مهارات تقنية إضافية");
+        if (detectedCompanies.length < 2) weaknesses.push("خبرة عملية محدودة في عدد جهات العمل السابقة");
+        if (!detectedLocation) weaknesses.push("لم يتم ذكر الموقع الجغرافي في السيرة الذاتية");
+        if (cvText.length < 1500) weaknesses.push("السيرة الذاتية تحتاج لمزيد من التفصيل حول المسؤوليات والإنجازات");
+      }
+      // Final fallback - always show something if not perfect
+      if (score < 98 && weaknesses.length === 0) {
+        weaknesses.push("التقييم لم يصل 100% - يُنصح بمراجعة يدوية لتحديد نقاط التحسين");
+      }
 
       var flags = [];
       if (expYears === 0) flags.push("لم يتم اكتشاف سنوات خبرة واضحة في النص.");
