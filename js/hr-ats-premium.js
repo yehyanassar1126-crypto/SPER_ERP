@@ -717,12 +717,12 @@ window.Pages.hrATS = function(el) {
       // Sort inside column by score
       colApps.sort((a,b) => (b.ai_score||0) - (a.ai_score||0));
 
-      html += \`<div style="flex: 0 0 300px; background:var(--bg-tertiary); border-radius:8px; display:flex; flex-direction:column; max-height:70vh;">
-        <div style="padding:12px 16px; border-bottom:2px solid \${c.color}; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
-          <span>\${c.title}</span>
-          <span class="badge" style="background:\${c.color}; color:#fff;">\${colApps.length}</span>
+      html += `<div style="flex: 0 0 300px; background:var(--bg-tertiary); border-radius:8px; display:flex; flex-direction:column; max-height:70vh;">
+        <div style="padding:12px 16px; border-bottom:2px solid ${c.color}; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+          <span>${c.title}</span>
+          <span class="badge" style="background:${c.color}; color:#fff;">${colApps.length}</span>
         </div>
-        <div style="padding:12px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;">\`;
+        <div style="padding:12px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;">`;
       
       if(colApps.length === 0) {
         html += '<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px 0;">لا يوجد مرشحين</div>';
@@ -736,16 +736,16 @@ window.Pages.hrATS = function(el) {
           if (j) jobTitle = j.title;
         }
 
-        html += \`<div class="card" style="padding:12px; cursor:pointer; border-left:3px solid \${scoreColor}; box-shadow:0 2px 4px rgba(0,0,0,0.05);" onclick="window.atsViewProfile('\${app.id}')">
-          <div style="font-weight:bold; font-size:1rem; margin-bottom:4px;">\${app.candidate_name}</div>
-          <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">\${jobTitle}</div>
+        html += `<div class="card" style="padding:12px; cursor:pointer; border-left:3px solid ${scoreColor}; box-shadow:0 2px 4px rgba(0,0,0,0.05);" onclick="window.atsViewProfile('${app.id}')">
+          <div style="font-weight:bold; font-size:1rem; margin-bottom:4px;">${app.candidate_name}</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">${jobTitle}</div>
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:0.8rem; font-weight:bold; color:\${scoreColor}">التوافق: \${app.ai_score||0}%</span>
-            <button class="btn btn-xs btn-primary" onclick="event.stopPropagation(); window.atsViewProfile('\${app.id}')">التفاصيل</button>
+            <span style="font-size:0.8rem; font-weight:bold; color:${scoreColor}">التوافق: ${app.ai_score||0}%</span>
+            <button class="btn btn-xs btn-primary" onclick="event.stopPropagation(); window.atsViewProfile('${app.id}')">التفاصيل</button>
           </div>
-        </div>\`;
+        </div>`;
       });
-      html += \`</div></div>\`;
+      html += `</div></div>`;
     });
     html += '</div>';
     return html;
