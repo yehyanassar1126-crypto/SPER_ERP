@@ -824,7 +824,34 @@ window.Pages.hrATS = function(el) {
         <h4 dir="rtl">📋 محتوى السيرة الذاتية المستخرج</h4>
         <div dir="rtl" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:right;">
           <ul style="list-style:disc; padding-right:20px; line-height:2; margin:0;">
-            ${(function(){ var txt = app.cv_text || ''; var pts = txt.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length > 3 && l.replace(/[\s.,:_\-]/g,'').length > 2;}); return pts.length > 0 ? pts.map(function(l){return '<li style="margin-bottom:4px;">'+l+'</li>';}).join('') : '<li>لم يتم استخراج نص.</li>'; })()}
+            ${(function(){ 
+              var txt = app.cv_text || ''; 
+              // Simple CV translation dictionary
+              var dict = {
+                'experience': 'الخبرات العملية', 'education': 'التعليم', 'skills': 'المهارات', 
+                'projects': 'المشاريع', 'contact': 'بيانات الاتصال', 'email': 'البريد الإلكتروني', 
+                'phone': 'الهاتف', 'mobile': 'الجوال', 'address': 'العنوان', 'work history': 'التاريخ الوظيفي',
+                'summary': 'الملخص', 'objective': 'الهدف الوظيفي', 'certifications': 'الشهادات',
+                'languages': 'اللغات', 'references': 'المراجع', 'personal details': 'البيانات الشخصية',
+                'present': 'حتى الآن', 'current': 'الحالي', 'bachelor': 'بكالوريوس', 'master': 'ماجستير',
+                'university': 'جامعة', 'college': 'كلية', 'january': 'يناير', 'february': 'فبراير',
+                'march': 'مارس', 'april': 'أبريل', 'may': 'مايو', 'june': 'يونيو', 'july': 'يوليو',
+                'august': 'أغسطس', 'september': 'سبتمبر', 'october': 'أكتوبر', 'november': 'نوفمبر', 'december': 'ديسمبر'
+              };
+              var pts = txt.split('\n').map(function(l){
+                var cl = l.trim();
+                if(cl.length < 3) return '';
+                // Translate common words
+                Object.keys(dict).forEach(function(k) {
+                  var regex = new RegExp('\\b' + k + '\\b', 'gi');
+                  cl = cl.replace(regex, dict[k]);
+                });
+                return cl;
+              }).filter(function(l){
+                return l.length > 3 && l.replace(/[\s.,:_\-]/g,'').length > 2;
+              }); 
+              return pts.length > 0 ? pts.map(function(l){return '<li style="margin-bottom:6px;">'+l+'</li>';}).join('') : '<li>لم يتم استخراج نص.</li>'; 
+            })()}
           </ul>
         </div>
       </div>
