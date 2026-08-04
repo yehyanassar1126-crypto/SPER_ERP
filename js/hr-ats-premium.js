@@ -1338,13 +1338,24 @@ window.Pages.hrATS = function(el) {
     });
 
     App.closeModal();
-    showToast('تم حفظ بيانات المرشح. يرجى الذهاب لصفحة إضافة موظف.', 'info');
+    showToast('تم حفظ بيانات المرشح. جاري تحويلك لصفحة الإضافة...', 'info');
     localStorage.setItem('hr_prefill_emp', JSON.stringify({
       full_name: app.candidate_name,
       email: app.candidate_email,
       phone: app.candidate_phone,
       job_title: app.job_title
     }));
+    
+    // Auto-navigate and open modal
+    setTimeout(function() {
+      if (window.App && window.App.nav) {
+        window.App.nav('hr');
+        setTimeout(function() {
+          var addBtn = document.getElementById('add-emp-btn');
+          if (addBtn) addBtn.click();
+        }, 300);
+      }
+    }, 500);
   };
 
   loadData();

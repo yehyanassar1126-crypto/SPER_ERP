@@ -1813,15 +1813,31 @@ Pages.employees = function (el) {
 
   function showEmpModal(editId) {
     var emp = editId ? employees.find(function (e) { return e.id === editId; }) : null;
+    var prefill = null;
+    if (!emp) {
+      try {
+        var atsData = localStorage.getItem('hr_prefill_emp');
+        if (atsData) {
+          prefill = JSON.parse(atsData);
+          localStorage.removeItem('hr_prefill_emp');
+        }
+      } catch(e) {}
+    }
+    
     var currentSystem = emp ? (emp.shift_system || '3-shift') : '3-shift';
     var currentShift = emp ? (emp.shift || 'morning') : 'morning';
 
-    var body = '<div class="form-row"><div class="form-field"><label>Full Name *</label><input id="ef-name" value="' + (emp ? emp.full_name : '') + '" placeholder="e.g. Ahmed Hassan"></div><div class="form-field"><label>Email <span style="color:var(--text-muted);font-size:0.75rem">(optional)</span></label><input type="email" id="ef-email" value="' + (emp ? (emp.email || '') : '') + '" placeholder="e.g. ahmed@factory.com"></div></div>';
-    body += '<div class="form-row"><div class="form-field"><label>Username *</label><input id="ef-username" value="' + (emp ? emp.username : '') + '" placeholder="Login username"></div>';
+    var pName = emp ? emp.full_name : (prefill ? prefill.full_name : '');
+    var pEmail = emp ? (emp.email || '') : (prefill ? prefill.email || '' : '');
+    var pPhone = emp ? (emp.phone || '') : (prefill ? prefill.phone || '' : '');
+    var pUser = emp ? emp.username : (prefill ? prefill.email ? prefill.email.split('@')[0] : prefill.full_name.split(' ')[0].toLowerCase() + Math.floor(Math.random()*1000) : '');
+
+    var body = '<div class="form-row"><div class="form-field"><label>Full Name *</label><input id="ef-name" value="' + pName + '" placeholder="e.g. Ahmed Hassan"></div><div class="form-field"><label>Email <span style="color:var(--text-muted);font-size:0.75rem">(optional)</span></label><input type="email" id="ef-email" value="' + pEmail + '" placeholder="e.g. ahmed@factory.com"></div></div>';
+    body += '<div class="form-row"><div class="form-field"><label>Username *</label><input id="ef-username" value="' + pUser + '" placeholder="Login username"></div>';
     if (!emp) { body += '<div class="form-field"><label>Password *</label><input type="password" id="ef-password" placeholder="Login password"></div>'; }
-    else { body += '<div class="form-field"><label>Phone</label><input id="ef-phone" value="' + (emp ? (emp.phone || '') : '') + '" placeholder="+20 1xx xxx xxxx"></div>'; }
+    else { body += '<div class="form-field"><label>Phone</label><input id="ef-phone" value="' + pPhone + '" placeholder="+20 1xx xxx xxxx"></div>'; }
     body += '</div>';
-    if (!emp) { body += '<div class="form-row"><div class="form-field"><label>Phone</label><input id="ef-phone" value="" placeholder="+20 1xx xxx xxxx"></div><div></div></div>'; }
+    if (!emp) { body += '<div class="form-row"><div class="form-field"><label>Phone</label><input id="ef-phone" value="' + pPhone + '" placeholder="+20 1xx xxx xxxx"></div><div></div></div>'; }
     var isDaily = emp && emp.position && emp.position.indexOf('(عامل يومية)') !== -1;
     var baseVal = emp ? (isDaily ? Math.round(emp.base_salary / 30) : emp.base_salary) : '';
     var myLevel = App.getRoleLevel(App.user ? App.user.role : 'hr');
