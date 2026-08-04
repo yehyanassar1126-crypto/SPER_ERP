@@ -821,7 +821,12 @@ window.Pages.hrATS = function(el) {
       </div>
 
       <div id="tab-raw" class="prof-tab" style="display:none;">
-        <pre dir="rtl" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; white-space:pre-wrap; font-size:0.85rem; max-height:400px; overflow:auto; text-align:right;">${app.cv_text || 'لم يتم استخراج نص.'}</pre>
+        <h4 dir="rtl">📋 محتوى السيرة الذاتية المستخرج</h4>
+        <div dir="rtl" style="background:var(--bg-tertiary); padding:16px; border-radius:8px; max-height:450px; overflow:auto; text-align:right;">
+          <ul style="list-style:disc; padding-right:20px; line-height:2; margin:0;">
+            ${(function(){ var txt = app.cv_text || ''; var pts = txt.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length > 3 && l.replace(/[\s.,:_\-]/g,'').length > 2;}); return pts.length > 0 ? pts.map(function(l){return '<li style="margin-bottom:4px;">'+l+'</li>';}).join('') : '<li>لم يتم استخراج نص.</li>'; })()}
+          </ul>
+        </div>
       </div>
     `;
 
