@@ -8,6 +8,7 @@ window.Pages.hrATS = function(el) {
   var state = {
     jobs: [],
     applications: [],
+    pendingFiles: [],
     currentView: 'dashboard', // dashboard, jobs, apps, upload, compare
     selectedJobId: null
   };
@@ -348,7 +349,12 @@ window.Pages.hrATS = function(el) {
             <h3 style="margin:0">Drag & Drop CVs Here</h3>
             <p style="color:var(--text-muted); margin-top:8px;">Supports PDF files. You can select multiple files.</p>
             <input type="file" id="ai-file-input" multiple accept=".pdf" style="display:none">
-            <button class="btn btn-primary" style="margin-top:16px;" onclick="document.getElementById('ai-file-input').click()">Browse Files</button>
+            <button class="btn btn-outline" style="margin-top:16px;" onclick="document.getElementById('ai-file-input').click()">اختيار الملفات (Browse Files)</button>
+          </div>
+
+          <div id="selected-files-area" style="margin-top:20px; text-align:center; display:none;">
+            <p id="selected-files-count" style="margin-bottom:12px; font-weight:bold;"></p>
+            <button class="btn btn-success" id="btn-start-analysis" style="font-size:1.1rem; padding:12px 30px; border-radius:8px; box-shadow:0 4px 12px rgba(34,197,94,0.3);">🚀 فحص وتحليل السير الذاتية</button>
           </div>
 
           <div id="upload-queue" style="margin-top:20px; display:none;">
@@ -447,9 +453,33 @@ window.Pages.hrATS = function(el) {
       dropzone.addEventListener('drop', e => {
         e.preventDefault();
         dropzone.style.borderColor='var(--accent-primary)';
-        handleFiles(e.dataTransfer.files);
+        queueFiles(e.dataTransfer.files);
       });
-      fileInput.addEventListener('change', function() { handleFiles(this.files); });
+      fileInput.addEventListener('change', function() { queueFiles(this.files); });
+    }
+  }
+
+  function queueFiles(files) {
+    if (!files || files.length === 0) return;
+    Array.from(files).forEach(file => {
+      if (file.type !== 'application/pdf') {
+        showToast('Only PDF files are supported currently.', 'warning');
+      } else {
+        state.pendingFiles.push(file);
+      }
+    });
+
+    if (state.pendingFiles.length > 0) {
+      document.getElementById('selected-files-area').style.display = 'block';
+      document.getElementById('selected-files-count').innerText = `تم اختيار ${state.pendingFiles.length} ملف جاهز للفحص.`;
+      
+      var btn = document.getElementById('btn-start-analysis');
+      btn.onclick = function() {
+        document.getElementById('selected-files-area').style.display = 'none';
+        var filesToProcess = state.pendingFiles.slice();
+        state.pendingFiles = [];
+        handleFiles(filesToProcess);
+      };
     }
   }
 
