@@ -1293,6 +1293,7 @@ window.Pages.hrATS = function(el) {
             <option value="screening" ${app.status==='screening'?'selected':''}>فرز أولي</option>
             <option value="shortlisted" ${app.status==='shortlisted'?'selected':''}>قائمة مختصرة</option>
             <option value="interview" ${app.status==='interview'?'selected':''}>مقابلة</option>
+            <option value="hired" ${app.status==='hired'?'selected':''}>تم التعيين</option>
             <option value="rejected" ${app.status==='rejected'?'selected':''}>مرفوض</option>
           </select>
           <button class="btn btn-primary" onclick="window.atsUpdateAppStatus('${app.id}')">حفظ الحالة</button>
@@ -1326,12 +1327,18 @@ window.Pages.hrATS = function(el) {
   window.atsConvertToEmp = function(id) {
     var app = state.applications.find(a => a.id === id);
     if (!app) return;
-    if (!confirm('Are you sure you want to convert this candidate to an employee? This will open the Employee Registration form pre-filled.')) return;
+    if (!confirm('تأكيد تحويل هذا المرشح إلى موظف؟ سيتم فتح نموذج الإضافة ببياناته.')) return;
     
+    // Update status to hired
+    sbClient.from('ats_applications').update({status: 'hired'}).eq('id', id).then(r => {
+       if(!r.error) {
+          app.status = 'hired';
+          render();
+       }
+    });
+
     App.closeModal();
-    // Assuming erp-hr-core.js is loaded and has a global function or we just navigate to HR
-    showToast('Candidate data extracted. Please navigate to Employees > Add New.', 'info');
-    // Pre-fill localStorage to be caught by HR module
+    showToast('تم حفظ بيانات المرشح. يرجى الذهاب لصفحة إضافة موظف.', 'info');
     localStorage.setItem('hr_prefill_emp', JSON.stringify({
       full_name: app.candidate_name,
       email: app.candidate_email,
