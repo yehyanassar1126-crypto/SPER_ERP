@@ -52,7 +52,7 @@ window.Pages.hrATS = function(el) {
           model: "gpt-4-turbo-preview",
           response_format: { type: "json_object" },
           messages: [
-            { role: "system", content: "You are an expert HR AI Assistant. Extract CV details and evaluate against the Job Description. Output strictly in JSON matching the schema: { candidate: {name, email, phone, location, linkedin}, education: [{degree, university, year}], experience: [{company, title, duration, responsibilities}], skills: {technical:[], soft:[], tools:[]}, match_score: Number, strengths: [], weaknesses: [], missing_requirements: [], ai_recommendation: 'Strong'|'Potential'|'Weak', ai_summary: String, interview_questions: {hr:[], technical:[]}, flags: [] }" },
+            { role: "system", content: "You are an expert AI Recruiter, ATS Expert, Career Advisor, and CV Consultant. Read the CV carefully and extract all data without removing anything. Output strictly in JSON: {\n\"candidate\":{\"name\":\"\",\"title\":\"\",\"email\":\"\",\"phone\":\"\",\"location\":\"\",\"linkedin\":\"\",\"github\":\"\",\"portfolio\":\"\"},\n\"cv_audit\":{\"content_quality\":0,\"professionalism\":0,\"readability\":0,\"ats_compatibility\":0,\"issues\":[{\"problem\":\"\",\"why\":\"\",\"fix\":\"\"}]},\n\"strong_points\":[],\n\"weak_points\":[{\"weakness\":\"\",\"why\":\"\",\"fix\":\"\"}],\n\"what_to_remove\":[{\"item\":\"\",\"why\":\"\",\"priority\":\"High/Medium/Low\"}],\n\"what_to_add\":[{\"item\":\"\",\"priority\":\"Critical/High/Medium/Low\"}],\n\"what_to_rewrite\":[{\"current\":\"\",\"problem\":\"\",\"improved\":\"\"}],\n\"achievements_improvement\":[{\"current\":\"\",\"missing_metric\":\"\",\"suggested_metric\":\"\"}],\n\"skills_gap\":{\"current\":[],\"missing\":[],\"recommended\":[{\"skill\":\"\",\"priority\":\"\"}]},\n\"courses_recommendation\":[{\"name\":\"\",\"skill\":\"\",\"why\":\"\",\"difficulty\":\"\",\"priority\":\"MUST TAKE/HIGH VALUE/OPTIONAL\"}],\n\"certifications_strategy\":{\"current_analysis\":[],\"recommended\":[]},\n\"projects_recommendation\":[{\"name\":\"\",\"idea\":\"\",\"tech_stack\":[],\"impact\":\"High/Medium\"}],\n\"portfolio_improvement\":[],\n\"github_analysis\":{\"status\":\"\",\"recommendations\":[]},\n\"linkedin_analysis\":{\"status\":\"\",\"recommendations\":[]},\n\"job_match\":{\"score\":0,\"matched_reqs\":[],\"missing_reqs\":[]},\n\"career_paths\":[{\"path\":\"\",\"readiness_percent\":0,\"missing_skills\":[],\"next_steps\":[]}],\n\"plan_30_60_90\":{\"30_days\":[],\"60_days\":[],\"90_days\":[]},\n\"action_plan\":[{\"task\":\"\",\"priority\":\"Critical/High\"}],\n\"top_5_changes\":[],\n\"final_career_score\":{\"career_readiness\":0,\"cv_quality\":0,\"interview_readiness\":0},\n\"education\":[],\"experience\":[],\"skills\":{\"technical\":[],\"soft\":[],\"inferred\":[]},\"projects\":[],\"certifications\":[],\"languages\":[],\n\"match_score\":0,\"ai_summary\":\"\",\"ai_recommendation\":\"accepted/review/rejected\",\"missing_requirements\":[],\"flags\":[],\"interview_questions\":{\"hr\":[],\"technical\":[]}\n}\nUse Arabic for text fields. Do not invent information." },
             { role: "user", content: "Job Req: " + JSON.stringify(jobData) + "\n\nCV Text:\n" + cvText }
           ]
         })
@@ -290,30 +290,39 @@ window.Pages.hrATS = function(el) {
       }
 
       return {
-        candidate: {
-          name: name,
-          email: emailMatch,
-          phone: phoneMatch,
-          location: detectedLocation,
-          linkedin: ''
-        },
+        candidate: { name: name, title: detectedTitles[0] || '', phone: phoneMatch, email: emailMatch, location: detectedLocation, linkedin: '', github: '', portfolio: '' },
+        cv_audit: { content_quality: 70, professionalism: 80, readability: 75, ats_compatibility: Math.round(score * 0.9), issues: [{problem: "السيرة الذاتية تحتاج تنسيق أفضل", why: "لتسهيل القراءة عبر أنظمة ATS", fix: "استخدم خطوط واضحة ونقاط مختصرة"}] },
+        strong_points: strengths,
+        weak_points: weaknesses.map(w => ({weakness: w, why: "تؤثر على فرص القبول", fix: "قم بتحديث السيرة وإضافة التفاصيل الناقصة"})),
+        what_to_remove: [{item: "البيانات الشخصية غير الضرورية", why: "تأخذ مساحة بلا فائدة مهنية", priority: "Low"}],
+        what_to_add: [{item: "إنجازات قابلة للقياس بالأرقام", priority: "High"}],
+        what_to_rewrite: [{current: "عملت في مشروع كذا", problem: "صياغة ضعيفة", improved: "قمت بتطوير وإدارة مشروع كذا مما أدى لزيادة الكفاءة بنسبة 20%"}],
+        achievements_improvement: [{current: "تحسين الأداء", missing_metric: "نسبة التحسن", suggested_metric: "20%"}],
+        skills_gap: { current: matched, missing: missing, recommended: missing.map(m => ({skill: m, priority: "High"})) },
+        courses_recommendation: missing.map(m => ({name: "Mastering " + m, skill: m, why: "مهارة أساسية مفقودة", difficulty: "Intermediate", priority: "MUST TAKE"})),
+        certifications_strategy: { current_analysis: detectedCerts, recommended: ["PMP", "AWS Certified"] },
+        projects_recommendation: [{name: "نظام إدارة", idea: "بناء نظام متكامل", tech_stack: techSkills.slice(0,3), impact: "High"}],
+        portfolio_improvement: ["إضافة روابط حية للمشاريع"],
+        github_analysis: { status: "غير موجود", recommendations: ["إنشاء حساب وإضافة كود المشاريع"] },
+        linkedin_analysis: { status: "غير موجود", recommendations: ["تحديث العنوان المهني والخبرات"] },
+        job_match: { score: score, matched_reqs: matched, missing_reqs: missing },
+        career_paths: [{path: detectedTitles[0] || "متخصص", readiness_percent: score, missing_skills: missing, next_steps: ["اكتساب المهارات الناقصة"]}],
+        plan_30_60_90: { "30_days": ["تحديث السيرة", "تعلم مهارة جديدة"], "60_days": ["تنفيذ مشروع عملي"], "90_days": ["التقديم على الوظائف"] },
+        action_plan: [{task: "تحديث السيرة الذاتية بناءً على التوصيات", priority: "Critical"}],
+        top_5_changes: ["إضافة أرقام للإنجازات", "إبراز المهارات التقنية", "تحسين قسم الملخص", "حذف الكورسات القديمة", "إضافة رابط GitHub"],
+        final_career_score: { career_readiness: score, cv_quality: 75, interview_readiness: 70 },
         education: educationArr,
         experience: experienceArr,
-        skills: {
-          technical: matched.concat(techSkills).concat(industrySkills),
-          soft: softSkills,
-          tools: []
-        },
+        skills: { technical: matched.concat(techSkills).concat(industrySkills), soft: softSkills, industry: industrySkills, inferred: [] },
+        projects: [],
+        certifications: detectedCerts.map(c => ({name: c, provider: 'Unknown', date: ''})),
+        languages: detectedLangs.map(l => ({name: l, level: 'Native/Bilingual'})),
+        // Backwards compatibility keys
         match_score: score,
-        strengths: strengths,
-        weaknesses: weaknesses,
         missing_requirements: missing,
         ai_recommendation: rec,
         ai_summary: summary,
-        interview_questions: {
-          hr: hrQuestions,
-          technical: techQuestions
-        },
+        interview_questions: { hr: hrQuestions, technical: techQuestions },
         flags: flags
       };
     }
@@ -784,56 +793,245 @@ window.Pages.hrATS = function(el) {
         </div>
       </div>
 
-      <div class="tabs" style="display:flex; gap:10px; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
-        <button class="btn btn-ghost active" onclick="switchProfTab(this, 'tab-ai')">🤖 AI Analysis</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-skills')">⚡ Skills Matrix</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-questions')">❓ Interview Qs</button>
-        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-raw')">📄 Raw CV</button>
+      <div class="tabs" style="display:flex; gap:10px; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:8px; overflow-x:auto;">
+        <button class="btn btn-ghost active" onclick="switchProfTab(this, 'tab-overview')" style="white-space:nowrap;">📊 Overview</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-experience')" style="white-space:nowrap;">💼 Experience</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-education')" style="white-space:nowrap;">🎓 Edu & Certs</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-skills')" style="white-space:nowrap;">⚡ Skills</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-projects')" style="white-space:nowrap;">🚀 Projects</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-ats')" style="white-space:nowrap;">🎯 ATS & Match</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-modify')" style="white-space:nowrap;">✍️ CV Modify</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-recommend')" style="white-space:nowrap;">📚 Recommend</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-online')" style="white-space:nowrap;">🌐 Online Profile</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-questions')" style="white-space:nowrap;">❓ Q&A</button>
+        <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-raw')" style="white-space:nowrap;">📄 Raw Text</button>
       </div>
 
-      <div id="tab-ai" class="prof-tab">
+      <div id="tab-overview" class="prof-tab">
+        <div class="grid-4" style="margin-bottom:16px;">
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.career_analysis?.total_years || app.experience_years || 0}</div><div style="font-size:0.8rem;">Years Exp</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.career_analysis?.seniority || 'Junior'}</div><div style="font-size:0.8rem;">Seniority</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${data.ats_analysis?.score || app.ai_score || 0}%</div><div style="font-size:0.8rem;">ATS Score</div></div>
+          <div class="stat-card" style="padding:10px; text-align:center;"><div style="font-size:1.5rem;font-weight:bold;color:var(--accent-primary);">${(data.skills?.technical||[]).length + (data.skills?.soft||[]).length}</div><div style="font-size:0.8rem;">Total Skills</div></div>
+        </div>
+        
         <div style="padding:16px; background:rgba(99,102,241,0.05); border-radius:8px; border-left:4px solid var(--accent-primary); margin-bottom:16px;">
-          <h4 style="margin-top:0;">ملخص تحليل الذكاء الاصطناعي</h4>
-          <p style="margin-bottom:0; line-height:1.6;" dir="rtl">${app.ai_analysis || 'لم يتم إنشاء ملخص.'}</p>
+          <h4 style="margin-top:0;">Profile Summary</h4>
+          <p style="margin-bottom:0; line-height:1.6;" dir="rtl">${data.summary?.overview || app.ai_analysis || 'No summary available.'}</p>
         </div>
         
         <div class="grid-2">
           <div>
-            <h4 style="color:var(--accent-success);">✅ نقاط القوة</h4>
+            <h4 style="color:var(--accent-success);">✅ Strengths</h4>
             <ul style="padding-right:20px; margin-top:8px;" dir="rtl">
-              ${strengths.length>0 ? strengths.map(s=>`<li>${s}</li>`).join('') : '<li>لم يتم تحديد نقاط قوة محددة</li>'}
+              ${strengths.length>0 ? strengths.map(s=>`<li>${s}</li>`).join('') : '<li>No specific strengths identified.</li>'}
             </ul>
           </div>
           <div>
-            <h4 style="color:var(--accent-danger);">❌ نقاط الضعف والمهارات المفقودة</h4>
+            <h4 style="color:var(--accent-danger);">❌ Weaknesses / Missing</h4>
             <ul style="padding-right:20px; margin-top:8px;" dir="rtl">
-              ${weaknesses.length>0 ? weaknesses.map(w=>`<li>${w}</li>`).join('') : '<li>لا يوجد نقاط ضعف جوهرية</li>'}
+              ${weaknesses.length>0 ? weaknesses.map(w=>`<li>${w}</li>`).join('') : '<li>No major weaknesses found.</li>'}
             </ul>
           </div>
         </div>
         
-        ${flags.length > 0 ? `
-          <div style="margin-top:16px; padding:12px; background:rgba(239,68,68,0.1); border-radius:8px; border:1px solid rgba(239,68,68,0.3);">
-            <h4 style="margin:0; color:var(--accent-danger);">⚠️ تنبيهات ذكاء اصطناعي (تتطلب مراجعة HR)</h4>
-            <ul style="margin:8px 0 0; padding-left:20px;">
-              ${flags.map(f=>`<li>${f}</li>`).join('')}
-            </ul>
-          </div>
+        ${(data.recommendations||[]).length > 0 ? `
+        <div style="margin-top:16px; padding:12px; background:rgba(16, 185, 129, 0.1); border-radius:8px;">
+          <h4 style="margin:0; color:var(--accent-success);">💡 AI Recommendations for Candidate</h4>
+          <ul style="margin:8px 0 0; padding-right:20px;" dir="rtl">
+            ${data.recommendations.map(r=>`<li>${r}</li>`).join('')}
+          </ul>
+        </div>
         ` : ''}
       </div>
 
+      <div id="tab-experience" class="prof-tab" style="display:none;">
+        <h4 dir="rtl">التاريخ الوظيفي (${data.experience?.length || 0})</h4>
+        ${(data.experience||[]).map(exp => `
+          <div style="margin-bottom:16px; padding:16px; background:var(--bg-tertiary); border-radius:8px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <strong style="font-size:1.1rem;">${exp.title || 'Unknown Title'}</strong>
+              <span style="color:var(--text-muted); font-size:0.9rem;">${exp.duration || 'Date unknown'}</span>
+            </div>
+            <div style="color:var(--accent-primary); margin-bottom:8px;">🏢 ${exp.company || 'Unknown Company'}</div>
+            ${exp.responsibilities && exp.responsibilities.length ? `
+              <div style="font-size:0.9rem; font-weight:600; margin-bottom:4px;">Responsibilities:</div>
+              <ul style="margin:0; padding-left:20px; font-size:0.9rem; color:var(--text-secondary);">
+                ${exp.responsibilities.map(r=>`<li>${r}</li>`).join('')}
+              </ul>
+            ` : ''}
+            ${exp.achievements && exp.achievements.length ? `
+              <div style="font-size:0.9rem; font-weight:600; margin-top:8px; margin-bottom:4px; color:var(--accent-success);">Achievements:</div>
+              <ul style="margin:0; padding-left:20px; font-size:0.9rem; color:var(--text-secondary);">
+                ${exp.achievements.map(a=>`<li>${a}</li>`).join('')}
+              </ul>
+            ` : ''}
+          </div>
+        `).join('') || '<div style="text-align:center; padding:20px;">No experience detected.</div>'}
+      </div>
+
+      <div id="tab-education" class="prof-tab" style="display:none;">
+        <h4 dir="rtl">التعليم الأكاديمي</h4>
+        ${(data.education||[]).map(edu => `
+          <div style="margin-bottom:16px; padding:12px; background:var(--bg-tertiary); border-radius:8px;">
+            <strong>🎓 ${edu.degree || 'Degree Unknown'}</strong>
+            <div style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">${edu.university || 'University Unknown'} ${edu.year ? `(${edu.year})` : ''}</div>
+          </div>
+        `).join('') || '<div style="text-align:center; padding:20px;">No education detected.</div>'}
+        
+        <h4 dir="rtl" style="margin-top:24px;">الشهادات والدورات (Certifications)</h4>
+        ${(data.certifications||[]).length > 0 ? (data.certifications).map(cert => `
+          <div style="margin-bottom:8px; padding:10px; background:var(--bg-tertiary); border-radius:8px; display:flex; gap:10px; align-items:center;">
+            <span>📜</span>
+            <div>
+              <div style="font-weight:600;">${cert.name || cert}</div>
+              ${cert.provider ? `<div style="font-size:0.8rem; color:var(--text-muted);">${cert.provider} ${cert.date ? `(${cert.date})` : ''}</div>` : ''}
+            </div>
+          </div>
+        `).join('') : '<div style="text-align:center; padding:20px;">No certifications detected.</div>'}
+      </div>
+
       <div id="tab-skills" class="prof-tab" style="display:none;">
-        <h4>Technical Skills</h4>
-        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-          ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary">${s}</span>`).join('') || '<span class="text-muted">لم يتم اكتشافها</span>'}
+        <h4>Technical Skills (${(data.skills?.technical||[]).length})</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+          ${(data.skills?.technical||[]).map(s=>`<span class="badge badge-primary">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
         </div>
-        <h4>Soft Skills</h4>
-        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-          ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info">${s}</span>`).join('') || '<span class="text-muted">لم يتم اكتشافها</span>'}
+        <h4>Soft Skills (${(data.skills?.soft||[]).length})</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+          ${(data.skills?.soft||[]).map(s=>`<span class="badge badge-info">${s}</span>`).join('') || '<span class="text-muted">None detected</span>'}
         </div>
-        <h4>Missing Required Skills</h4>
+        ${(data.skills?.inferred||[]).length > 0 ? `
+          <h4>💡 Inferred Skills (AI Deducted)</h4>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+            ${data.skills.inferred.map(s=>`<span class="badge" style="background:rgba(99,102,241,0.2); color:var(--accent-primary); border:1px dashed var(--accent-primary);">${s}</span>`).join('')}
+          </div>
+        ` : ''}
+        <h4>Languages</h4>
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          ${missing.map(s=>`<span class="badge badge-danger">${s}</span>`).join('') || '<span class="badge badge-success">يطابق جميع المهارات المطلوبة!</span>'}
+          ${(data.languages||[]).length > 0 ? data.languages.map(l=>`<span class="badge badge-success">${typeof l === 'string' ? l : (l.name + (l.level ? ' - '+l.level : ''))}</span>`).join('') : '<span class="text-muted">Not specified</span>'}
+        </div>
+      </div>
+      
+      <div id="tab-projects" class="prof-tab" style="display:none;">
+        <h4 dir="rtl">المشاريع (Projects & Portfolio)</h4>
+        ${(data.projects||[]).length > 0 ? data.projects.map(p => `
+          <div style="margin-bottom:16px; padding:16px; background:var(--bg-tertiary); border-radius:8px; border-left:4px solid var(--accent-warning);">
+            <div style="font-weight:bold; font-size:1.1rem; margin-bottom:8px;">🚀 ${p.name || 'Unnamed Project'}</div>
+            ${p.role ? `<div style="font-size:0.9rem; margin-bottom:8px;"><strong>Role:</strong> ${p.role}</div>` : ''}
+            ${p.description ? `<p style="font-size:0.9rem; color:var(--text-secondary); line-height:1.5;">${p.description}</p>` : ''}
+            ${p.tech_stack && p.tech_stack.length ? `
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                ${p.tech_stack.map(t=>`<span class="badge" style="font-size:0.75rem; background:rgba(0,0,0,0.2);">${t}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `).join('') : '<div style="text-align:center; padding:30px; color:var(--text-muted);">No detailed projects found in CV.</div>'}
+      </div>
+      
+      <div id="tab-ats" class="prof-tab" style="display:none;">
+        <div class="grid-2" style="margin-bottom:20px;">
+          <div style="padding:20px; background:var(--bg-tertiary); border-radius:12px; text-align:center;">
+            <div style="font-size:0.9rem; color:var(--text-muted);">ATS Compatibility</div>
+            <div style="font-size:2.5rem; font-weight:900; color:var(--accent-primary);">${data.ats_analysis?.score || Math.round(app.ai_score * 0.9) || 0}%</div>
+          </div>
+          <div style="padding:20px; background:var(--bg-tertiary); border-radius:12px; text-align:center;">
+            <div style="font-size:0.9rem; color:var(--text-muted);">Job Match</div>
+            <div style="font-size:2.5rem; font-weight:900; color:var(--accent-success);">${data.job_match?.match_percentage || app.ai_score || 0}%</div>
+          </div>
+        </div>
+        
+        <h4 style="color:var(--accent-success);">✅ Why this candidate matches:</h4>
+        <p dir="rtl" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_matches || strengths[0] || 'Good overall profile.'}</p>
+        
+        <h4 style="color:var(--accent-danger); margin-top:16px;">❌ Why they might NOT match:</h4>
+        <p dir="rtl" style="font-size:0.95rem; line-height:1.6;">${data.job_match?.why_not || weaknesses[0] || 'No major red flags.'}</p>
+        
+        <h4 style="margin-top:16px;">🔍 Missing Keywords / Requirements</h4>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          ${missing.length > 0 ? missing.map(s=>`<span class="badge badge-danger">${s}</span>`).join('') : '<span class="badge badge-success">No missing keywords detected!</span>'}
+        </div>
+        
+        ${(data.missing_information||flags).length > 0 ? `
+          <h4 style="margin-top:16px;">⚠️ Missing Information in CV</h4>
+          <ul style="padding-left:20px; font-size:0.9rem; color:var(--text-secondary);">
+            ${(data.missing_information||flags).map(f=>`<li>${f}</li>`).join('')}
+          </ul>
+        ` : ''}
+      </div>
+
+      <div id="tab-modify" class="prof-tab" style="display:none;">
+        <h4 style="color:var(--accent-danger);">🗑️ What to Remove</h4>
+        ${(data.what_to_remove||[]).length > 0 ? data.what_to_remove.map(r => `
+          <div style="background:var(--bg-tertiary); padding:10px; margin-bottom:8px; border-radius:8px; border-left:3px solid var(--accent-danger);">
+            <strong>${r.item}</strong> (Priority: ${r.priority})<br>
+            <span style="font-size:0.85rem; color:var(--text-muted);">${r.why}</span>
+          </div>
+        `).join('') : '<div class="text-muted">No items recommended for removal.</div>'}
+
+        <h4 style="color:var(--accent-success); margin-top:20px;">➕ What to Add</h4>
+        ${(data.what_to_add||[]).length > 0 ? data.what_to_add.map(a => `
+          <div style="background:var(--bg-tertiary); padding:10px; margin-bottom:8px; border-radius:8px; border-left:3px solid var(--accent-success);">
+            <strong>${a.item}</strong> (Priority: ${a.priority})
+          </div>
+        `).join('') : '<div class="text-muted">No specific additions recommended.</div>'}
+
+        <h4 style="color:var(--accent-warning); margin-top:20px;">✍️ What to Rewrite</h4>
+        ${(data.what_to_rewrite||[]).length > 0 ? data.what_to_rewrite.map(w => `
+          <div style="background:var(--bg-tertiary); padding:10px; margin-bottom:8px; border-radius:8px; border-left:3px solid var(--accent-warning);">
+            <div style="font-size:0.85rem; color:var(--accent-danger); text-decoration:line-through; margin-bottom:4px;">${w.current}</div>
+            <div style="font-size:0.85rem; color:var(--accent-success); margin-bottom:4px;">✅ ${w.improved}</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Why: ${w.problem}</div>
+          </div>
+        `).join('') : '<div class="text-muted">No rewrites recommended.</div>'}
+      </div>
+
+      <div id="tab-recommend" class="prof-tab" style="display:none;">
+        <h4>📚 Recommended Courses</h4>
+        ${(data.courses_recommendation||[]).length > 0 ? data.courses_recommendation.map(c => `
+          <div style="background:var(--bg-tertiary); padding:10px; margin-bottom:8px; border-radius:8px; border-left:3px solid var(--accent-info);">
+            <strong>${c.name}</strong> <span class="badge" style="font-size:0.7rem;">${c.priority || ''}</span><br>
+            <span style="font-size:0.85rem; color:var(--text-muted);">${c.why} (Target Skill: ${c.skill})</span>
+          </div>
+        `).join('') : '<div class="text-muted">No courses recommended.</div>'}
+
+        <h4 style="margin-top:20px;">📅 30/60/90 Day Plan</h4>
+        <div class="grid-3" style="gap:10px;">
+          <div style="background:var(--bg-tertiary); padding:10px; border-radius:8px;">
+            <strong style="color:var(--accent-primary);">30 Days</strong>
+            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;">
+              ${(data.plan_30_60_90?.['30_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>None</li>'}
+            </ul>
+          </div>
+          <div style="background:var(--bg-tertiary); padding:10px; border-radius:8px;">
+            <strong style="color:var(--accent-warning);">60 Days</strong>
+            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;">
+              ${(data.plan_30_60_90?.['60_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>None</li>'}
+            </ul>
+          </div>
+          <div style="background:var(--bg-tertiary); padding:10px; border-radius:8px;">
+            <strong style="color:var(--accent-success);">90 Days</strong>
+            <ul style="padding-left:16px; margin:4px 0 0; font-size:0.85rem;">
+              ${(data.plan_30_60_90?.['90_days']||[]).map(t=>`<li>${t}</li>`).join('')||'<li>None</li>'}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-online" class="prof-tab" style="display:none;">
+        <h4>🐙 GitHub Analysis</h4>
+        <div style="background:var(--bg-tertiary); padding:12px; border-radius:8px; margin-bottom:16px;">
+          <strong>Status:</strong> ${data.github_analysis?.status || 'Unknown'}<br>
+          <ul style="margin:8px 0 0; padding-left:20px; font-size:0.9rem;">
+            ${(data.github_analysis?.recommendations||[]).map(r=>`<li>${r}</li>`).join('') || '<li>No GitHub recommendations.</li>'}
+          </ul>
+        </div>
+        
+        <h4>💼 LinkedIn Analysis</h4>
+        <div style="background:var(--bg-tertiary); padding:12px; border-radius:8px;">
+          <strong>Status:</strong> ${data.linkedin_analysis?.status || 'Unknown'}<br>
+          <ul style="margin:8px 0 0; padding-left:20px; font-size:0.9rem;">
+            ${(data.linkedin_analysis?.recommendations||[]).map(r=>`<li>${r}</li>`).join('') || '<li>No LinkedIn recommendations.</li>'}
+          </ul>
         </div>
       </div>
 
