@@ -71,9 +71,9 @@ window.Pages.hrATS = function(el) {
 
       // --- Extended Skills Detection (English + Arabic) ---
       var allSkillsMap = {
-        tech: ['react','angular','vue','node.js','express','java','python','c++','c#','.net','php','ruby','swift','kotlin','typescript','javascript','html','css','sql','mongodb','postgresql','mysql','firebase','aws','azure','gcp','docker','kubernetes','git','jenkins','ci/cd','rest api','graphql','machine learning','deep learning','tensorflow','autocad','solidworks','matlab','sap','erp','excel','power bi','tableau','photoshop','illustrator','figma','wordpress'],
-        soft: ['leadership','communication','management','agile','teamwork','problem solving','negotiation','presentation','time management','project management','scrum','قيادة','تواصل','إدارة','تفاوض','حل المشكلات','العمل الجماعي','إدارة المشاريع','تنظيم','تخطيط'],
-        industry: ['تسويق','مبيعات','موارد بشرية','هندسة','محاسبة','مالية','تصنيع','إنتاج','جودة','صيانة','مشتريات','مخازن','تخزين','لوجستيك','marketing','sales','procurement','logistics','warehouse','manufacturing','quality','maintenance','accounting','finance','hr','supply chain']
+        tech: ['react','angular','vue','node.js','express','java','python','c++','c#','.net','php','ruby','swift','kotlin','typescript','javascript','html','css','sql','mongodb','postgresql','mysql','firebase','aws','azure','gcp','docker','kubernetes','git','jenkins','ci/cd','rest api','graphql','machine learning','deep learning','tensorflow','autocad','solidworks','matlab','sap','erp','excel','power bi','tableau','photoshop','illustrator','figma','wordpress','seo','google analytics','linux','bash','powershell','ruby on rails','django','flask','spring boot','laravel','flutter','react native','xcode','android studio','jira','trello','confluence','slack','microsoft office','word','powerpoint','access','data analysis','data mining','big data','hadoop','spark','kafka','elasticsearch','redis','memcached','nginx','apache','tomcat','iis','vmware','hyper-v','active directory','windows server','cisco','ccna','ccnp','network+','security+','ceh','cissp','cism','cisa','itil','pmp','scrum','agile','kanban','lean','six sigma','qa','testing','selenium','cypress','jest','mocha','chai','junit','testng','postman','swagger','openapi'],
+        soft: ['leadership','communication','management','agile','teamwork','problem solving','negotiation','presentation','time management','project management','scrum','قيادة','تواصل','إدارة','تفاوض','حل المشكلات','العمل الجماعي','إدارة المشاريع','تنظيم','تخطيط','إبداع','ابتكار','مرونة','قدرة على التكيف','اتخاذ القرارات','تفكير نقدي','تحليل','توجيه','تدريب','تحفيز','إدارة النزاعات','ذكاء عاطفي','تعاطف','استماع نشط','إقناع','تأثير','بناء العلاقات','خدمة العملاء','تعدد المهام','انتباه للتفاصيل','مبادرة','استقلالية','تعلم مستمر','تقبل النقد','العمل تحت الضغط'],
+        industry: ['تسويق','مبيعات','موارد بشرية','هندسة','محاسبة','مالية','تصنيع','إنتاج','جودة','صيانة','مشتريات','مخازن','تخزين','لوجستيك','marketing','sales','procurement','logistics','warehouse','manufacturing','quality','maintenance','accounting','finance','hr','supply chain','رعاية صحية','طب','تمريض','صيدلة','تعليم','تدريب','تطوير','بحث','قانون','استشارات','عقارات','مقاولات','بناء','سياحة','ضيافة','طيران','نقل','شحن','تخليص جمركي','تجارة إلكترونية','تجزئة','جملة','إعلام','صحافة','تصميم','فنون','رياضة']
       };
       var techSkills = [], softSkills = [], industrySkills = [];
       allSkillsMap.tech.forEach(function(sk) { if (cvLower.indexOf(sk) !== -1 && matched.indexOf(sk) === -1) techSkills.push(sk); });
@@ -289,30 +289,99 @@ window.Pages.hrATS = function(el) {
         experienceArr.push({company: 'غير محدد', title: jobData ? jobData.title : 'غير محدد', duration: expYears + ' سنوات', responsibilities: ''});
       }
 
-      var translatedPts = cvText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+      var translatedPts = cvText.split('\\n').map(l => l.trim()).filter(l => l.length > 2);
+      
+      // --- DYNAMIC INTERNAL MODEL (Advanced Engine) ---
+      
+      // Skill Progression Matrix (If missing is empty, generate "Next Level" skills based on what they have)
+      var inferredMissing = [].concat(missing);
+      if (inferredMissing.length === 0) {
+        if (techSkills.includes('html') && !techSkills.includes('react')) inferredMissing.push('react');
+        if (techSkills.includes('javascript') && !techSkills.includes('typescript')) inferredMissing.push('typescript');
+        if (techSkills.includes('excel') && !techSkills.includes('power bi')) inferredMissing.push('power bi');
+        if (industrySkills.includes('accounting') && !techSkills.includes('erp')) inferredMissing.push('erp systems');
+        if (techSkills.includes('java') && !techSkills.includes('spring boot')) inferredMissing.push('spring boot');
+        if (industrySkills.includes('hr') && !techSkills.includes('kpi')) inferredMissing.push('kpi tracking');
+        if (techSkills.includes('photoshop') && !techSkills.includes('figma')) inferredMissing.push('figma');
+        if (inferredMissing.length === 0 && expYears > 3) inferredMissing.push('leadership/management');
+        if (inferredMissing.length === 0) inferredMissing.push('advanced data analysis');
+      }
+
+      var what_to_remove = [];
+      if (cvText.length > 3000) what_to_remove.push({item: "الفقرات الطويلة جداً والتفاصيل القديمة", why: "السيرة الذاتية تتجاوز الطول المثالي (أكثر من 3000 حرف)، مما يشتت القارئ.", priority: "High"});
+      if (expYears > 15) what_to_remove.push({item: "الخبرات القديمة جداً (أكثر من 15 سنة)", why: "التركيز يجب أن يكون على آخر 10 سنوات لإظهار التطور الحديث.", priority: "Medium"});
+      if (what_to_remove.length === 0) what_to_remove.push({item: "أي بيانات شخصية غير ضرورية (مثل الحالة الاجتماعية أو الديانة)", why: "لتوفير مساحة للخبرات المهنية وتجنب التحيز.", priority: "Low"});
+
+      var what_to_add = [];
+      if (missing.length > 0) what_to_add.push({item: "المهارات المفقودة للوظيفة: " + missing.join('، '), priority: "Critical"});
+      if (inferredMissing.length > 0 && missing.length === 0) what_to_add.push({item: "مهارات المستوى المتقدم (مثل: " + inferredMissing.join('، ') + ")", priority: "High"});
+      if (!detectedLocation) what_to_add.push({item: "الموقع الجغرافي والمدينة", priority: "Medium"});
+      if (techSkills.length === 0) what_to_add.push({item: "قسم واضح للمهارات التقنية والأدوات المستخدمة", priority: "High"});
+      if (what_to_add.length === 0) what_to_add.push({item: "إنجازات قابلة للقياس بالأرقام في كل خبرة سابقة", priority: "High"});
+
+      var what_to_rewrite = [];
+      if (cvText.indexOf('%') === -1 && cvText.indexOf('$') === -1) {
+        what_to_rewrite.push({current: "مسؤوليات العمل المكتوبة بشكل سردي", problem: "تفتقر للأرقام والنتائج الملموسة", improved: "صياغتها كإنجازات مثل: (تحسين الكفاءة بنسبة 20%)"});
+      }
+      if (softSkills.length < 2) {
+        what_to_rewrite.push({current: "قسم الملخص المهني", problem: "لا يبرز المهارات الشخصية والقيادية بشكل كافٍ", improved: "دمج مهارات مثل التواصل وإدارة الوقت في مقدمة السيرة"});
+      }
+      if (what_to_rewrite.length === 0) {
+        what_to_rewrite.push({current: "النقاط الروتينية في المهام", problem: "كلمات تقليدية وضعيفة", improved: "استخدام أفعال قوية (أدرت، طورت، حققت) بدلاً من (كنت مسؤولاً عن)"});
+      }
+      
+      var courses_rec = inferredMissing.map(function(m) {
+        return {name: "Professional " + m.toUpperCase() + " Masterclass", skill: m, why: "لسد الفجوة التقنية والانتقال للمستوى التالي", difficulty: "Intermediate", priority: "MUST TAKE"};
+      });
+      if (courses_rec.length === 0 && techSkills.length > 0) {
+        courses_rec.push({name: "Advanced " + techSkills[0].toUpperCase() + " Techniques", skill: techSkills[0], why: "للانتقال من مستوى جيد إلى خبير في مجالك", difficulty: "Advanced", priority: "HIGH VALUE"});
+      }
+
+      var plan_30 = [], plan_60 = [], plan_90 = [];
+      if (inferredMissing.length > 0) {
+        plan_30.push("التسجيل في دورة مكثفة لتعلم: " + inferredMissing[0]);
+        plan_30.push("تحديث السيرة الذاتية لإضافة الكلمات المفتاحية المتعلقة بـ " + inferredMissing[0]);
+        if (inferredMissing.length > 1) plan_60.push("تطبيق مهارة " + inferredMissing[1] + " في مشروع عملي مصغر");
+        else plan_60.push("بناء مشروع عملي متكامل يبرز المهارات الجديدة ورفع كفاءة العمليات");
+      } else {
+        plan_30.push("البدء في دراسة متطلبات الترقية للمستوى الأعلى (Senior/Lead)");
+        plan_60.push("قيادة مبادرة أو مشروع تطوعي داخل بيئة العمل لإبراز المهارات القيادية");
+      }
+      plan_90.push("التقديم على مقابلات تجريبية (Mock Interviews) لاختبار الكفاءة");
+      plan_90.push("نشر المشاريع العملية أو المقالات الاحترافية على LinkedIn لزيادة التواجد الرقمي");
+
+      var proj_rec = [];
+      if (techSkills.length > 0 || matched.length > 0) {
+        var pStack = matched.concat(techSkills).slice(0,4);
+        proj_rec.push({name: "نظام أتمتة لعمليات القطاع", idea: "بناء تطبيق أو سير عمل يحل مشكلة حقيقية ويوفر الوقت", tech_stack: pStack, impact: "High"});
+      } else {
+        proj_rec.push({name: "دراسة حالة (Case Study)", idea: "إنشاء نموذج عملي موثق يعكس خبرتك العميقة في مجالك وكيفية حل المشاكل", tech_stack: [], impact: "Medium"});
+      }
+
+      var translatedPts = cvText.split('\\n').map(l => l.trim()).filter(l => l.length > 2);
       
       return {
         candidate: { name: name, title: detectedTitles[0] || '', phone: phoneMatch, email: emailMatch, location: detectedLocation, linkedin: '', github: '', portfolio: '', total_years: expYears },
-        cv_audit: { content_quality: 70, professionalism: 80, readability: 75, ats_compatibility: Math.round(score * 0.9), issues: [{problem: "السيرة الذاتية تحتاج تنسيق أفضل", why: "لتسهيل القراءة عبر أنظمة ATS", fix: "استخدم خطوط واضحة ونقاط مختصرة"}] },
+        cv_audit: { content_quality: 70, professionalism: 80, readability: 75, ats_compatibility: Math.round(score * 0.9), issues: [{problem: "السيرة الذاتية تحتاج تنسيق يتوافق مع ATS", why: "لتسهيل القراءة الآلية", fix: "استخدم خطوط واضحة ونقاط مختصرة"}] },
         strong_points: strengths,
-        weak_points: weaknesses.map(w => ({weakness: w, why: "تؤثر على فرص القبول", fix: "قم بتحديث السيرة وإضافة التفاصيل الناقصة"})),
-        what_to_remove: [{item: "البيانات الشخصية غير الضرورية", why: "تأخذ مساحة بلا فائدة مهنية", priority: "Low"}],
-        what_to_add: [{item: "إنجازات قابلة للقياس بالأرقام", priority: "High"}],
-        what_to_rewrite: [{current: "عملت في مشروع كذا", problem: "صياغة ضعيفة", improved: "قمت بتطوير وإدارة مشروع كذا مما أدى لزيادة الكفاءة بنسبة 20%"}],
-        achievements_improvement: [{current: "تحسين الأداء", missing_metric: "نسبة التحسن", suggested_metric: "20%"}],
+        weak_points: weaknesses.map(w => ({weakness: w, why: "تؤثر على فرص القبول", fix: "قم بتحديث السيرة لتدارك هذه النقطة"})),
+        what_to_remove: what_to_remove,
+        what_to_add: what_to_add,
+        what_to_rewrite: what_to_rewrite,
+        achievements_improvement: [{current: "سرد مهام روتينية", missing_metric: "نسبة التحسن أو العائد", suggested_metric: "20% تحسن، أو توفير X دولار"}],
         skills_gap: { current: matched, missing: missing, recommended: missing.map(m => ({skill: m, priority: "High"})) },
-        courses_recommendation: missing.map(m => ({name: "Mastering " + m, skill: m, why: "مهارة أساسية مفقودة", difficulty: "Intermediate", priority: "MUST TAKE"})),
-        certifications_strategy: { current_analysis: detectedCerts, recommended: ["PMP", "AWS Certified"] },
-        projects_recommendation: [{name: "نظام إدارة", idea: "بناء نظام متكامل", tech_stack: techSkills.slice(0,3), impact: "High"}],
-        portfolio_improvement: ["إضافة روابط حية للمشاريع"],
-        github_analysis: { status: "غير موجود", recommendations: ["إنشاء حساب وإضافة كود المشاريع"] },
-        linkedin_analysis: { status: "غير موجود", recommendations: ["تحديث العنوان المهني والخبرات"] },
+        courses_recommendation: courses_rec,
+        certifications_strategy: { current_analysis: detectedCerts, recommended: detectedCerts.length === 0 ? ["شهادة مهنية معتمدة في مجالك"] : ["شهادة متقدمة للبناء على ما تملك"] },
+        projects_recommendation: proj_rec,
+        portfolio_improvement: ["إضافة روابط حية وتوثيق للمشاريع لرفع الموثوقية"],
+        github_analysis: { status: "غير محدد", recommendations: ["تأسيس حساب Github إن كان مجالك تقنياً", "رفع الأكواد بانتظام"] },
+        linkedin_analysis: { status: "غير محدد", recommendations: ["تحديث العنوان المهني (Headline) ليشمل الكلمات المفتاحية", "كتابة ملخص احترافي يعكس الخبرات"] },
         job_match: { score: score, matched_reqs: matched, missing_reqs: missing },
-        career_paths: [{path: detectedTitles[0] || "متخصص", readiness_percent: score, missing_skills: missing, next_steps: ["اكتساب المهارات الناقصة"]}],
-        plan_30_60_90: { "30_days": ["تحديث السيرة", "تعلم مهارة جديدة"], "60_days": ["تنفيذ مشروع عملي"], "90_days": ["التقديم على الوظائف"] },
-        action_plan: [{task: "تحديث السيرة الذاتية بناءً على التوصيات", priority: "Critical"}],
-        top_5_changes: ["إضافة أرقام للإنجازات", "إبراز المهارات التقنية", "تحسين قسم الملخص", "حذف الكورسات القديمة", "إضافة رابط GitHub"],
-        final_career_score: { career_readiness: score, cv_quality: 75, interview_readiness: 70 },
+        career_paths: [{path: detectedTitles[0] || "متخصص", readiness_percent: score, missing_skills: missing, next_steps: ["اكتساب المهارات الناقصة وبناء علاقات مهنية"]}],
+        plan_30_60_90: { "30_days": plan_30, "60_days": plan_60, "90_days": plan_90 },
+        action_plan: [{task: "تحديث السيرة الذاتية فوراً بناءً على هذه التوصيات", priority: "Critical"}],
+        top_5_changes: ["إضافة أرقام وإحصائيات للإنجازات", "إبراز المهارات المفقودة التي تتطلبها الوظيفة", "تحسين قسم الملخص المهني", "تنسيق السيرة لسهولة القراءة", "ربط السيرة بحساب LinkedIn"],
+        final_career_score: { career_readiness: score, cv_quality: score > 70 ? 80 : 60, interview_readiness: score > 60 ? 75 : 50 },
         full_cv_arabic_translation_points: translatedPts,
         education: educationArr,
         experience: experienceArr,
@@ -326,8 +395,7 @@ window.Pages.hrATS = function(el) {
         ai_recommendation: rec,
         ai_summary: summary,
         interview_questions: { hr: hrQuestions, technical: techQuestions },
-        flags: flags,
-        is_fallback: true
+        flags: flags
       };
     }
   };
@@ -795,16 +863,6 @@ window.Pages.hrATS = function(el) {
             <span>📱 ${app.candidate_phone || 'No phone'}</span>
             <span>💼 ${app.experience_years || 0} Years Exp.</span>
           </div>
-        </div>
-      </div>
-
-      ${data.is_fallback ? `
-      <div style="background:rgba(239, 68, 68, 0.1); border-left:4px solid var(--accent-danger); padding:16px; margin-bottom:20px; border-radius:8px;">
-        <h4 style="color:var(--accent-danger); margin-top:0;">⚠️ تنبيه: وضع الاستنتاج المحلي (Offline Mode)</h4>
-        <p dir="auto" style="margin-bottom:0; font-size:0.95rem;">لم يتم العثور على مفتاح <strong>OpenAI API Key</strong>. التحليل المعروض أدناه (نقاط الضعف، خطة التطوير، النصائح) هو <strong>أمثلة ثابتة (Mock Data)</strong> للتجربة فقط ولا يعبر عن السيرة الذاتية الحقيقية.<br>للحصول على تحليل مهني حقيقي مخصص، يرجى إدخال مفتاح الـ API في الإعدادات.</p>
-      </div>
-      ` : ''}
-
       <div class="tabs" style="display:flex; gap:10px; margin-bottom:16px; border-bottom:1px solid var(--border-color); padding-bottom:8px; overflow-x:auto;">
         <button class="btn btn-ghost active" onclick="switchProfTab(this, 'tab-overview')" style="white-space:nowrap;">📊 نظرة عامة</button>
         <button class="btn btn-ghost" onclick="switchProfTab(this, 'tab-experience')" style="white-space:nowrap;">💼 الخبرات</button>
