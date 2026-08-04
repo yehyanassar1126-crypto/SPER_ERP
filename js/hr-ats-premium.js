@@ -627,15 +627,19 @@ window.Pages.hrATS = function(el) {
       <div class="card">
         <div class="card-header" style="display:flex; justify-content:space-between;">
           <h3>Candidate Ranking & Pipeline</h3>
-          <div>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div class="btn-group">
+              <button class="btn ${state.viewMode==='list'?'btn-primary':'btn-outline'} btn-sm" onclick="window.atsSetViewMode('list')">قائمة (List)</button>
+              <button class="btn ${state.viewMode!=='list'?'btn-primary':'btn-outline'} btn-sm" onclick="window.atsSetViewMode('kanban')">لوحة (Board)</button>
+            </div>
             <select id="filter-job" class="form-input" style="width:auto; display:inline-block; padding:4px 8px;">
               <option value="">All Jobs</option>
               ${state.jobs.map(j => `<option value="${j.id}" ${state.selectedJobId===j.id?'selected':''}>${j.title}</option>`).join('')}
             </select>
           </div>
         </div>
-        <div class="card-body no-pad">
-          ${renderAppsTable(state.selectedJobId ? state.applications.filter(a => a.job_id === state.selectedJobId) : state.applications)}
+        <div class="card-body no-pad" style="background:var(--bg-secondary); padding:16px; min-height:400px;">
+          ${state.viewMode==='list' ? renderAppsTable(state.selectedJobId ? state.applications.filter(a => a.job_id === state.selectedJobId) : state.applications) : renderKanban(state.selectedJobId ? state.applications.filter(a => a.job_id === state.selectedJobId) : state.applications)}
         </div>
       </div>
     `;
@@ -689,6 +693,61 @@ window.Pages.hrATS = function(el) {
       </tr>`;
     });
     html += '</tbody></table>';
+    return html;
+  }
+
+  function renderKanban(apps) {
+    var cols = [
+      { id: 'pending', title: 'قيد الانتظار / جديد', color: 'var(--text-secondary)' },
+      { id: 'screening', title: 'فرز أولي', color: 'var(--accent-primary)' },
+      { id: 'shortlisted', title: 'قائمة مختصرة', color: 'var(--accent-info)' },
+      { id: 'interview', title: 'مقابلة', color: 'var(--accent-warning)' },
+      { id: 'hired', title: 'تم التعيين', color: 'var(--accent-success)' },
+      { id: 'rejected', title: 'مرفوض', color: 'var(--accent-danger)' }
+    ];
+
+    var html = '<div style="display:flex; gap:16px; overflow-x:auto; padding-bottom:16px;">';
+    cols.forEach(c => {
+      var colApps = apps.filter(a => {
+        var st = a.status || 'pending';
+        if (c.id === 'pending' && (!a.status || a.status === 'pending')) return true;
+        return st === c.id;
+      });
+      
+      // Sort inside column by score
+      colApps.sort((a,b) => (b.ai_score||0) - (a.ai_score||0));
+
+      html += \`<div style="flex: 0 0 300px; background:var(--bg-tertiary); border-radius:8px; display:flex; flex-direction:column; max-height:70vh;">
+        <div style="padding:12px 16px; border-bottom:2px solid \${c.color}; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+          <span>\${c.title}</span>
+          <span class="badge" style="background:\${c.color}; color:#fff;">\${colApps.length}</span>
+        </div>
+        <div style="padding:12px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;">\`;
+      
+      if(colApps.length === 0) {
+        html += '<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:20px 0;">لا يوجد مرشحين</div>';
+      }
+
+      colApps.forEach(app => {
+        var scoreColor = (app.ai_score || 0) >= 80 ? 'var(--accent-success)' : (app.ai_score || 0) >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
+        var jobTitle = app.job_title || 'وظيفة عامة';
+        if (app.job_id) {
+          var j = state.jobs.find(x => x.id === app.job_id);
+          if (j) jobTitle = j.title;
+        }
+
+        html += \`<div class="card" style="padding:12px; cursor:pointer; border-left:3px solid \${scoreColor}; box-shadow:0 2px 4px rgba(0,0,0,0.05);" onclick="window.atsViewProfile('\${app.id}')">
+          <div style="font-weight:bold; font-size:1rem; margin-bottom:4px;">\${app.candidate_name}</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">\${jobTitle}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.8rem; font-weight:bold; color:\${scoreColor}">التوافق: \${app.ai_score||0}%</span>
+            <button class="btn btn-xs btn-primary" onclick="event.stopPropagation(); window.atsViewProfile('\${app.id}')">التفاصيل</button>
+          </div>
+        </div>\`;
+      });
+      html += \`</div></div>\`;
+    });
+    html += '</div>';
     return html;
   }
 
@@ -1320,8 +1379,21 @@ window.Pages.hrATS = function(el) {
       var app = state.applications.find(a => a.id === id);
       if(app) app.status = newStatus;
       if (typeof App !== 'undefined' && App.closeModal) App.closeModal();
+      if (state.currentView === 'upload') {
+        state.currentView = 'apps';
+        state.viewMode = 'kanban';
+      }
       render();
     });
+  };
+
+  window.atsSetViewMode = function(mode) {
+    state.viewMode = mode;
+    render();
+  };
+
+  window.atsViewProfile = function(id) {
+    showCandidateProfile(id);
   };
 
   window.atsConvertToEmp = function(id) {
