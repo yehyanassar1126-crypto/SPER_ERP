@@ -24,38 +24,55 @@ function loadCatalog() {
         return;
       }
 
-      var html = '';
-      data.forEach(function(p) {
-        var img = 'https://placehold.co/400x250?text=No+Image';
-        if (p.product_images && p.product_images.length > 0) {
-          // Find main image
-          var mainImage = p.product_images.find(i => i.is_main);
-          if (mainImage) img = mainImage.image_url;
-          else img = p.product_images[0].image_url;
-        }
+      // Fetch inventory to show live stock
+      sbClient.from('inventory_items').select('name, quantity').then(function(invRes) {
+        var invData = invRes.data || [];
 
-        var catName = p.product_categories ? p.product_categories.name_ar : 'منتج';
+        var html = '';
+        data.forEach(function(p) {
+          var img = 'https://placehold.co/400x250?text=No+Image';
+          if (p.product_images && p.product_images.length > 0) {
+            var mainImage = p.product_images.find(i => i.is_main);
+            if (mainImage) img = mainImage.image_url;
+            else img = p.product_images[0].image_url;
+          }
 
-        html += '<div class="product-card">';
-        if (p.is_featured) {
-          html += '<div style="position:absolute; top:10px; right:10px; background:var(--success); color:white; padding:4px 10px; border-radius:4px; font-size:0.8rem; font-weight:bold; z-index:10;">🔥 مميز</div>';
-        }
-        html += '<img src="' + img + '" alt="' + p.name_ar + '" class="product-image">';
-        html += '<div class="product-content">';
-        html += '<span class="category-badge">' + catName + '</span>';
-        html += '<h3 class="product-title">' + p.name_ar + '</h3>';
-        html += '<p class="product-desc">' + (p.description_ar || 'لا يوجد وصف متاح لهذا المنتج.') + '</p>';
-        html += '<div class="product-actions">';
-        html += '<button class="btn btn-primary" onclick="openModal(\'' + p.id + '\', \'' + p.name_ar + '\')">طلب المنتج</button>';
-        html += '</div></div></div>';
+          var catName = p.product_categories ? p.product_categories.name_ar : 'منتج';
+          
+          // Match stock
+          var stockItem = invData.find(function(i) { return i.name === p.name_ar || i.name === p.name_en; });
+          var stockQty = stockItem ? stockItem.quantity : (p.current_stock || 0);
+
+          html += '<div class="product-card">';
+          if (p.is_featured) {
+            html += '<div style="position:absolute; top:10px; right:10px; background:var(--success); color:white; padding:4px 10px; border-radius:4px; font-size:0.8rem; font-weight:bold; z-index:10;">🔥 مميز</div>';
+          }
+          html += '<img src="' + img + '" alt="' + p.name_ar + '" class="product-image">';
+          html += '<div class="product-content">';
+          html += '<span class="category-badge">' + catName + '</span>';
+          html += '<h3 class="product-title">' + p.name_ar + '</h3>';
+          html += '<p class="product-desc">' + (p.description_ar || 'لا يوجد وصف متاح لهذا المنتج.') + '</p>';
+          
+          html += '<div style="margin-bottom:15px; font-size:0.9rem; color:#64748b;">';
+          if (stockQty > 0) {
+             html += '📦 الكمية المتاحة: <strong style="color:var(--success)">' + stockQty + '</strong> وحدة';
+          } else {
+             html += '⚠️ <span style="color:var(--accent-danger)">الكمية نفذت (يمكنك الطلب المسبق)</span>';
+          }
+          html += '</div>';
+          
+          html += '<div class="product-actions">';
+          html += '<button class="btn btn-primary" onclick="openModal(\'' + p.id + '\', \'' + p.name_ar + '\')">طلب المنتج</button>';
+          html += '</div></div></div>';
+        });
+
+        grid.innerHTML = html;
       });
-
-      grid.innerHTML = html;
     });
 }
 
 function openModal(productId, productName) {
-  window.location.href = 'portal.html?action=request&product_id=' + productId + '&product_name=' + encodeURIComponent(productName);
+  window.location.href = 'customer_auth.html?action=request&product_id=' + productId + '&product_name=' + encodeURIComponent(productName);
 }
 
 function closeModal() {
