@@ -24,8 +24,8 @@ function loadCatalog() {
         return;
       }
 
-      // Fetch inventory to show live stock
-      sbClient.from('inventory_items').select('name, quantity').then(function(invRes) {
+      // Fetch inventory to show live stock (Only Finished Goods)
+      sbClient.from('inventory_items').select('name, quantity').eq('warehouse_type', 'finished').then(function(invRes) {
         var invData = invRes.data || [];
 
         var html = '';
@@ -39,8 +39,8 @@ function loadCatalog() {
 
           var catName = p.product_categories ? p.product_categories.name_ar : 'منتج';
           
-          // Match stock
-          var stockItem = invData.find(function(i) { return i.name === p.name_ar || i.name === p.name_en; });
+          // Match stock exactly from finished goods
+          var stockItem = invData.find(function(i) { return i.name.trim() === p.name_ar.trim() || i.name.trim() === p.name_en.trim(); });
           var stockQty = stockItem ? stockItem.quantity : (p.current_stock || 0);
 
           html += '<div class="product-card">';
@@ -57,7 +57,7 @@ function loadCatalog() {
           if (stockQty > 0) {
              html += '📦 الكمية المتاحة: <strong style="color:var(--success)">' + stockQty + '</strong> وحدة';
           } else {
-             html += '⚠️ <span style="color:var(--accent-danger)">الكمية نفذت (يمكنك الطلب المسبق)</span>';
+             html += '⚠️ <span style="color:var(--accent-danger)">الكمية نفذت (متاح للطلب المسبق)</span>';
           }
           html += '</div>';
           
