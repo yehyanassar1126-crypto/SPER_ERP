@@ -595,9 +595,17 @@ var App = {
       var canViewProduction = App.isOwner() || (App.user && (App.user.department === 'Production' || App.user.role === 'hall manager'));
       var canViewQuality = App.isOwner() || (App.user && (App.user.department === 'Quality' || App.user.role === 'qc inspector' || App.user.role === 'quality manager'));
 
-      if (canViewSales) {
-        menu.push({ section: 'Sales (المبيعات)', items: [{ id: 'erp-sales', label: 'Sales Orders (أوامر البيع)', icon: 'shoppingBag' }] });
+      // -- Products / Catalog System --
+      var canViewProducts = App.isOwner() || canViewSales || (App.user && App.user.department === 'Warehouse');
+
+      if (canViewSales || canViewProducts) {
+        var salesItems = [];
+        if (canViewSales) salesItems.push({ id: 'erp-sales', label: 'Sales Orders (أوامر البيع)', icon: 'shoppingBag' });
+        if (canViewProducts) salesItems.push({ id: 'erp-products', label: 'Products & Catalog (المنتجات)', icon: 'database' });
+        if (canViewSales) salesItems.push({ id: 'customer-requests', label: 'Customer Requests (طلبات التسجيل)', icon: 'userPlus' });
+        menu.push({ section: 'Sales & Products', items: salesItems });
       }
+
       var canViewSuppliers = App.isOwner() || (App.user && (App.user.department === 'Sales' || App.user.role === 'hr manager' || App.user.department === 'Finance'));
 
       var supplyChainItems = [];
@@ -748,6 +756,10 @@ var App = {
       'financial-reports': { title: 'Financial Reports (التقارير المالية)', sub: 'Income statement & balance sheet' },
       'chart-of-accounts': { title: 'Chart of Accounts (شجرة الحسابات)', sub: 'General Ledger & Double-Entry' },
       'erp-sales': { title: 'Sales (المبيعات)', sub: 'Sales orders & client management' },
+      'erp-products': { title: 'Products & Catalog (المنتجات)', sub: 'Manage industrial products and public catalog' },
+      'customer-requests': { title: 'Customer Requests (طلبات التسجيل)', sub: 'Review pending customer registration requests' },
+      'erp-products': { title: 'Products & Catalog (المنتجات)', sub: 'Manage industrial products and public catalog' },
+      'customer-requests': { title: 'Customer Requests (طلبات التسجيل)', sub: 'Review pending customer registration requests' },
       'erp-planning': { title: 'Planning (التخطيط)', sub: 'Production planning & scheduling' },
       'erp-production': { title: 'Production (الإنتاج)', sub: 'Manufacturing & material requests' },
       'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' },
@@ -889,6 +901,10 @@ var App = {
       case 'payroll-funding': Pages.payrollFunding(el); break;
       case 'it-tickets': Pages.itTickets(el); break;
       case 'erp-sales': Pages.sales(el); break;
+      case 'erp-products': if (Pages.productsCatalog) Pages.productsCatalog(el); else el.innerHTML = 'Module loading...'; break;
+      case 'customer-requests': if (Pages.customerRequests) Pages.customerRequests(el); else el.innerHTML = 'Module loading...'; break;
+      case 'erp-products': if (Pages.productsCatalog) Pages.productsCatalog(el); else el.innerHTML = 'Module loading...'; break;
+      case 'customer-requests': if (Pages.customerRequests) Pages.customerRequests(el); else el.innerHTML = 'Module loading...'; break;
       case 'erp-planning': Pages.planning(el); break;
       case 'erp-production': Pages.production(el); break;
       case 'erp-quality': Pages.quality(el); break;
