@@ -211,12 +211,26 @@ var App = {
   // ========== RENDERING ==========
   renderLogin: function () {
     document.getElementById('app').innerHTML = '<div class="login-wrapper"><div class="login-bg"></div><div class="login-card">' +
-      '<div class="login-logo"><img src="public/logo.png" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(225,29,72,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>ERP System</p></div>' +
+      '<div class="login-logo"><img src="public/logo.png" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(225,29,72,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>ERP / Customer Portal</p></div>' +
+      
+      '<div style="display:flex;gap:10px;margin-bottom:20px;">' +
+      '<button id="tab-btn-login" class="btn btn-primary" style="flex:1;padding:8px" onclick="App.switchLoginTab(true)">تسجيل الدخول</button>' +
+      '<button id="tab-btn-register" class="btn btn-outline" style="flex:1;padding:8px;background:transparent;color:white;border-color:white" onclick="App.switchLoginTab(false)">إنشاء حساب</button>' +
+      '</div>' +
+
       '<form class="login-form" id="login-form">' +
       '<div id="login-error" class="login-error" style="display:none"></div>' +
       '<div class="form-group"><label class="form-label">Username (اسم المستخدم)</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="Enter your username" id="login-username" autofocus></div></div>' +
       '<div class="form-group"><label class="form-label">Password (كلمة المرور)</label><div class="form-input-wrapper"><input type="password" class="form-input" placeholder="Enter your password" id="login-password"></div></div>' +
       '<button type="submit" class="login-btn" id="login-submit">Sign In (تسجيل الدخول)</button></form>' +
+
+      '<form class="login-form" id="register-form" style="display:none;">' +
+      '<div id="reg-error" class="login-error" style="display:none"></div>' +
+      '<div class="form-group"><label class="form-label">Company Name (اسم الشركة)</label><div class="form-input-wrapper"><input type="text" class="form-input" id="reg-company" required></div></div>' +
+      '<div class="form-group"><label class="form-label">Phone (رقم الهاتف)</label><div class="form-input-wrapper"><input type="text" class="form-input" id="reg-phone" required></div></div>' +
+      '<div class="form-group"><label class="form-label">Username (اسم المستخدم)</label><div class="form-input-wrapper"><input type="text" class="form-input" id="reg-username" required></div></div>' +
+      '<div class="form-group"><label class="form-label">Password (كلمة المرور)</label><div class="form-input-wrapper"><input type="password" class="form-input" id="reg-password" required></div></div>' +
+      '<button type="submit" class="login-btn" id="reg-submit">Register (إنشاء الحساب)</button></form>' +
 
       '</div></div>';
 
@@ -228,6 +242,76 @@ var App = {
       document.getElementById('login-error').style.display = 'none';
       App.login(u, p);
     });
+
+    document.getElementById('register-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var c = document.getElementById('reg-company').value.trim();
+      var ph = document.getElementById('reg-phone').value.trim();
+      var u = document.getElementById('reg-username').value.trim();
+      var p = document.getElementById('reg-password').value.trim();
+      
+      var err = document.getElementById('reg-error');
+      if (!c || !ph || !u || !p) { err.textContent = 'Please fill all fields'; err.style.display = 'block'; return; }
+      
+      var btn = document.getElementById('reg-submit');
+      btn.innerText = 'جاري الإنشاء...'; btn.disabled = true;
+
+      // Ensure suppliers table has supplier_type, if not it will ignore or error, but we'll try
+      sbClient.from('suppliers').insert({
+          company_name: c, email: u, password_hash: p, phone: ph, contact_person: c, supplier_type: 'customer'
+      }).then(function(res) {
+          if (res.error) {
+              err.textContent = res.error.message; err.style.display = 'block';
+              btn.innerText = 'Register (إنشاء الحساب)'; btn.disabled = false;
+          } else {
+              App.login(u, p); // Automatically log in
+          }
+      });
+    });
+  },
+
+  switchLoginTab: function(isLogin) {
+    if (isLogin) {
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('tab-btn-login').className = 'btn btn-primary';
+        document.getElementById('tab-btn-login').style.background = '';
+        document.getElementById('tab-btn-login').style.color = '';
+        document.getElementById('tab-btn-register').className = 'btn btn-outline';
+        document.getElementById('tab-btn-register').style.background = 'transparent';
+        document.getElementById('tab-btn-register').style.color = 'white';
+        document.getElementById('tab-btn-register').style.borderColor = 'white';
+    } else {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'block';
+        document.getElementById('tab-btn-login').className = 'btn btn-outline';
+        document.getElementById('tab-btn-login').style.background = 'transparent';
+        document.getElementById('tab-btn-login').style.color = 'white';
+        document.getElementById('tab-btn-login').style.borderColor = 'white';
+        document.getElementById('tab-btn-register').className = 'btn btn-primary';
+        document.getElementById('tab-btn-register').style.background = '';
+        document.getElementById('tab-btn-register').style.color = '';
+    }
+  },
+
+  checkUrlActions: function() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'request' && params.get('product_name')) {
+      if (App.user && App.user.role === 'supplier_external') {
+         setTimeout(function() {
+            App.navigate('supplier-portal');
+            setTimeout(function() {
+                if (window.ERPSuppliers && ERPSuppliers.customerSendRequest) {
+                   ERPSuppliers.customerSendRequest();
+                   setTimeout(function() {
+                      var pNameField = document.getElementById('cust-req-prod');
+                      if (pNameField) pNameField.value = decodeURIComponent(params.get('product_name'));
+                   }, 300);
+                }
+            }, 500);
+         }, 1000);
+      }
+    }
   },
 
   renderApp: function () {
@@ -243,6 +327,7 @@ var App = {
     App.renderSidebar();
     App.renderHeader();
     App.navigate(App.activePage);
+    App.checkUrlActions();
 
     // Initialize Chatbot for employees
     if (typeof EmployeeChatbot !== 'undefined') {

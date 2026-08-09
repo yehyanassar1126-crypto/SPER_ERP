@@ -55,9 +55,7 @@ function loadCatalog() {
 }
 
 function openModal(productId, productName) {
-  document.getElementById('req-product-id').value = productId;
-  document.getElementById('modal-title').innerText = 'طلب تسجيل - ' + productName;
-  document.getElementById('reg-modal').style.display = 'flex';
+  window.location.href = 'portal.html?action=request&product_id=' + productId + '&product_name=' + encodeURIComponent(productName);
 }
 
 function closeModal() {
