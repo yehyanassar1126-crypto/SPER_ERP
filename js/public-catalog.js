@@ -29,7 +29,15 @@ function loadCatalog() {
         var invData = invRes.data || [];
 
         var html = '';
+        var renderedItemNames = new Set();
+
         data.forEach(function(p) {
+          var nameAr = p.name_ar ? p.name_ar.trim().toLowerCase() : '';
+          var nameEn = p.name_en ? p.name_en.trim().toLowerCase() : '';
+          
+          if (nameAr) renderedItemNames.add(nameAr);
+          if (nameEn) renderedItemNames.add(nameEn);
+
           var img = 'https://placehold.co/400x250?text=No+Image';
           if (p.product_images && p.product_images.length > 0) {
             var mainImage = p.product_images.find(i => i.is_main);
@@ -40,7 +48,10 @@ function loadCatalog() {
           var catName = p.product_categories ? p.product_categories.name_ar : 'منتج';
           
           // Match stock exactly from finished goods
-          var stockItem = invData.find(function(i) { return i.name.trim() === p.name_ar.trim() || i.name.trim() === p.name_en.trim(); });
+          var stockItem = invData.find(function(i) { 
+            var invN = i.name ? i.name.trim().toLowerCase() : '';
+            return invN === nameAr || invN === nameEn; 
+          });
           var stockQty = stockItem ? stockItem.quantity : (p.current_stock || 0);
 
           html += '<div class="product-card">';
@@ -62,8 +73,38 @@ function loadCatalog() {
           html += '</div>';
           
           html += '<div class="product-actions">';
-          html += '<button class="btn btn-primary" onclick="openModal(\'' + p.id + '\', \'' + p.name_ar + '\')">طلب المنتج</button>';
+          html += '<button class="btn btn-primary" onclick="openModal(\'' + p.id + '\', \'' + p.name_ar.replace(/'/g, "\\'") + '\')">طلب المنتج</button>';
           html += '</div></div></div>';
+        });
+
+        // 2. Add any items from Finished Goods Warehouse that are NOT in the catalog
+        invData.forEach(function(inv) {
+          var invName = inv.name ? inv.name.trim().toLowerCase() : '';
+          if (invName && !renderedItemNames.has(invName)) {
+            var stockQty = inv.quantity;
+            var img = 'https://placehold.co/400x250?text=Warehouse+Item';
+            var catName = 'مخزن المنتج التام';
+            
+            html += '<div class="product-card">';
+            html += '<img src="' + img + '" alt="' + inv.name + '" class="product-image">';
+            html += '<div class="product-content">';
+            html += '<span class="category-badge">' + catName + '</span>';
+            html += '<h3 class="product-title">' + inv.name + '</h3>';
+            html += '<p class="product-desc">هذا المنتج تم سحبه تلقائياً من المخزن وجاهز للطلب.</p>';
+            
+            html += '<div style="margin-bottom:15px; font-size:0.9rem; color:#64748b;">';
+            if (stockQty > 0) {
+               html += '📦 الكمية المتاحة: <strong style="color:var(--success)">' + stockQty + '</strong> طن / وحدة';
+            } else {
+               html += '⚠️ <span style="color:var(--accent-danger)">الكمية نفذت (متاح للطلب المسبق)</span>';
+            }
+            html += '</div>';
+            
+            html += '<div class="product-actions">';
+            var safeName = inv.name.replace(/'/g, "\\'");
+            html += '<button class="btn btn-primary" onclick="openModal(\'' + (inv.id || 'inv-item') + '\', \'' + safeName + '\')">طلب المنتج</button>';
+            html += '</div></div></div>';
+          }
         });
 
         grid.innerHTML = html;
