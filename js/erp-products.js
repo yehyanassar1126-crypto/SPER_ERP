@@ -95,7 +95,7 @@ window.Pages.productsCatalog = function(el) {
     html += '<div class="form-group"><label>الوحدة (مثال: طن، قطعة)</label><input type="text" id="p-unit" class="form-input" value="Piece"></div>';
     html += '<div class="form-group"><label>سعر البيع (EGP)</label><input type="number" id="p-price" class="form-input" min="0"></div>';
     html += '<div class="form-group"><label>تنشره في الموقع العام؟</label><select id="p-public" class="form-input"><option value="true">نعم، منشور للعامة</option><option value="false">لا، داخلي فقط</option></select></div>';
-    html += '<div class="form-group" style="grid-column: span 2;"><label>رابط صورة المنتج (URL)</label><input type="text" id="p-image" class="form-input" placeholder="https://..."></div>';
+    html += '<div class="form-group" style="grid-column: span 2;"><label>صورة المنتج (ارفع من جهازك)</label><input type="file" id="p-image" class="form-input" accept="image/*"></div>';
     html += '</div>';
     App.showModal('إضافة منتج جديد', html, '<button class="btn btn-outline" onclick="App.closeModal()">إلغاء</button><button class="btn btn-primary" onclick="window.saveNewProduct()">حفظ المنتج</button>');
   };
@@ -107,40 +107,58 @@ window.Pages.productsCatalog = function(el) {
     var unit = document.getElementById('p-unit').value.trim();
     var price = document.getElementById('p-price').value;
     var isPub = document.getElementById('p-public').value === 'true';
-    var img = document.getElementById('p-image').value.trim();
+    var imgInput = document.getElementById('p-image');
 
     if(!nameAr || !nameEn) return alert('يرجى إدخال اسم المنتج');
 
+    var btn = document.querySelector('.modal-footer .btn-primary');
+    if (btn) { btn.disabled = true; btn.innerHTML = 'جاري الحفظ...'; }
+
     var slug = nameEn.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random()*1000);
 
-    sbClient.from('products').insert({
-      name_ar: nameAr,
-      name_en: nameEn,
-      slug: slug,
-      code: code,
-      unit: unit,
-      selling_price: price || 0,
-      is_public: isPub,
-      created_by: App.user.id
-    }).select().then(function(res) {
-      if (res.error) return alert("خطأ: " + res.error.message);
-      var newProduct = res.data[0];
-      if (img) {
-        sbClient.from('product_images').insert({
-          product_id: newProduct.id,
-          image_url: img,
-          is_main: true
-        }).then(function() {
+    var processSave = function(base64Image) {
+      sbClient.from('products').insert({
+        name_ar: nameAr,
+        name_en: nameEn,
+        slug: slug,
+        code: code,
+        unit: unit,
+        selling_price: price || 0,
+        is_public: isPub,
+        created_by: App.user.id
+      }).select().then(function(res) {
+        if (res.error) {
+           if (btn) { btn.disabled = false; btn.innerHTML = 'حفظ المنتج'; }
+           return alert("خطأ: " + res.error.message);
+        }
+        var newProduct = res.data[0];
+        if (base64Image) {
+          sbClient.from('product_images').insert({
+            product_id: newProduct.id,
+            image_url: base64Image,
+            is_main: true
+          }).then(function() {
+            App.closeModal();
+            showToast('تم إضافة المنتج بنجاح', 'success');
+            loadProducts();
+          });
+        } else {
           App.closeModal();
           showToast('تم إضافة المنتج بنجاح', 'success');
           loadProducts();
-        });
-      } else {
-        App.closeModal();
-        showToast('تم إضافة المنتج بنجاح', 'success');
-        loadProducts();
-      }
-    });
+        }
+      });
+    };
+
+    if (imgInput.files && imgInput.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        processSave(e.target.result);
+      };
+      reader.readAsDataURL(imgInput.files[0]);
+    } else {
+      processSave('');
+    }
   };
 
   render();
