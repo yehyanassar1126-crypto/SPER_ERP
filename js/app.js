@@ -2628,18 +2628,18 @@ function processScan(actionType) {
             } else {
               var startHour = parseInt(sConf.start.split(':')[0]);
               var endHour = parseInt(sConf.end.split(':')[0]);
-              // If shift ends next day (night shift)
               if (endHour <= startHour) {
                 checkOutTime.setDate(checkOutTime.getDate() + 1);
               }
             }
             
-            var checkInTime = new Date(oldRec.check_in);
-            var workHrs = Math.max(0, ((checkOutTime - checkInTime) / 3600000)).toFixed(2);
+            var checkInTime = oldRec.check_in ? new Date(oldRec.check_in) : new Date(oldRec.date + 'T' + sConf.start + ':00');
+            var workHrs = Math.max(0, ((checkOutTime - checkInTime) / 3600000));
+            workHrs = isNaN(workHrs) ? 0 : parseFloat(workHrs.toFixed(2));
 
             return sbClient.from('attendance').update({
               check_out: checkOutTime.toISOString(),
-              working_hours: parseFloat(workHrs),
+              working_hours: workHrs,
               status: 'Closed Automatically',
               modification_reason: 'Auto Closed بسبب تسجيل حضور في اليوم التالي'
             }).eq('id', oldRec.id);
@@ -2673,13 +2673,19 @@ function processScan(actionType) {
           var parts = sConf.start.split(':');
           var expectedStart = new Date(timeNow);
           expectedStart.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+          
+          if (parseInt(parts[0]) < 6 && timeNow.getHours() >= 18) {
+              expectedStart.setDate(expectedStart.getDate() + 1);
+          } else if (parseInt(parts[0]) >= 18 && timeNow.getHours() < 6) {
+              expectedStart.setDate(expectedStart.getDate() - 1);
+          }
+
           var diffMs = timeNow - expectedStart;
           if (diffMs > 0) {
             delayMin = Math.floor(diffMs / 60000);
           }
         }
         
-        // Location capture
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(function(pos) {
             var loc = pos.coords.latitude + ',' + pos.coords.longitude;
@@ -2699,16 +2705,18 @@ function processScan(actionType) {
         return;
       }
       
-      var workHrs = ((timeNow - new Date(rec.check_in)) / 3600000).toFixed(2);
+      var workHrs = ((timeNow - new Date(rec.check_in)) / 3600000);
+      workHrs = isNaN(workHrs) ? 0 : parseFloat(workHrs.toFixed(2));
+      
       var baseSalary = user.base_salary || 0;
       var dailyRate30 = baseSalary / 30;
       var hourlyRate = dailyRate30 / 8;
       var overtimeHrs = 0;
       var overtimeAmt = 0;
+      var earlyLeaveMin = 0;
       var isFriday = timeNow.getDay() === 5;
       
       if (isFriday) {
-        // Friday: all hours × 2
         var fridayBonus = Math.round(workHrs * hourlyRate * 2);
         overtimeHrs = parseFloat(workHrs);
         overtimeAmt = fridayBonus;
@@ -2727,7 +2735,6 @@ function processScan(actionType) {
           }]).then(function() {});
         }
       } else {
-        // Regular day: check if worked beyond shift end time → overtime at 1.5x
         var shiftKey = user.shift || 'morning';
         var empShiftSystem = user.shift_system || '3-shift';
         var sConf = getShiftConfig(shiftKey, empShiftSystem);
@@ -2735,7 +2742,16 @@ function processScan(actionType) {
           var endParts = sConf.end.split(':');
           var expectedEnd = new Date(timeNow);
           expectedEnd.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+          
+          if (parseInt(endParts[0]) < parseInt(sConf.start.split(':')[0])) {
+             if (timeNow.getHours() >= 12) {
+                 expectedEnd.setDate(expectedEnd.getDate() + 1);
+             }
+          }
+
           var extraMs = timeNow - expectedEnd;
+          var earlyMs = expectedEnd - timeNow;
+
           if (extraMs > 0) {
             overtimeHrs = parseFloat((extraMs / 3600000).toFixed(2));
             overtimeAmt = Math.round(overtimeHrs * hourlyRate * 1.5);
@@ -2752,6 +2768,8 @@ function processScan(actionType) {
                 status: 'approved'
               }]).then(function() {});
             }
+          } else if (earlyMs > 0) {
+             earlyLeaveMin = Math.floor(earlyMs / 60000);
           }
         }
       }
@@ -2759,10 +2777,10 @@ function processScan(actionType) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(pos) {
           var loc = pos.coords.latitude + ',' + pos.coords.longitude;
-          updateCheckOut(rec.id, loc, workHrs, overtimeHrs, overtimeAmt, isFriday);
-        }, function() { updateCheckOut(rec.id, null, workHrs, overtimeHrs, overtimeAmt, isFriday); });
+          updateCheckOut(rec.id, loc, workHrs, overtimeHrs, overtimeAmt, isFriday, earlyLeaveMin, rec.delay_minutes);
+        }, function() { updateCheckOut(rec.id, null, workHrs, overtimeHrs, overtimeAmt, isFriday, earlyLeaveMin, rec.delay_minutes); });
       } else {
-        updateCheckOut(rec.id, null, workHrs, overtimeHrs, overtimeAmt, isFriday);
+        updateCheckOut(rec.id, null, workHrs, overtimeHrs, overtimeAmt, isFriday, earlyLeaveMin, rec.delay_minutes);
       }
     }
   });
@@ -2785,7 +2803,9 @@ function processScan(actionType) {
     });
   }
 
-  function updateCheckOut(id, loc, workHrs, otHrs, otAmt, isFriday) {
+  function updateCheckOut(id, loc, workHrs, otHrs, otAmt, isFriday, earlyLeaveMin, existingDelay) {
+    var totalDelay = (existingDelay || 0) + (earlyLeaveMin || 0);
+    
     sbClient.from('attendance').update({
       check_out: timeNow.toISOString(),
       working_hours: parseFloat(workHrs),
@@ -2793,13 +2813,15 @@ function processScan(actionType) {
       check_out_location: loc,
       overtime_hours: otHrs || 0,
       overtime_amount: otAmt || 0,
-      is_friday_work: isFriday || false
+      is_friday_work: isFriday || false,
+      delay_minutes: totalDelay
     }).eq('id', id).then(function(r) {
       if(r.error) { showToast('DB Error: ' + r.error.message, 'danger'); return; }
       var msg = '✅ Check-Out successful!';
       if (otHrs > 0) msg += ' (إضافي: ' + otHrs + ' ساعات = ' + otAmt + ' EGP)';
+      if (earlyLeaveMin > 0) msg += ' | ⚠️ خروج مبكر: ' + earlyLeaveMin + ' دقيقة';
       showToast(msg, 'success');
-      sbClient.from('audit_log').insert({ action: 'CHECK_OUT', user_name: user.full_name, user_id: user.id, details: 'Checked out at ' + timeNow.toLocaleTimeString() + (otHrs > 0 ? ' | OT: ' + otHrs + 'h' : '') }).then(function(){});
+      sbClient.from('audit_log').insert({ action: 'CHECK_OUT', user_name: user.full_name, user_id: user.id, details: 'Checked out at ' + timeNow.toLocaleTimeString() + (otHrs > 0 ? ' | OT: ' + otHrs + 'h' : '') + (earlyLeaveMin > 0 ? ' | Early: ' + earlyLeaveMin + 'm' : '') }).then(function(){});
     });
   }
 }
@@ -3831,9 +3853,9 @@ Pages.payroll = function (el) {
                 var dm = att.delay_minutes || 0;
                 var lateDed = 0;
                 if (!att.delay_excused) {
-                  if (dm > 360) lateDed = dailyRate * 1;
-                  else if (dm > 120) lateDed = dailyRate * 0.5;
-                  else if (dm > 15) lateDed = dailyRate * 0.25;
+                  if (dm >= 240) lateDed = dailyRate * 1; // >= 4 hours
+                  else if (dm > 120) lateDed = dailyRate * 0.5; // > 2 hours
+                  else if (dm > 15) lateDed = dailyRate * 0.25; // > 15 mins
                 }
                 lateDed = Math.round(lateDed);
                 totalLateDeduction += lateDed;
