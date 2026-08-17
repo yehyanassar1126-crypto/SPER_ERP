@@ -519,9 +519,10 @@
     <div class="logo">
       <i class="fa-solid fa-industry"></i> Ninja Factory
     </div>
-    <div>
-      <button class="btn btn-outline" onclick="window.location.href='/'">
-        <i class="fa-solid fa-shield-halved"></i> بوابة النظام (ERP)
+    <div style="display:flex; align-items:center; gap:10px;" id="authArea">
+      <!-- Auth UI will be injected by JS -->
+      <button class="btn btn-outline" onclick="window.location.href='customer_auth.html'" style="padding:8px 16px; font-size:0.85rem;">
+        <i class="fa-solid fa-user"></i> تسجيل الدخول
       </button>
     </div>
   </header>
@@ -566,6 +567,8 @@
         
         <div class="selected-product-info" id="selected-product-name">
           -- اسم المنتج --
+        </div>
+        <div class="selected-product-info" id="client-info" style="display:none; background:rgba(16,185,129,0.1); border-color:var(--success); color:var(--success);">
         </div>
         <input type="hidden" id="req-product-id">
         <input type="hidden" id="req-product-name">

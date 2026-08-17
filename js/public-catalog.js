@@ -1,11 +1,70 @@
 let allProductsData = [];
 let currentFilter = 'all';
+let loggedInClient = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-  loadCatalog();
+  // Check if client is logged in
+  var stored = localStorage.getItem('catalog_client');
+  if (stored) {
+    try { loggedInClient = JSON.parse(stored); } catch(e) {}
+  }
+
+  // Update header if logged in
+  updateAuthUI();
+
+  // Check URL params (returning from auth page with product request)
+  var urlParams = new URLSearchParams(window.location.search);
+  var returnedProductId = urlParams.get('product_id');
+  var returnedProductName = urlParams.get('product_name');
+  var returnedIsWarehouse = urlParams.get('is_warehouse') === 'true';
+  var returnedAction = urlParams.get('action');
+
+  loadCatalog(function() {
+    // After products load, auto-open modal if returning from auth
+    if (loggedInClient && returnedAction === 'request' && returnedProductName) {
+      openModal(returnedProductId || '', decodeURIComponent(returnedProductName), returnedIsWarehouse);
+    }
+  });
 });
 
-function loadCatalog() {
+function updateAuthUI() {
+  var authArea = document.getElementById('authArea');
+  if (!authArea) return;
+
+  if (loggedInClient) {
+    authArea.innerHTML = `
+      <span style="color:var(--primary); font-weight:700; margin-left:15px;">
+        <i class="fa-solid fa-circle-check"></i> أهلاً، ${loggedInClient.contact_person || loggedInClient.company_name}
+      </span>
+      <button class="btn btn-outline" onclick="logoutClient()" style="padding:8px 16px; font-size:0.85rem;">
+        <i class="fa-solid fa-right-from-bracket"></i> خروج
+      </button>
+    `;
+  } else {
+    authArea.innerHTML = `
+      <button class="btn btn-outline" onclick="window.location.href='customer_auth.html'" style="padding:8px 16px; font-size:0.85rem;">
+        <i class="fa-solid fa-user"></i> تسجيل الدخول
+      </button>
+    `;
+  }
+}
+
+window.logoutClient = function() {
+  localStorage.removeItem('catalog_client');
+  loggedInClient = null;
+  updateAuthUI();
+  Swal.fire({
+    icon: 'info',
+    title: 'تم تسجيل الخروج',
+    text: 'تم تسجيل خروجك بنجاح.',
+    timer: 1500,
+    showConfirmButton: false,
+    background: '#111827',
+    color: '#fff'
+  });
+}
+
+function loadCatalog(callback) {
   var grid = document.getElementById('catalog-grid');
 
   sbClient.from('products')
@@ -81,6 +140,8 @@ function loadCatalog() {
         allProductsData = combinedProducts;
         extractCategories(allProductsData);
         renderProducts(allProductsData);
+        
+        if (callback) callback();
       });
     });
 }
@@ -167,7 +228,7 @@ function renderProducts(products) {
     
     html += `
         </div>
-        <button class="btn btn-primary" onclick="openModal('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.isWarehouse})">
+        <button class="btn btn-primary" onclick="requestProduct('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.isWarehouse})">
           <i class="fa-solid fa-cart-shopping"></i> طلب المنتج
         </button>
       </div>
@@ -177,11 +238,41 @@ function renderProducts(products) {
   grid.innerHTML = html;
 }
 
+// ===== Request Product (Auth Gate) =====
+window.requestProduct = function(id, name, isWarehouse) {
+  // Check if logged in
+  if (!loggedInClient) {
+    // Redirect to auth page with product info
+    var authUrl = 'customer_auth.html?action=request&product_id=' + id + 
+                  '&product_name=' + encodeURIComponent(name) + 
+                  '&is_warehouse=' + isWarehouse;
+    window.location.href = authUrl;
+    return;
+  }
+  
+  // Client is logged in → open modal directly
+  openModal(id, name, isWarehouse);
+}
+
 window.openModal = function(id, name, isWarehouse) {
   document.getElementById('req-product-id').value = id || '';
   document.getElementById('req-product-name').value = name || '';
   document.getElementById('req-is-warehouse').value = isWarehouse ? 'true' : 'false';
   document.getElementById('selected-product-name').innerHTML = '<i class="fa-solid fa-tag"></i> المنتج المطلوب: ' + name;
+  
+  // Auto-fill from logged in client
+  if (loggedInClient) {
+    document.getElementById('req-company').value = loggedInClient.company_name || '';
+    document.getElementById('req-person').value = loggedInClient.contact_person || '';
+    document.getElementById('req-phone').value = loggedInClient.phone || '';
+    
+    // Show logged-in info
+    var clientInfoEl = document.getElementById('client-info');
+    if (clientInfoEl) {
+      clientInfoEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i> مسجل كـ: <strong>' + (loggedInClient.contact_person || loggedInClient.company_name) + '</strong>';
+      clientInfoEl.style.display = 'block';
+    }
+  }
   
   const modal = document.getElementById('reg-modal');
   modal.classList.add('active');
@@ -225,6 +316,9 @@ window.submitRequest = function() {
   if (isWarehouse) {
     finalNotes = `[طلب من المخزن التام مباشرة - الصنف: ${productName}] - ` + finalNotes;
   }
+  if (loggedInClient) {
+    finalNotes = `[عميل مسجل: ${loggedInClient.username}] - ` + (finalNotes || '');
+  }
 
   let insertData = {
     company_name: company,
@@ -235,7 +329,7 @@ window.submitRequest = function() {
     status: 'pending'
   };
 
-  // Only assign requested_product_id if it looks like a UUID to avoid foreign key errors from inventory ids
+  // Only assign requested_product_id if it looks like a UUID
   if (productId && productId.length > 30 && productId.includes('-')) { 
     insertData.requested_product_id = productId;
   }
@@ -265,9 +359,6 @@ window.submitRequest = function() {
       color: '#fff'
     }).then(() => {
       closeModal();
-      document.getElementById('req-company').value = '';
-      document.getElementById('req-person').value = '';
-      document.getElementById('req-phone').value = '';
       document.getElementById('req-qty').value = '';
       document.getElementById('req-notes').value = '';
     });
