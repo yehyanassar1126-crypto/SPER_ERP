@@ -41,242 +41,113 @@
 
     h1, h2, h3 { font-family: 'Tajawal', sans-serif; }
 
-    .auth-wrapper {
-      width: 100%;
-      max-width: 480px;
-    }
+    .auth-wrapper { width: 100%; max-width: 480px; }
 
     .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--text-muted);
-      text-decoration: none;
-      margin-bottom: 20px;
-      font-size: 0.95rem;
-      transition: color 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--text-muted); text-decoration: none; margin-bottom: 20px;
+      font-size: 0.95rem; transition: color 0.2s;
     }
     .back-link:hover { color: var(--primary); }
 
     .auth-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      padding: 40px;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(79, 172, 254, 0.05);
+      background: var(--card-bg); backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border); border-radius: 24px; padding: 40px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 40px rgba(79,172,254,0.05);
+      animation: fadeIn 0.5s ease-out;
     }
 
-    .logo-section {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
+    .logo-section { text-align: center; margin-bottom: 30px; }
     .logo-icon {
-      width: 70px;
-      height: 70px;
+      width: 70px; height: 70px;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 15px;
-      font-size: 2rem;
-      color: #000;
-      box-shadow: 0 8px 25px rgba(0, 242, 254, 0.3);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 15px; font-size: 2rem; color: #000;
+      box-shadow: 0 8px 25px rgba(0,242,254,0.3);
     }
+    .logo-section h1 { font-size: 1.8rem; font-weight: 900; margin-bottom: 5px; }
+    .logo-section p { color: var(--text-muted); font-size: 0.9rem; }
 
-    .logo-section h1 {
-      font-size: 1.8rem;
-      font-weight: 900;
-      margin-bottom: 5px;
-    }
-
-    .logo-section p {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    /* Tabs */
     .tabs {
-      display: flex;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--glass-border);
-      border-radius: 14px;
-      padding: 4px;
-      margin-bottom: 30px;
+      display: flex; background: rgba(255,255,255,0.03);
+      border: 1px solid var(--glass-border); border-radius: 14px;
+      padding: 4px; margin-bottom: 30px;
     }
-
     .tab {
-      flex: 1;
-      text-align: center;
-      padding: 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 700;
-      color: var(--text-muted);
-      transition: all 0.3s;
-      font-size: 0.95rem;
+      flex: 1; text-align: center; padding: 12px; border-radius: 10px;
+      cursor: pointer; font-weight: 700; color: var(--text-muted);
+      transition: all 0.3s; font-size: 0.95rem;
     }
-
     .tab:hover { color: var(--text-main); }
-
     .tab.active {
       background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #000;
-      box-shadow: 0 4px 12px rgba(0, 242, 254, 0.3);
+      color: #000; box-shadow: 0 4px 12px rgba(0,242,254,0.3);
     }
 
-    /* Forms */
     .form-group { margin-bottom: 20px; }
-
-    .form-label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-    }
-
-    .form-label i {
-      margin-left: 6px;
-      color: var(--primary);
-    }
-
-    .input-wrapper {
-      position: relative;
-    }
-
+    .form-label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-muted); font-size: 0.85rem; }
+    .form-label i { margin-left: 6px; color: var(--primary); }
+    .input-wrapper { position: relative; }
     .form-input {
-      width: 100%;
-      padding: 14px 14px 14px 42px;
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      color: white;
-      font-family: 'Cairo', sans-serif;
-      font-size: 0.95rem;
-      outline: none;
-      transition: all 0.3s;
+      width: 100%; padding: 14px 14px 14px 42px;
+      border: 1px solid var(--glass-border); border-radius: 12px;
+      background: rgba(255,255,255,0.05); color: white;
+      font-family: 'Cairo', sans-serif; font-size: 0.95rem;
+      outline: none; transition: all 0.3s;
     }
-
-    .form-input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 12px rgba(0, 242, 254, 0.15);
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .input-icon {
-      position: absolute;
-      left: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
+    .form-input:focus { border-color: var(--primary); box-shadow: 0 0 12px rgba(0,242,254,0.15); background: rgba(255,255,255,0.08); }
+    .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; }
 
     .btn {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.3s;
-      font-family: 'Cairo', sans-serif;
-      margin-top: 10px;
+      width: 100%; padding: 14px; border-radius: 12px; border: none;
+      font-weight: 700; font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.3s; font-family: 'Cairo', sans-serif; margin-top: 10px;
     }
-
     .btn-primary {
       background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #000;
-      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+      color: #000; box-shadow: 0 4px 15px rgba(0,242,254,0.3);
     }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,242,254,0.5); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
 
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0, 242, 254, 0.5);
-    }
-
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
-    /* Product Info Banner */
     .product-banner {
-      background: rgba(79, 172, 254, 0.1);
-      border: 1px dashed rgba(79, 172, 254, 0.3);
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 25px;
-      text-align: center;
-      font-weight: bold;
-      display: none;
+      background: rgba(79,172,254,0.1); border: 1px dashed rgba(79,172,254,0.3);
+      padding: 15px; border-radius: 12px; margin-bottom: 25px;
+      text-align: center; font-weight: bold; display: none;
     }
-
     .product-banner i { color: var(--primary); }
 
     .divider {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin: 20px 0;
-      color: var(--text-muted);
-      font-size: 0.8rem;
+      display: flex; align-items: center; gap: 15px; margin: 20px 0;
+      color: var(--text-muted); font-size: 0.8rem;
     }
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--glass-border);
-    }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--glass-border); }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .auth-card { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-
   <div class="auth-wrapper">
     <a href="public_catalog.html" class="back-link">
       <i class="fa-solid fa-arrow-right"></i> الرجوع للكتالوج
     </a>
-
     <div class="auth-card">
       <div class="logo-section">
         <div class="logo-icon"><i class="fa-solid fa-user-shield"></i></div>
         <h1>بوابة العملاء</h1>
         <p>سجل دخولك أو أنشئ حساب جديد لطلب المنتجات</p>
       </div>
-
-      <!-- Product Info (shown if redirected from catalog) -->
       <div class="product-banner" id="product-banner">
         <i class="fa-solid fa-tag"></i> <span id="banner-product-name"></span>
       </div>
-
-      <!-- Tabs -->
       <div class="tabs">
-        <div class="tab active" id="tab-login" onclick="switchTab('login')">
-          <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
-        </div>
-        <div class="tab" id="tab-register" onclick="switchTab('register')">
-          <i class="fa-solid fa-user-plus"></i> حساب جديد
-        </div>
+        <div class="tab active" id="tab-login" onclick="switchTab('login')"><i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول</div>
+        <div class="tab" id="tab-register" onclick="switchTab('register')"><i class="fa-solid fa-user-plus"></i> حساب جديد</div>
       </div>
 
-      <!-- ========== LOGIN FORM ========== -->
+      <!-- LOGIN -->
       <form id="login-form" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label class="form-label"><i class="fa-solid fa-user"></i> اسم المستخدم</label>
@@ -292,61 +163,33 @@
             <input type="password" id="log-password" class="form-input" placeholder="أدخل كلمة المرور" required>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary" id="btn-login">
-          <i class="fa-solid fa-right-to-bracket"></i> دخول
-        </button>
+        <button type="submit" class="btn btn-primary" id="btn-login"><i class="fa-solid fa-right-to-bracket"></i> دخول</button>
       </form>
 
-      <!-- ========== REGISTER FORM ========== -->
+      <!-- REGISTER -->
       <form id="register-form" onsubmit="handleRegister(event)" style="display:none">
         <div class="form-group">
-          <label class="form-label"><i class="fa-solid fa-building"></i> اسم الشركة / العميل *</label>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-building input-icon"></i>
-            <input type="text" id="reg-company" class="form-input" placeholder="مثال: مصنع النور للبلاستيك" required>
-          </div>
+          <label class="form-label"><i class="fa-solid fa-building"></i> اسم الشركة *</label>
+          <div class="input-wrapper"><i class="fa-solid fa-building input-icon"></i><input type="text" id="reg-company" class="form-input" placeholder="مثال: مصنع النور" required></div>
         </div>
         <div class="form-group">
           <label class="form-label"><i class="fa-solid fa-user-tie"></i> اسم المسئول *</label>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-user input-icon"></i>
-            <input type="text" id="reg-contact" class="form-input" placeholder="الاسم بالكامل" required>
-          </div>
+          <div class="input-wrapper"><i class="fa-solid fa-user input-icon"></i><input type="text" id="reg-contact" class="form-input" placeholder="الاسم بالكامل" required></div>
         </div>
         <div class="form-group">
           <label class="form-label"><i class="fa-solid fa-phone"></i> رقم الهاتف *</label>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-mobile-screen input-icon"></i>
-            <input type="tel" id="reg-phone" class="form-input" placeholder="01xxxxxxxxx" required>
-          </div>
+          <div class="input-wrapper"><i class="fa-solid fa-mobile-screen input-icon"></i><input type="tel" id="reg-phone" class="form-input" placeholder="01xxxxxxxxx" required></div>
         </div>
-        <div class="form-group">
-          <label class="form-label"><i class="fa-solid fa-envelope"></i> البريد الإلكتروني (اختياري)</label>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-envelope input-icon"></i>
-            <input type="email" id="reg-email" class="form-input" placeholder="info@company.com">
-          </div>
-        </div>
-
         <div class="divider">بيانات الدخول</div>
-
         <div class="form-group">
-          <label class="form-label"><i class="fa-solid fa-user"></i> اسم المستخدم (Username) *</label>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-at input-icon"></i>
-            <input type="text" id="reg-username" class="form-input" placeholder="اختر اسم مستخدم فريد" required>
-          </div>
+          <label class="form-label"><i class="fa-solid fa-user"></i> اسم المستخدم *</label>
+          <div class="input-wrapper"><i class="fa-solid fa-at input-icon"></i><input type="text" id="reg-username" class="form-input" placeholder="اختر اسم مستخدم فريد" required></div>
         </div>
         <div class="form-group">
           <label class="form-label"><i class="fa-solid fa-lock"></i> كلمة المرور *</label>
-          <div class="input-wrapper">
-            <i class="fa-solid fa-key input-icon"></i>
-            <input type="password" id="reg-password" class="form-input" placeholder="أنشئ كلمة مرور قوية" required minlength="4">
-          </div>
+          <div class="input-wrapper"><i class="fa-solid fa-key input-icon"></i><input type="password" id="reg-password" class="form-input" placeholder="أنشئ كلمة مرور" required minlength="4"></div>
         </div>
-        <button type="submit" class="btn btn-primary" id="btn-register">
-          <i class="fa-solid fa-user-plus"></i> إنشاء الحساب والدخول
-        </button>
+        <button type="submit" class="btn btn-primary" id="btn-register"><i class="fa-solid fa-user-plus"></i> إنشاء الحساب والدخول</button>
       </form>
     </div>
   </div>
@@ -354,222 +197,105 @@
   <script src="js/config.js"></script>
   <script src="js/supabaseClient.js"></script>
   <script>
-    // ===== Read URL Params =====
     var urlParams = new URLSearchParams(window.location.search);
     var redirectAction = urlParams.get('action');
     var productId = urlParams.get('product_id');
     var productName = urlParams.get('product_name');
     var isWarehouse = urlParams.get('is_warehouse') === 'true';
 
-    // Show product banner if redirected from catalog
     if (productName) {
       document.getElementById('product-banner').style.display = 'block';
       document.getElementById('banner-product-name').textContent = 'المنتج المطلوب: ' + decodeURIComponent(productName);
     }
 
-    // ===== Check if already logged in =====
-    var existingClient = localStorage.getItem('catalog_client');
-    if (existingClient) {
-      redirectToAction();
-    }
+    if (localStorage.getItem('catalog_client')) { redirectToAction(); }
 
-    // ===== Tab Switching =====
     function switchTab(tab) {
-      if (tab === 'login') {
-        document.getElementById('login-form').style.display = 'block';
-        document.getElementById('register-form').style.display = 'none';
-        document.getElementById('tab-login').classList.add('active');
-        document.getElementById('tab-register').classList.remove('active');
-      } else {
-        document.getElementById('login-form').style.display = 'none';
-        document.getElementById('register-form').style.display = 'block';
-        document.getElementById('tab-login').classList.remove('active');
-        document.getElementById('tab-register').classList.add('active');
-      }
+      document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab === 'register');
     }
 
-    // ===== Login Handler =====
+    /* ============================
+       LOGIN - يتشيك من جدول suppliers
+       ============================ */
     function handleLogin(e) {
       e.preventDefault();
       var username = document.getElementById('log-username').value.trim();
       var password = document.getElementById('log-password').value.trim();
-      
-      if (!username || !password) {
-        Swal.fire({ icon:'warning', title:'حقول فارغة', text:'ادخل اسم المستخدم وكلمة المرور', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
-        return;
-      }
-
-      // Check Supabase connection
-      if (!window.sbClient) {
-        Swal.fire({ icon:'error', title:'خطأ اتصال', text:'تعذر الاتصال بقاعدة البيانات. أعد تحميل الصفحة.', confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
-        return;
-      }
+      if (!username || !password) { Swal.fire({icon:'warning',title:'حقول فارغة',text:'ادخل اسم المستخدم وكلمة المرور',confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
+      if (!window.sbClient) { Swal.fire({icon:'error',title:'خطأ اتصال',text:'أعد تحميل الصفحة',confirmButtonColor:'#ef4444',background:'#111827',color:'#fff'}); return; }
 
       var btn = document.getElementById('btn-login');
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+      var reset = function(){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-right-to-bracket"></i> دخول'; };
 
-      var resetBtn = function() {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> دخول';
-      };
-
-      // Query: search by username OR email OR contact_person OR company_name
-      sbClient.from('clients').select('*')
-        .or('username.eq.' + username + ',email.eq.' + username + ',contact_person.eq.' + username + ',company_name.eq.' + username)
+      // البحث في جدول suppliers - حقل email بيتخزن فيه اسم المستخدم
+      sbClient.from('suppliers').select('*')
+        .or('email.eq.' + username + ',company_name.eq.' + username + ',contact_person.eq.' + username)
         .then(function(res) {
+          if (res.error) { reset(); Swal.fire({icon:'error',title:'خطأ',text:res.error.message,confirmButtonColor:'#ef4444',background:'#111827',color:'#fff'}); return; }
+          var rows = res.data || [];
+          if (rows.length === 0) { reset(); Swal.fire({icon:'error',title:'حساب غير موجود',text:'لا يوجد حساب بهذا الاسم. جرب أنشئ حساب جديد.',confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
+          
+          var user = rows[0];
+          if (user.password_hash !== password) { reset(); Swal.fire({icon:'error',title:'كلمة المرور خاطئة',text:'كلمة المرور غير صحيحة.',confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
 
-        if (res.error) {
-          console.error('DB Error:', res.error);
-          resetBtn();
-          Swal.fire({ icon:'error', title:'خطأ قاعدة البيانات', text: res.error.message, confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
-          return;
-        }
-
-        var clients = res.data || [];
-        console.log('Found ' + clients.length + ' matching clients');
-
-        if (clients.length === 0) {
-          resetBtn();
-          Swal.fire({ icon:'error', title:'حساب غير موجود', text:'لا يوجد حساب بهذا الاسم "' + username + '". جرب أنشئ حساب جديد.', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
-          return;
-        }
-
-        var client = clients[0];
-
-        // Check password - if password_hash is null, treat any password as valid (first time login for old clients)
-        if (client.password_hash && client.password_hash !== password) {
-          resetBtn();
-          Swal.fire({ icon:'error', title:'كلمة المرور خاطئة', text:'كلمة المرور غير صحيحة. حاول مرة أخرى.', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
-          return;
-        }
-
-        // If client had no password, set it now
-        if (!client.password_hash) {
-          sbClient.from('clients').update({ password_hash: password, username: username }).eq('id', client.id).then(function(){
-            console.log('Auto-set password for client ' + client.id);
-          });
-        }
-
-        // Success - save session
-        var clientData = {
-          id: client.id,
-          company_name: client.company_name,
-          contact_person: client.contact_person,
-          phone: client.phone,
-          email: client.email,
-          username: client.username || username
-        };
-        localStorage.setItem('catalog_client', JSON.stringify(clientData));
-
-        Swal.fire({
-          icon: 'success',
-          title: 'تم تسجيل الدخول ✅',
-          text: 'أهلاً بك يا ' + (client.contact_person || client.company_name) + '!',
-          timer: 1500,
-          showConfirmButton: false,
-          background: '#111827',
-          color: '#fff'
-        }).then(function() {
-          redirectToAction();
-        });
-      }).catch(function(err) {
-        console.error('Unexpected error:', err);
-        resetBtn();
-        Swal.fire({ icon:'error', title:'خطأ غير متوقع', text: err.message || 'حدث خطأ. أعد المحاولة.', confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
-      });
+          // نجاح
+          localStorage.setItem('catalog_client', JSON.stringify({
+            id: user.id, company_name: user.company_name, contact_person: user.contact_person,
+            phone: user.phone, email: user.email, username: user.email
+          }));
+          Swal.fire({icon:'success',title:'تم تسجيل الدخول ✅',text:'أهلاً بك يا '+(user.contact_person||user.company_name)+'!',timer:1500,showConfirmButton:false,background:'#111827',color:'#fff'}).then(function(){redirectToAction();});
+        }).catch(function(err){ reset(); Swal.fire({icon:'error',title:'خطأ',text:err.message,confirmButtonColor:'#ef4444',background:'#111827',color:'#fff'}); });
     }
 
-    // ===== Register Handler =====
+    /* ============================
+       REGISTER - يضيف في جدول suppliers
+       ============================ */
     function handleRegister(e) {
       e.preventDefault();
       var company = document.getElementById('reg-company').value.trim();
       var contact = document.getElementById('reg-contact').value.trim();
       var phone = document.getElementById('reg-phone').value.trim();
-      var email = document.getElementById('reg-email').value.trim();
       var username = document.getElementById('reg-username').value.trim();
       var password = document.getElementById('reg-password').value.trim();
-
-      if (!company || !contact || !phone || !username || !password) {
-        Swal.fire({ icon:'warning', title:'حقول ناقصة', text:'ادخل جميع الحقول الإجبارية', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
-        return;
-      }
-
-      if (!window.sbClient) {
-        Swal.fire({ icon:'error', title:'خطأ اتصال', text:'تعذر الاتصال بقاعدة البيانات. أعد تحميل الصفحة.', confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
-        return;
-      }
+      if (!company||!contact||!phone||!username||!password) { Swal.fire({icon:'warning',title:'حقول ناقصة',text:'ادخل جميع الحقول',confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
+      if (!window.sbClient) { Swal.fire({icon:'error',title:'خطأ',text:'أعد تحميل الصفحة',confirmButtonColor:'#ef4444',background:'#111827',color:'#fff'}); return; }
 
       var btn = document.getElementById('btn-register');
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإنشاء...';
+      var reset = function(){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-user-plus"></i> إنشاء الحساب والدخول'; };
 
-      var resetBtn = function() {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> إنشاء الحساب والدخول';
-      };
+      sbClient.from('suppliers').select('id').eq('email', username).then(function(chk) {
+        if (chk.data && chk.data.length > 0) { reset(); Swal.fire({icon:'warning',title:'موجود',text:'اسم المستخدم موجود بالفعل',confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
 
-      // Check if username exists
-      sbClient.from('clients').select('id').eq('username', username).then(function(chk) {
-        if (chk.data && chk.data.length > 0) {
-          resetBtn();
-          Swal.fire({ icon:'warning', title:'اسم المستخدم موجود', text:'اسم المستخدم "' + username + '" مستخدم بالفعل. اختر اسم تاني.', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
-          return;
-        }
-
-        // Insert new client
-        sbClient.from('clients').insert({
-          company_name: company,
-          contact_person: contact,
-          phone: phone,
-          email: email || null,
-          username: username,
-          password_hash: password,
-          status: 'active'
+        sbClient.from('suppliers').insert({
+          company_name: company, contact_person: contact, phone: phone,
+          email: username, password_hash: password
         }).select().then(function(res) {
-          if (res.error) {
-            console.error('Insert error:', res.error);
-            resetBtn();
-            Swal.fire({ icon:'error', title:'خطأ في الإنشاء', text: res.error.message, confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
-            return;
-          }
-
-          var newClient = res.data[0];
-          var clientData = {
-            id: newClient.id,
-            company_name: newClient.company_name,
-            contact_person: newClient.contact_person,
-            phone: newClient.phone,
-            email: newClient.email,
-            username: newClient.username
-          };
-          localStorage.setItem('catalog_client', JSON.stringify(clientData));
-
-          Swal.fire({
-            icon: 'success',
-            title: 'تم إنشاء الحساب بنجاح! 🎉',
-            text: 'مرحباً بك يا ' + contact + '! جاري تحويلك...',
-            timer: 2000,
-            showConfirmButton: false,
-            background: '#111827',
-            color: '#fff'
-          }).then(function() {
-            redirectToAction();
-          });
+          if (res.error) { reset(); Swal.fire({icon:'error',title:'خطأ',text:res.error.message,confirmButtonColor:'#ef4444',background:'#111827',color:'#fff'}); return; }
+          var u = res.data[0];
+          localStorage.setItem('catalog_client', JSON.stringify({
+            id:u.id, company_name:u.company_name, contact_person:u.contact_person,
+            phone:u.phone, email:u.email, username:u.email
+          }));
+          Swal.fire({icon:'success',title:'تم إنشاء الحساب! 🎉',text:'مرحباً بك يا '+contact+'!',timer:2000,showConfirmButton:false,background:'#111827',color:'#fff'}).then(function(){redirectToAction();});
         });
       });
     }
 
-    // ===== Redirect after auth =====
     function redirectToAction() {
-      var redirectUrl = 'public_catalog.html?logged_in=true';
-      if (productId) redirectUrl += '&product_id=' + productId;
-      if (productName) redirectUrl += '&product_name=' + encodeURIComponent(productName);
-      if (isWarehouse) redirectUrl += '&is_warehouse=true';
-      if (redirectAction) redirectUrl += '&action=' + redirectAction;
-      window.location.href = redirectUrl;
+      var url = 'public_catalog.html?logged_in=true';
+      if (productId) url += '&product_id=' + productId;
+      if (productName) url += '&product_name=' + encodeURIComponent(productName);
+      if (isWarehouse) url += '&is_warehouse=true';
+      if (redirectAction) url += '&action=' + redirectAction;
+      window.location.href = url;
     }
   </script>
 </body>
 </html>
-
