@@ -398,8 +398,8 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
 
-      // Use array query (no .single()) to avoid PGRST116 errors
-      sbClient.from('clients').select('*').eq('username', username).then(function(res) {
+      // Search by username first, then fallback to email
+      sbClient.from('clients').select('*').or('username.eq.' + username + ',email.eq.' + username).then(function(res) {
         console.log('Login query result:', JSON.stringify(res));
         
         var resetBtn = function() {
