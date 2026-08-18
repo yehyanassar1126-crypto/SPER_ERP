@@ -398,14 +398,21 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
 
-      sbClient.from('clients').select('*').eq('username', username).single().then(function(res) {
-        if (res.error || !res.data) {
+      // Use array query (no .single()) to avoid PGRST116 errors
+      sbClient.from('clients').select('*').eq('username', username).then(function(res) {
+        console.log('Login query result:', JSON.stringify(res));
+        
+        var resetBtn = function() {
           btn.disabled = false;
           btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> دخول';
+        };
+
+        if (res.error) {
+          resetBtn();
           Swal.fire({
             icon: 'error',
-            title: 'بيانات غير صحيحة',
-            text: 'اسم المستخدم غير موجود. تأكد من البيانات أو أنشئ حساب جديد.',
+            title: 'خطأ في الاتصال',
+            text: 'حدث خطأ أثناء الاتصال بقاعدة البيانات: ' + res.error.message,
             confirmButtonColor: '#00f2fe',
             background: '#111827',
             color: '#fff'
@@ -413,9 +420,25 @@
           return;
         }
 
-        if (res.data.password_hash !== password) {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> دخول';
+        var clients = res.data || [];
+        
+        if (clients.length === 0) {
+          resetBtn();
+          Swal.fire({
+            icon: 'error',
+            title: 'اسم المستخدم غير موجود',
+            text: 'لا يوجد حساب بهذا الاسم. تأكد من اسم المستخدم أو أنشئ حساب جديد.',
+            confirmButtonColor: '#00f2fe',
+            background: '#111827',
+            color: '#fff'
+          });
+          return;
+        }
+
+        var client = clients[0];
+
+        if (client.password_hash !== password) {
+          resetBtn();
           Swal.fire({
             icon: 'error',
             title: 'كلمة المرور خاطئة',
@@ -429,19 +452,19 @@
 
         // Success - save session
         var clientData = {
-          id: res.data.id,
-          company_name: res.data.company_name,
-          contact_person: res.data.contact_person,
-          phone: res.data.phone,
-          email: res.data.email,
-          username: res.data.username
+          id: client.id,
+          company_name: client.company_name,
+          contact_person: client.contact_person,
+          phone: client.phone,
+          email: client.email,
+          username: client.username
         };
         localStorage.setItem('catalog_client', JSON.stringify(clientData));
 
         Swal.fire({
           icon: 'success',
-          title: 'تم تسجيل الدخول',
-          text: 'أهلاً بك يا ' + (res.data.contact_person || res.data.company_name) + '!',
+          title: 'تم تسجيل الدخول ✅',
+          text: 'أهلاً بك يا ' + (client.contact_person || client.company_name) + '!',
           timer: 1500,
           showConfirmButton: false,
           background: '#111827',
