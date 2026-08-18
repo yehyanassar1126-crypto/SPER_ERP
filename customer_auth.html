@@ -356,7 +356,7 @@
   <script>
     // ===== Read URL Params =====
     var urlParams = new URLSearchParams(window.location.search);
-    var redirectAction = urlParams.get('action'); // 'request'
+    var redirectAction = urlParams.get('action');
     var productId = urlParams.get('product_id');
     var productName = urlParams.get('product_name');
     var isWarehouse = urlParams.get('is_warehouse') === 'true';
@@ -394,60 +394,61 @@
       var username = document.getElementById('log-username').value.trim();
       var password = document.getElementById('log-password').value.trim();
       
+      if (!username || !password) {
+        Swal.fire({ icon:'warning', title:'حقول فارغة', text:'ادخل اسم المستخدم وكلمة المرور', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
+        return;
+      }
+
+      // Check Supabase connection
+      if (!window.sbClient) {
+        Swal.fire({ icon:'error', title:'خطأ اتصال', text:'تعذر الاتصال بقاعدة البيانات. أعد تحميل الصفحة.', confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
+        return;
+      }
+
       var btn = document.getElementById('btn-login');
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
 
-      // Search by username first, then fallback to email
-      sbClient.from('clients').select('*').or('username.eq.' + username + ',email.eq.' + username).then(function(res) {
-        console.log('Login query result:', JSON.stringify(res));
-        
-        var resetBtn = function() {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> دخول';
-        };
+      var resetBtn = function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> دخول';
+      };
+
+      // Query: search by username OR email OR contact_person OR company_name
+      sbClient.from('clients').select('*')
+        .or('username.eq.' + username + ',email.eq.' + username + ',contact_person.eq.' + username + ',company_name.eq.' + username)
+        .then(function(res) {
 
         if (res.error) {
+          console.error('DB Error:', res.error);
           resetBtn();
-          Swal.fire({
-            icon: 'error',
-            title: 'خطأ في الاتصال',
-            text: 'حدث خطأ أثناء الاتصال بقاعدة البيانات: ' + res.error.message,
-            confirmButtonColor: '#00f2fe',
-            background: '#111827',
-            color: '#fff'
-          });
+          Swal.fire({ icon:'error', title:'خطأ قاعدة البيانات', text: res.error.message, confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
           return;
         }
 
         var clients = res.data || [];
-        
+        console.log('Found ' + clients.length + ' matching clients');
+
         if (clients.length === 0) {
           resetBtn();
-          Swal.fire({
-            icon: 'error',
-            title: 'اسم المستخدم غير موجود',
-            text: 'لا يوجد حساب بهذا الاسم. تأكد من اسم المستخدم أو أنشئ حساب جديد.',
-            confirmButtonColor: '#00f2fe',
-            background: '#111827',
-            color: '#fff'
-          });
+          Swal.fire({ icon:'error', title:'حساب غير موجود', text:'لا يوجد حساب بهذا الاسم "' + username + '". جرب أنشئ حساب جديد.', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
           return;
         }
 
         var client = clients[0];
 
-        if (client.password_hash !== password) {
+        // Check password - if password_hash is null, treat any password as valid (first time login for old clients)
+        if (client.password_hash && client.password_hash !== password) {
           resetBtn();
-          Swal.fire({
-            icon: 'error',
-            title: 'كلمة المرور خاطئة',
-            text: 'كلمة المرور غير صحيحة. حاول مرة أخرى.',
-            confirmButtonColor: '#00f2fe',
-            background: '#111827',
-            color: '#fff'
-          });
+          Swal.fire({ icon:'error', title:'كلمة المرور خاطئة', text:'كلمة المرور غير صحيحة. حاول مرة أخرى.', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
           return;
+        }
+
+        // If client had no password, set it now
+        if (!client.password_hash) {
+          sbClient.from('clients').update({ password_hash: password, username: username }).eq('id', client.id).then(function(){
+            console.log('Auto-set password for client ' + client.id);
+          });
         }
 
         // Success - save session
@@ -457,7 +458,7 @@
           contact_person: client.contact_person,
           phone: client.phone,
           email: client.email,
-          username: client.username
+          username: client.username || username
         };
         localStorage.setItem('catalog_client', JSON.stringify(clientData));
 
@@ -472,6 +473,10 @@
         }).then(function() {
           redirectToAction();
         });
+      }).catch(function(err) {
+        console.error('Unexpected error:', err);
+        resetBtn();
+        Swal.fire({ icon:'error', title:'خطأ غير متوقع', text: err.message || 'حدث خطأ. أعد المحاولة.', confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
       });
     }
 
@@ -485,27 +490,34 @@
       var username = document.getElementById('reg-username').value.trim();
       var password = document.getElementById('reg-password').value.trim();
 
+      if (!company || !contact || !phone || !username || !password) {
+        Swal.fire({ icon:'warning', title:'حقول ناقصة', text:'ادخل جميع الحقول الإجبارية', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
+        return;
+      }
+
+      if (!window.sbClient) {
+        Swal.fire({ icon:'error', title:'خطأ اتصال', text:'تعذر الاتصال بقاعدة البيانات. أعد تحميل الصفحة.', confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
+        return;
+      }
+
       var btn = document.getElementById('btn-register');
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإنشاء...';
 
-      // Check if username already exists
+      var resetBtn = function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> إنشاء الحساب والدخول';
+      };
+
+      // Check if username exists
       sbClient.from('clients').select('id').eq('username', username).then(function(chk) {
         if (chk.data && chk.data.length > 0) {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> إنشاء الحساب والدخول';
-          Swal.fire({
-            icon: 'warning',
-            title: 'اسم المستخدم موجود',
-            text: 'اسم المستخدم "' + username + '" مستخدم بالفعل. اختر اسم تاني.',
-            confirmButtonColor: '#00f2fe',
-            background: '#111827',
-            color: '#fff'
-          });
+          resetBtn();
+          Swal.fire({ icon:'warning', title:'اسم المستخدم موجود', text:'اسم المستخدم "' + username + '" مستخدم بالفعل. اختر اسم تاني.', confirmButtonColor:'#00f2fe', background:'#111827', color:'#fff' });
           return;
         }
 
-        // Insert into clients table
+        // Insert new client
         sbClient.from('clients').insert({
           company_name: company,
           contact_person: contact,
@@ -516,16 +528,9 @@
           status: 'active'
         }).select().then(function(res) {
           if (res.error) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> إنشاء الحساب والدخول';
-            Swal.fire({
-              icon: 'error',
-              title: 'خطأ في الإنشاء',
-              text: res.error.message,
-              confirmButtonColor: '#ef4444',
-              background: '#111827',
-              color: '#fff'
-            });
+            console.error('Insert error:', res.error);
+            resetBtn();
+            Swal.fire({ icon:'error', title:'خطأ في الإنشاء', text: res.error.message, confirmButtonColor:'#ef4444', background:'#111827', color:'#fff' });
             return;
           }
 
@@ -557,15 +562,14 @@
 
     // ===== Redirect after auth =====
     function redirectToAction() {
-      // Build redirect URL back to catalog with auth params
       var redirectUrl = 'public_catalog.html?logged_in=true';
       if (productId) redirectUrl += '&product_id=' + productId;
       if (productName) redirectUrl += '&product_name=' + encodeURIComponent(productName);
       if (isWarehouse) redirectUrl += '&is_warehouse=true';
       if (redirectAction) redirectUrl += '&action=' + redirectAction;
-      
       window.location.href = redirectUrl;
     }
   </script>
 </body>
 </html>
+
