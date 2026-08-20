@@ -375,6 +375,8 @@ var App = {
             section: 'Administration', items: [
               { id: 'system-settings', label: '⚙️ Settings (الإعدادات)', icon: 'settings' },
               { id: 'screen-permissions', label: '🔐 Permissions (الصلاحيات)', icon: 'shield' },
+              { id: 'notification-settings', label: '🔔 Notifications (الإشعارات)', icon: 'bell' },
+              { id: 'facebook-leads', label: '📘 Facebook Leads', icon: 'globe' },
             ]
           }
         ];
@@ -802,6 +804,8 @@ var App = {
       'supplier-performance': { title: '📊 Supplier Performance (تقييم الموردين)', sub: 'AI-powered supplier rating & analysis' },
       'screen-permissions': { title: '🔐 Screen Permissions (صلاحيات الشاشات)', sub: 'Manage user & role access' },
       'production-trace': { title: '🔗 Production Traceability (تتبع الإنتاج)', sub: 'Track batch from raw material to customer' },
+      'notification-settings': { title: '🔔 Notification Settings (إعدادات الإشعارات)', sub: 'Push notifications & channels' },
+      'facebook-leads': { title: '📘 Facebook Lead Integration', sub: 'Sync leads from Meta/Facebook' },
       'spare-parts': { title: 'Spare Parts Lifecycle (دورة قطع الغيار)', sub: 'Manage spare parts requests, returns, and quality checks' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
@@ -954,6 +958,8 @@ var App = {
       case 'supplier-performance': if (typeof ERPSupplierPerf !== 'undefined') ERPSupplierPerf.render(); else el.innerHTML = 'Module loading...'; break;
       case 'screen-permissions': if (typeof ERPPermissions !== 'undefined') ERPPermissions.render(); else el.innerHTML = 'Module loading...'; break;
       case 'production-trace': if (typeof ERPTraceability !== 'undefined') ERPTraceability.renderTrace(); else el.innerHTML = 'Module loading...'; break;
+      case 'notification-settings': if (typeof ERPNotifications !== 'undefined') ERPNotifications.renderSettings(); else el.innerHTML = 'Module loading...'; break;
+      case 'facebook-leads': if (typeof ERPFacebookLeads !== 'undefined') ERPFacebookLeads.render(); else el.innerHTML = 'Module loading...'; break;
       case 'spare-parts': Pages.spareParts(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
