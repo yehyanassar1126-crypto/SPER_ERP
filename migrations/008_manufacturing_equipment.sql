@@ -293,6 +293,11 @@ BEGIN
     'equipment','equipment_rentals','maintenance_companies','maintenance_visits',
     'maintenance_payments','supplier_performance','search_index'
   ]) LOOP
-    EXECUTE format('CREATE POLICY IF NOT EXISTS "allow_all_%s" ON %I FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
+    BEGIN
+      EXECUTE format('DROP POLICY IF EXISTS "allow_all_%s" ON %I', tbl, tbl);
+      EXECUTE format('CREATE POLICY "allow_all_%s" ON %I FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Skipping policy for %: %', tbl, SQLERRM;
+    END;
   END LOOP;
 END $$;

@@ -356,6 +356,8 @@ var App = {
             section: 'Analytics', items: [
               { id: 'reports', label: 'Reports', icon: 'barChart' },
               { id: 'kpi-dashboard', label: '📊 KPI Dashboard', icon: 'trendingUp' },
+              { id: 'global-search', label: '🔍 Global Search (بحث موحد)', icon: 'search' },
+              { id: 'supplier-performance', label: '📊 Supplier Rating (تقييم الموردين)', icon: 'trendingUp' },
               { id: 'audit-log', label: 'Audit Log', icon: 'fileText' },
               { id: 'login-history', label: '🔐 Login History', icon: 'lock' },
               { id: 'activity-log-page', label: '📋 Activity Log', icon: 'fileText' },
@@ -794,6 +796,8 @@ var App = {
       'erp-bom': { title: 'BOM (مكونات المنتج)', sub: 'Bill of Materials & production recipes' },
       'erp-equipment': { title: 'Equipment (المعدات)', sub: 'Equipment registry, rental & tracking' },
       'maint-companies': { title: 'Maintenance Companies (شركات الصيانة)', sub: 'Contractor management & visit tracking' },
+      'global-search': { title: '🔍 Global Search (بحث موحد)', sub: 'Search across all ERP modules' },
+      'supplier-performance': { title: '📊 Supplier Performance (تقييم الموردين)', sub: 'AI-powered supplier rating & analysis' },
       'spare-parts': { title: 'Spare Parts Lifecycle (دورة قطع الغيار)', sub: 'Manage spare parts requests, returns, and quality checks' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
@@ -942,6 +946,8 @@ var App = {
       case 'erp-bom': if (typeof ERPManufacturing !== 'undefined') ERPManufacturing.renderBOM(); else el.innerHTML = 'Module loading...'; break;
       case 'erp-equipment': if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderEquipment(); else el.innerHTML = 'Module loading...'; break;
       case 'maint-companies': if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderMaintCompanies(); else el.innerHTML = 'Module loading...'; break;
+      case 'global-search': if (typeof ERPGlobalSearch !== 'undefined') ERPGlobalSearch.render(); else el.innerHTML = 'Module loading...'; break;
+      case 'supplier-performance': if (typeof ERPSupplierPerf !== 'undefined') ERPSupplierPerf.render(); else el.innerHTML = 'Module loading...'; break;
       case 'spare-parts': Pages.spareParts(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
