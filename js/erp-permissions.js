@@ -79,7 +79,7 @@ var ERPPermissions = {
     var role = document.getElementById('perm-role').value;
     var el = document.getElementById('perm-grid');
 
-    var query = sbClient.from('permissions').select('*');
+    var query = sbClient.from('screen_permissions').select('*');
     if (userId) query = query.eq('user_id', userId);
     else if (role) query = query.eq('role', role);
     else { el.innerHTML = '<p class="text-muted">اختر مستخدم أو Role</p>'; return; }
@@ -133,13 +133,13 @@ var ERPPermissions = {
     });
 
     // Delete old then insert new
-    var delQuery = sbClient.from('permissions').delete();
+    var delQuery = sbClient.from('screen_permissions').delete();
     if (userId) delQuery = delQuery.eq('user_id', userId);
     else if (role) delQuery = delQuery.eq('role', role);
 
     delQuery.then(function() {
       if (perms.length === 0) { showToast('تم مسح كل الصلاحيات','info'); return; }
-      sbClient.from('permissions').insert(perms).then(function(r) {
+      sbClient.from('screen_permissions').insert(perms).then(function(r) {
         if (r.error) { showToast('خطأ: '+r.error.message,'error'); return; }
         showToast('تم حفظ '+perms.length+' صلاحية بنجاح ✅','success');
         // Audit log
