@@ -6,6 +6,7 @@ var ERPPermissions = {
   allScreens: [
     // Basic Employee Screens (My Info)
     {id:'dashboard',label:'My Dashboard'},
+    {id:'hr-personal',label:'My Profile'},
     {id:'my-attendance',label:'My Attendance'},
     {id:'scan-checkin',label:'Check-In'},
     {id:'scan-checkout',label:'Check-Out'},

@@ -830,6 +830,8 @@ var App = {
       } // End of driver else block
       } // End of legacy logic block
     } // End of supplier_external else block
+    
+    App._currentMenuConfig = menu;
 
     var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
     html += '<nav class="sidebar-nav">';
@@ -1019,48 +1021,48 @@ var App = {
     switch (App.activePage) {
       case 'supplier-portal': Pages['supplier-portal'] && Pages['supplier-portal'](el); break;
       case 'dashboard': Pages.empDashboard(el); break;
-      case 'hr-admin': App.isHR() ? Pages.hrDashboard(el) : Pages.empDashboard(el); break;
-      case 'employees': (App.isHR() || App.isOwner()) ? Pages.employees(el) : Pages.empDashboard(el); break;
+      case 'hr-admin': Pages.hrDashboard(el); break;
+      case 'employees': Pages.employees(el); break;
       case 'friday-work': Pages.fridayWork(el); break;
       case 'attendance': case 'my-attendance': Pages.attendance(el); break;
-      case 'all-delays': App.isHR() ? Pages.allDelays(el) : Pages.empDashboard(el); break;
+      case 'all-delays': Pages.allDelays(el); break;
       case 'hr-qr-generator': Pages.hrQrGenerator(el); break;
       case 'scan-checkin': Pages.scanCheckin(el); break;
       case 'scan-checkout': Pages.scanCheckout(el); break;
       case 'hr-personal': Pages.hrPersonal(el); break;
       case 'my-missions': Pages.missions(el); break;
-      case 'all-missions': App.isHR() ? Pages.allMissions(el) : Pages.empDashboard(el); break;
+      case 'all-missions': Pages.allMissions(el); break;
       case 'leaves': case 'my-leaves': Pages.leaves(el); break;
-      case 'shifts': App.isHR() ? Pages.shifts(el) : Pages.empDashboard(el); break;
+      case 'shifts': Pages.shifts(el); break;
       case 'overtime': case 'my-overtime': Pages.overtime(el); break;
       case 'payroll': case 'my-salary': Pages.payroll(el); break;
       case 'payroll-funding': Pages.payrollFunding(el); break;
       case 'hr-employee-payment': Pages.hrEmployeePayment(el); break;
       case 'driver-payments': if (Pages.driverPayments) Pages.driverPayments(el); else el.innerHTML = 'Module missing'; break;
       case 'announcements': Pages.announcements(el); break;
-      case 'reports': App.isHR() ? Pages.reports(el) : Pages.empDashboard(el); break;
-      case 'audit-log': App.isHR() ? Pages.auditLog(el) : Pages.empDashboard(el); break;
+      case 'reports': Pages.reports(el); break;
+      case 'audit-log': Pages.auditLog(el); break;
       case 'team-adjustments': Pages.teamAdjustments(el); break;
-      case 'hr-adjustments': App.isHR() ? Pages.hrAdjustments(el) : Pages.empDashboard(el); break;
-      case 'recruitment': App.isHR() ? Pages.recruitment(el) : Pages.empDashboard(el); break;
-      case 'documents': App.isHR() ? Pages.documents(el) : Pages.empDashboard(el); break;
-      case 'performance': (App.isHR() || App.isManager()) ? Pages.performance(el) : Pages.empDashboard(el); break;
-      case 'uniforms': App.isHR() ? Pages.uniforms(el) : Pages.empDashboard(el); break;
-      case 'loans': App.isHR() ? Pages.loans(el) : Pages.empDashboard(el); break;
+      case 'hr-adjustments': Pages.hrAdjustments(el); break;
+      case 'recruitment': Pages.recruitment(el); break;
+      case 'documents': Pages.documents(el); break;
+      case 'performance': Pages.performance(el); break;
+      case 'uniforms': Pages.uniforms(el); break;
+      case 'loans': Pages.loans(el); break;
       case 'legal-affairs': if (Pages.legalAffairs) Pages.legalAffairs(el); else el.innerHTML = 'Module missing'; break;
       case 'my-loans': Pages.myLoans(el); break;
-      case 'medical-requests': (App.isHR() || App.isManager()) ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
-      case 'nursing-medical-approvals': (App.isNursing() || App.isHR() || App.isOwner()) ? Pages.medicalRequests(el) : Pages.empDashboard(el); break;
+      case 'medical-requests': Pages.medicalRequests(el); break;
+      case 'nursing-medical-approvals': Pages.medicalRequests(el); break;
       case 'my-medical': Pages.myMedical(el); break;
-      case 'ai-mind': (App.isHR() || App.isManager()) ? Pages.aiMind(el) : Pages.empDashboard(el); break;
+      case 'ai-mind': Pages.aiMind(el); break;
       case 'org-directory': Pages.orgDirectory(el); break;
       case 'shift-swap': Pages.shiftSwap(el); break;
       case 'my-delays': Pages['my-delays'](el); break;
       case 'expenses': case 'my-expenses': Pages.expenses(el); break;
       case 'complaints': Pages.complaints(el); break;
-      case 'offboarding': App.isHR() ? Pages.offboarding(el) : Pages.empDashboard(el); break;
-      case 'owner-dashboard': App.isOwner() ? Pages.ownerDashboard(el) : Pages.hrDashboard(el); break;
-      case 'cost-centers': App.isOwner() ? Pages.costCenters(el) : Pages.hrDashboard(el); break;
+      case 'offboarding': Pages.offboarding(el); break;
+      case 'owner-dashboard': Pages.ownerDashboard(el); break;
+      case 'cost-centers': Pages.costCenters(el); break;
       case 'inventory': Pages.inventory(el); break;
       case 'purchase-requests': Pages.purchaseRequests(el); break;
       case 'petty-cash': Pages.pettyCash(el); break;
@@ -1816,10 +1818,23 @@ Pages.empDashboard = function (el) {
     html += '<div class="stats-grid">';
     var attStatus = todayAtt ? (todayAtt.check_out ? 'Completed' : 'Checked In') : 'Not Checked In';
     var attColor = todayAtt ? '#22c55e' : '#f59e0b';
-    html += '<div class="stat-card" style="--stat-color:' + attColor + ';cursor:pointer" onclick="App.navigate(\'my-attendance\')"><div class="stat-card-header"><div class="stat-card-icon" style="background:' + (todayAtt ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)') + '">' + icon('calendarCheck', 20) + '</div></div><div class="stat-card-value" style="font-size:1.2rem">' + attStatus + '</div><div class="stat-card-label">Today\'s Status</div></div>';
-    html += '<div class="stat-card" style="--stat-color:#6366f1;cursor:pointer" onclick="App.navigate(\'my-leaves\')"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(99,102,241,0.12)">' + icon('calendarDays', 20) + '</div>' + (pendingL > 0 ? '<span class="stat-card-trend down">' + pendingL + ' pending</span>' : '') + '</div><div class="stat-card-value">' + myLeaves.length + '</div><div class="stat-card-label">Leave Requests</div></div>';
-    html += '<div class="stat-card" style="--stat-color:#06b6d4;cursor:pointer" onclick="App.navigate(\'my-salary\')"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(6,182,212,0.12)">' + icon('dollarSign', 20) + '</div></div><div class="stat-card-value">EGP ' + (latestPay ? latestPay.net_salary.toLocaleString() : '—') + '</div><div class="stat-card-label">Latest Salary</div></div>';
-    html += '<div class="stat-card" style="--stat-color:#a855f7;cursor:pointer" onclick="App.navigate(\'my-overtime\')"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(168,85,247,0.12)">' + icon('timer', 20) + '</div></div><div class="stat-card-value">' + totalOT + 'h</div><div class="stat-card-label">Overtime Hours</div></div>';
+    
+    if (typeof SecurityHelpers === 'undefined' || SecurityHelpers.hasModule('my-attendance')) {
+        html += '<div class="stat-card" style="--stat-color:' + attColor + ';cursor:pointer" onclick="App.navigate(\'my-attendance\')"><div class="stat-card-header"><div class="stat-card-icon" style="background:' + (todayAtt ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)') + '">' + icon('calendarCheck', 20) + '</div></div><div class="stat-card-value" style="font-size:1.2rem">' + attStatus + '</div><div class="stat-card-label">Today\'s Status</div></div>';
+    }
+    
+    if (typeof SecurityHelpers === 'undefined' || SecurityHelpers.hasModule('my-leaves')) {
+        html += '<div class="stat-card" style="--stat-color:#6366f1;cursor:pointer" onclick="App.navigate(\'my-leaves\')"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(99,102,241,0.12)">' + icon('calendarDays', 20) + '</div>' + (pendingL > 0 ? '<span class="stat-card-trend down">' + pendingL + ' pending</span>' : '') + '</div><div class="stat-card-value">' + myLeaves.length + '</div><div class="stat-card-label">Leave Requests</div></div>';
+    }
+    
+    if (typeof SecurityHelpers === 'undefined' || SecurityHelpers.hasModule('my-salary')) {
+        html += '<div class="stat-card" style="--stat-color:#06b6d4;cursor:pointer" onclick="App.navigate(\'my-salary\')"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(6,182,212,0.12)">' + icon('dollarSign', 20) + '</div></div><div class="stat-card-value">EGP ' + (latestPay ? latestPay.net_salary.toLocaleString() : '—') + '</div><div class="stat-card-label">Latest Salary</div></div>';
+    }
+    
+    if (typeof SecurityHelpers === 'undefined' || SecurityHelpers.hasModule('my-overtime')) {
+        html += '<div class="stat-card" style="--stat-color:#a855f7;cursor:pointer" onclick="App.navigate(\'my-overtime\')"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(168,85,247,0.12)">' + icon('timer', 20) + '</div></div><div class="stat-card-value">' + totalOT + 'h</div><div class="stat-card-label">Overtime Hours</div></div>';
+    }
+    
     html += '</div>';
 
     html += '<div class="grid-2" style="margin-bottom:24px">';
@@ -1833,7 +1848,9 @@ Pages.empDashboard = function (el) {
     }
 
     html += '<div class="card"><div class="card-header"><div><h3>Today\'s Attendance</h3><p>' + formatDate(new Date()) + '</p></div>';
-    if (user.role !== 'owner') html += '<button class="btn btn-sm btn-primary" onclick="App.navigate(\'scan-checkin\')">QR Check-In ' + icon('arrowRight') + '</button>';
+    if (typeof SecurityHelpers === 'undefined' || SecurityHelpers.hasModule('scan-checkin')) {
+        html += '<button class="btn btn-sm btn-primary" onclick="App.navigate(\'scan-checkin\')">QR Check-In ' + icon('arrowRight') + '</button>';
+    }
     html += '</div><div class="card-body">';
     if (todayAtt) {
       html += '<div style="display:flex;flex-direction:column;gap:14px">';
@@ -1847,7 +1864,11 @@ Pages.empDashboard = function (el) {
     }
     html += '</div></div></div>';
 
-    html += '<div class="card"><div class="card-header"><div><h3>📢 Recent Announcements</h3><p>Stay updated with the latest news</p></div><button class="btn btn-sm btn-outline" onclick="App.navigate(\'announcements\')">View All</button></div><div class="card-body" style="display:flex;flex-direction:column;gap:12px">';
+    html += '<div class="card"><div class="card-header"><div><h3>📢 Recent Announcements</h3><p>Stay updated with the latest news</p></div>';
+    if (typeof SecurityHelpers === 'undefined' || SecurityHelpers.hasModule('announcements')) {
+        html += '<button class="btn btn-sm btn-outline" onclick="App.navigate(\'announcements\')">View All</button>';
+    }
+    html += '</div><div class="card-body" style="display:flex;flex-direction:column;gap:12px">';
     var visibleAnnouncements = announcements.filter(function (a) { return a.department === 'All' || a.department.indexOf(user.department) !== -1; }).slice(0, 3);
     if (visibleAnnouncements.length === 0) html += '<p style="color:var(--text-muted);text-align:center;padding:10px 0;">No announcements</p>';
     visibleAnnouncements.forEach(function (a) {
