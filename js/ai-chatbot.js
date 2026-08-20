@@ -279,15 +279,71 @@ var AIChatbot = {
       return;
     }
 
-    // === Navigate commands ===
-    if(ql.match(/(افتح|فتح|روح|open|navigate|go to|اعرض) .*(مخازن|inventory|warehouse)/)) {
-      App.navigate('inventory'); AIChatbot.addBotMsg('✅ تم فتح صفحة المخازن.'); return;
+    // === Navigate commands (expanded) ===
+    var navMap = {
+      'مخازن|inventory|warehouse|مخزن': 'inventory',
+      'مبيعات|sales': 'erp-sales',
+      'موظف|employees|حضور|attendance': 'attendance',
+      'إجازة|إجازات|leaves|اجاز': 'leaves',
+      'مرتبات|رواتب|payroll|salary': 'payroll',
+      'مشتريات|procurement|purchase|شراء': 'purchase-requests',
+      'إنتاج|production|انتاج': 'erp-production',
+      'جودة|quality': 'erp-quality',
+      'صيانة|maintenance': 'erp-maintenance',
+      'معدات|equipment': 'erp-equipment',
+      'شركات صيانة|maint.*compan': 'maint-companies',
+      'bom|مكونات': 'erp-bom',
+      'تتبع|traceability|trace': 'production-trace',
+      'موردين|suppliers|مورد': 'erp-suppliers',
+      'هندس|engineering': 'engineering',
+      'لوجستي|logistics': 'logistics',
+      'أسطول|fleet': 'erp-fleet',
+      'تقارير|reports': 'reports',
+      'إعدادات|settings': 'system-settings',
+      'صلاحيات|permissions': 'screen-permissions',
+      'بحث|search': 'global-search',
+      'تقييم.*مورد|supplier.*perf': 'supplier-performance',
+      'قطع غيار|spare.*parts': 'spare-parts',
+      'dashboard|لوحة': 'dashboard',
+    };
+    if(ql.match(/(افتح|فتح|روح|open|navigate|go to|اعرض|ورين)/)) {
+      for(var pattern in navMap) {
+        if(ql.match(new RegExp(pattern))) {
+          App.navigate(navMap[pattern]);
+          AIChatbot.addBotMsg('✅ تم فتح الصفحة.');
+          return;
+        }
+      }
     }
-    if(ql.match(/(افتح|فتح|روح|open) .*(مبيعات|sales)/)) {
-      App.navigate('erp-sales'); AIChatbot.addBotMsg('✅ تم فتح صفحة المبيعات.'); return;
+
+    // === AI ACTION EXECUTION ===
+    // Create Purchase Request
+    if(ql.match(/(اعمل|انشئ|create|make).*(طلب شراء|purchase request|طلب.*مشتريات)/i)) {
+      var match = ql.match(/(\d+)\s*(kg|كيلو|طن|قطعة|piece|liter|لتر)/i);
+      var qty = match ? match[1] : '?';
+      var unit = match ? match[2] : '';
+      var material = q.replace(/(اعمل|انشئ|create|make).*(طلب شراء|purchase request|طلب.*مشتريات)/i,'').replace(/(\d+)\s*(kg|كيلو|طن|قطعة|piece|liter|لتر)/i,'').trim();
+      var msg = '📝 **تأكيد إنشاء طلب شراء**\n\n';
+      msg += '📦 المادة: **'+(material||'غير محدد')+'**\n';
+      msg += '📊 الكمية: **'+qty+' '+unit+'**\n\n';
+      msg += 'هل تريد المتابعة؟';
+      AIChatbot.addBotMsg(msg);
+      // Add action buttons
+      var msgs = document.getElementById('ai-chat-msgs');
+      var btnDiv = document.createElement('div');
+      btnDiv.style.cssText = 'display:flex;gap:8px;padding:8px 16px';
+      btnDiv.innerHTML = '<button class="btn btn-primary btn-xs" onclick="AIChatbot.executePR(\''+material+'\','+qty+',\''+unit+'\')">✅ تأكيد</button>' +
+        '<button class="btn btn-outline btn-xs" onclick="AIChatbot.addBotMsg(\'❌ تم الإلغاء.\')">❌ إلغاء</button>';
+      msgs.appendChild(btnDiv);
+      msgs.scrollTop = msgs.scrollHeight;
+      return;
     }
-    if(ql.match(/(افتح|فتح|روح|open) .*(موظف|employees|حضور|attendance)/)) {
-      App.navigate('attendance'); AIChatbot.addBotMsg('✅ تم فتح صفحة الحضور.'); return;
+
+    // Create Leave Request
+    if(ql.match(/(اعمل|انشئ|create|عايز).*(إجازة|اجازة|leave)/i)) {
+      AIChatbot.addBotMsg('📝 سأفتح لك شاشة الإجازات لإنشاء طلب جديد.');
+      App.navigate('leaves');
+      return;
     }
 
     // === FALLBACK ===
@@ -301,8 +357,31 @@ var AIChatbot = {
     msg += '• ⚙️ **الإنتاج** - اسأل "كفاءة الإنتاج"\n';
     msg += '• 🔧 **الصيانة** - اسأل "حالة الصيانة"\n';
     msg += '• ✅ **الجودة** - اسأل "نسبة الجودة"\n';
+    msg += '• 📝 **إنشاء طلبات** - قل "اعمل طلب شراء 100 KG"\n';
+    msg += '• 🗺️ **تنقل** - قل "افتح المخازن" أو "افتح الإنتاج"\n';
     msg += '• 🗣️ **أوامر صوتية** - اضغط على زر 🎤\n';
-    AIChatbot.addBotMsg(msg, ['كم أرباح اليوم؟','حالة المخازن','أداء الموظفين','كشف الاحتيال']);
+    AIChatbot.addBotMsg(msg, ['كم أرباح اليوم؟','حالة المخازن','أداء الموظفين','افتح المشتريات']);
+  },
+
+  executePR: function(material, qty, unit) {
+    sbClient.from('purchase_requests').insert({
+      request_number: 'PR-AI-'+Date.now(),
+      item_name: material || 'مادة خام',
+      quantity: qty || 1,
+      unit: unit || 'KG',
+      status: 'pending',
+      requested_by: App.user ? App.user.id : null,
+      notes: 'Created by AI Assistant'
+    }).then(function(r) {
+      if(r.error) { AIChatbot.addBotMsg('❌ خطأ: '+r.error.message); return; }
+      AIChatbot.addBotMsg('✅ **تم إنشاء طلب الشراء بنجاح!**\n\nرقم الطلب: PR-AI-...\nالحالة: قيد الانتظار\n\nسيتم إشعار قسم المشتريات.');
+      // Audit log
+      sbClient.from('audit_log').insert({
+        action: 'AI_CREATE_PR', user_name: App.user?App.user.full_name:'',
+        details: 'AI created purchase request for '+material+' qty '+qty,
+        user_id: App.user?App.user.id:null
+      }).then(function(){});
+    });
   },
 
   // === VOICE ASSISTANT ===
