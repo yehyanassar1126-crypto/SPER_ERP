@@ -95,18 +95,29 @@ var ERPPermissions = {
         var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
         if(u) {
             var dep = u.department || ''; var roleStr = u.role || '';
+            // Basic screens for everyone
+            defaultScreens.push('dashboard', 'announcements', 'internal-chat');
+            
             if(roleStr === 'owner') defaultScreens = ERPPermissions.allScreens.map(function(s){ return s.id; });
             else {
-                if(dep === 'Sales' || roleStr === 'sales coordinator') defaultScreens.push('erp-sales', 'customer-requests', 'supplier-portal', 'erp-products');
+                // HR & Management
+                var isHR = dep === 'HR' || roleStr === 'hr manager' || roleStr === 'hr';
+                var isManager = roleStr === 'manager' || roleStr === 'department head';
+                
+                if (isHR || isManager) {
+                    defaultScreens.push('employees', 'attendance', 'leaves', 'overtime', 'hr-adjustments', 'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'loans', 'expenses', 'complaints', 'medical-requests', 'offboarding', 'training', 'performance-reviews', 'reports', 'audit-log');
+                }
+                
+                if(dep === 'Sales' || roleStr === 'sales coordinator') defaultScreens.push('erp-sales', 'erp-products');
                 if(dep === 'Warehouse' || roleStr === 'warehouse manager') defaultScreens.push('inventory', 'spare-parts', 'erp-products');
-                if(dep === 'Finance' || roleStr === 'hr manager') defaultScreens.push('petty-cash', 'financial-reports', 'chart-of-accounts', 'payroll-funding', 'payroll', 'erp-suppliers', 'supplier-portal', 'purchase-requests');
+                if(dep === 'Finance' || roleStr === 'hr manager') defaultScreens.push('petty-cash', 'financial-reports', 'chart-of-accounts', 'payroll-funding', 'payroll', 'erp-suppliers', 'purchase-requests');
                 if(dep === 'Procurement') defaultScreens.push('purchase-requests', 'petty-cash', 'erp-suppliers');
-                if(dep === 'Production' || roleStr === 'hall manager') defaultScreens.push('erp-production', 'erp-bom', 'production-trace', 'erp-maintenance', 'erp-equipment');
+                if(dep === 'Production' || roleStr === 'hall manager') defaultScreens.push('erp-production', 'erp-bom', 'erp-maintenance', 'erp-equipment');
                 if(dep === 'Quality' || roleStr === 'qc inspector' || roleStr === 'quality manager') defaultScreens.push('erp-quality', 'spare-parts');
                 if(dep === 'Maintenance' || roleStr === 'maintenance manager' || roleStr === 'technician') defaultScreens.push('erp-maintenance', 'maint-companies', 'erp-equipment', 'spare-parts');
                 if(dep === 'Engineering' || roleStr === 'engineer' || roleStr === 'engineering manager' || roleStr === 'technical office') defaultScreens.push('engineering');
                 if(dep === 'Logistics' || roleStr === 'logistics manager' || roleStr === 'driver') defaultScreens.push('logistics', 'erp-fleet');
-                if(dep === 'IT') defaultScreens.push('it-tickets', 'system-settings', 'screen-permissions', 'notification-settings');
+                if(dep === 'IT') defaultScreens.push('it-tickets', 'system-settings', 'global-search', 'screen-permissions');
             }
         }
       }
