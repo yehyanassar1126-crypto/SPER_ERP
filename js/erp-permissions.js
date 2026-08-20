@@ -95,29 +95,40 @@ var ERPPermissions = {
         var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
         if(u) {
             var dep = u.department || ''; var roleStr = u.role || '';
-            // Basic screens for everyone
-            defaultScreens.push('dashboard', 'announcements', 'internal-chat');
             
-            if(roleStr === 'owner') defaultScreens = ERPPermissions.allScreens.map(function(s){ return s.id; });
-            else {
-                // HR & Management
+            // 1. Basic screens for ALL users (My Info, Workplace, Other)
+            defaultScreens.push(
+                'dashboard', 'my-attendance', 'scan-checkin', 'scan-checkout', 'my-leaves', 'my-salary', 
+                'my-overtime', 'my-loans', 'my-medical', 'my-delays', 'my-missions', 'my-expenses', 'complaints',
+                'announcements', 'internal-chat', 'shift-swap', 'calendar', 'task-management'
+            );
+            
+            if(roleStr === 'owner') {
+                defaultScreens = ERPPermissions.allScreens.map(function(s){ return s.id; });
+            } else {
+                // 2. HR & Management
                 var isHR = dep === 'HR' || roleStr === 'hr manager' || roleStr === 'hr';
                 var isManager = roleStr === 'manager' || roleStr === 'department head';
                 
-                if (isHR || isManager) {
-                    defaultScreens.push('employees', 'attendance', 'leaves', 'overtime', 'hr-adjustments', 'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'loans', 'expenses', 'complaints', 'medical-requests', 'offboarding', 'training', 'performance-reviews', 'reports', 'audit-log');
+                if (isManager && !isHR) {
+                    defaultScreens.push('leaves', 'dept-purchase-approvals', 'friday-work', 'team-adjustments', 'ai-mind');
                 }
                 
-                if(dep === 'Sales' || roleStr === 'sales coordinator') defaultScreens.push('erp-sales', 'erp-products');
+                if (isHR) {
+                    defaultScreens.push('employees', 'attendance', 'leaves', 'shifts', 'overtime', 'reports', 'audit-log', 'hr-qr-generator', 'hr-adjustments', 'team-adjustments', 'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'loans', 'expenses', 'complaints', 'medical-requests', 'nursing-medical-approvals', 'ai-mind', 'org-directory', 'offboarding', 'training', 'performance-reviews');
+                }
+                
+                // 3. Department specific
+                if(dep === 'Sales' || roleStr === 'sales coordinator') defaultScreens.push('erp-sales', 'erp-products', 'customer-requests', 'supplier-portal');
                 if(dep === 'Warehouse' || roleStr === 'warehouse manager') defaultScreens.push('inventory', 'spare-parts', 'erp-products');
-                if(dep === 'Finance' || roleStr === 'hr manager') defaultScreens.push('petty-cash', 'financial-reports', 'chart-of-accounts', 'payroll-funding', 'payroll', 'erp-suppliers', 'purchase-requests');
+                if(dep === 'Finance' || roleStr === 'hr manager') defaultScreens.push('petty-cash', 'financial-reports', 'chart-of-accounts', 'payroll-funding', 'payroll', 'erp-suppliers', 'purchase-requests', 'supplier-portal', 'driver-payments');
                 if(dep === 'Procurement') defaultScreens.push('purchase-requests', 'petty-cash', 'erp-suppliers');
-                if(dep === 'Production' || roleStr === 'hall manager') defaultScreens.push('erp-production', 'erp-bom', 'erp-maintenance', 'erp-equipment');
+                if(dep === 'Production' || roleStr === 'hall manager') defaultScreens.push('erp-production', 'erp-bom', 'erp-maintenance', 'erp-equipment', 'production-trace');
                 if(dep === 'Quality' || roleStr === 'qc inspector' || roleStr === 'quality manager') defaultScreens.push('erp-quality', 'spare-parts');
                 if(dep === 'Maintenance' || roleStr === 'maintenance manager' || roleStr === 'technician') defaultScreens.push('erp-maintenance', 'maint-companies', 'erp-equipment', 'spare-parts');
                 if(dep === 'Engineering' || roleStr === 'engineer' || roleStr === 'engineering manager' || roleStr === 'technical office') defaultScreens.push('engineering');
                 if(dep === 'Logistics' || roleStr === 'logistics manager' || roleStr === 'driver') defaultScreens.push('logistics', 'erp-fleet');
-                if(dep === 'IT') defaultScreens.push('it-tickets', 'system-settings', 'global-search', 'screen-permissions');
+                if(dep === 'IT') defaultScreens.push('it-tickets', 'system-settings', 'global-search', 'screen-permissions', 'notification-settings', 'facebook-leads');
             }
         }
       }
