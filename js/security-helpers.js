@@ -2,6 +2,24 @@
 // Password hashing, session management, activity logging
 
 window.SecurityHelpers = {
+  _cachedPermissions: [],
+  _hasCustomConfig: false,
+  _reloadTimer: null,
+
+  hasModule: function(moduleId) {
+      if (typeof App !== 'undefined' && App.isOwner && App.isOwner()) return true;
+      if (!this._hasCustomConfig) {
+          if (typeof App !== 'undefined' && App._currentMenuConfig) {
+              var found = false;
+              App._currentMenuConfig.forEach(function(sec) {
+                  if (sec.items && sec.items.some(function(i) { return i.id === moduleId; })) found = true;
+              });
+              return found;
+          }
+          return true;
+      }
+      return this._cachedPermissions.some(function(p) { return p.module === moduleId && p.granted; });
+  },
 
   // Simple hash function for client-side (use bcrypt on server for production)
   hashPassword: async function(password) {
@@ -119,21 +137,109 @@ window.SecurityHelpers = {
 
   loadPermissions: function() {
     if (!App.user) return;
-    sbClient.from('role_permissions')
-      .select('*, permissions(*)')
-      .eq('role', App.user.role)
-      .eq('granted', true)
-      .then(function(res) {
-        if (res.data) {
-          SecurityHelpers._cachedPermissions = res.data.map(function(rp) {
-            return {
-              module: rp.permissions.module,
-              action: rp.permissions.action,
-              granted: rp.granted
-            };
-          });
+    
+    var roleStr = App.user.role || '';
+    var userId = App.user.id;
+    
+    // Fetch specifically for this user and this role to avoid the 1000-row API limit!
+    Promise.all([
+      sbClient.from('screen_permissions').select('*').eq('user_id', userId),
+      roleStr ? sbClient.from('screen_permissions').select('*').eq('role', roleStr) : Promise.resolve({ data: [] })
+    ]).then(function(results) {
+        var userPerms = results[0].data || [];
+        var rolePerms = results[1].data || [];
+        
+        // Merge them and remove duplicates just in case
+        var myPerms = userPerms.concat(rolePerms);
+        
+        SecurityHelpers._hasCustomConfig = myPerms.length > 0;
+        
+        SecurityHelpers._cachedPermissions = myPerms.map(function(rp) {
+          return {
+            module: rp.screen_id,
+            action: rp.action,
+            granted: rp.granted
+          };
+        });
+        
+        // Re-render sidebar now that we have the permissions!
+        if (typeof App !== 'undefined' && App.renderSidebar) {
+            App.renderSidebar();
         }
+        
+        // Ensure realtime subscription only happens once
+        if (!SecurityHelpers._permObserver) {
+            SecurityHelpers._permObserver = sbClient.channel('public:screen_permissions')
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'screen_permissions' }, function (payload) {
+                 var record = payload.new || payload.old;
+                 if (record && (record.user_id === userId || record.role === roleStr)) {
+                     // Wait a brief moment to ensure all batch inserts/deletes have finished, then reload
+                     clearTimeout(SecurityHelpers._reloadTimer);
+                     SecurityHelpers._reloadTimer = setTimeout(function() {
+                         SecurityHelpers.loadPermissions();
+                     }, 1000);
+                 }
+              })
+              .subscribe();
+        }
+        
+    }).catch(function(err) {
+        console.error("Error loading permissions:", err);
+    });
+  },
+
+  _permObserver: null,
+
+  // Apply permission restrictions to the current screen's buttons automatically
+  applyPermissionsUI: function(currentModule) {
+    if (!App.user || App.user.role === 'owner') return; // Owner has full access
+    
+    var enforceButtons = function() {
+      document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item)').forEach(function(btn) {
+        if(btn.hasAttribute('data-perm-checked')) return; // already processed
+        
+        var action = 'view';
+        var text = btn.innerText.toLowerCase();
+        
+        if (text.includes('إضافة') || text.includes('create') || text.includes('add') || text.includes('جديد')) action = 'create';
+        else if (text.includes('تعديل') || text.includes('edit') || text.includes('update')) action = 'edit';
+        else if (text.includes('حذف') || text.includes('delete') || text.includes('remove') || text.includes('مسح') || text.includes('🗑️')) action = 'delete';
+        else if (text.includes('حفظ') || text.includes('save')) action = 'edit';
+        else if (text.includes('اعتماد') || text.includes('approve')) action = 'approve';
+        else if (text.includes('رفض') || text.includes('reject')) action = 'reject';
+        else if (text.includes('تصدير') || text.includes('export')) action = 'export';
+        else if (text.includes('طباعة') || text.includes('print')) action = 'print';
+
+        if (action !== 'view') {
+          if (!SecurityHelpers.hasPermission(currentModule, action)) {
+            btn.disabled = true;
+            btn.style.opacity = '0.35';
+            btn.style.cursor = 'not-allowed';
+            btn.title = 'ليس لديك صلاحية لهذا الإجراء';
+            btn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
+            // Optional: for strong enforcement
+            btn.addEventListener('click', function(e){ e.stopImmediatePropagation(); e.preventDefault(); return false; }, true);
+          }
+        }
+        btn.setAttribute('data-perm-checked', 'true');
       });
+    };
+
+    // Run immediately
+    enforceButtons();
+    setTimeout(enforceButtons, 500);
+
+    // Watch for dynamic DOM changes (like tables loading async)
+    if (SecurityHelpers._permObserver) SecurityHelpers._permObserver.disconnect();
+    
+    var contentEl = document.getElementById('page-content') || document.body;
+    SecurityHelpers._permObserver = new MutationObserver(function(mutations) {
+      var needsCheck = false;
+      mutations.forEach(function(m) { if(m.addedNodes.length > 0) needsCheck = true; });
+      if(needsCheck) enforceButtons();
+    });
+    
+    SecurityHelpers._permObserver.observe(contentEl, { childList: true, subtree: true });
   },
 
   // Input sanitization
