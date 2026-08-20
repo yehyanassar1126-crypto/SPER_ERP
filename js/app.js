@@ -641,7 +641,10 @@ var App = {
         menu.push({ section: 'Supply Chain (الإمداد)', items: supplyChainItems });
       }
       if (canViewProduction) {
-        menu.push({ section: 'Production (الإنتاج)', items: [{ id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' }] });
+        menu.push({ section: 'Production (الإنتاج)', items: [
+          { id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' },
+          { id: 'erp-bom', label: 'BOM (مكونات المنتج)', icon: 'list' },
+        ]});
       }
       
       var canViewEngineering = App.isOwner() || (App.user && (App.user.role === 'hr manager' || (App.user.department === 'Engineering' && App.user.role !== 'spare parts inspector') || App.user.role === 'engineering manager' || App.user.role === 'engineer' || App.user.role === 'technical office'));
@@ -660,7 +663,9 @@ var App = {
 
       if (canViewMaintenance) {
         menu.push({ section: 'Maintenance (الصيانة)', items: [
-          { id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' }
+          { id: 'erp-maintenance', label: 'Maintenance & Facilities', icon: 'tool' },
+          { id: 'maint-companies', label: 'Maintenance Companies (شركات الصيانة)', icon: 'briefcase' },
+          { id: 'erp-equipment', label: 'Equipment (المعدات)', icon: 'monitor' },
         ]});
       }
 
@@ -786,6 +791,9 @@ var App = {
       'erp-quality': { title: 'Quality Control (الجودة)', sub: 'QC inspections & approvals' },
       'engineering': { title: 'Engineering (الإدارة الهندسية)', sub: 'Technical specs & supervision' },
       'erp-maintenance': { title: 'Maintenance (الصيانة)', sub: 'Equipment repairs & preventative maintenance' },
+      'erp-bom': { title: 'BOM (مكونات المنتج)', sub: 'Bill of Materials & production recipes' },
+      'erp-equipment': { title: 'Equipment (المعدات)', sub: 'Equipment registry, rental & tracking' },
+      'maint-companies': { title: 'Maintenance Companies (شركات الصيانة)', sub: 'Contractor management & visit tracking' },
       'spare-parts': { title: 'Spare Parts Lifecycle (دورة قطع الغيار)', sub: 'Manage spare parts requests, returns, and quality checks' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
@@ -931,6 +939,9 @@ var App = {
       case 'erp-quality': Pages.quality(el); break;
       case 'engineering': Pages.engineering(el); break;
       case 'erp-maintenance': Pages.maintenance(el); break;
+      case 'erp-bom': if (typeof ERPManufacturing !== 'undefined') ERPManufacturing.renderBOM(); else el.innerHTML = 'Module loading...'; break;
+      case 'erp-equipment': if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderEquipment(); else el.innerHTML = 'Module loading...'; break;
+      case 'maint-companies': if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderMaintCompanies(); else el.innerHTML = 'Module loading...'; break;
       case 'spare-parts': Pages.spareParts(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
