@@ -74,7 +74,10 @@ var ERPNotifications = {
   renderSettings: function() {
     var perm = ('Notification' in window) ? Notification.permission : 'unsupported';
     var statusMap = { granted: '✅ مفعّل', denied: '❌ مرفوض', default: '⏳ لم يتم التفعيل', unsupported: '⚠️ غير مدعوم' };
-    var html = '<div class="page-header"><h2>🔔 Notification Settings (إعدادات الإشعارات)</h2></div>';
+    
+    var css = '<style>.tswitch { position: relative; display: inline-block; width: 44px; height: 24px; } .tswitch input { opacity: 0; width: 0; height: 0; } .tslider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; } .tslider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; } input:checked + .tslider { background-color: #10b981; } input:checked + .tslider:before { transform: translateX(20px); }</style>';
+    
+    var html = css + '<div class="page-header"><h2>🔔 Notification Settings (إعدادات الإشعارات)</h2></div>';
     html += '<div class="card" style="max-width:600px"><div class="card-body">';
     html += '<div class="form-group"><label>حالة الإشعارات</label><p style="font-size:18px">'+statusMap[perm]+'</p></div>';
     if (perm !== 'granted') {
@@ -91,7 +94,7 @@ var ERPNotifications = {
     channels.forEach(function(ch) {
       html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border-color)">';
       html += '<div><strong>'+ch.label+'</strong><br><small class="text-muted">'+ch.desc+'</small></div>';
-      html += '<label style="position:relative;display:inline-block;width:50px;height:26px"><input type="checkbox" checked style="opacity:0;width:0;height:0" id="ch-'+ch.id+'"><span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:26px;transition:0.3s"></span></label>';
+      html += '<label class="tswitch"><input type="checkbox" checked id="ch-'+ch.id+'"><span class="tslider"></span></label>';
       html += '</div>';
     });
     html += '</div></div>';

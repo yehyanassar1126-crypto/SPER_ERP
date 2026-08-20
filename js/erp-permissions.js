@@ -88,17 +88,27 @@ var ERPPermissions = {
       var existing = {};
       (r.data||[]).forEach(function(p) { existing[p.screen_id + '_' + p.action] = p; });
 
-      var html = '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>الشاشة</th>';
-      ERPPermissions.actions.forEach(function(a) { html += '<th style="text-align:center">'+a+'</th>'; });
-      html += '<th>الكل</th></tr></thead><tbody>';
-
+      var userScreens = [];
+      var availableScreens = [];
       ERPPermissions.allScreens.forEach(function(s) {
-        html += '<tr><td><strong>'+s.label+'</strong><br><small class="text-muted">'+s.id+'</small></td>';
-        ERPPermissions.actions.forEach(function(a) {
-          var checked = existing[s.id + '_' + a] ? 'checked' : '';
-          html += '<td style="text-align:center"><input type="checkbox" class="perm-cb" data-screen="'+s.id+'" data-action="'+a+'" '+checked+'></td>';
-        });
-        html += '<td style="text-align:center"><input type="checkbox" class="perm-all" data-screen="'+s.id+'" onchange="ERPPermissions.toggleRow(this)"></td></tr>';
+        var hasPerm = ERPPermissions.actions.some(function(a) { return existing[s.id + '_' + a]; });
+        if (hasPerm) userScreens.push(s);
+        else availableScreens.push(s);
+      });
+
+      var html = '<div style="margin-bottom:16px;display:flex;gap:12px;align-items:center;">';
+      html += '<select id="add-screen-select" class="form-input" style="max-width:300px"><option value="">— إضافة شاشة جديدة —</option>';
+      availableScreens.forEach(function(s) { html += '<option value="'+s.id+'">'+s.label+' ('+s.id+')</option>'; });
+      html += '</select>';
+      html += '<button class="btn btn-outline" onclick="ERPPermissions.addScreenRow()">➕ إضافة شاشة</button>';
+      html += '</div>';
+
+      html += '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>الشاشة</th>';
+      ERPPermissions.actions.forEach(function(a) { html += '<th style="text-align:center">'+a+'</th>'; });
+      html += '<th>الكل</th><th>إزالة</th></tr></thead><tbody id="perms-tbody">';
+
+      userScreens.forEach(function(s) {
+        html += ERPPermissions._renderRow(s, existing);
       });
       html += '</tbody></table></div>';
       html += '<div style="margin-top:20px;display:flex;gap:12px">';
@@ -107,6 +117,44 @@ var ERPPermissions = {
       html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(false)">إلغاء الكل</button></div>';
       el.innerHTML = html;
     });
+  },
+
+  _renderRow: function(s, existing) {
+    var html = '<tr id="row-'+s.id+'"><td><strong>'+s.label+'</strong><br><small class="text-muted">'+s.id+'</small></td>';
+    ERPPermissions.actions.forEach(function(a) {
+      var checked = existing && existing[s.id + '_' + a] ? 'checked' : '';
+      html += '<td style="text-align:center"><input type="checkbox" class="perm-cb" data-screen="'+s.id+'" data-action="'+a+'" '+checked+'></td>';
+    });
+    html += '<td style="text-align:center"><input type="checkbox" class="perm-all" data-screen="'+s.id+'" onchange="ERPPermissions.toggleRow(this)"></td>';
+    html += '<td style="text-align:center"><button class="btn btn-xs btn-outline" style="color:red;border-color:red" onclick="ERPPermissions.removeScreenRow(\''+s.id+'\', \''+s.label+'\')">🗑️</button></td></tr>';
+    return html;
+  },
+
+  addScreenRow: function() {
+    var select = document.getElementById('add-screen-select');
+    var screenId = select.value;
+    if(!screenId) return;
+    var screenObj = ERPPermissions.allScreens.find(function(s){ return s.id === screenId; });
+    if(!screenObj) return;
+
+    var tbody = document.getElementById('perms-tbody');
+    var temp = document.createElement('tbody');
+    temp.innerHTML = ERPPermissions._renderRow(screenObj, {});
+    tbody.appendChild(temp.firstChild);
+
+    // Remove from select
+    var option = select.querySelector('option[value="'+screenId+'"]');
+    if(option) option.remove();
+  },
+
+  removeScreenRow: function(id, label) {
+    document.getElementById('row-'+id).remove();
+    var select = document.getElementById('add-screen-select');
+    if(select) {
+      var opt = document.createElement('option');
+      opt.value = id; opt.textContent = label + ' (' + id + ')';
+      select.appendChild(opt);
+    }
   },
 
   toggleRow: function(cb) {
