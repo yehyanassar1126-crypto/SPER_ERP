@@ -139,7 +139,9 @@ var ERPPermissions = {
 
     var tbody = document.getElementById('perms-tbody');
     var temp = document.createElement('tbody');
-    temp.innerHTML = ERPPermissions._renderRow(screenObj, {});
+    var defaultPerms = {};
+    defaultPerms[screenId + '_view'] = true;
+    temp.innerHTML = ERPPermissions._renderRow(screenObj, defaultPerms);
     tbody.appendChild(temp.firstChild);
 
     // Remove from select
