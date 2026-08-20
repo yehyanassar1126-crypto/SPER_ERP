@@ -716,12 +716,30 @@ var App = {
     var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
-      html += '<div class="sidebar-section"><div class="sidebar-section-title">' + section.section + '</div>';
-      section.items.forEach(function (item) {
-        html += '<button class="sidebar-item' + (App.activePage === item.id ? ' active' : '') + '" data-page="' + item.id + '" id="nav-' + item.id + '">' +
-          '<span class="sidebar-item-icon">' + icon(item.icon) + '</span><span>' + item.label + '</span></button>';
+      var visibleItems = [];
+      section.items.forEach(function(item) {
+          if (App.user && App.user.role === 'owner') {
+              visibleItems.push(item);
+          } else if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers._cachedPermissions && SecurityHelpers._cachedPermissions.length > 0) {
+              // If DB permissions exist, strictly rely on them for visibility
+              var hasView = SecurityHelpers._cachedPermissions.some(function(p) {
+                  return p.module === item.id && p.action === 'view' && p.granted;
+              });
+              if (hasView) visibleItems.push(item);
+          } else {
+              // Fallback to legacy logic: if it reached here, legacy logic allowed it
+              visibleItems.push(item);
+          }
       });
-      html += '</div>';
+
+      if (visibleItems.length > 0) {
+        html += '<div class="sidebar-section"><div class="sidebar-section-title">' + section.section + '</div>';
+        visibleItems.forEach(function (item) {
+          html += '<button class="sidebar-item' + (App.activePage === item.id ? ' active' : '') + '" data-page="' + item.id + '" id="nav-' + item.id + '">' +
+            '<span class="sidebar-item-icon">' + icon(item.icon) + '</span><span>' + item.label + '</span></button>';
+        });
+        html += '</div>';
+      }
     });
     html += '</nav>';
     html += '<div class="sidebar-footer"><div class="sidebar-user">' +
