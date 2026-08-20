@@ -4,10 +4,38 @@
 var ERPPermissions = {
 
   allScreens: [
-    {id:'dashboard',label:'Dashboard'},
+    // Basic Employee Screens (My Info)
+    {id:'dashboard',label:'My Dashboard'},
+    {id:'my-attendance',label:'My Attendance'},
+    {id:'scan-checkin',label:'Check-In'},
+    {id:'scan-checkout',label:'Check-Out'},
+    {id:'my-leaves',label:'My Leaves'},
+    {id:'my-salary',label:'My Salary'},
+    {id:'my-overtime',label:'My Overtime'},
+    {id:'my-loans',label:'My Loans'},
+    {id:'my-medical',label:'Medical Needs'},
+    {id:'my-delays',label:'تأخيراتي'},
+    {id:'my-missions',label:'المأموريات'},
+    {id:'my-expenses',label:'My Expenses'},
+    
+    // Workplace & Communication
+    {id:'announcements',label:'Announcements'},
+    {id:'internal-chat',label:'Internal Chat'},
+    {id:'shift-swap',label:'Shift Marketplace'},
+    {id:'calendar',label:'Calendar'},
+    {id:'task-management',label:'My Tasks'},
+    {id:'ai-mind',label:'AI Mind'},
+    
+    // Managers
+    {id:'dept-purchase-approvals',label:'Purchase Approvals'},
+    {id:'friday-work',label:'Friday Work'},
+    {id:'team-adjustments',label:'Team Adjustments'},
+    
+    // HR
     {id:'employees',label:'Employees'},
     {id:'attendance',label:'Attendance'},
     {id:'leaves',label:'Leaves'},
+    {id:'shifts',label:'Shifts'},
     {id:'overtime',label:'Overtime'},
     {id:'payroll',label:'Payroll'},
     {id:'payroll-funding',label:'Payroll Funding'},
@@ -24,20 +52,26 @@ var ERPPermissions = {
     {id:'offboarding',label:'Offboarding'},
     {id:'training',label:'Training'},
     {id:'performance-reviews',label:'Performance Reviews'},
-    {id:'announcements',label:'Announcements'},
-    {id:'internal-chat',label:'Internal Chat'},
     {id:'reports',label:'Reports'},
     {id:'audit-log',label:'Audit Log'},
+    {id:'hr-qr-generator',label:'QR Generator'},
+    {id:'org-directory',label:'Org Directory'},
+    
+    // Operations & Supply Chain
     {id:'inventory',label:'Inventory'},
     {id:'purchase-requests',label:'Purchase Requests'},
     {id:'petty-cash',label:'Financial Suite'},
-    {id:'it-tickets',label:'IT Support'},
-    {id:'legal-affairs',label:'Legal Affairs'},
+    {id:'financial-reports',label:'Financial Reports'},
+    {id:'chart-of-accounts',label:'Chart of Accounts'},
+    {id:'driver-payments',label:'Driver Payments'},
     {id:'erp-sales',label:'Sales'},
     {id:'erp-products',label:'Products'},
+    {id:'customer-requests',label:'Customer Requests'},
+    {id:'supplier-portal',label:'Supplier Portal'},
     {id:'erp-planning',label:'Planning'},
     {id:'erp-production',label:'Production'},
     {id:'erp-bom',label:'BOM'},
+    {id:'production-trace',label:'Traceability'},
     {id:'erp-quality',label:'Quality'},
     {id:'engineering',label:'Engineering'},
     {id:'erp-maintenance',label:'Maintenance'},
@@ -47,9 +81,24 @@ var ERPPermissions = {
     {id:'logistics',label:'Logistics'},
     {id:'erp-fleet',label:'Fleet'},
     {id:'erp-suppliers',label:'Suppliers'},
-    {id:'global-search',label:'Global Search'},
     {id:'supplier-performance',label:'Supplier Performance'},
+    
+    // Other
+    {id:'it-tickets',label:'IT Support'},
+    {id:'legal-affairs',label:'Legal Affairs'},
+    {id:'nursing-medical-approvals',label:'Nursing Approvals'},
+    {id:'global-search',label:'Global Search'},
     {id:'system-settings',label:'System Settings'},
+    {id:'screen-permissions',label:'Screen Permissions'},
+    {id:'notification-settings',label:'Notification Settings'},
+    {id:'facebook-leads',label:'Facebook Leads'},
+    
+    // Owner
+    {id:'owner-dashboard',label:'Owner Dashboard'},
+    {id:'ceo-dashboard',label:'CEO Dashboard'},
+    {id:'cost-centers',label:'Cost Centers'},
+    {id:'activity-timeline',label:'Activity Timeline'},
+    {id:'ai-ceo-dashboard',label:'AI CEO Dashboard'}
   ],
 
   actions: ['view','create','edit','delete','approve','reject','export','print'],
