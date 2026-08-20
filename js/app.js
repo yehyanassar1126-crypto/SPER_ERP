@@ -720,14 +720,14 @@ var App = {
       section.items.forEach(function(item) {
           if (App.user && App.user.role === 'owner') {
               visibleItems.push(item);
-          } else if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers._cachedPermissions && SecurityHelpers._cachedPermissions.length > 0) {
-              // If DB permissions exist, strictly rely on them for visibility
+          } else if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers._hasCustomConfig) {
+              // If DB permissions exist (even if all are revoked), strictly rely on them for visibility
               var hasView = SecurityHelpers._cachedPermissions.some(function(p) {
                   return p.module === item.id && p.action === 'view' && p.granted;
               });
               if (hasView) visibleItems.push(item);
           } else {
-              // Fallback to legacy logic: if it reached here, legacy logic allowed it
+              // Fallback to legacy logic: if it reached here, legacy logic allowed it, and user has NO custom config
               visibleItems.push(item);
           }
       });

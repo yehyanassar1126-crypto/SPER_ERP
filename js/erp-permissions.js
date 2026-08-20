@@ -284,6 +284,15 @@ var ERPPermissions = {
         granted: true
       });
     });
+    
+    // Always add a dummy system record to prove this user has a custom configuration
+    // This prevents the system from falling back to default legacy menus if all other perms are removed
+    perms.push({
+        user_id: userId || null, role: role || null,
+        screen_id: 'SYSTEM_CONFIG',
+        action: 'custom',
+        granted: true
+    });
 
     // Delete old then insert new
     var delQuery = sbClient.from('screen_permissions').delete();
