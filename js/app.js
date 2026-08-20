@@ -951,15 +951,42 @@ var App = {
       case 'erp-quality': Pages.quality(el); break;
       case 'engineering': Pages.engineering(el); break;
       case 'erp-maintenance': Pages.maintenance(el); break;
-      case 'erp-bom': if (typeof ERPManufacturing !== 'undefined') ERPManufacturing.renderBOM(); else el.innerHTML = 'Module loading...'; break;
-      case 'erp-equipment': if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderEquipment(); else el.innerHTML = 'Module loading...'; break;
-      case 'maint-companies': if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderMaintCompanies(); else el.innerHTML = 'Module loading...'; break;
-      case 'global-search': if (typeof ERPGlobalSearch !== 'undefined') ERPGlobalSearch.render(); else el.innerHTML = 'Module loading...'; break;
-      case 'supplier-performance': if (typeof ERPSupplierPerf !== 'undefined') ERPSupplierPerf.render(); else el.innerHTML = 'Module loading...'; break;
-      case 'screen-permissions': if (typeof ERPPermissions !== 'undefined') ERPPermissions.render(); else el.innerHTML = 'Module loading...'; break;
-      case 'production-trace': if (typeof ERPTraceability !== 'undefined') ERPTraceability.renderTrace(); else el.innerHTML = 'Module loading...'; break;
-      case 'notification-settings': if (typeof ERPNotifications !== 'undefined') ERPNotifications.renderSettings(); else el.innerHTML = 'Module loading...'; break;
-      case 'facebook-leads': if (typeof ERPFacebookLeads !== 'undefined') ERPFacebookLeads.render(); else el.innerHTML = 'Module loading...'; break;
+      case 'erp-bom': 
+        if (typeof ERPManufacturing !== 'undefined') ERPManufacturing.renderBOM(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-manufacturing.js?v=' + Date.now(); s.onload = function() { ERPManufacturing.renderBOM(); }; document.body.appendChild(s); }
+        break;
+      case 'erp-equipment': 
+        if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderEquipment(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-equipment.js?v=' + Date.now(); s.onload = function() { ERPEquipment.renderEquipment(); }; document.body.appendChild(s); }
+        break;
+      case 'maint-companies': 
+        if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderMaintCompanies(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-equipment.js?v=' + Date.now(); s.onload = function() { ERPEquipment.renderMaintCompanies(); }; document.body.appendChild(s); }
+        break;
+      case 'global-search': 
+        if (typeof ERPGlobalSearch !== 'undefined') ERPGlobalSearch.render(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-global-search.js?v=' + Date.now(); s.onload = function() { ERPGlobalSearch.render(); }; document.body.appendChild(s); }
+        break;
+      case 'supplier-performance': 
+        if (typeof ERPSupplierPerf !== 'undefined') ERPSupplierPerf.render(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-global-search.js?v=' + Date.now(); s.onload = function() { ERPSupplierPerf.render(); }; document.body.appendChild(s); }
+        break;
+      case 'screen-permissions': 
+        if (typeof ERPPermissions !== 'undefined') ERPPermissions.render(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-permissions.js?v=' + Date.now(); s.onload = function() { ERPPermissions.render(); }; document.body.appendChild(s); }
+        break;
+      case 'production-trace': 
+        if (typeof ERPTraceability !== 'undefined') ERPTraceability.renderTrace(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-permissions.js?v=' + Date.now(); s.onload = function() { ERPTraceability.renderTrace(); }; document.body.appendChild(s); }
+        break;
+      case 'notification-settings': 
+        if (typeof ERPNotifications !== 'undefined') ERPNotifications.renderSettings(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-integrations.js?v=' + Date.now(); s.onload = function() { ERPNotifications.renderSettings(); }; document.body.appendChild(s); }
+        break;
+      case 'facebook-leads': 
+        if (typeof ERPFacebookLeads !== 'undefined') ERPFacebookLeads.render(); 
+        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-integrations.js?v=' + Date.now(); s.onload = function() { ERPFacebookLeads.render(); }; document.body.appendChild(s); }
+        break;
       case 'spare-parts': Pages.spareParts(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
