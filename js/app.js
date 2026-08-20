@@ -298,8 +298,108 @@ var App = {
         ]}
       ];
     } else {
-      var isHR = App.isHR();
-      var isManager = App.isManager();
+      var hasCustomConfig = typeof SecurityHelpers !== 'undefined' && SecurityHelpers._hasCustomConfig;
+      if (hasCustomConfig && !App.isOwner()) {
+          // Master Menu containing ALL possible screens. 
+          // The filter loop at the bottom will strictly remove anything the user doesn't have permission for.
+          menu = [
+            { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
+            { section: 'My Info', items: [
+                { id: 'hr-personal', label: 'My Profile', icon: 'user' },
+                { id: 'my-attendance', label: 'My Attendance', icon: 'calendarCheck' },
+                { id: 'scan-checkin', label: 'Check-In', icon: 'logIn' },
+                { id: 'scan-checkout', label: 'Check-Out', icon: 'logOut' },
+                { id: 'my-leaves', label: 'My Leaves', icon: 'calendarDays' },
+                { id: 'my-salary', label: 'My Salary', icon: 'dollarSign' },
+                { id: 'my-overtime', label: 'My Overtime', icon: 'timer' },
+                { id: 'my-loans', label: 'My Loans', icon: 'creditCard' },
+                { id: 'my-medical', label: 'Medical Needs', icon: 'heart' },
+                { id: 'my-delays', label: 'My Delays', icon: 'alertTriangle' },
+                { id: 'my-missions', label: 'My Missions', icon: 'briefcase' },
+                { id: 'my-expenses', label: 'My Expenses', icon: 'receipt' },
+            ]},
+            { section: 'Communication & Workplace', items: [
+                { id: 'announcements', label: 'Announcements', icon: 'megaphone' },
+                { id: 'internal-chat', label: 'Internal Chat', icon: 'messageSquare' },
+                { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' },
+                { id: 'calendar', label: 'Calendar', icon: 'calendarDays' },
+                { id: 'task-management', label: 'My Tasks', icon: 'checkCircle' },
+                { id: 'org-directory', label: 'Company Directory', icon: 'users' },
+                { id: 'ai-mind', label: 'AI Mind', icon: 'brain' },
+            ]},
+            { section: 'Management', items: [
+                { id: 'leaves', label: 'Leave Approvals', icon: 'calendarDays' },
+                { id: 'dept-purchase-approvals', label: 'Purchase Approvals', icon: 'shoppingCart' },
+                { id: 'friday-work', label: 'Friday Work', icon: 'calendarPlus' },
+                { id: 'team-adjustments', label: 'Team Adjustments', icon: 'fileText' },
+            ]},
+            { section: 'Human Resources', items: [
+                { id: 'employees', label: 'Employees', icon: 'users' },
+                { id: 'attendance', label: 'Attendance', icon: 'calendarCheck' },
+                { id: 'shifts', label: 'Shift Management', icon: 'clock' },
+                { id: 'overtime', label: 'Overtime', icon: 'timer' },
+                { id: 'payroll', label: 'Payroll', icon: 'dollarSign' },
+                { id: 'payroll-funding', label: 'Payroll Funding', icon: 'briefcase' },
+                { id: 'hr-adjustments', label: 'Salary Adjustments', icon: 'fileText' },
+                { id: 'recruitment', label: 'Recruitment', icon: 'userCheck' },
+                { id: 'hr-ats', label: 'AI ATS', icon: 'search' },
+                { id: 'documents', label: 'Documents', icon: 'fileText' },
+                { id: 'performance', label: 'Performance', icon: 'trendingUp' },
+                { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
+                { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
+                { id: 'nursing-medical-approvals', label: 'Medical Approvals', icon: 'heart' },
+                { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
+                { id: 'expenses', label: 'Expenses', icon: 'receipt' },
+                { id: 'complaints', label: 'Complaints', icon: 'gavel' },
+                { id: 'offboarding', label: 'Offboarding', icon: 'logOut' },
+                { id: 'performance-reviews', label: 'Performance Reviews', icon: 'trendingUp' },
+                { id: 'training', label: 'Training', icon: 'book' },
+                { id: 'hr-qr-generator', label: 'QR Generator', icon: 'maximize' },
+            ]},
+            { section: 'Operations & Logistics', items: [
+                { id: 'inventory', label: 'Inventory', icon: 'package' },
+                { id: 'purchase-requests', label: 'Purchase Requests', icon: 'shoppingCart' },
+                { id: 'erp-sales', label: 'Sales', icon: 'dollarSign' },
+                { id: 'erp-products', label: 'Products', icon: 'box' },
+                { id: 'customer-requests', label: 'Customer Requests', icon: 'messageSquare' },
+                { id: 'erp-planning', label: 'Planning', icon: 'calendar' },
+                { id: 'erp-production', label: 'Production', icon: 'settings' },
+                { id: 'erp-bom', label: 'BOM', icon: 'list' },
+                { id: 'production-trace', label: 'Traceability', icon: 'search' },
+                { id: 'erp-quality', label: 'Quality', icon: 'checkCircle' },
+                { id: 'engineering', label: 'Engineering', icon: 'tool' },
+                { id: 'erp-maintenance', label: 'Maintenance', icon: 'tool' },
+                { id: 'erp-equipment', label: 'Equipment', icon: 'server' },
+                { id: 'maint-companies', label: 'Maint Companies', icon: 'briefcase' },
+                { id: 'spare-parts', label: 'Spare Parts', icon: 'settings' },
+                { id: 'logistics', label: 'Logistics', icon: 'truck' },
+                { id: 'erp-fleet', label: 'Fleet', icon: 'map' },
+                { id: 'erp-suppliers', label: 'Suppliers', icon: 'users' },
+                { id: 'supplier-performance', label: 'Supplier Rating', icon: 'trendingUp' },
+                { id: 'supplier-portal', label: 'Supplier Portal', icon: 'layoutDashboard' },
+            ]},
+            { section: 'Finance & Accounting', items: [
+                { id: 'petty-cash', label: 'Financial Suite', icon: 'dollarSign' },
+                { id: 'financial-reports', label: 'Financial Reports', icon: 'barChart' },
+                { id: 'chart-of-accounts', label: 'Chart of Accounts', icon: 'list' },
+                { id: 'driver-payments', label: 'Driver Payments', icon: 'truck' },
+            ]},
+            { section: 'Administration', items: [
+                { id: 'reports', label: 'Reports', icon: 'barChart' },
+                { id: 'audit-log', label: 'Audit Log', icon: 'fileText' },
+                { id: 'it-tickets', label: 'IT Support', icon: 'monitor' },
+                { id: 'legal-affairs', label: 'Legal Affairs', icon: 'shield' },
+                { id: 'global-search', label: 'Global Search', icon: 'search' },
+                { id: 'system-settings', label: 'System Settings', icon: 'settings' },
+                { id: 'screen-permissions', label: 'Permissions', icon: 'shield' },
+                { id: 'notification-settings', label: 'Notifications', icon: 'bell' },
+                { id: 'facebook-leads', label: 'Facebook Leads', icon: 'globe' },
+            ]}
+          ];
+      } else {
+          // LEGACY LOGIC: Only run if user has NO custom permissions configured
+          var isHR = App.isHR();
+          var isManager = App.isManager();
       if (isHR) {
         menu = [];
         if (!App.isOwner()) {
@@ -711,6 +811,7 @@ var App = {
           });
         }
       } // End of driver else block
+      } // End of legacy logic block
     } // End of supplier_external else block
 
     var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
