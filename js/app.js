@@ -1022,6 +1022,10 @@ var App = {
         break;
       default: Pages.empDashboard(el);
     }
+    
+    if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.applyPermissionsUI) {
+      SecurityHelpers.applyPermissionsUI(pageId);
+    }
   },
 
   // ========== AI OCR SCAN (Document Management) ==========

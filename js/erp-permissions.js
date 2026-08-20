@@ -57,8 +57,8 @@ var ERPPermissions = {
   render: function() {
     var html = '<div class="page-header"><h2>🔐 Screen Permissions (صلاحيات الشاشات)</h2></div>';
     html += '<div class="form-row" style="margin-bottom:20px;gap:12px">';
-    html += '<div class="form-group" style="flex:1"><label>المستخدم</label><select class="form-input" id="perm-user"><option value="">— اختر مستخدم —</option></select></div>';
-    html += '<div class="form-group" style="flex:1"><label>أو الـ Role</label><select class="form-input" id="perm-role"><option value="">— كل الأدوار —</option>';
+    html += '<div class="form-group" style="flex:1"><label>المستخدم</label><select class="form-input" id="perm-user" onchange="ERPPermissions.loadPerms()"><option value="">— اختر مستخدم —</option></select></div>';
+    html += '<div class="form-group" style="flex:1"><label>أو الـ Role</label><select class="form-input" id="perm-role" onchange="ERPPermissions.loadPerms()"><option value="">— كل الأدوار —</option>';
     html += '<option>owner</option><option>hr manager</option><option>hr</option><option>hall manager</option><option>department head</option>';
     html += '<option>employee</option><option>warehouse manager</option><option>procurement manager</option><option>driver</option></select></div>';
     html += '<button class="btn btn-primary" style="align-self:flex-end" onclick="ERPPermissions.loadPerms()">تحميل الصلاحيات</button></div>';
