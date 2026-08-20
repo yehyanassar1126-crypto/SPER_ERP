@@ -394,6 +394,13 @@ var App = {
                 { id: 'screen-permissions', label: 'Permissions', icon: 'shield' },
                 { id: 'notification-settings', label: 'Notifications', icon: 'bell' },
                 { id: 'facebook-leads', label: 'Facebook Leads', icon: 'globe' },
+            ]},
+            { section: 'Enterprise Control', items: [
+                { id: 'owner-dashboard', label: 'Owner Dashboard', icon: 'layoutDashboard' },
+                { id: 'ceo-dashboard', label: 'CEO Dashboard', icon: 'barChart' },
+                { id: 'ai-ceo-dashboard', label: 'AI CEO Dashboard', icon: 'brain' },
+                { id: 'cost-centers', label: 'Cost Centers', icon: 'briefcase' },
+                { id: 'activity-timeline', label: 'Activity Timeline', icon: 'clock' },
             ]}
           ];
       } else {
@@ -824,7 +831,7 @@ var App = {
           } else if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers._hasCustomConfig) {
               // If DB permissions exist (even if all are revoked), strictly rely on them for visibility
               var hasView = SecurityHelpers._cachedPermissions.some(function(p) {
-                  return p.module === item.id && p.action === 'view' && p.granted;
+                  return p.module === item.id && p.granted;
               });
               if (hasView) visibleItems.push(item);
           } else {
