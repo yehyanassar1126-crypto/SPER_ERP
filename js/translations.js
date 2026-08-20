@@ -820,7 +820,76 @@ const ARABIC_DICT = {
   "sales": "المبيعات",
   "production": "الإنتاج",
   "quality": "الجودة",
-  "maintenance": "الصيانة"
+  "maintenance": "الصيانة",
+
+  // ===== NEW MODULES =====
+
+  // BOM
+  "BOM (مكونات المنتج)": "مكونات المنتج (BOM)",
+  "Bill of Materials & production recipes": "مكونات المنتج ووصفات الإنتاج",
+  "Bill of Materials": "قائمة المواد",
+  "Add BOM": "إضافة BOM",
+  "Material": "الخامة",
+  "Waste %": "نسبة الهالك %",
+  "Cost/Unit": "تكلفة/وحدة",
+  "Version": "الإصدار",
+
+  // Equipment
+  "Equipment (المعدات)": "المعدات",
+  "Equipment registry, rental & tracking": "سجل المعدات والتأجير والتتبع",
+  "Equipment Management": "إدارة المعدات",
+  "Add Equipment": "إضافة معدة",
+  "Rent Equipment": "تأجير معدة",
+  "Daily Rate": "إيجار يومي",
+  "Weekly Rate": "إيجار أسبوعي",
+  "Monthly Rate": "إيجار شهري",
+  "available": "متاحة",
+  "rented": "مؤجرة",
+  "retired": "خارج الخدمة",
+  "Equipment Rental": "تأجير المعدات",
+
+  // Maintenance Companies
+  "Maintenance Companies (شركات الصيانة)": "شركات الصيانة",
+  "Contractor management & visit tracking": "إدارة المقاولين وتتبع الزيارات",
+  "Add Company": "إضافة شركة",
+  "Visit": "زيارة",
+  "Labor Cost": "تكلفة العمالة",
+  "Parts Cost": "تكلفة القطع",
+  "Total Cost": "التكلفة الإجمالية",
+  "Total Visits": "إجمالي الزيارات",
+  "Total Spending": "إجمالي الإنفاق",
+
+  // Global Search
+  "Global Search (بحث موحد)": "البحث الموحد",
+  "Search across all ERP modules": "البحث في جميع أقسام النظام",
+
+  // Supplier Performance
+  "Supplier Performance (تقييم الموردين)": "تقييم الموردين",
+  "AI-powered supplier rating & analysis": "تقييم الموردين بالذكاء الاصطناعي",
+  "On Time Deliveries": "التسليم بالوقت",
+  "Late Deliveries": "تأخيرات التسليم",
+  "Price Competitiveness": "تنافسية السعر",
+  "Return Rate": "نسبة المرتجعات",
+  "Overall Score": "التقييم العام",
+  "AI Recommendation": "توصية AI",
+
+  // Permissions
+  "Screen Permissions (صلاحيات الشاشات)": "صلاحيات الشاشات",
+  "Manage user & role access": "إدارة صلاحيات المستخدمين والأدوار",
+  "Permissions": "الصلاحيات",
+  "Screen": "الشاشة",
+  "Grant": "منح",
+  "Revoke": "سحب",
+
+  // Traceability
+  "Production Traceability (تتبع الإنتاج)": "تتبع الإنتاج",
+  "Track batch from raw material to customer": "تتبع الدُفعة من الخامة للعميل",
+  "Batch Number": "رقم الدُفعة",
+  "Trace": "تتبع",
+  "Raw Materials Consumed": "خامات مستهلكة",
+  "Production Order": "أمر الإنتاج",
+  "QC Inspection": "فحص الجودة",
+  "Finished Product": "المنتج النهائي"
 };
 
 // Set Arabic as default language
