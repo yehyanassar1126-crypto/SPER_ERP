@@ -47,6 +47,13 @@ var EnterpriseUX = {
     { id: 'internal-chat', name: 'Internal Chat (المحادثات)', icon: 'messageSquare', section: 'Communication' },
     { id: 'task-management', name: 'Tasks (المهام)', icon: 'checkCircle', section: 'Collaboration' },
     { id: 'system-settings', name: 'Settings (الإعدادات)', icon: 'settings', section: 'Admin' },
+    { id: 'erp-bom', name: 'BOM (مكونات المنتج)', icon: 'list', section: 'Production' },
+    { id: 'production-trace', name: 'Traceability (تتبع الإنتاج)', icon: 'link', section: 'Production' },
+    { id: 'erp-equipment', name: 'Equipment (المعدات)', icon: 'monitor', section: 'Maintenance' },
+    { id: 'maint-companies', name: 'Maintenance Companies (شركات الصيانة)', icon: 'briefcase', section: 'Maintenance' },
+    { id: 'global-search', name: 'Global Search (بحث موحد)', icon: 'search', section: 'Analytics' },
+    { id: 'supplier-performance', name: 'Supplier Performance (تقييم الموردين)', icon: 'trendingUp', section: 'Supply Chain' },
+    { id: 'screen-permissions', name: 'Permissions (صلاحيات الشاشات)', icon: 'shield', section: 'Admin' },
   ],
 
   quickActions: [
@@ -54,10 +61,14 @@ var EnterpriseUX = {
     { name: 'إنشاء أمر بيع', nameEn: 'Create Sales Order', icon: 'shoppingBag', page: 'erp-sales' },
     { name: 'إنشاء أمر شراء', nameEn: 'Create Purchase Request', icon: 'shoppingCart', page: 'purchase-requests' },
     { name: 'إنشاء أمر إنتاج', nameEn: 'Create Production Order', icon: 'settings', page: 'erp-production' },
+    { name: 'إضافة BOM', nameEn: 'Add BOM', icon: 'list', page: 'erp-bom' },
+    { name: 'تتبع دُفعة', nameEn: 'Trace Batch', icon: 'link', page: 'production-trace' },
     { name: 'إنشاء رحلة نقل', nameEn: 'Create Trip', icon: 'truck', page: 'erp-fleet' },
     { name: 'إضافة مورد', nameEn: 'Add Supplier', icon: 'users', page: 'erp-suppliers' },
     { name: 'إنشاء تذكرة دعم', nameEn: 'Create IT Ticket', icon: 'cpu', page: 'it-tickets' },
     { name: 'طلب صيانة', nameEn: 'Maintenance Request', icon: 'tool', page: 'erp-maintenance' },
+    { name: 'بحث موحد', nameEn: 'Global Search', icon: 'search', page: 'global-search' },
+    { name: 'إدارة الصلاحيات', nameEn: 'Manage Permissions', icon: 'shield', page: 'screen-permissions' },
   ],
 
   init: function() {
