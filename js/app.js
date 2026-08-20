@@ -374,6 +374,7 @@ var App = {
           {
             section: 'Administration', items: [
               { id: 'system-settings', label: '⚙️ Settings (الإعدادات)', icon: 'settings' },
+              { id: 'screen-permissions', label: '🔐 Permissions (الصلاحيات)', icon: 'shield' },
             ]
           }
         ];
@@ -646,6 +647,7 @@ var App = {
         menu.push({ section: 'Production (الإنتاج)', items: [
           { id: 'erp-production', label: 'Production Orders (أوامر الإنتاج)', icon: 'settings' },
           { id: 'erp-bom', label: 'BOM (مكونات المنتج)', icon: 'list' },
+          { id: 'production-trace', label: '🔗 Traceability (تتبع)', icon: 'link' },
         ]});
       }
       
@@ -798,6 +800,8 @@ var App = {
       'maint-companies': { title: 'Maintenance Companies (شركات الصيانة)', sub: 'Contractor management & visit tracking' },
       'global-search': { title: '🔍 Global Search (بحث موحد)', sub: 'Search across all ERP modules' },
       'supplier-performance': { title: '📊 Supplier Performance (تقييم الموردين)', sub: 'AI-powered supplier rating & analysis' },
+      'screen-permissions': { title: '🔐 Screen Permissions (صلاحيات الشاشات)', sub: 'Manage user & role access' },
+      'production-trace': { title: '🔗 Production Traceability (تتبع الإنتاج)', sub: 'Track batch from raw material to customer' },
       'spare-parts': { title: 'Spare Parts Lifecycle (دورة قطع الغيار)', sub: 'Manage spare parts requests, returns, and quality checks' },
       'erp-suppliers': { title: 'Supplier Management', sub: 'Manage external suppliers' },
       'supplier-portal': { title: 'Supplier Portal', sub: 'View your orders and requests' },
@@ -948,6 +952,8 @@ var App = {
       case 'maint-companies': if (typeof ERPEquipment !== 'undefined') ERPEquipment.renderMaintCompanies(); else el.innerHTML = 'Module loading...'; break;
       case 'global-search': if (typeof ERPGlobalSearch !== 'undefined') ERPGlobalSearch.render(); else el.innerHTML = 'Module loading...'; break;
       case 'supplier-performance': if (typeof ERPSupplierPerf !== 'undefined') ERPSupplierPerf.render(); else el.innerHTML = 'Module loading...'; break;
+      case 'screen-permissions': if (typeof ERPPermissions !== 'undefined') ERPPermissions.render(); else el.innerHTML = 'Module loading...'; break;
+      case 'production-trace': if (typeof ERPTraceability !== 'undefined') ERPTraceability.renderTrace(); else el.innerHTML = 'Module loading...'; break;
       case 'spare-parts': Pages.spareParts(el); break;
       case 'erp-suppliers': ERPSuppliers.renderAdmin(); break;
       case 'supplier-portal': ERPSuppliers.renderExternalPortal(); break;
