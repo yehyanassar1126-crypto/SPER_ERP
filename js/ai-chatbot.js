@@ -20,6 +20,8 @@ var AIChatbot = {
         '<div class="ai-chat-messages" id="ai-chat-msgs"></div>' +
         '<div class="ai-chat-input-wrap">' +
           '<button class="ai-voice-btn" id="ai-voice-btn" title="Voice">🎤</button>' +
+          '<button class="ai-voice-btn" id="ai-file-btn" title="Attach File" onclick="document.getElementById(\'ai-file-input\').click()">📎</button>' +
+          '<input type="file" id="ai-file-input" style="display:none" accept="image/*,.pdf,.xlsx,.csv,.docx" onchange="AIChatbot.handleFile(this)">' +
           '<input class="ai-chat-input" id="ai-chat-input" placeholder="اسأل الذكاء الاصطناعي..." />' +
           '<button class="ai-chat-send" id="ai-chat-send">➤</button>' +
         '</div>' +
@@ -418,6 +420,67 @@ var AIChatbot = {
       btn.textContent = '🎤';
     };
     recognition.start();
+  },
+
+  // === FILE UPLOAD ===
+  handleFile: function(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      AIChatbot.addBotMsg('⚠️ الملف أكبر من 5MB. اختر ملف أصغر.');
+      input.value = '';
+      return;
+    }
+
+    // Show preview in chat
+    var msgs = document.getElementById('ai-chat-msgs');
+    var div = document.createElement('div');
+    div.className = 'ai-msg user';
+
+    if (file.type.startsWith('image/')) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        div.innerHTML = '<img src="'+e.target.result+'" style="max-width:200px;border-radius:8px;margin-bottom:4px"><br><small>📎 '+file.name+'</small>';
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      var icons = {'.pdf':'📄','.xlsx':'📊','.csv':'📋','.docx':'📝'};
+      var ext = file.name.substring(file.name.lastIndexOf('.'));
+      div.innerHTML = (icons[ext]||'📎')+' <strong>'+file.name+'</strong><br><small>'+Math.round(file.size/1024)+' KB</small>';
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    // Upload to Supabase Storage
+    AIChatbot.showTyping();
+    var path = 'chat-files/'+(App.user?App.user.id:'anon')+'/'+Date.now()+'_'+file.name;
+
+    sbClient.storage.from('attachments').upload(path, file).then(function(r) {
+      AIChatbot.hideTyping();
+      if (r.error) {
+        AIChatbot.addBotMsg('⚠️ فشل رفع الملف. تأكد من إعداد Supabase Storage bucket "attachments".\n\nالخطأ: '+r.error.message);
+      } else {
+        var url = sbClient.storage.from('attachments').getPublicUrl(path).data.publicUrl;
+        // Save to chat_attachments
+        sbClient.from('chat_attachments').insert({
+          sender_id: App.user?App.user.id:null,
+          file_name: file.name,
+          file_url: url,
+          file_type: file.type,
+          file_size: file.size
+        }).then(function(){});
+
+        if (file.type.startsWith('image/')) {
+          AIChatbot.addBotMsg('✅ تم رفع الصورة بنجاح!\n\nيمكنني تحليل الصور في المستقبل باستخدام AI Vision.');
+        } else {
+          AIChatbot.addBotMsg('✅ تم رفع **'+file.name+'** بنجاح!\n\n📎 [فتح الملف]('+url+')');
+        }
+      }
+    });
+    input.value = '';
   }
 };
 
