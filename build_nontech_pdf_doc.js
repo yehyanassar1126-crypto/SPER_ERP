@@ -119,7 +119,15 @@ const dbSchema = parseDatabaseSchema();
 const tableKeys = Object.keys(dbSchema).sort();
 console.log(`Parsed ${tableKeys.length} total database tables for non-technical documentation.`);
 
-// 2. Generate HTML Content focused 100% on Non-Technical Explanation
+// 2. Load Logo Image as Base64 Data URI
+const logoPath = path.join(__dirname, 'public', 'logo.png');
+let logoDataUri = '';
+if (fs.existsSync(logoPath)) {
+  const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+  logoDataUri = `data:image/png;base64,${logoBase64}`;
+}
+
+// 3. Generate HTML Content focused 100% on Non-Technical Explanation
 const htmlContent = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -159,33 +167,33 @@ const htmlContent = `
       align-items: center;
       text-align: center;
       padding: 40px 20px;
-      background: linear-gradient(135deg, #065f46 0%, #047857 50%, #064e3b 100%);
+      background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%);
       color: #ffffff;
       border-radius: 12px;
     }
     
-    .cover-logo {
-      width: 140px;
-      height: 140px;
-      background: rgba(255, 255, 255, 0.15);
-      border: 3px solid #34d399;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 65px;
-      margin-top: 30px;
-      box-shadow: 0 10px 25px rgba(52, 211, 153, 0.4);
+    .cover-logo-wrapper {
+      margin-top: 20px;
+      margin-bottom: 25px;
+    }
+    .cover-logo-img {
+      width: 180px;
+      height: auto;
+      border-radius: 20px;
+      background: #ffffff;
+      padding: 14px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+      border: 4px solid #34d399;
     }
     
-    .cover-title { font-size: 26pt; font-weight: 900; color: #ffffff; margin-bottom: 15px; }
-    .cover-subtitle { font-size: 15pt; font-weight: 600; color: #a7f3d0; margin-bottom: 25px; }
+    .cover-title { font-size: 25pt; font-weight: 900; color: #ffffff; margin-bottom: 12px; letter-spacing: 0.5px; }
+    .cover-subtitle { font-size: 14pt; font-weight: 700; color: #a7f3d0; margin-bottom: 22px; line-height: 1.6; }
     .cover-badge {
-      display: inline-block; padding: 8px 24px; background: rgba(52, 211, 153, 0.2);
-      border: 1px solid #34d399; border-radius: 30px; font-size: 11pt; color: #ecfdf5; margin-bottom: 30px;
+      display: inline-block; padding: 8px 26px; background: rgba(52, 211, 153, 0.2);
+      border: 1.5px solid #34d399; border-radius: 30px; font-size: 11.5pt; color: #ecfdf5; margin-bottom: 25px; font-weight: 700;
     }
     .cover-meta {
-      width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 20px;
+      width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.25); padding-top: 20px;
       display: flex; justify-content: space-around; font-size: 10pt; color: #d1fae5;
     }
     
@@ -226,17 +234,19 @@ const htmlContent = `
 </head>
 <body>
 
-  <!-- COVER PAGE -->
+  <!-- COVER PAGE WITH OFFICIAL LOGO & TITLE -->
   <div class="cover-page">
     <div>
-      <div class="cover-logo">🏢</div>
-      <h1 class="cover-title">الدليل التشغيلي والنظرة الوظيفية الشاملة</h1>
-      <div class="cover-subtitle">نظام إدارة المصانع الذكية والموارد البشرية (Smart Factory Enterprise ERP)</div>
-      <div class="cover-badge">دليل الإدارات والشاشات والخطوات - مبسط بالكامل لغير المبرمجين</div>
+      <div class="cover-logo-wrapper">
+        ${logoDataUri ? `<img src="${logoDataUri}" alt="NINJA SMART TECHNOLOGY FACTORY LOGO" class="cover-logo-img" />` : '<div style="font-size:70px;">🏢</div>'}
+      </div>
+      <h1 class="cover-title">NINJA SMART TECHNOLOGY FACTORY</h1>
+      <div class="cover-subtitle">نظام إدارة المصانع الذكية والموارد البشرية والتخطيط المؤسسي<br>(Smart Factory HR & Enterprise ERP System)</div>
+      <div class="cover-badge">الدليل التشغيلي والنظرة الوظيفية الشاملة - مخصص بالكامل لغير المبرمجين</div>
     </div>
     
     <div style="max-width: 650px; text-align: center;">
-      <p style="color: #ecfdf5; font-size: 11pt;">دليل الاستخدام والتشغيل التفصيلي الموجه للإدارة العليا، مدراء الأقسام، والموظفين. يقدم شرحاً شاملاً لكافة الوظائف، الشاشات، مسارات العمل، وقاعدة البيانات بدون أكواد برمجية.</p>
+      <p style="color: #ecfdf5; font-size: 11pt; line-height: 1.8;">دليل الاستخدام والتشغيل التفصيلي الموجه للإدارة العليا، مدراء الأقسام، والموظفين. يقدم شرحاً شاملاً لكافة الوظائف، الشاشات، مسارات العمل، وقواعد البيانات بدون أكواد برمجية.</p>
     </div>
 
     <div class="cover-meta">
@@ -254,7 +264,7 @@ const htmlContent = `
     </div>
 
     <div class="section-title">1.1 الهدف الأساسي من النظام</div>
-    <p>تم بناء نظام <strong>Smart Factory Enterprise ERP</strong> ليحل محل الورقيات والمعاملات اليدوية المتفرقة داخل المصنع والشركة. يربط النظام جميع إدارات الشركة (الموارد البشرية، الحضور، الرواتب، المالية، المشتريات، المخازن، الإنتاج، الصيانة، الأسطول، والمبيعات) في بيئة سحابية واحدة موحدة تفاعلية.</p>
+    <p>تم بناء نظام <strong>NINJA SMART TECHNOLOGY FACTORY (Smart Factory ERP)</strong> ليحل محل الورقيات والمعاملات اليدوية المتفرقة داخل المصنع والشركة. يربط النظام جميع إدارات الشركة (الموارد البشرية، الحضور، الرواتب، المالية، المشتريات، المخازن، الإنتاج، الصيانة، الأسطول، والمبيعات) في بيئة سحابية واحدة موحدة تفاعلية.</p>
 
     <div class="section-title">1.2 كيف يعمل النظام وتبادل البيانات؟</div>
     <p>يبدأ الموظف رحلته في النظام بدخول واجهة التشغيل بحسب حسابه الشخصي. عندما يقوم الموظف بتنفيذ أي حركة (مثل تقديم طلب إجازة، تسجيل بصمة حضور، إذن صرف من المخزن، أو أمر إنتاج جديد)، يقوم النظام بـ:</p>
@@ -648,7 +658,7 @@ const htmlContent = `
   <div class="page-break">
     <div class="proposal-card">
       <h2 style="font-size: 18pt; color: #064e3b; text-align: center; margin-bottom: 12px;">💼 الفصل الثاني عشر: عرض السعر التقديري الشامل (Commercial Proposal)</h2>
-      <p style="text-align: center; font-weight: bold; color: #047857; margin-bottom: 18px;">عرض توريد وتشغيل وتطوير نظام Smart Factory Enterprise ERP</p>
+      <p style="text-align: center; font-weight: bold; color: #047857; margin-bottom: 18px;">عرض توريد وتشغيل وتطوير نظام NINJA SMART TECHNOLOGY FACTORY ERP</p>
 
       <div class="notice-box" style="background: #ffffff;">
         <strong>ملاحظة التقييم الاستثماري:</strong> تم حصر هذا العرض التجاري بناءً على حجم العمل الهندسي والبرمجي الفعلي المستمر منذ <strong>1 يناير 2026 وحتى 22 أغسطس 2026 (ما يقارب 8 أشهر تطوير متواصل)</strong>، ونظراً لأن النظام لا يزال تحت التطوير النشط والتحديث المستمر، فإن العرض يغطي كافة الموديولات الـ 15 والجداول الـ 163+ وقواعد الذكاء الاصطناعي:
@@ -708,7 +718,7 @@ const htmlContent = `
 fs.writeFileSync(path.join(__dirname, 'master_nontech_erp_documentation.html'), htmlContent);
 console.log('Successfully generated Non-Technical HTML template: master_nontech_erp_documentation.html');
 
-// 3. Render HTML to PDF via Puppeteer
+// 4. Render HTML to PDF via Puppeteer
 async function renderPdf() {
   console.log('Launching Puppeteer for Non-Technical PDF rendering...');
   const browser = await puppeteer.launch({

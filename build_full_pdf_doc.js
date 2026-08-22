@@ -94,7 +94,15 @@ const dbSchema = parseDatabaseSchema();
 const tableKeys = Object.keys(dbSchema).sort();
 console.log(`Successfully parsed ${tableKeys.length} database tables.`);
 
-// 2. Generate Complete Master HTML Template
+// 2. Load Logo Image as Base64 Data URI
+const logoPath = path.join(__dirname, 'public', 'logo.png');
+let logoDataUri = '';
+if (fs.existsSync(logoPath)) {
+  const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+  logoDataUri = `data:image/png;base64,${logoBase64}`;
+}
+
+// 3. Generate Complete Master HTML Template
 const htmlContent = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -144,22 +152,22 @@ const htmlContent = `
       border-radius: 12px;
     }
     
-    .cover-logo {
-      width: 140px;
-      height: 140px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 3px solid #6366f1;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 60px;
-      margin-top: 40px;
-      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+    .cover-logo-wrapper {
+      margin-top: 20px;
+      margin-bottom: 25px;
+    }
+    .cover-logo-img {
+      width: 180px;
+      height: auto;
+      border-radius: 20px;
+      background: #ffffff;
+      padding: 14px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45);
+      border: 4px solid #818cf8;
     }
     
     .cover-title {
-      font-size: 28pt;
+      font-size: 26pt;
       font-weight: 900;
       color: #ffffff;
       margin-bottom: 15px;
@@ -167,21 +175,23 @@ const htmlContent = `
     }
     
     .cover-subtitle {
-      font-size: 16pt;
+      font-size: 15pt;
       font-weight: 600;
       color: #818cf8;
       margin-bottom: 30px;
+      line-height: 1.6;
     }
     
     .cover-badge {
       display: inline-block;
       padding: 8px 24px;
       background: rgba(99, 102, 241, 0.2);
-      border: 1px solid #818cf8;
+      border: 1.5px solid #818cf8;
       border-radius: 30px;
       font-size: 11pt;
       color: #c7d2fe;
       margin-bottom: 40px;
+      font-weight: 700;
     }
     
     .cover-meta {
@@ -292,7 +302,7 @@ const htmlContent = `
       background: #f8fafc;
       border: 2px dashed #6366f1;
       border-radius: 8px;
-      padding: 20px;
+      padding: 15px;
       margin: 20px 0;
       text-align: center;
     }
@@ -304,9 +314,19 @@ const htmlContent = `
       margin: 0 auto;
     }
 
-    .proposal-box {
-      background: #faf5ff;
-      border: 2px solid #a855f7;
+    .notice-box {
+      background: #eff6ff;
+      border-right: 4px solid #3b82f6;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 15px 0;
+      color: #1e40af;
+      font-size: 10pt;
+    }
+
+    .proposal-card {
+      background: #fdf4ff;
+      border: 2px solid #c084fc;
       border-radius: 10px;
       padding: 20px;
       margin-top: 20px;
@@ -315,22 +335,22 @@ const htmlContent = `
 </head>
 <body>
 
-  <!-- COVER PAGE -->
+  <!-- MASTER COVER PAGE -->
   <div class="cover-page">
     <div>
-      <div class="cover-logo">🏭</div>
-      <h1 class="cover-title">Smart Factory Enterprise ERP</h1>
-      <div class="cover-subtitle">التوثيق الفني الهندسي الشامل وقواعد البيانات والـ Workflows</div>
-      <div class="cover-badge">إصدار التوثيق الموحد v10.0 — شامل لجميع الـ 163+ جدول والموديولات</div>
+      <div class="cover-logo-wrapper">
+        ${logoDataUri ? `<img src="${logoDataUri}" alt="NINJA SMART TECHNOLOGY FACTORY LOGO" class="cover-logo-img" />` : '<div style="font-size:70px;">⚙️</div>'}
+      </div>
+      <h1 class="cover-title">NINJA SMART TECHNOLOGY FACTORY</h1>
+      <div class="cover-subtitle">التوثيق الفني المعماري والمشهد التشغيلي الكامل<br>(Smart Factory HR & Enterprise ERP System)</div>
+      <div class="cover-badge">الدليل الفني المرجعي - الإصدار v10.0 المعماري الشامل</div>
     </div>
     
-    <div style="max-width: 600px; text-align: center;">
-      <p style="color: #cbd5e1; font-size: 11pt;">وثيقة المواصفات الفنية، المعمارية البرمجية، الدلائل التشغيلية، ومصفوفة الصلاحيات الخاصة بنظام إدارة المصانع الذكية والموارد البشرية والمالية الشاملة.</p>
+    <div style="max-width: 650px; text-align: center;">
+      <p style="color: #cbd5e1; font-size: 11pt; line-height: 1.8;">دليل الحوكمة الفنية والهندسة المعمارية الشامل، يغطي 163+ جدولاً في قاعدة البيانات، 15 موديول رئيسي، مصفوفة الصلاحيات، ومحرك الذكاء الاصطناعي.</p>
     </div>
 
     <div class="cover-meta">
-      <div><strong>جهة التطوير:</strong> Google Deepmind AI Systems</div>
-      <div><strong>المستهدف:</strong> الإدارة العليا والفريق الهندسي</div>
       <div><strong>التاريخ:</strong> أغسطس 2026</div>
     </div>
   </div>
