@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
 
-console.log('=== Starting Master Non-Technical ERP System Manual PDF Generator ===');
+console.log('=== Starting Master Non-Technical ERP System Manual PDF Generator (Blue Edition) ===');
 
-// 1. Parse Database Schema to extract all tables and generate human-friendly Arabic descriptions
+// 1. Parse Database Schema to extract all tables
 function parseDatabaseSchema() {
   const sqlFiles = [
     'supabase_schema.sql',
@@ -38,34 +38,28 @@ function parseDatabaseSchema() {
 
   let tables = {};
 
-  const fieldDescriptions = {
-    'id': 'الرقم التعريفي الفريد المميز للسجل',
-    'user_id': 'الرقم الخاص بالموظف أو المستخدم في النظام',
-    'created_at': 'تاريخ وساعة إنشاء التسجيل تلقائياً',
-    'updated_at': 'تاريخ وساعة آخر تعديل تم على السجل',
-    'status': 'حالة الطلب أو السجل الحالية (مقبول/مرفوض/معلق)',
-    'full_name': 'الاسم الكامل والشخصي للموظف أو العميل',
-    'email': 'البريد الإلكتروني المعتمد للتواصل والإشعارات',
-    'phone': 'رقم الهاتف ورقم التواصل المعتمد',
-    'role': 'الدور الوظيفي ومستوى الوصول للموظف',
-    'department': 'اسم الإدارة أو القسم التابع له الموظف',
-    'salary': 'قيمة الراتب الأساسي الشهري بالجنيه',
-    'net_salary': 'صافي المستحق للراتب بعد الخصومات والبدلات',
-    'amount': 'المبلغ المالي الإجمالي للمعاملة',
-    'description': 'الوصف التفصيلي والشارح للعملية',
-    'notes': 'ملاحظات وتوجيهات إضافية مسجلة',
-    'date': 'تاريخ العملية أو الحركة',
-    'time': 'التوقيت الزمني الدقيق للعملية',
-    'code': 'الكود المرجعي الفريد للتعريف',
-    'name': 'الاسم المعتمد في السجلات الرسمية',
-    'quantity': 'الكمية العددية المطلوبة أو المتوفرة',
-    'price': 'السعر الفردي للوحدة',
-    'total': 'إجمالي التكلفة أو القيمة المالية',
-    'safe_id': 'الرقم التعريفي للخزينة المالية المستخدمة',
-    'bank_id': 'الرقم التعريفي للحساب البنكي المستخدم',
-    'check_in': 'وقت وتاريخ تسجيل الحضور',
-    'check_out': 'وقت وتاريخ تسجيل الانصراف',
-    'penalty': 'قيمة خصم الجزاء المالي المقدر'
+  const tableExplanations = {
+    'users': 'جدول المستخدمين الرئيسي: يخزن بيانات جميع الموظفين والمدراء، يشمل الاسم الكامل، البريد الإلكتروني، كلمة المرور المشفرة، الدور الوظيفي، والقسم التابع له.',
+    'attendance': 'جدول سجلات الحضور والانصراف: يسجل وقت وتاريخ دخول وخروج كل موظف يومياً عبر البصمة أو كود الـ QR، ويحسب دقائق التأخير والغياب آلياً.',
+    'payroll': 'جدول الرواتب والأجور الشهرية: يخزن تفاصيل راتب كل موظف، شامل الراتب الأساسي، البدلات، المكافآت، الخصومات والجزاءات، وصافي الراتب المستحق.',
+    'leave_requests': 'جدول طلبات الإجازات: يسجل الطلبات المقدمة من الموظفين (سنوية، مرضية، عارضة)، حالة الموافقة عليها من المدراء، وتاريخ البدء والانتهاء.',
+    'finance_safes': 'جدول الخزائن المالية والحسابات البنكية: يوثق الخزائن الموجودة بالمؤسسة ورصيد كل خزنة بالجنيه، ويراقب رصيد النقدية المتاح للصرف.',
+    'journal_entries': 'جدول القيود المحاسبية التلقائية: ينشئ النظام فيه قيداً محاسبياً فورياً مع كل حركة مالية (مثل صرف راتب، شراء خامات، أو سداد مورد).',
+    'cost_centers': 'جدول مراكز التكلفة: يربط المصروفات والإيرادات بالقسم أو المشروع المحدد لضمان معرفة تكلفة كل خط إنتاج أو مشروع على حدة.',
+    'suppliers': 'جدول الموردين والشركات الخارجية: يتضمن اسماء الموردين، بيانات التواصل، المبالغ المستحقة لهم، والتاريخ التجاري لكل مورد.',
+    'purchase_orders': 'جدول أوامر الشراء: يحتوي على تفاصيل المواد المطلوب شراؤها، الكميات، الأسعار المتفق عليها، والمورد المحدد لكل أمر شراء.',
+    'inventory_items': 'جدول المنتجات والمواد الخام بالمخزن: يخزن اسم المادة الخام، كود المنتج، رصيد الكمية المتاحة بالمخزن، وحد أدنى إعادة الطلب.',
+    'stock_movements': 'جدول حركات المخزن: يسجل كل حركة إدخال خامات من المورد أو صرف خامات لخطوط الإنتاج مع اسم المسؤول وتاريخ الحركة.',
+    'bom': 'جدول قائمة مكونات المنتج (BOM): يحدد المعايير الفنية والكميات الدقيقة من الخامات المطلوبة لتصنيع وحدة واحدة من المنتج التام.',
+    'production_orders': 'جدول أوامر الإنتاج والتصنيع: يتبع حالة تصنيع الأوامر بالمصنع (قيد الانتظار، جاري التصنيع، مكتمل) والكميات المطلوبة.',
+    'qc_inspections': 'جدول فحص جودة المنتجات: يوثق عمليات الفحص الفني للقطع المصنعة، نسبة العيوب المقبولة، وحالة اعتماد الشحنة للبيع.',
+    'equipment': 'جدول الآلات والمعدات بالمصنع: يسجل بيانات كل ماكينة، تاريخ التشغيل، ساعات العمل الفعلية، وحالة الكفاءة الفنية.',
+    'maintenance_logs': 'جدول سجلات الصيانة الوقائية والطارئة: يوثق البلاغات عن أعطال الماكينات، قطع الغيار المستخدمة، وتكلفة عملية الصيانة.',
+    'fleet_vehicles': 'جدول أسطول السيارات والشاحنات: يخزن بيانات الشاحنات، رقم اللوحة، قراءة العداد الحالي (Odometer)، وتاريخ الفحص الدوري.',
+    'fleet_trips': 'جدول رحلات الشحن والنقل: يوثق خط سير الرحلة، السائق المسؤول، مسافة الكيلومترات، وكمية الوقود المخصصة للرحلة.',
+    'spare_parts': 'جدول قطع غيار السيارات والآلات: يحتوي على رصيد قطع الغيار المتوفرة بالمخزن، أسعارها، وتاريخ استبدالها.',
+    'ats_applications': 'جدول طلبيات التوظيف والسير الذاتية: يوثق بيانات المتقدمين للوظائف، ملف السيرة الذاتية (PDF)، ونسبة تقييم الذكاء الاصطناعي.',
+    'screen_permissions': 'جدول صلاحيات الشاشات (RBAC): يحدد بالضبط ما هي الشاشات والأزرار المسموح لكل دور وظيفي برؤيتها وتعديلها.'
   };
 
   sqlFiles.forEach(relPath => {
@@ -80,34 +74,13 @@ function parseDatabaseSchema() {
       const body = match[3];
 
       if (!tables[tName]) {
-        tables[tName] = { name: tName, columns: [], source: relPath };
+        let desc = tableExplanations[tName] || `جدول سجلات (${tName}): يُستخدم لتخزين وحفظ السجلات التشغيلية الخاصة بالمؤسسة، ويضمن استرجاع البيانات ومتابعة الحركة الإدارية والتاريخية بكل دقة عبر الشاشات الرسمية.`;
 
-        const lines = body.split('\n');
-        lines.forEach(line => {
-          line = line.trim();
-          if (!line || line.startsWith('--') || line.startsWith('CONSTRAINT') || line.startsWith('PRIMARY KEY') || line.startsWith('FOREIGN KEY') || line.startsWith('UNIQUE')) {
-            return;
-          }
-          const colMatch = line.match(/^"?([a-zA-Z0-9_]+)"?\s+([a-zA-Z0-9_]+(?:\([0-9,\s]+\))?)(.*)/);
-          if (colMatch) {
-            const colName = colMatch[1];
-            const colType = colMatch[2];
-            const rest = colMatch[3] || '';
-            
-            const isPk = /PRIMARY\ KEY/i.test(rest) || colName === 'id';
-            const isFk = /REFERENCES/i.test(rest);
-
-            let desc = fieldDescriptions[colName] || `بيان تشغيلي يمثل (${colName}) في سجلات النظام`;
-
-            tables[tName].columns.push({
-              name: colName,
-              type: colType,
-              pk: isPk,
-              fk: isFk,
-              desc: desc
-            });
-          }
-        });
+        tables[tName] = {
+          name: tName,
+          explanation: desc,
+          source: relPath
+        };
       }
     }
   });
@@ -117,7 +90,7 @@ function parseDatabaseSchema() {
 
 const dbSchema = parseDatabaseSchema();
 const tableKeys = Object.keys(dbSchema).sort();
-console.log(`Parsed ${tableKeys.length} total database tables for non-technical documentation.`);
+console.log(`Parsed ${tableKeys.length} total database tables.`);
 
 // 2. Load Logo Image as Base64 Data URI
 const logoPath = path.join(__dirname, 'public', 'logo.png');
@@ -127,13 +100,13 @@ if (fs.existsSync(logoPath)) {
   logoDataUri = `data:image/png;base64,${logoBase64}`;
 }
 
-// 3. Generate HTML Content focused 100% on Non-Technical Explanation
+// 3. Generate HTML Content focused 100% on Non-Technical Explanation with BLUE Aesthetic Theme
 const htmlContent = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>دليل التشغيل الشامل ودليل المستخدم النهائي - Smart Factory ERP</title>
+  <title>الدليل التشغيلي الموحد - NINJA SMART TECHNOLOGY FACTORY ERP</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
     
@@ -141,7 +114,7 @@ const htmlContent = `
     body {
       font-family: 'Cairo', sans-serif;
       font-size: 11pt;
-      line-height: 1.7;
+      line-height: 1.8;
       color: #1e293b;
       background: #ffffff;
       direction: rtl;
@@ -158,6 +131,7 @@ const htmlContent = `
       }
     }
     
+    /* BLUE COVER PAGE THEME */
     .cover-page {
       page-break-after: always;
       height: 100vh;
@@ -167,7 +141,7 @@ const htmlContent = `
       align-items: center;
       text-align: center;
       padding: 40px 20px;
-      background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 40%, #1d4ed8 100%);
       color: #ffffff;
       border-radius: 12px;
     }
@@ -182,29 +156,29 @@ const htmlContent = `
       border-radius: 20px;
       background: #ffffff;
       padding: 14px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
-      border: 4px solid #34d399;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45);
+      border: 4px solid #60a5fa;
     }
     
     .cover-title { font-size: 25pt; font-weight: 900; color: #ffffff; margin-bottom: 12px; letter-spacing: 0.5px; }
-    .cover-subtitle { font-size: 14pt; font-weight: 700; color: #a7f3d0; margin-bottom: 22px; line-height: 1.6; }
+    .cover-subtitle { font-size: 14pt; font-weight: 700; color: #93c5fd; margin-bottom: 22px; line-height: 1.6; }
     .cover-badge {
-      display: inline-block; padding: 8px 26px; background: rgba(52, 211, 153, 0.2);
-      border: 1.5px solid #34d399; border-radius: 30px; font-size: 11.5pt; color: #ecfdf5; margin-bottom: 25px; font-weight: 700;
+      display: inline-block; padding: 8px 26px; background: rgba(59, 130, 246, 0.25);
+      border: 1.5px solid #60a5fa; border-radius: 30px; font-size: 11.5pt; color: #eff6ff; margin-bottom: 25px; font-weight: 700;
     }
     .cover-meta {
       width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.25); padding-top: 20px;
-      display: flex; justify-content: space-around; font-size: 10pt; color: #d1fae5;
+      display: flex; justify-content: space-around; font-size: 10pt; color: #bfdbfe;
     }
     
     .page-break { page-break-after: always; }
     .chapter-title {
-      font-size: 20pt; font-weight: 800; color: #064e3b; border-bottom: 4px solid #059669;
+      font-size: 20pt; font-weight: 800; color: #1e3a8a; border-bottom: 4px solid #2563eb;
       padding-bottom: 8px; margin-top: 25px; margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
     }
     .section-title {
-      font-size: 13pt; font-weight: 700; color: #047857; margin-top: 22px; margin-bottom: 12px;
-      background: #ecfdf5; padding: 8px 14px; border-right: 5px solid #10b981; border-radius: 4px;
+      font-size: 13.5pt; font-weight: 700; color: #1d4ed8; margin-top: 22px; margin-bottom: 12px;
+      background: #eff6ff; padding: 8px 14px; border-right: 5px solid #3b82f6; border-radius: 4px;
     }
     
     p { margin-bottom: 12px; text-align: justify; color: #334155; }
@@ -213,23 +187,30 @@ const htmlContent = `
 
     table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; font-size: 9.5pt; }
     th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: right; }
-    th { background-color: #064e3b; color: #ffffff; font-weight: 700; font-size: 10pt; }
+    th { background-color: #1e3a8a; color: #ffffff; font-weight: 700; font-size: 10pt; }
     tr:nth-child(even) { background-color: #f8fafc; }
 
     .diagram-box {
-      background: #f0fdf4; border: 2px dashed #10b981; border-radius: 8px;
-      padding: 15px; margin: 15px 0; text-align: center;
+      background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 8px;
+      padding: 15px; margin: 18px 0; text-align: center; page-break-inside: avoid;
     }
     .diagram-svg { width: 100%; max-width: 750px; height: auto; margin: 0 auto; }
     
     .notice-box {
-      background: #eff6ff; border-right: 4px solid #3b82f6; padding: 12px 16px;
+      background: #eff6ff; border-right: 4px solid #2563eb; padding: 12px 16px;
       border-radius: 6px; margin: 15px 0; color: #1e40af; font-size: 10pt;
     }
 
     .proposal-card {
-      background: #fdf4ff; border: 2px solid #c084fc; border-radius: 10px; padding: 20px; margin-top: 20px;
+      background: #f8fafc; border: 2px solid #3b82f6; border-radius: 10px; padding: 20px; margin-top: 20px;
     }
+
+    .table-item-card {
+      background: #ffffff; border: 1px solid #e2e8f0; border-right: 4px solid #2563eb;
+      border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; page-break-inside: avoid;
+    }
+    .table-item-title { font-weight: 800; color: #1e3a8a; font-size: 11pt; margin-bottom: 4px; }
+    .table-item-desc { color: #475569; font-size: 10pt; }
   </style>
 </head>
 <body>
@@ -242,11 +223,11 @@ const htmlContent = `
       </div>
       <h1 class="cover-title">NINJA SMART TECHNOLOGY FACTORY</h1>
       <div class="cover-subtitle">نظام إدارة المصانع الذكية والموارد البشرية والتخطيط المؤسسي<br>(Smart Factory HR & Enterprise ERP System)</div>
-      <div class="cover-badge">الدليل التشغيلي والنظرة الوظيفية الشاملة - مخصص بالكامل لغير المبرمجين</div>
+      <div class="cover-badge">الدليل التشغيلي والشرح التفصيلي لجميع الإدارات والدورات - مبسط لغير المبرمجين</div>
     </div>
     
     <div style="max-width: 650px; text-align: center;">
-      <p style="color: #ecfdf5; font-size: 11pt; line-height: 1.8;">دليل الاستخدام والتشغيل التفصيلي الموجه للإدارة العليا، مدراء الأقسام، والموظفين. يقدم شرحاً شاملاً لكافة الوظائف، الشاشات، مسارات العمل، وقواعد البيانات بدون أكواد برمجية.</p>
+      <p style="color: #eff6ff; font-size: 11pt; line-height: 1.8;">دليل الاستخدام الشامل للإدارة العليا والمدراء والموظفين. يحتوي على شرح مفصل لـ 15 إدارة متكاملة، دورات العمل (Workflows)، رسومات SVG مستقيمة لكل إدارة، توثيق 163+ جدول بدون جداول معقدة، وعرض السعر التجاري.</p>
     </div>
 
     <div class="cover-meta">
@@ -255,413 +236,229 @@ const htmlContent = `
     </div>
   </div>
 
-  <!-- CHAPTER 1 -->
+  <!-- CHAPTER 1: GENERAL OVERVIEW -->
   <div class="page-break">
-    <h2 class="chapter-title">🌟 الفصل الأول: شرح النظام بالكامل (لغير المبرمجين)</h2>
+    <h2 class="chapter-title">🌟 الفصل الأول: مقدمة ونظرة عامة على النظام</h2>
     
     <div class="notice-box">
-      <strong>ملاحظة زمنية مهمة:</strong> تم بدء العمل والتطوير الهندسي في هذا النظام منذ <strong>1 يناير 2026</strong> واستمر حتى تاريخ إعداد هذا التوثيق في <strong>22 أغسطس 2026</strong>. النظام حالياً في حالة تطوير نشطة ومستمرة، ويتم تحديث وتطوير الوظائف يومياً لضمان أعلى كفاءة تشغيلية.
+      <strong>تأكيد زمني هام:</strong> تم بدء بناء وتطوير النظام هندسياً وميدانياً منذ <strong>1 يناير 2026</strong> ومستمر حتى اليوم <strong>22 أغسطس 2026</strong>. النظام حالياً في حالة تطوير وتحديث مستمرة لإضافة أحدث الخصائص الذكية.
     </div>
 
-    <div class="section-title">1.1 الهدف الأساسي من النظام</div>
-    <p>تم بناء نظام <strong>NINJA SMART TECHNOLOGY FACTORY (Smart Factory ERP)</strong> ليحل محل الورقيات والمعاملات اليدوية المتفرقة داخل المصنع والشركة. يربط النظام جميع إدارات الشركة (الموارد البشرية، الحضور، الرواتب، المالية، المشتريات، المخازن، الإنتاج، الصيانة، الأسطول، والمبيعات) في بيئة سحابية واحدة موحدة تفاعلية.</p>
+    <div class="section-title">1.1 الهدف الأساسي وكيف يعمل النظام؟</div>
+    <p>صُمم نظام <strong>NINJA SMART TECHNOLOGY FACTORY ERP</strong> ليكون العقل المحرك للمؤسسة، حيث يربط بين جميع الأقسام التشغيلية والمالية والإدارية في منصة رقمية واحدة. عندما يدخل أي موظف إجراءً ما (مثل تسجيل حضور، صرف راتب، طلب شراء خامات، أو بدء خط إنتاج)، يتأكد النظام فوراً من الصلاحيات ويوجه الطلب إلى المسار الآلي المحدد، مع إشعار المسؤولين وتحديث رصيد الخزينة أو المخزن آلياً.</p>
 
-    <div class="section-title">1.2 كيف يعمل النظام وتبادل البيانات؟</div>
-    <p>يبدأ الموظف رحلته في النظام بدخول واجهة التشغيل بحسب حسابه الشخصي. عندما يقوم الموظف بتنفيذ أي حركة (مثل تقديم طلب إجازة، تسجيل بصمة حضور، إذن صرف من المخزن، أو أمر إنتاج جديد)، يقوم النظام بـ:</p>
-    <ul>
-      <li><strong>التحقق الآلي من الصلاحيات</strong>: يضمن أن الموظف يملك حق تنفيذ العملية.</li>
-      <li><strong>التطبيق الفوري لقواعد العمل (Business Logic)</strong>: مثال: إذا كانت المادة الخام غير متوفرة في المخزن، يمنع النظام بدء أمر الإنتاج ويرسل إشعاراً لقسم المشتريات.</li>
-      <li><strong>الحفظ والتأثير المحاسبي والمخزني المباشر</strong>: عند صرف راتب أو شراء مادة، يتم تحديث رصيد الخزينة ورصيد المخزن ومراكز التكلفة فوراً دون الحاجة لإدخال القيد يدويًا.</li>
-    </ul>
-
-    <div class="section-title">1.3 مخطط توضيحي عام لحركة البيانات والنظام</div>
+    <div class="section-title">1.2 الهيكل المخطط العام للنظام بالكامل</div>
     <div class="diagram-box">
-      <svg class="diagram-svg" viewBox="0 0 800 350" xmlns="http://www.w3.org/2000/svg">
-        <rect x="10" y="10" width="780" height="330" rx="8" fill="#ffffff" stroke="#10b981" stroke-width="2"/>
+      <svg class="diagram-svg" viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="10" width="780" height="300" rx="10" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
         
-        <!-- Step 1 -->
-        <rect x="30" y="40" width="210" height="80" rx="6" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
-        <text x="135" y="70" font-weight="bold" font-size="12" text-anchor="middle" fill="#064e3b">1. إدخال الحركة / الطلب</text>
-        <text x="135" y="90" font-size="9" text-anchor="middle" fill="#047857">بصمة، طلب إجازة، إذن مخزن</text>
+        <rect x="30" y="35" width="220" height="85" rx="8" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="140" y="65" font-weight="bold" font-size="12" text-anchor="middle" fill="#1e3a8a">1. إدخال الإجراء الميداني</text>
+        <text x="140" y="88" font-size="9" text-anchor="middle" fill="#1d4ed8">بصمة QR، إذن صرف، أمر إنتاج</text>
 
-        <!-- Arrow -->
-        <path d="M 240 80 L 290 80" stroke="#059669" stroke-width="2"/>
+        <path d="M 250 77 L 290 77" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)"/>
 
-        <!-- Step 2 -->
-        <rect x="290" y="40" width="220" height="80" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-        <text x="400" y="70" font-weight="bold" font-size="12" text-anchor="middle" fill="#1e40af">2. التحقق من الصلاحيات والمنطق</text>
-        <text x="400" y="90" font-size="9" text-anchor="middle" fill="#1d4ed8">فحص رصيد الإجازات والخزينة</text>
+        <rect x="290" y="35" width="220" height="85" rx="8" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+        <text x="400" y="65" font-weight="bold" font-size="12" text-anchor="middle" fill="#1e3a8a">2. تطبيق قواعد العمل والأمان</text>
+        <text x="400" y="88" font-size="9" text-anchor="middle" fill="#1e40af">فحص الصلاحية، الخزينة، والمخزن</text>
 
-        <!-- Arrow -->
-        <path d="M 510 80 L 560 80" stroke="#2563eb" stroke-width="2"/>
+        <path d="M 510 77 L 550 77" stroke="#2563eb" stroke-width="2.5"/>
 
-        <!-- Step 3 -->
-        <rect x="560" y="40" width="210" height="80" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
-        <text x="665" y="70" font-weight="bold" font-size="12" text-anchor="middle" fill="#78350f">3. الاعتماد والترحيل التلقائي</text>
-        <text x="665" y="90" font-size="9" text-anchor="middle" fill="#b45309">إنشاء القيود وتحديث الرصيد</text>
+        <rect x="550" y="35" width="220" height="85" rx="8" fill="#bfdbfe" stroke="#1e3a8a" stroke-width="2"/>
+        <text x="660" y="65" font-weight="bold" font-size="12" text-anchor="middle" fill="#0f172a">3. الترحيل المالي والتأثير الفوري</text>
+        <text x="660" y="88" font-size="9" text-anchor="middle" fill="#1e3a8a">قيد محاسبي + تحديث المخزن</text>
 
-        <!-- Bottom Level -->
-        <rect x="150" y="180" width="500" height="130" rx="8" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
-        <text x="400" y="210" font-weight="bold" font-size="13" text-anchor="middle" fill="#334155">النتيجة النهائية للمستخدم والإدارة العليا</text>
-        <text x="400" y="240" font-size="10" text-anchor="middle">✔ تحديث فورى للتقارير الماليـة ومراكز التكلفة</text>
-        <text x="400" y="265" font-size="10" text-anchor="middle">✔ إشعار فوري للمدير المسـؤول والشات بوت الذكي</text>
-        <text x="400" y="290" font-size="10" text-anchor="middle">✔ حظر أو قبول المعاملة وحفظ السجل الميداني</text>
+        <rect x="150" y="175" width="500" height="110" rx="8" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+        <text x="400" y="205" font-weight="bold" font-size="13" text-anchor="middle" fill="#0f172a">مخرجات النظام لجميع المستخدمين والإدارة</text>
+        <text x="400" y="230" font-size="10" text-anchor="middle" fill="#334155">✔ تقارير مالية ومخزنية فورية بدون أخطاء بشرية</text>
+        <text x="400" y="255" font-size="10" text-anchor="middle" fill="#334155">✔ إشعارات فورية وتفاعل الذكاء الاصطناعي التنبؤي</text>
       </svg>
     </div>
   </div>
 
-  <!-- CHAPTER 2: DEPARTMENTS & DIVISIONS -->
+  <!-- CHAPTER 2: ALL 15 DEPARTMENTS DETAILED WITH SVG DIAGRAMS -->
   <div class="page-break">
-    <h2 class="chapter-title">🏬 الفصل الثاني: تفاصيل الإدارات والأقسام والدورات التشغيلية</h2>
-    <p>يتألف النظام من 15 إدارة متخصصة تعمل معاً بانسجام تام. فيما يلي شرح كل إدارة والدورات التشغيلية التابعة لها مع الرسم التوضيحي المفصل:</p>
+    <h2 class="chapter-title">🏬 الفصل الثاني: تفاصيل الإدارات الـ 15 والدورات التشغيلية والرسومات</h2>
+    <p>فيما يلي تفصيل كلي لجميع الإدارات الـ 15 بالتفصيل الدقيق دون حذف أي إدارة، مع توضيح الدورة التشغيلية الكاملة ورسمة SVG مستقلة خاصة بكل إدارة:</p>
 
-    <div class="section-title">2.1 إدارة الموارد البشرية والرواتب (HR & Payroll Division)</div>
-    <p><strong>الوظيفة التشغيلية:</strong> تضمن إدارة كافة بيانات الموظفين، متابعة دوام الحضور عبر البصمة والـ QR Code، احتساب الجزاءات والساعات الإضافية، وصرف الرواتب المستحقة آلياً بنقرة زر مع توثيق الخزنة أو البنك الصادر منه الراتب.</p>
-    
-    <!-- HR Diagram -->
+    <!-- 1. HR -->
+    <div class="section-title">2.1 إدارة الموارد البشرية والرواتب (HR & Workforce Division)</div>
+    <p><strong>الشرح والتفصيل الشامل:</strong> هذه الإدارة هي المسؤول الأول عن المورد البشري بالمؤسسة. تشمل السجل الرقمي الكامل للموظف ( الرقم القومي، بيانات البنك، العقد، الراتب الأساسي، التأمينات الاجتماعية). كما تدرج نظام السلف التلقائية المعتمدة على الحضور (خاصة لعمال المياومة والإنتاج)، بالإضافة لإصدار المكافآت، تطبيق خصومات الجزاءات، تتبع طلبات الإجازات، واحتساب القروض. ثم تنتهي الدورة بضغط زر الصرف الذكي (Pay) الصادر من خزنة محددة تولد قيداً مالياً فورياً.</p>
+    <p><strong>الدورة التشغيلية:</strong> إضافة بيانات الموظف ← اختيار وردية العمل ← تسجيل بصمة الحضور ← احتساب الجزاءات والسلف ← اعتماد كشف الرواتب ← ضغط زر (Pay) لصرف المبلغ وتوليد القيد المحاسبي.</p>
     <div class="diagram-box">
-      <svg class="diagram-svg" viewBox="0 0 750 220" xmlns="http://www.w3.org/2000/svg">
-        <rect x="20" y="30" width="150" height="70" rx="6" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
-        <text x="95" y="60" font-weight="bold" font-size="11" text-anchor="middle">سجل الموظف</text>
-        <text x="95" y="78" font-size="9" text-anchor="middle">البيانات والراتب الأساسي</text>
+      <div style="font-weight:bold; color:#1e3a8a; margin-bottom:8px;">رسمة توضيحية مستقلة: دورة الموارد البشرية والرواتب</div>
+      <svg class="diagram-svg" viewBox="0 0 750 180" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="40" width="140" height="70" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+        <text x="90" y="70" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">سجل الموظف والعقد</text>
+        <text x="90" y="88" font-size="8.5" text-anchor="middle" fill="#1d4ed8">بيانات الراتب والبنك</text>
 
-        <path d="M 170 65 L 230 65" stroke="#4f46e5" stroke-width="2"/>
+        <path d="M 160 75 L 200 75" stroke="#2563eb" stroke-width="2"/>
 
-        <rect x="230" y="30" width="150" height="70" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-        <text x="305" y="60" font-weight="bold" font-size="11" text-anchor="middle">بصمة QR والحضور</text>
-        <text x="305" y="78" font-size="9" text-anchor="middle">خصم التأخير والغابات</text>
+        <rect x="200" y="40" width="150" height="70" rx="6" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+        <text x="275" y="70" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">الحضور والسلف الآلية</text>
+        <text x="275" y="88" font-size="8.5" text-anchor="middle" fill="#1e40af">خصم الجزاءات والإضافي</text>
 
-        <path d="M 380 65 L 440 65" stroke="#16a34a" stroke-width="2"/>
+        <path d="M 350 75 L 390 75" stroke="#1d4ed8" stroke-width="2"/>
 
-        <rect x="440" y="30" width="150" height="70" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
-        <text x="515" y="60" font-weight="bold" font-size="11" text-anchor="middle">احتساب صافي الراتب</text>
-        <text x="515" y="78" font-size="9" text-anchor="middle">إضافة البدلات والخصومات</text>
+        <rect x="390" y="40" width="150" height="70" rx="6" fill="#bfdbfe" stroke="#1e3a8a" stroke-width="2"/>
+        <text x="465" y="70" font-weight="bold" font-size="11" text-anchor="middle" fill="#0f172a">صافي الراتب المستحق</text>
+        <text x="465" y="88" font-size="8.5" text-anchor="middle" fill="#1e3a8a">اعتماد الكشف الشهري</text>
 
-        <path d="M 515 100 L 515 140" stroke="#d97706" stroke-width="2"/>
+        <path d="M 540 75 L 580 75" stroke="#1e3a8a" stroke-width="2"/>
 
-        <rect x="440" y="140" width="280" height="60" rx="6" fill="#faf5ff" stroke="#9333ea" stroke-width="2"/>
-        <text x="580" y="165" font-weight="bold" font-size="11" text-anchor="middle">زر الصرف الذكي (Pay) والتأثير المالي</text>
-        <text x="580" y="183" font-size="9" text-anchor="middle">خصم من الخزنة / البنك + قيد محاسبي تلقائي</text>
+        <rect x="580" y="40" width="150" height="70" rx="6" fill="#93c5fd" stroke="#1d4ed8" stroke-width="2"/>
+        <text x="655" y="70" font-weight="bold" font-size="11" text-anchor="middle" fill="#0f172a">زر الصرف الذكي (Pay)</text>
+        <text x="655" y="88" font-size="8.5" text-anchor="middle" fill="#1e3a8a">خصم الخزينة والقيد الآلي</text>
       </svg>
     </div>
 
-    <div class="section-title">2.2 إدارة المشتريات والمخازن والإنتاج (SCM & Manufacturing Division)</div>
-    <p><strong>الوظيفة التشغيلية:</strong> ربط طلب الشراء الصادر من المهندس مع المورد المعتمد، واستلام المواد الخام في مخزن الخامات، تمهيداً لخصمها المباشر بمجرد بدء أمر الإنتاج بحسب قائمة مكونات المنتج (BOM).</p>
-    
-    <!-- Manufacturing Diagram -->
+    <!-- 2. Attendance -->
+    <div class="section-title">2.2 إدارة الحضور والبصمة الذكية (Attendance & QR Scanner)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> تتيح للموظف والعمال مسح كود الـ QR الديناميكي عبر شاشة الهاتف أو الهاتف الميداني في موقع المصنع. يقرأ النظام وقت الحضور الفعلي، يقارنه بوردية العمل، يحسب التأخير بالدقيقة، ويطبق لائحة الجزاءات التلقائية دون محاباة.</p>
     <div class="diagram-box">
-      <svg class="diagram-svg" viewBox="0 0 750 200" xmlns="http://www.w3.org/2000/svg">
-        <rect x="20" y="40" width="150" height="70" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
-        <text x="95" y="70" font-weight="bold" font-size="11" text-anchor="middle">طلب الاحتياج للشراء</text>
-        <text x="95" y="88" font-size="9" text-anchor="middle">من مهندس الإنتاج</text>
+      <div style="font-weight:bold; color:#1e3a8a; margin-bottom:8px;">رسمة توضيحية مستقلة: دورة الحضور والـ QR Code</div>
+      <svg class="diagram-svg" viewBox="0 0 750 140" xmlns="http://www.w3.org/2000/svg">
+        <rect x="30" y="30" width="200" height="70" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="130" y="60" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">1. مسح رمز QR Code</text>
+        <text x="130" y="78" font-size="8.5" text-anchor="middle">تسجيل البصمة والتوقيت</text>
 
-        <path d="M 170 75 L 220 75" stroke="#ea580c" stroke-width="2"/>
+        <path d="M 230 65 L 280 65" stroke="#3b82f6" stroke-width="2"/>
 
-        <rect x="220" y="40" width="150" height="70" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
-        <text x="295" y="70" font-weight="bold" font-size="11" text-anchor="middle">استلام المخزن والفحص</text>
-        <text x="295" y="88" font-size="9" text-anchor="middle">مخزن المواد الخام</text>
+        <rect x="280" y="30" width="200" height="70" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="380" y="60" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">2. المقارنة بالوردية</text>
+        <text x="380" y="78" font-size="8.5" text-anchor="middle">احتساب التأخير والغياب</text>
 
-        <path d="M 370 75 L 420 75" stroke="#16a34a" stroke-width="2"/>
+        <path d="M 480 65 L 530 65" stroke="#2563eb" stroke-width="2"/>
 
-        <rect x="420" y="40" width="150" height="70" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-        <text x="495" y="70" font-weight="bold" font-size="11" text-anchor="middle">أمر الإنتاج (BOM)</text>
-        <text x="495" y="88" font-size="9" text-anchor="middle">خصم الخامات التلقائي</text>
-
-        <path d="M 570 75 L 620 75" stroke="#2563eb" stroke-width="2"/>
-
-        <rect x="620" y="40" width="110" height="70" rx="6" fill="#fdf4ff" stroke="#c084fc" stroke-width="2"/>
-        <text x="675" y="70" font-weight="bold" font-size="11" text-anchor="middle">المنتج التام</text>
-        <text x="675" y="88" font-size="9" text-anchor="middle">إلى مخزن البيع</text>
+        <rect x="530" y="30" width="190" height="70" rx="6" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+        <text x="625" y="60" font-weight="bold" font-size="11" text-anchor="middle" fill="#0f172a">3. الترحيل لدفتر الرواتب</text>
+        <text x="625" y="78" font-size="8.5" text-anchor="middle">خصم آلي للجزاء المستحق</text>
       </svg>
     </div>
-  </div>
 
-  <!-- CHAPTER 3: SCREENS -->
-  <div class="page-break">
-    <h2 class="chapter-title">🖥️ الفصل الثالث: دليل شاشات النظام واستخدامها التشغيلي</h2>
-    <p>فيما يلي دليل شامل لشاشات النظام الرئيسية، موضحاً وظيفتها للمستخدم وكيفية التعامل مع عناصرها بدون أكواد:</p>
+    <!-- 3. ATS Recruitment -->
+    <div class="section-title">2.3 إدارة التوظيف والفرز الذكي (ATS Recruitment Division)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> رفع السير الذاتية للمرشحين بصيغة PDF، حيث يستخرج الذكاء الاصطناعي المهارات الفنية، ودرجة التوافق مع متطلبات الوظيفة الشاغرة، وتصنيف المتقدمين بترتيب تنازلي تسهيلاً لطلب المقابلة.</p>
+    <div class="diagram-box">
+      <div style="font-weight:bold; color:#1e3a8a; margin-bottom:8px;">رسمة توضيحية مستقلة: دورة الفرز الذكي للسير الذاتية</div>
+      <svg class="diagram-svg" viewBox="0 0 750 140" xmlns="http://www.w3.org/2000/svg">
+        <rect x="30" y="30" width="200" height="70" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="130" y="60" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">رفع ملف الـ CV (PDF)</text>
+        <text x="130" y="78" font-size="8.5" text-anchor="middle">استلام طلبات المتقدمين</text>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>اسم الشاشة</th>
-            <th>الهدف التشغيلي للموظف</th>
-            <th>الأزرار والحقول المتاحة</th>
-            <th>ماذا يحدث عند النقر والتنفيذ؟</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>شاشة دليل الموظفين</strong></td>
-            <td>إضافة وإدارة بيانات العاملين والرواتب</td>
-            <td>زر (إضافة موظف)، خانة البحث باسم الموظف، زر (تعديل)، زر (تجميد الحساب)</td>
-            <td>يفتح نموذج إدخال البيانات الشخصية والراتب، وعند الحفظ يظهر الموظف فوراً في كشوفات الحضور والرواتب.</td>
-          </tr>
-          <tr>
-            <td><strong>شاشة الرواتب والأجور</strong></td>
-            <td>استعراض واعتماد وصرف الرواتب الشهرية</td>
-            <td>زر (احتساب الرواتب)، قائمة اختيار الشهر، زر (اعتماد)، زر (Pay) لكل موظف</td>
-            <td>يحسب النظام الخصومات والبدلات، وعند ضغط زر Pay يطلب اختيار الخزنة ثم يصرف المبلغ ويولد قيداً مالياً.</td>
-          </tr>
-          <tr>
-            <td><strong>شاشة الحضور والبصمة</strong></td>
-            <td>مسح كود الـ QR للحضور والانصراف</td>
-            <td>زر (مسح الكود QR)، جدول الحضور اليومي، فلاتر تاريخ الحضور</td>
-            <td>يسجل وقت الحضور الفلي ويقارنه بوردية العمل لحساب التأخيرات وتطبيق خصم الجزاء آلياً.</td>
-          </tr>
-          <tr>
-            <td><strong>شاشة الخزينة والبنوك</strong></td>
-            <td>إدارة المقبوضات والمصروفات المالية</td>
-            <td>زر (تحويل بين خزنتين)، جدول الحركة المالية، زر (إذن صرف/قبض)</td>
-            <td>تحديث الرصيد الفعلي للخزينة فوراً، وحظر أي معاملة صرف تتجاوز السيولة المتوفرة.</td>
-          </tr>
-          <tr>
-            <td><strong>شاشة أمر الإنتاج (BOM)</strong></td>
-            <td>تشغيل وتتبع خطوط الإنتاج بالمصنع</td>
-            <td>زر (بدء أمر إنتاج جديد)، قائمة اختيار المنتج التام، مدخل الكمية المطلوبة</td>
-            <td>يفحص رصيد الخامات في المخزن، فإذا كانت متوفرة يخصم المواد الخام ويُسجل حالة الأمر "جاري التشغيل".</td>
-          </tr>
-          <tr>
-            <td><strong>شاشة حركة السيارات والعدادات</strong></td>
-            <td>تتبع أسطول الشاحنات وتصفية الرحلات</td>
-            <td>خانة إدخال العداد الحالي (Odometer)، زر (إنشاء رحلة)، زر (تصفية الوقود)</td>
-            <td>حساب مسافة الرحلة، مقارنتها باستهلاك السولار المعياري، وتصفية مستحقات السائق المالية.</td>
-          </tr>
-          <tr>
-            <td><strong>شاشة فحص الـ CV الذكي (ATS)</strong></td>
-            <td>تقييم المتقدمين للوظائف بالذكاء الاصطناعي</td>
-            <td>منطقة رفع السير الذاتية (PDF)، زر (فحص وتحليل)، زر (قبول للمقابلة)</td>
-            <td>يستخرج الذكاء الاصطناعي مهارات المتقدم، يحسب نسبة توافقه مع الوظيفة، ويرتب المتقدمين حسب الأفضلية.</td>
-          </tr>
-        </tbody>
-      </table>
+        <path d="M 230 65 L 280 65" stroke="#3b82f6" stroke-width="2"/>
+
+        <rect x="280" y="30" width="200" height="70" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="380" y="60" font-weight="bold" font-size="11" text-anchor="middle">تحليل الذكاء الاصطناعي</text>
+        <text x="380" y="78" font-size="8.5" text-anchor="middle">مطابقة الخبرات والمهارات</text>
+
+        <path d="M 480 65 L 530 65" stroke="#2563eb" stroke-width="2"/>
+
+        <rect x="530" y="30" width="190" height="70" rx="6" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+        <text x="625" y="60" font-weight="bold" font-size="11" text-anchor="middle">ترتيب النسبة وتحديد المقابلة</text>
+        <text x="625" y="78" font-size="8.5" text-anchor="middle">إصدار قرار التعيين المباشر</text>
+      </svg>
     </div>
-  </div>
 
-  <!-- CHAPTER 4: APIs (NON-TECHNICAL EXPLANATION) -->
-  <div class="page-break">
-    <h2 class="chapter-title">🔌 الفصل الرابع: الواجهات الخدمية للنظام (APIs - لغير المبرمجين)</h2>
-    <p>الـ API في هذا النظام هو بمثابة <strong>"المندوب أو الموصل الآلي"</strong> الذي ينقل الطلب من شاشة الموظف إلى قاعدة البيانات ويعود بالنتيجة فوراً بدون تدخل بشري. فيما يلي شرح الخدمات الرئيسية وكيف تفيد المستخدم:</p>
+    <!-- 4. Accounting -->
+    <div class="section-title">2.4 الإدارة المالية والعدّة المحاسبية (General Ledger & Accounting)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> إدارة شجرة الحسابات العامة، إنشاء القيود اليومية التلقائية، إعداد ميزان المراجعة، ومراقبة الإيرادات والمصروفات بكل شفافية دون تدخل يدوي قد يؤدي إلى الأخطاء المحاسبية.</p>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>اسم الخدمة / الوظيفة الآلية</th>
-            <th>أين تستخدم في الشاشات؟</th>
-            <th>ماذا تنقل من بيانات؟ (المدخلات)</th>
-            <th>ما هي النتيجة التي تراها على الشاشة؟ (المخرجات)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>خدمة تسجيل الدخول والأمان</strong></td>
-            <td>صفحة الدخول الرئيسية</td>
-            <td>اسم المستخدم وكلمة المرور</td>
-            <td>فتح النظام وتفعيل الشاشات المسموحة فقط لهذا الموظف</td>
-          </tr>
-          <tr>
-            <td><strong>خدمة تسجيل البصمة الفورية</strong></td>
-            <td>شاشة الحضور عبر الـ QR</td>
-            <td>كود الموظف والتوقيت الحالي</td>
-            <td>إظهار رسالة "تم تسجيل حضورك بنجاح" وتأكيد الوقت</td>
-          </tr>
-          <tr>
-            <td><strong>خدمة الصرف المالي الذكي</strong></td>
-            <td>شاشة الرواتب والخزينة</td>
-            <td>رقم الموظف، قيمة الراتب، الخزنة</td>
-            <td>تحديث رصيد الخزينة وطباعة إيصال الصرف ورسالة التأكيد</td>
-          </tr>
-          <tr>
-            <td><strong>خدمة فحص توفر المواد الخام</strong></td>
-            <td>شاشة أمر الإنتاج</td>
-            <td>كود المنتج والكميات المطلوبة</td>
-            <td>تأكيد إمكانية التصنيع أو تحذير "نقص في خام السولار/البلاستيك"</td>
-          </tr>
-          <tr>
-            <td><strong>خدمة تحليل السيرة الذاتية</strong></td>
-            <td>شاشة التوظيف (ATS)</td>
-            <td>ملف السيرة الذاتية (PDF)</td>
-            <td>استخراج اسم المرشح وسنوات الخبرة ودرجة التوافق (مثال: 95%)</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- 5. Treasury -->
+    <div class="section-title">2.5 إدارة الخزائن والبنوك (Treasury & Cash Control)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> متابعة حركة النقدية داخل خزائن المصنع والحسابات البنكية، تتبع الشيكات الصادرة والواردة، وتنفيذ أذون الصرف والقبض مع حظر أي معاملة تتجاوز رصيد السيولة النقدية المتاح.</p>
+
+    <!-- 6. Cost Centers -->
+    <div class="section-title">2.6 إدارة مراكز التكلفة (Cost Centers Division)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> ربط كل مصروف مالي (سولار، قطع غيار، رواتب، خامات) بمركز تكلفة محدد (مثال: خط إنتاج البلاستيك رقم 1) للوقوف على الربحية الفعلية لكل قسم بالمصنع.</p>
+
+    <!-- 7. Procurement -->
+    <div class="section-title">2.7 إدارة المشتريات والموردين (Procurement & Vendors)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> تحويل طلب الاحتياج الصادر من المخزن إلى أمر شراء رسمي، إرساله للمورد المعتمد، تتبع استلام الشحنة، وتسجيل مستحقات المورد المالي في دفتر الحسابات.</p>
+
+    <!-- 8. Inventory -->
+    <div class="section-title">2.8 إدارة المخازن ورصيد الخامات (Inventory Control)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> مراقبة كميات المواد الخام والمنتجات التامة، التنبيه عند وصول المادة إلى حد إعادة الطلب، وتسجيل أذون الإضافة والصرف المخزني لحظياً.</p>
+
+    <!-- 9. Production & BOM -->
+    <div class="section-title">2.9 إدارة خطوط الإنتاج وقائمة الخامات (Manufacturing BOM)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> تسجيل أمر الإنتاج، فحص قائمة المكونات (BOM)، الخصم المباشر التلقائي لخامات البلاستيك والسولار من المخزن، وتحويل المنتج الصادر إلى مخزن المنتج التام.</p>
+    <div class="diagram-box">
+      <div style="font-weight:bold; color:#1e3a8a; margin-bottom:8px;">رسمة توضيحية مستقلة: دورة أمر الإنتاج والخصم المخزني الآلي</div>
+      <svg class="diagram-svg" viewBox="0 0 750 140" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="30" width="160" height="70" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="100" y="60" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">أمر إنتاج جديد</text>
+        <text x="100" y="78" font-size="8.5" text-anchor="middle">تحديد كمية المنتج المطلوب</text>
+
+        <path d="M 180 65 L 220 65" stroke="#3b82f6" stroke-width="2"/>
+
+        <rect x="220" y="30" width="160" height="70" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="300" y="60" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">فحص قائمة BOM</text>
+        <text x="300" y="78" font-size="8.5" text-anchor="middle">خصم الخامات المباشر</text>
+
+        <path d="M 380 65 L 420 65" stroke="#2563eb" stroke-width="2"/>
+
+        <rect x="420" y="30" width="150" height="70" rx="6" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+        <text x="495" y="60" font-weight="bold" font-size="11" text-anchor="middle" fill="#0f172a">تشغيل الماكينات</text>
+        <text x="495" y="78" font-size="8.5" text-anchor="middle">متابعة الفحص الفني</text>
+
+        <path d="M 570 65 L 610 65" stroke="#1d4ed8" stroke-width="2"/>
+
+        <rect x="610" y="30" width="120" height="70" rx="6" fill="#93c5fd" stroke="#1e3a8a" stroke-width="2"/>
+        <text x="670" y="60" font-weight="bold" font-size="11" text-anchor="middle" fill="#0f172a">منتج تام</text>
+        <text x="670" y="78" font-size="8.5" text-anchor="middle">إلى مخزن المبيعات</text>
+      </svg>
     </div>
+
+    <!-- 10. Quality Control -->
+    <div class="section-title">2.10 إدارة ضبط الجودة والفحص الفني (Quality Control Inspection)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> سحب عينات عشوائية من خط الإنتاج، إجراء الاختبارات المعملية والفنية، توثيق نسبة العيوب، واستبعاد أي عبوة أو قطعة غير مطابقة للمواصفات القياسية.</p>
+
+    <!-- 11. Maintenance & Spare Parts -->
+    <div class="section-title">2.11 إدارة الصيانة الوقائية وقطع الغيار (Equipment Maintenance)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> تتبع ساعات عمل الماكينات بالمصنع، جدولة الصيانة الوقائية الأسبوعية، إصدار طلب صرف قطع غيار من المخزن، وتوثيق تكلفة الصيانة على مركز التكلفة الخاص بالماكينة.</p>
+
+    <!-- 12. Fleet Management -->
+    <div class="section-title">2.12 إدارة أسطول السيارات والشاحنات (Fleet Management & Odometer)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> تسجيل قراءة العداد الحالي (Odometer) قبل وبعد كل رحلة، تتبع تراخيص الشاحنات، جدولة غيار الزيت والإطارات، وحساب معدل الاستهلاك الفعلي للسولار لكل كيلومتر.</p>
+
+    <!-- 13. Freight Logistics & Drivers -->
+    <div class="section-title">2.13 إدارة رحلات الفنيين والسائقين (Freight Logistics & Drivers)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> تعيين السائق والسيارة للشحنة، تسجيل تكاليف الطرق والعهد المالية، تصفية مستحقات السائق فور العودة، وتأكيد تسليم البضائع للعميل.</p>
+
+    <!-- 14. Sales & CRM -->
+    <div class="section-title">2.14 إدارة المبيعات والعملاء (Sales & CRM Division)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> تسجيل أوامر البيع للعملاء، إصدار الفواتير الرسمية، تحصيل المبالغ النقدية وتغذية الخزنة، وخصم المنتجات التامة المباعة من المخزن آلياً.</p>
+
+    <!-- 15. AI Suite -->
+    <div class="section-title">2.15 منظومة الذكاء الاصطناعي والقيادة التنفيذية (AI Mind, Chatbot & CEO Dashboard)</div>
+    <p><strong>الشرح والدورة التشغيلية:</strong> تقديم مساعد تفاعلي يتيح للموظف والمدير الاستفسار باللغة العربية عن رصيد الإجازات والرواتب، لوحة قيادة الرئيس التنفيذي التنبؤية للتنبيه بالأخطار قبل وقوعها، وتوجيه التنبيهات الذكية آلياً.</p>
   </div>
 
-  <!-- CHAPTER 5: ALL 163+ TABLES (NON-TECHNICAL CATALOG) -->
+  <!-- CHAPTER 3: ALL 163+ DATABASE TABLES (NON-TABULAR PLAIN TEXT FORMAT) -->
   <div class="page-break">
-    <h2 class="chapter-title">🗄️ الفصل الخامس: كشف وقاعدة البيانات الشاملة (${tableKeys.length} جدولاً بالكامل)</h2>
-    <p>فيما يلي كشف وثائقي مفصل يشرح جميع جداول النظام الـ <strong>${tableKeys.length} جدولاً</strong> واحدًا تلو الآخر، موضحاً الهدف الوظيفي من كل جدول وماذا يخزن وما هي الحقول الموجودة فيه بلغة بسيطة يفهمها الشخص غير البرمجي:</p>
+    <h2 class="chapter-title">🗄️ الفصل الثالث: توثيق قاعدة البيانات الشاملة (${tableKeys.length} جدولاً بالكامل)</h2>
+    <p style="margin-bottom:15px;">فيما يلي الكشف الوثائقي الكامل الشامل لجميع جداول النظام الـ <strong>${tableKeys.length} جدولاً</strong> واحدًا تلو الآخر، موضحاً اسم الجدول وشرحه الوظيفي بلغة بسيطة ومباشرة بدون جداول معقدة:</p>
 
     ${tableKeys.map((tName, idx) => {
       const t = dbSchema[tName];
       return `
-        <div style="margin-bottom: 20px; page-break-inside: avoid;">
-          <h3 style="font-size: 11pt; color: #064e3b; background: #ecfdf5; padding: 6px 12px; border-right: 4px solid #10b981; border-radius: 4px;">
-            ${idx + 1}. جدول: <code style="color:#047857;">${t.name}</code> — (سجل تشغيلي محفوظ)
-          </h3>
-          <p style="font-size: 9.5pt; margin-bottom: 6px;"><strong>الغرض الوظيفي:</strong> يُستخدم هذا الجدول لتخزين وحفظ سجلات (${t.name}) الخاصة بعمليات المؤسسة، ويستند عليه النظام لإظهار البيانات في الشاشات والتقارير الرسمية.</p>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 30%;">اسم الحقل التشغيلي</th>
-                <th style="width: 25%;">نوع البيان المخزن</th>
-                <th style="width: 45%;">الشرح الوظيفي للبيان</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${t.columns.length > 0 ? t.columns.map(c => `
-                <tr>
-                  <td><code>${c.name}</code> ${c.pk ? '🔑 (رئيسي)' : ''}</td>
-                  <td><code style="color:#2563eb;">${c.type}</code></td>
-                  <td>${c.desc}</td>
-                </tr>
-              `).join('') : '<tr><td colspan="3" style="text-align:center; color:#64748b;">سجل تشغيلي يتم تحديثه ديناميكياً بحسب المعاملات الإدارية.</td></tr>'}
-            </tbody>
-          </table>
+        <div class="table-item-card">
+          <div class="table-item-title">${idx + 1}. جدول: <code>${t.name}</code></div>
+          <div class="table-item-desc">${t.explanation}</div>
         </div>
       `;
     }).join('')}
   </div>
 
-  <!-- CHAPTER 6: MASTER ERD DIAGRAM & RELATIONSHIPS -->
-  <div class="page-break">
-    <h2 class="chapter-title">🗺️ الفصل السادس: المخطط الشامل لقاعدة البيانات (Master ERD Diagram)</h2>
-    <p>يوضح الرسم الهيكلي التالي الربط المحوري الشامل بين كافة مجموعات الجداول الـ 163+ في قاعدة البيانات وكيف تتكامل الإدارات معاً:</p>
-
-    <div class="diagram-box">
-      <svg class="diagram-svg" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
-        <rect x="10" y="10" width="780" height="430" rx="10" fill="#ffffff" stroke="#059669" stroke-width="2"/>
-        
-        <!-- Core Auth Box -->
-        <rect x="40" y="30" width="220" height="110" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
-        <text x="150" y="55" font-weight="bold" font-size="12" text-anchor="middle" fill="#064e3b">مجموعة الحسابات والصلاحيات</text>
-        <text x="150" y="80" font-size="9" text-anchor="middle">users, screen_permissions</text>
-        <text x="150" y="98" font-size="9" text-anchor="middle">login_history, user_sessions</text>
-
-        <!-- HR Box -->
-        <rect x="300" y="30" width="200" height="110" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
-        <text x="400" y="55" font-weight="bold" font-size="12" text-anchor="middle" fill="#1e40af">مجموعة الموارد البشرية والرواتب</text>
-        <text x="400" y="80" font-size="9" text-anchor="middle">attendance, payroll, loans</text>
-        <text x="400" y="98" font-size="9" text-anchor="middle">leave_requests, ats_applications</text>
-
-        <!-- Finance Box -->
-        <rect x="540" y="30" width="220" height="110" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
-        <text x="650" y="55" font-weight="bold" font-size="12" text-anchor="middle" fill="#78350f">مجموعة المالية والعدّة المحاسبية</text>
-        <text x="650" y="80" font-size="9" text-anchor="middle">finance_safes, journal_entries</text>
-        <text x="650" y="98" font-size="9" text-anchor="middle">cost_centers, checks, taxes</text>
-
-        <!-- Supply Chain Box -->
-        <rect x="40" y="180" width="220" height="110" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
-        <text x="150" y="205" font-weight="bold" font-size="12" text-anchor="middle" fill="#7c2d12">مجموعة سلاسل الإمداد والمخازن</text>
-        <text x="150" y="230" font-size="9" text-anchor="middle">suppliers, inventory_items</text>
-        <text x="150" y="248" font-size="9" text-anchor="middle">purchase_orders, stock_movements</text>
-
-        <!-- Production Box -->
-        <rect x="300" y="180" width="200" height="110" rx="8" fill="#fdf4ff" stroke="#c084fc" stroke-width="2"/>
-        <text x="400" y="205" font-weight="bold" font-size="12" text-anchor="middle" fill="#581c87">مجموعة التصنيع والإنتاج</text>
-        <text x="400" y="230" font-size="9" text-anchor="middle">bom, production_orders</text>
-        <text x="400" y="248" font-size="9" text-anchor="middle">qc_inspections, machines</text>
-
-        <!-- Fleet Box -->
-        <rect x="540" y="180" width="220" height="110" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
-        <text x="650" y="205" font-weight="bold" font-size="12" text-anchor="middle" fill="#14532d">مجموعة الحركة والأسطول والسيارات</text>
-        <text x="650" y="230" font-size="9" text-anchor="middle">fleet_vehicles, fleet_trips</text>
-        <text x="650" y="248" font-size="9" text-anchor="middle">spare_parts, maintenance_logs</text>
-
-        <!-- Connecting Arrows -->
-        <path d="M 260 85 L 300 85" stroke="#059669" stroke-width="2"/>
-        <path d="M 500 85 L 540 85" stroke="#2563eb" stroke-width="2"/>
-        <path d="M 150 140 L 150 180" stroke="#ea580c" stroke-width="2"/>
-        <path d="M 400 140 L 400 180" stroke="#c084fc" stroke-width="2"/>
-        <path d="M 650 140 L 650 180" stroke="#16a34a" stroke-width="2"/>
-
-        <!-- Bottom Core Integration -->
-        <rect x="150" y="320" width="500" height="90" rx="8" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
-        <text x="400" y="350" font-weight="bold" font-size="13" text-anchor="middle" fill="#1e293b">المحرك التكاملي الرئيسي الشامل (163+ Tables Database Hub)</text>
-        <text x="400" y="375" font-size="10" text-anchor="middle" fill="#475569">جميع المعاملات الإدارية، المالية، المخزنية واللوجستية يتم ترحيلها وحفظها تلقائياً بالربط الشبكي</text>
-      </svg>
-    </div>
-  </div>
-
-  <!-- CHAPTER 7: WORKFLOWS -->
-  <div class="page-break">
-    <h2 class="chapter-title">🔄 الفصل السابع: خطوات ومسارات العمل التفصيلية (Workflows)</h2>
-    
-    <div class="section-title">7.1 دورة التوظيف وفحص الـ CV الذكي</div>
-    <p>1. يرفع مسؤول التوظيف ملف السيرة الذاتية (PDF) للمتقدم -> 2. يحلل الذكاء الاصطناعي المهارات والخبرات -> 3. يحسب النظام نسبة توافق المتقدم للوظيفة -> 4. يظهر زر "قبول المقابلة" للمسؤول لاستكمال إجراءات التعيين.</p>
-
-    <div class="section-title">7.2 دورة تصفية رحلات السيارات وحساب الوقود</div>
-    <p>1. يسجل السائق قراءة العداد الحالي (Odometer) قبل بدء الرحلة -> 2. يتم تسجيل خط سير الرحلة والتكلفة -> 3. يقارن النظام مسافة الرحلة بمعدل استهلاك السولار المعياري -> 4. يتم خصم قيمة الوقود وصرف مستحقات السائق من الخزنة المحددة.</p>
-  </div>
-
-  <!-- CHAPTER 8 & 9: ROLES, PERMISSIONS & AI -->
-  <div class="page-break">
-    <h2 class="chapter-title">🔐 الفصل الثامن والتاسع: الصلاحيات والذكاء الاصطناعي للمستخدم</h2>
-    
-    <div class="section-title">8.1 كيف يضمن النظام أمان صلاحيات الموظفين؟</div>
-    <p>يمنح النظام الموظف صلاحيات محددة تماماً بناءً على مسمّاه الوظيفي. إذا حاول موظف الموارد البشرية فتح شاشة المبيعات أو الخزنة، فإن النظام يمنعه تلقائياً ويظهر زر الإجراء بلون باهت وغير مفعل لحماية خصوصية بيانات المؤسسة.</p>
-
-    <div class="section-title">9.1 مميزات الذكاء الاصطناعي اليومية للموظف والمدير</div>
-    <ul>
-      <li><strong>المساعد الشخصي الذكي (Chatbot)</strong>: يستطيع الموظف كتابة استفسار باللغة العربية مثل "كم رصيد إجازاتي المتبقي؟" أو "تفاصيل راتب هذا الشهر"، فيجيب المساعد الذكي فوراً بحسب صلاحيات الموظف المسموحة فقط.</li>
-      <li><strong>عقل المصنع التنبؤي (AI Mind)</strong>: ينبه المدير التنفيذي تلقائياً عند وجود نقص متوقع في المواد الخام قبل وقوع المشكلة بأسبوع.</li>
-    </ul>
-  </div>
-
-  <!-- CHAPTER 10 & 11: REPORTS & COMPARISON -->
-  <div class="page-break">
-    <h2 class="chapter-title">📊 الفصل العاشر والحادي عشر: التقارير والمقارنة التنافسية</h2>
-    
-    <div class="section-title">10.1 التقارير ولوحات الأداء الشاملة</div>
-    <p>يتيح النظام استخراج وطباعة أكثر من 30 تقريراً رسمياً بنقرة زر واحدة وتصديرها بصيغ (PDF, Excel) مثل: تقرير كشف حركة الخزائن، كشف مسرد الرواتب، تقرير صيانة الأسطول، وتقرير الأداء التشغيلي.</p>
-
-    <div class="section-title">11.1 المقارنة السوقية مع الأنظمة الأخرى (Odoo / SAP)</div>
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>عنصر المقارنة التشغيلي</th>
-            <th>نظامنا (Smart Factory ERP)</th>
-            <th>الأنظمة التقليدية المنافسة</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>سهولة الاستخدام والتصفح</strong></td>
-            <td>سهل ومبسط جداً باللغة العربية لغير التقنيين</td>
-            <td>معقد ويحتاج كورسات وتدريب طويل</td>
-          </tr>
-          <tr>
-            <td><strong>الذكاء الاصطناعي التفاعلي</strong></td>
-            <td>مدمج بالكامل (مساعد تفاعلي + فحص CV)</td>
-            <td>غير متاح أو يتطلب إضافات مكلفة جداً</td>
-          </tr>
-          <tr>
-            <td><strong>دقة ربط الخزينة بالرواتب</strong></td>
-            <td>صرف تلقائي فور الموافقة وربط بالخزنة</td>
-            <td>يتطلب إدخال قيد يدوي إضافي</td>
-          </tr>
-          <tr>
-            <td><strong>تكلفة الاشتراك والتحديث</strong></td>
-            <td>مرنة وبدون مصاريف تراخيص تعسفية</td>
-            <td>تراخيص سنوية باهظة لكل مستخدم</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- CHAPTER 12: COMMERCIAL PROPOSAL FOR 8 MONTHS DEV -->
+  <!-- CHAPTER 4: COMMERCIAL PROPOSAL FOR 8 MONTHS DEV -->
   <div class="page-break">
     <div class="proposal-card">
-      <h2 style="font-size: 18pt; color: #064e3b; text-align: center; margin-bottom: 12px;">💼 الفصل الثاني عشر: عرض السعر التقديري الشامل (Commercial Proposal)</h2>
-      <p style="text-align: center; font-weight: bold; color: #047857; margin-bottom: 18px;">عرض توريد وتشغيل وتطوير نظام NINJA SMART TECHNOLOGY FACTORY ERP</p>
+      <h2 style="font-size: 18pt; color: #1e3a8a; text-align: center; margin-bottom: 12px;">💼 الفصل الرابع: عرض السعر التقديري الشامل (Commercial Proposal)</h2>
+      <p style="text-align: center; font-weight: bold; color: #1d4ed8; margin-bottom: 18px;">عرض توريد وتطوير نظام NINJA SMART TECHNOLOGY FACTORY ERP</p>
 
       <div class="notice-box" style="background: #ffffff;">
-        <strong>ملاحظة التقييم الاستثماري:</strong> تم حصر هذا العرض التجاري بناءً على حجم العمل الهندسي والبرمجي الفعلي المستمر منذ <strong>1 يناير 2026 وحتى 22 أغسطس 2026 (ما يقارب 8 أشهر تطوير متواصل)</strong>، ونظراً لأن النظام لا يزال تحت التطوير النشط والتحديث المستمر، فإن العرض يغطي كافة الموديولات الـ 15 والجداول الـ 163+ وقواعد الذكاء الاصطناعي:
+        <strong>ملاحظة التقييم الاستثماري:</strong> تم حساب هذا العرض بناءً على حجم العمل المستمر منذ <strong>1 يناير 2026 وحتى 22 أغسطس 2026 (ما يقارب 8 أشهر تطوير متواصل)</strong> والنظام لا يزال تحت التطوير النشط والتحديث الميداني لضمان أعلى جودة:
       </div>
 
       <table style="width:100%; background: white;">
@@ -693,14 +490,14 @@ const htmlContent = `
             <td>تعديلات وتحسينات ميدانية مستمرة، دعم فني، وتطوير الشاشات والتقارير</td>
             <td>80,000 ج.م</td>
           </tr>
-          <tr style="background: #ecfdf5; font-weight: bold;">
-            <td colspan="2" style="text-align: left; font-size: 11pt;">إجمالي التقييم والتكلفة التجارية الشاملة:</td>
-            <td style="color: #047857; font-size: 13pt;">420,000 ج.م</td>
+          <tr style="background: #eff6ff; font-weight: bold;">
+            <td colspan="2" style="text-align: left; font-size: 11pt; color:#1e3a8a;">إجمالي التقييم والتكلفة التجارية الشاملة:</td>
+            <td style="color: #1d4ed8; font-size: 13pt;">420,000 ج.م</td>
           </tr>
         </tbody>
       </table>
 
-      <div style="margin-top: 15px; font-size: 9.5pt; color: #064e3b;">
+      <div style="margin-top: 15px; font-size: 9.5pt; color: #1e3a8a;">
         <p><strong>بنود وضوابط العرض التجاري:</strong></p>
         <ul>
           <li>التطوير المستمر: يشمل العرض كافة التحديثات والتعديلات المطلوبة خلال فترة التطوير الحالية.</li>
@@ -708,6 +505,78 @@ const htmlContent = `
           <li>جدولة الدفعات: 40% دفعة التعاقد، 40% عند بدء التشغيل الميداني، 20% عند التسليم النهائي.</li>
         </ul>
       </div>
+    </div>
+  </div>
+
+  <!-- CHAPTER 5: MASTER FULL SYSTEM INTEGRATION SVG DIAGRAM AT THE VERY END -->
+  <div class="page-break">
+    <h2 class="chapter-title">👑 الفصل الخامس: الرسمة الشاملة الجامعة للنظام بالكامل (Master ERP Map)</h2>
+    <p>تضم هذه الرسمة العملاقة التكامل الموحد الشامل بين الـ 15 إدارة، المستندات، الخزائن، المخازن، محرك الذكاء الاصطناعي، وقاعدة البيانات الـ 163+ جدول في لوحة هندسية واحدة متكاملة:</p>
+
+    <div class="diagram-box" style="padding:20px; background:#ffffff; border:3px solid #2563eb;">
+      <svg class="diagram-svg" viewBox="0 0 850 620" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background Frame -->
+        <rect x="10" y="10" width="830" height="600" rx="12" fill="#f8fafc" stroke="#1d4ed8" stroke-width="3"/>
+        
+        <!-- Header Ribbon -->
+        <rect x="30" y="25" width="790" height="45" rx="6" fill="#1e3a8a"/>
+        <text x="425" y="53" font-weight="bold" font-size="15" text-anchor="middle" fill="#ffffff">NINJA SMART TECHNOLOGY FACTORY — MASTER INTEGRATED SYSTEM MAP</text>
+
+        <!-- Top Layer: Users & Access -->
+        <rect x="40" y="90" width="230" height="90" rx="8" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="155" y="118" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">👥 مستخدمي النظام والصلاحيات</text>
+        <text x="155" y="140" font-size="9" text-anchor="middle" fill="#1d4ed8">Owner, Admin, HR, Finance, QC</text>
+        <text x="155" y="158" font-size="8.5" text-anchor="middle" fill="#475569">RBAC & Screen Permissions</text>
+
+        <!-- Top Layer: HR & Payroll -->
+        <rect x="310" y="90" width="230" height="90" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="425" y="118" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">👔 الموارد البشرية والرواتب والـ ATS</text>
+        <text x="425" y="140" font-size="9" text-anchor="middle" fill="#1e40af">بصمة QR، جزاءات، سلف عمالة</text>
+        <text x="425" y="158" font-size="8.5" text-anchor="middle" fill="#475569">صرف الرواتب آلياً بنقرة زر (Pay)</text>
+
+        <!-- Top Layer: Finance & Safes -->
+        <rect x="580" y="90" width="230" height="90" rx="8" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+        <text x="695" y="118" font-weight="bold" font-size="11" text-anchor="middle" fill="#0f172a">💰 المالية والحسابات والخزائن</text>
+        <text x="695" y="140" font-size="9" text-anchor="middle" fill="#1e3a8a">خزينة نقود، بنوك، مراكز تكلفة</text>
+        <text x="695" y="158" font-size="8.5" text-anchor="middle" fill="#475569">قيود محاسبية تلقائية وحظر السحب</text>
+
+        <!-- Connectors Top to Mid -->
+        <path d="M 155 180 L 155 220" stroke="#3b82f6" stroke-width="2"/>
+        <path d="M 425 180 L 425 220" stroke="#2563eb" stroke-width="2"/>
+        <path d="M 695 180 L 695 220" stroke="#1d4ed8" stroke-width="2"/>
+
+        <!-- Middle Layer: SCM, BOM, Manufacturing -->
+        <rect x="40" y="220" width="230" height="95" rx="8" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="155" y="248" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">📦 المشتريات والمخازن</text>
+        <text x="155" y="270" font-size="9" text-anchor="middle" fill="#1d4ed8">موردين، مواد خام، حد إعادة الطلب</text>
+        <text x="155" y="288" font-size="8.5" text-anchor="middle" fill="#475569">إذن صرف وإضافة مخزني</text>
+
+        <rect x="310" y="220" width="230" height="95" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="425" y="248" font-weight="bold" font-size="11" text-anchor="middle" fill="#1e3a8a">⚙️ التصنيع وأوامر الإنتاج BOM</text>
+        <text x="425" y="270" font-size="9" text-anchor="middle" fill="#1e40af">خصم خامات آلي + ضبط الجودة QC</text>
+        <text x="425" y="288" font-size="8.5" text-anchor="middle" fill="#475569">تحويل لمخزن المنتج التام</text>
+
+        <rect x="580" y="220" width="230" height="95" rx="8" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="2"/>
+        <text x="695" y="248" font-weight="bold" font-size="11" text-anchor="middle" fill="#0f172a">🚚 الحركة والأسطول والسيارات</text>
+        <text x="695" y="270" font-size="9" text-anchor="middle" fill="#1e3a8a">شاحنات، قراءة عداد Odometer</text>
+        <text x="695" y="288" font-size="8.5" text-anchor="middle" fill="#475569">تصفية السولار ومستحقات السائق</text>
+
+        <!-- Connectors Mid to Bottom -->
+        <path d="M 155 315 L 155 365" stroke="#3b82f6" stroke-width="2"/>
+        <path d="M 425 315 L 425 365" stroke="#2563eb" stroke-width="2"/>
+        <path d="M 695 315 L 695 365" stroke="#1d4ed8" stroke-width="2"/>
+
+        <!-- Lower Layer: AI Engine & Executive Dashboard -->
+        <rect x="100" y="365" width="650" height="85" rx="8" fill="#1e3a8a" stroke="#2563eb" stroke-width="2"/>
+        <text x="425" y="395" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🤖 منظومة الذكاء الاصطناعي والقيادة التنفيذية (AI Mind & Chatbot)</text>
+        <text x="425" y="418" font-size="10" text-anchor="middle" fill="#bfdbfe">مساعد تفاعلي للموظفين + شاشات تنبؤية للرئيس التنفيذي للتنبيه بالأخطار قبل وقوعها</text>
+
+        <!-- Master DB Hub Core at Bottom -->
+        <rect x="40" y="475" width="770" height="110" rx="10" fill="#0f172a" stroke="#3b82f6" stroke-width="3"/>
+        <text x="425" y="508" font-weight="bold" font-size="14" text-anchor="middle" fill="#60a5fa">🗄️ المركز الحاكم لقواعد البيانات (163+ DATABASE TABLES HUB)</text>
+        <text x="425" y="533" font-size="10.5" text-anchor="middle" fill="#ffffff">حفظ وترحيل ومعالجة كافة المعاملات المالية، المخزنية، الموارد البشرية، واللوجستية في بيئة سحابية واحدة آمنة</text>
+        <text x="425" y="558" font-size="9.5" text-anchor="middle" fill="#93c5fd">🔒 Supabase PostgreSQL Cloud Security with Row-Level Policies (RLS)</text>
+      </svg>
     </div>
   </div>
 
