@@ -1,0 +1,265 @@
+const fs = require('fs');
+const path = require('path');
+const puppeteer = require('puppeteer');
+
+console.log('=== Generating High-Resolution Standalone Master ERP System Map PNG ===');
+
+// HTML with ultra-detailed, high-res mega diagram linking 15 Departments, 30+ Workflows, and 170 Tables with arrows
+const megaMapHTML = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>خريطة النظام الشاملة - Master ERP Map</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 40px;
+      width: 2400px;
+      direction: rtl;
+    }
+    .map-container {
+      background: #1e293b;
+      border: 6px solid #3b82f6;
+      border-radius: 24px;
+      padding: 50px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    }
+    .map-header {
+      text-align: center;
+      background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+      padding: 30px;
+      border-radius: 16px;
+      margin-bottom: 40px;
+      border: 3px solid #60a5fa;
+    }
+    .map-header h1 { font-size: 36pt; font-weight: 900; color: #ffffff; margin-bottom: 10px; }
+    .map-header p { font-size: 18pt; font-weight: 700; color: #93c5fd; }
+    
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .dept-card {
+      background: #0f172a;
+      border: 3px solid #3b82f6;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    .dept-title {
+      font-size: 18pt;
+      font-weight: 800;
+      color: #60a5fa;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+    .dept-wf {
+      background: #1e293b;
+      border-right: 4px solid #60a5fa;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      font-size: 13pt;
+      color: #e2e8f0;
+    }
+    .dept-tables {
+      background: #0284c7;
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 11pt;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .central-hub {
+      background: linear-gradient(135deg, #0f172a, #1e3a8a);
+      border: 5px solid #60a5fa;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      margin-top: 30px;
+    }
+    .hub-title { font-size: 26pt; font-weight: 900; color: #38bdf8; margin-bottom: 15px; }
+    .hub-desc { font-size: 16pt; color: #f1f5f9; line-height: 1.8; }
+  </style>
+</head>
+<body>
+
+<div class="map-container">
+  <div class="map-header">
+    <h1>NINJA SMART TECHNOLOGY FACTORY ERP</h1>
+    <p>الخريطة الهندسية الكبرى للنظام بالكامل — ربط الإدارات الـ 15، الدورات التشغيلية، وسكيما الـ 170 جدول</p>
+  </div>
+
+  <div class="grid-container">
+
+    <!-- Dept 1 -->
+    <div class="dept-card">
+      <div class="dept-title">1. إدارة المبيعات وخدمة العملاء</div>
+      <div class="dept-wf">🔄 دورة المبيعات: RFQ ← عرض سعر ← أمر مبيعات ← BOM ← تحصيل خزنة ← إذن شحن ← فاتورة ← تسليم العميل</div>
+      <div class="dept-wf">🔄 دورة المرتجعات: طلب مرتجع ← فحص جودة ← إذن إضافة ← إشعار دائن ← تسوية</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: sales_orders, quotations, customers, credit_notes, delivery_notes</div>
+    </div>
+
+    <!-- Dept 2 -->
+    <div class="dept-card">
+      <div class="dept-title">2. إدارة المشتريات والموردين</div>
+      <div class="dept-wf">🔄 دورة الشراء: طلب احتياج PR ← عروض أسعار RFQ ← أمر شراء PO ← استلام QC ← سداد المورد</div>
+      <div class="dept-wf">🔄 دورة الموردين: تسجيل MVR ← تقييم أداء ← اعتماد المورد ← تجديد الاتفاقية</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: suppliers, purchase_orders, purchase_requests, supplier_invoices</div>
+    </div>
+
+    <!-- Dept 3 -->
+    <div class="dept-card">
+      <div class="dept-title">3. إدارة الموارد البشرية والرواتب</div>
+      <div class="dept-wf">🔄 20 دورة HR: توظيف ATS ← مقابلات ← عقود ← QR حضور ← سلف يومية/شهري ← جزاءات ← إجازات ← رواتب Pay</div>
+      <div class="dept-wf">🔄 دورة التخارج: تسليم العهد ← تصفية مستحقات ← إخلاء طرف ← تجميد حساب</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: users, payroll, attendance, leave_requests, worker_advances, loans</div>
+    </div>
+
+    <!-- Dept 4 -->
+    <div class="dept-card">
+      <div class="dept-title">4. إدارة الحضور والـ QR Code</div>
+      <div class="dept-wf">🔄 مسح الكود اليومي ← مطابقة الشيفت ← تسجيل التأخير والغياب آلياً</div>
+      <div class="dept-wf">🔄 تقديم تظلم تأخير ← موافقة HR ← تعديل كشف الحضور</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: attendance, shifts, attendance_appeals, QR_logs</div>
+    </div>
+
+    <!-- Dept 5 -->
+    <div class="dept-card">
+      <div class="dept-title">5. إدارة التوظيف الذكي ATS</div>
+      <div class="dept-wf">🔄 رفع السير الذاتية PDF ← تحليل المهارات آلياً بالذكاء الاصطناعي ← ترتيب المتقدمين</div>
+      <div class="dept-wf">🔄 جدولة المقابلات الفنية ← تقييم اللجنة ← إصدار عرض العمل</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: ats_applications, job_postings, interview_schedules</div>
+    </div>
+
+    <!-- Dept 6 -->
+    <div class="dept-card">
+      <div class="dept-title">6. الإدارة المالية والقيود المحاسبية</div>
+      <div class="dept-wf">🔄 إنشاء قيد متوازن آلياً لكل حركة (بيع/شراء/رواتب) بدون تدخل يدوي</div>
+      <div class="dept-wf">🔄 الإقفال الشهري ← ميزان المراجعة ← قائمة الدخل والميزانية العمومية</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: journal_entries, chart_of_accounts, fiscal_years, ledger</div>
+    </div>
+
+    <!-- Dept 7 -->
+    <div class="dept-card">
+      <div class="dept-title">7. إدارة الخزائن والبنوك</div>
+      <div class="dept-wf">🔄 صرف وقبض نقدي ← فحص السيولة المتاحة ← حظر السحب عند المكشوف</div>
+      <div class="dept-wf">🔄 تحويل نقدية بين الخزائن والبنوك ← اعتماد الإدارة ← ترحيل الحسابات</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: finance_safes, bank_accounts, cash_transfers, bank_checks</div>
+    </div>
+
+    <!-- Dept 8 -->
+    <div class="dept-card">
+      <div class="dept-title">8. إدارة مراكز التكلفة</div>
+      <div class="dept-wf">🔄 توجيه المصروفات والرواتب لكود مركز التكلفة (خط إنتاج/مشروع)</div>
+      <div class="dept-wf">🔄 تقرير تحليل الربحية والإنتاجية لكل مركز تكلفة على حدة</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: cost_centers, cost_allocations, line_profitability</div>
+    </div>
+
+    <!-- Dept 9 -->
+    <div class="dept-card">
+      <div class="dept-title">9. إدارة المخازن ورصيد الخامات</div>
+      <div class="dept-wf">🔄 إذن إضافة خامات ← خصم آلي فور التغذية لخط الإنتاج ← التنبيه لحد إعادة الطلب</div>
+      <div class="dept-wf">🔄 الجرد الدوري الدوري ← تسوية عجز أو زيادة المخزون</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: inventory_items, stock_movements, warehouses, stock_adjustments</div>
+    </div>
+
+    <!-- Dept 10 -->
+    <div class="dept-card">
+      <div class="dept-title">10. إدارة خطوط الإنتاج والـ BOM</div>
+      <div class="dept-wf">🔄 أمر تشغيل ← خصم معايير الخامة من قائمة BOM آلياً ← متابعة نسب الإنجاز</div>
+      <div class="dept-wf">🔄 إنهاء التصنيع ← تحويل المنتج التام لمخزن المبيعات</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: bom, production_orders, work_centers, finished_goods</div>
+    </div>
+
+    <!-- Dept 11 -->
+    <div class="dept-card">
+      <div class="dept-title">11. إدارة ضبط الجودة والفحص المعملي</div>
+      <div class="dept-wf">🔄 سحب عينات خامات المشتريات ← الفحص المعملي ← إجازة/رفض الشحنة</div>
+      <div class="dept-wf">🔄 فحص عينات خطوط الإنتاج ← عزل العيوب قبل التعبئة والتحميل</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: qc_inspections, quality_standards, rejected_materials</div>
+    </div>
+
+    <!-- Dept 12 -->
+    <div class="dept-card">
+      <div class="dept-title">12. إدارة الصيانة وقطع الغيار</div>
+      <div class="dept-wf">🔄 تقديم بلاغ عطل طارئ ← صرف قطع الغيار من المخزن ← إصلاح الماكينة</div>
+      <div class="dept-wf">🔄 الصيانة الوقائية السنوية ← تتبع ساعات التشغيل والزيوت</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: equipment, maintenance_logs, spare_parts, machine_downtime</div>
+    </div>
+
+    <!-- Dept 13 -->
+    <div class="dept-card">
+      <div class="dept-title">13. إدارة أسطول الشاحنات والعداد</div>
+      <div class="dept-wf">🔄 تتبع قراءة العداد Odometer ← صرف السولار ← حساب معدل استهلاك الوقود</div>
+      <div class="dept-wf">🔄 التنبيه بمواعيد تراخيص الشاحنات والفحص الفني والإطارات</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: fleet_vehicles, fuel_logs, vehicle_licenses, odometer_reads</div>
+    </div>
+
+    <!-- Dept 14 -->
+    <div class="dept-card">
+      <div class="dept-title">14. إدارة رحلات السائقين والشحن</div>
+      <div class="dept-wf">🔄 تكليف السائق بالرحلة ← تسليم البضاعة للعميل ← استلام إشعار التسليم</div>
+      <div class="dept-wf">🔄 تصفية عهد السائق ومصاريف الكارتة والوقود بالخزنة</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: fleet_trips, driver_allowances, trip_expenses, waybills</div>
+    </div>
+
+    <!-- Dept 15 -->
+    <div class="dept-card">
+      <div class="dept-title">15. منظومة الذكاء الاصطناعي والـ CEO</div>
+      <div class="dept-wf">🔄 شات بوت تفاعلي باللغة العربية للإجابة عن أسئلة واستفسارات الموظفين</div>
+      <div class="dept-wf">🔄 لوحة قيادة تنبؤية للرئيس التنفيذي للتنبيه بالأخطار والمخاطر الماليّة</div>
+      <div class="dept-tables">🗄️ الجداول المرتبطة: ai_prompts, ceo_analytics, ai_chat_history, system_kpis</div>
+    </div>
+
+  </div>
+
+  <!-- CENTRAL DATABASE HUB -->
+  <div class="central-hub">
+    <div class="hub-title">🌐 النواة المركزية المحركة لقواعد البيانات (170 DATABASE TABLES HUB)</div>
+    <div class="hub-desc">
+      تترابط جميع الإدارات الـ 15 والدورات التشغيلية الموضحة أعلاه في قاعدة بيانات سحابية موحدة (Supabase Cloud Infrastructure).<br>
+      يتم التحديث والتأثير المحاسبي والمخزني التلقائي فور تنفيذ أي إجراء في أي شاشة بالسيستم، مع التشفير الكامل وصلاحيات الشاشات RLS.
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
+`;
+
+fs.writeFileSync(path.join(__dirname, 'master_map_standalone.html'), megaMapHTML);
+console.log('Saved standalone map HTML: master_map_standalone.html');
+
+async function exportPNG() {
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+
+  const page = await browser.newPage();
+  await page.setViewport({ width: 2500, height: 3500, deviceScaleFactor: 2 });
+  
+  const fileUrl = 'file:///' + path.join(__dirname, 'master_map_standalone.html').replace(/\\/g, '/');
+  await page.goto(fileUrl, { waitUntil: 'networkidle0' });
+
+  const pngPath = path.join(__dirname, 'Master_ERP_Integrated_System_Map.png');
+  await page.screenshot({ path: pngPath, fullPage: true });
+
+  console.log(`Successfully exported ultra high-resolution map image: ${pngPath}`);
+  await browser.close();
+}
+
+exportPNG().catch(err => console.error('PNG Export Error:', err));
