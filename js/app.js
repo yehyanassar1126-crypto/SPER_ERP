@@ -260,6 +260,34 @@ var App = {
 
     document.getElementById('mobile-overlay').addEventListener('click', App.closeSidebar);
 
+    // --- SCROLL PRESERVATION LOGIC ---
+    var pc = document.getElementById('page-content');
+    App._scrollFreezeTimer = null;
+    App._lastScrollY = 0;
+    
+    pc.addEventListener('click', function(e) {
+       if (e.target.tagName !== 'A' && !e.target.closest('a')) {
+           App._lastScrollY = window.scrollY;
+           pc.style.minHeight = pc.offsetHeight + 'px';
+           clearTimeout(App._scrollFreezeTimer);
+           App._scrollFreezeTimer = setTimeout(function() { pc.style.minHeight = ''; }, 800);
+       }
+    });
+    pc.addEventListener('change', function(e) {
+       App._lastScrollY = window.scrollY;
+       pc.style.minHeight = pc.offsetHeight + 'px';
+       clearTimeout(App._scrollFreezeTimer);
+       App._scrollFreezeTimer = setTimeout(function() { pc.style.minHeight = ''; }, 800);
+    });
+    
+    var mo = new MutationObserver(function() {
+       if (App._lastScrollY > 0 && pc.style.minHeight) {
+           window.scrollTo(0, App._lastScrollY);
+       }
+    });
+    mo.observe(pc, { childList: true, subtree: true });
+    // ---------------------------------
+
     App.renderSidebar();
     App.renderHeader();
     App.navigate(App.activePage);
@@ -274,9 +302,19 @@ var App = {
   },
 
   navigate: function (page) {
+    var isSamePage = (App.activePage === page);
     App.activePage = page;
     var sidebarNav = document.querySelector('.sidebar-nav');
     var scrollPos = sidebarNav ? sidebarNav.scrollTop : 0;
+    
+    // Clear scroll freeze if navigating to a different page
+    if (!isSamePage) {
+        var pc = document.getElementById('page-content');
+        if (pc) pc.style.minHeight = '';
+        clearTimeout(App._scrollFreezeTimer);
+        App._lastScrollY = 0;
+        window.scrollTo(0, 0);
+    }
     
     App.renderSidebar();
     App.renderHeader();
