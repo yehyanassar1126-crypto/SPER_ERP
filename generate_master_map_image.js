@@ -2,246 +2,247 @@ const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
 
-console.log('=== Generating High-Resolution Standalone Master ERP System Map PNG ===');
+console.log('=== Generating Mega Integrated Master System Map PNG (Ultra Resolution & Connected Arrows) ===');
 
-// HTML with ultra-detailed, high-res mega diagram linking 15 Departments, 30+ Workflows, and 170 Tables with arrows
-const megaMapHTML = `
+// Giant Multi-Layer SVG Diagram with connected directional arrows between all 15 departments, AI, and 170 Tables Hub
+const megaSVG = `
+<svg viewBox="0 0 1600 2400" width="3200" height="4800" xmlns="http://www.w3.org/2000/svg" style="background:#0f172a; font-family:'Cairo', sans-serif;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#fbbf24"/>
+    </marker>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Title Banner -->
+  <rect x="50" y="40" width="1500" height="100" rx="20" fill="linear-gradient(90deg, #1e3a8a, #1d4ed8)" stroke="#60a5fa" stroke-width="4"/>
+  <text x="800" y="95" font-weight="900" font-size="34" text-anchor="middle" fill="#ffffff">NINJA SMART TECHNOLOGY FACTORY ERP — MEGA MASTER INTEGRATED MAP</text>
+  <text x="800" y="125" font-weight="700" font-size="18" text-anchor="middle" fill="#93c5fd">الخريطة الكبرى المتكاملة: ربط الإدارات الـ 15 والدورات التشغيلية والأسهم البينية بقاعدة البيانات الـ 170 جدول</text>
+
+  <!-- ROW 1: Security & Sales & Procurement -->
+  <g id="row1">
+    <!-- Dept 1: Sales -->
+    <rect x="50" y="180" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="280" y="220" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">1. إدارة المبيعات وخدمة العملاء (Sales & CRM)</text>
+    <text x="70" y="255" font-weight="700" font-size="14" fill="#e2e8f0">🔄 دورة المبيعات: RFQ ← عرض سعر ← أمر مبيعات ← BOM ← تحصيل خزنة ← شحن ← تسليم العميل</text>
+    <text x="70" y="290" font-weight="700" font-size="14" fill="#e2e8f0">🔄 دورة المرتجعات: طلب مرتجع ← فحص QC ← إذن إضافة ← إشعار دائن ← تسوية الخزنة</text>
+    <rect x="70" y="325" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="280" y="350" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول المبيعات: sales_orders, quotations, customers, credit_notes</text>
+
+    <!-- Dept 2: Procurement -->
+    <rect x="570" y="180" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="800" y="220" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">2. إدارة المشتريات والموردين (Procurement)</text>
+    <text x="590" y="255" font-weight="700" font-size="14" fill="#e2e8f0">🔄 دورة الشراء: طلب احتياج PR ← RFQ ← أمر شراء PO ← فحص QC ← إذن إضافة ← سداد المورد</text>
+    <text x="590" y="290" font-weight="700" font-size="14" fill="#e2e8f0">🔄 دورة الموردين: تسجيل MVR ← تقييم أداء التوريد ← تصنيف المعتمد ← التجديد</text>
+    <rect x="590" y="325" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="800" y="350" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول المشتريات: suppliers, purchase_orders, purchase_requests</text>
+
+    <!-- Dept 3: Inventory -->
+    <rect x="1090" y="180" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="1320" y="220" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">3. إدارة المخازن والخامات (Inventory)</text>
+    <text x="1110" y="255" font-weight="700" font-size="14" fill="#e2e8f0">🔄 دورة المخزن: استلام خامات ← إذن إضافة ← خصم آلي للإنتاج ← حد إعادة الطلب</text>
+    <text x="1110" y="290" font-weight="700" font-size="14" fill="#e2e8f0">🔄 دورة الجرد: فتح أمر جرد ← عَد فعلي ← مقارنة مستندية ← تسوية عجز/زيادة</text>
+    <rect x="1110" y="325" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="1320" y="350" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول المخازن: inventory_items, stock_movements, warehouses</text>
+  </g>
+
+  <!-- Connective Arrows Row 1 to Row 2 -->
+  <path d="M 280 460 L 280 520" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 800 460 L 800 520" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 1320 460 L 1320 520" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <!-- Cross Connectors -->
+  <path d="M 510 320 L 570 320" stroke="#fbbf24" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-gold)"/>
+  <path d="M 1030 320 L 1090 320" stroke="#fbbf24" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-gold)"/>
+
+  <!-- ROW 2: Manufacturing & Quality & Maintenance -->
+  <g id="row2">
+    <!-- Dept 4: Manufacturing -->
+    <rect x="50" y="520" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="280" y="560" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">4. خطوط الإنتاج والـ BOM (Production)</text>
+    <text x="70" y="595" font-weight="700" font-size="14" fill="#e2e8f0">🔄 أمر تشغيل ← خصم المعايير آلياً من الـ BOM ← متابعة خط التشغيل</text>
+    <text x="70" y="630" font-weight="700" font-size="14" fill="#e2e8f0">🔄 إنهاء التصنيع ← فحص الجودة ← تحويل المنتج التام للمخازن</text>
+    <rect x="70" y="665" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="280" y="690" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول الإنتاج: bom, production_orders, finished_goods</text>
+
+    <!-- Dept 5: Quality Control -->
+    <rect x="570" y="520" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="800" y="560" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">5. ضبط الجودة والفحص المعملي (QC)</text>
+    <text x="590" y="595" font-weight="700" font-size="14" fill="#e2e8f0">🔄 فحص الخامات: سحب عينات الشحنة ← الفحص الفني ← إجازة/رفض</text>
+    <text x="590" y="630" font-weight="700" font-size="14" fill="#e2e8f0">🔄 جودة التصنيع: التفتيش الدوري على الخطوط ← عزل التالف قبل التعبئة</text>
+    <rect x="590" y="665" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="800" y="690" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول الجودة: qc_inspections, quality_standards</text>
+
+    <!-- Dept 6: Maintenance -->
+    <rect x="1090" y="520" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="1320" y="560" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">6. الصيانة وقطع الغيار (Maintenance)</text>
+    <text x="1110" y="595" font-weight="700" font-size="14" fill="#e2e8f0">🔄 الأعطال الطارئة: بلاغ عطل ← صرف قطع الغيار ← إصلاح الآلة</text>
+    <text x="1110" y="630" font-weight="700" font-size="14" fill="#e2e8f0">🔄 الصيانة الوقائية: تتبع ساعات التشغيل ← جدولة العمرات آلياً</text>
+    <rect x="1110" y="665" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="1320" y="690" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول الصيانة: equipment, maintenance_logs, spare_parts</text>
+  </g>
+
+  <!-- Connective Arrows Row 2 to Row 3 -->
+  <path d="M 280 800 L 280 860" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 800 800 L 800 860" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 1320 800 L 1320 860" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 510 660 L 570 660" stroke="#fbbf24" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-gold)"/>
+  <path d="M 1030 660 L 1090 660" stroke="#fbbf24" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow-gold)"/>
+
+  <!-- ROW 3: HR & Attendance & ATS -->
+  <g id="row3">
+    <!-- Dept 7: HR 20 Workflows -->
+    <rect x="50" y="860" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="280" y="900" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">7. الموارد البشرية والرواتب (20 HR Workflows)</text>
+    <text x="70" y="935" font-weight="700" font-size="14" fill="#e2e8f0">🔄 20 دورة HR: توظيف ← ملفات ← سلف يومية/شهري ← جزاءات ← إجازات ← رواتب Pay</text>
+    <text x="70" y="970" font-weight="700" font-size="14" fill="#e2e8f0">🔄 التخارج: تسليم العهد ← تصفية مستحقات ← إخلاء طرف ← تجميد حساب</text>
+    <rect x="70" y="1005" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="280" y="1030" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول HR: users, payroll, attendance, worker_advances</text>
+
+    <!-- Dept 8: Attendance QR -->
+    <rect x="570" y="860" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="800" y="900" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">8. الحضور والبصمة الذكية (Attendance QR)</text>
+    <text x="590" y="935" font-weight="700" font-size="14" fill="#e2e8f0">🔄 مسح QR الموبايل ← مطابقة الشيفت ← حساب دقائق التأخير والغياب آلياً</text>
+    <text x="590" y="970" font-weight="700" font-size="14" fill="#e2e8f0">🔄 تقديم تظلم تأخير ← موافقة مدير HR ← تعديل كشف الحضور</text>
+    <rect x="590" y="1005" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="800" y="1030" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول الحضور: attendance, shifts, attendance_appeals</text>
+
+    <!-- Dept 9: ATS Recruitment -->
+    <rect x="1090" y="860" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="1320" y="900" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">9. التوظيف الذكي (ATS Recruitment)</text>
+    <text x="1110" y="935" font-weight="700" font-size="14" fill="#e2e8f0">🔄 رفع CV PDF ← تحليل المهارات بالـ AI ← استخراج نسبة المطابقة</text>
+    <text x="1110" y="970" font-weight="700" font-size="14" fill="#e2e8f0">🔄 جدولة المقابلات الفنية ← التقييم ← إصدار عرض العمل والعقد</text>
+    <rect x="1110" y="1005" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="1320" y="1030" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول التوظيف: ats_applications, job_postings</text>
+  </g>
+
+  <!-- Connective Arrows Row 3 to Row 4 -->
+  <path d="M 280 1140 L 280 1200" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 800 1140 L 800 1200" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 1320 1140 L 1320 1200" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- ROW 4: Finance & Safes & Cost Centers -->
+  <g id="row4">
+    <!-- Dept 10: General Ledger -->
+    <rect x="50" y="1200" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="280" y="1240" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">10. الإدارة المالية والقيود المحاسبية</text>
+    <text x="70" y="1275" font-weight="700" font-size="14" fill="#e2e8f0">🔄 إنشاء قيد متوازن تلقائي لكل حركة شراء/بيع/رواتب دون تدخل يدوي</text>
+    <text x="70" y="1310" font-weight="700" font-size="14" fill="#e2e8f0">🔄 الإقفال الشهري ← ميزان المراجعة ← الميزانية العمومية</text>
+    <rect x="70" y="1345" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="280" y="1370" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول المالية: journal_entries, chart_of_accounts</text>
+
+    <!-- Dept 11: Treasury Safes -->
+    <rect x="570" y="1200" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="800" y="1240" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">11. الخزائن والبنوك (Treasury)</text>
+    <text x="590" y="1275" font-weight="700" font-size="14" fill="#e2e8f0">🔄 صرف وقبض نقدي ← فحص السيولة المتاحة ← حظر السحب المكشوف</text>
+    <text x="590" y="1310" font-weight="700" font-size="14" fill="#e2e8f0">🔄 تحويلات نقدية بين الخزائن والبنوك ← اعتماد الإدارة والقيد</text>
+    <rect x="590" y="1345" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="800" y="1370" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول الخزائن: finance_safes, bank_accounts</text>
+
+    <!-- Dept 12: Cost Centers -->
+    <rect x="1090" y="1200" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="1320" y="1240" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">12. مراكز التكلفة (Cost Centers)</text>
+    <text x="1110" y="1275" font-weight="700" font-size="14" fill="#e2e8f0">🔄 ربط المصروفات والرواتب بكود مركز التكلفة (خط إنتاج/مشروع)</text>
+    <text x="1110" y="1310" font-weight="700" font-size="14" fill="#e2e8f0">🔄 تقرير تحليل الربحية والإنتاجية لكل مركز منفصل</text>
+    <rect x="1110" y="1345" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="1320" y="1370" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول مراكز التكلفة: cost_centers, cost_allocations</text>
+  </g>
+
+  <!-- Connective Arrows Row 4 to Row 5 -->
+  <path d="M 280 1480 L 280 1540" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 800 1480 L 800 1540" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M 1320 1480 L 1320 1540" stroke="#38bdf8" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- ROW 5: Fleet & Logistics & AI -->
+  <g id="row5">
+    <!-- Dept 13: Fleet -->
+    <rect x="50" y="1540" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="280" y="1580" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">13. أسطول السيارات والعداد (Fleet)</text>
+    <text x="70" y="1615" font-weight="700" font-size="14" fill="#e2e8f0">🔄 قراءة Odometer ← صرف السولار ← حساب معدل استهلاك الوقود</text>
+    <text x="70" y="1650" font-weight="700" font-size="14" fill="#e2e8f0">🔄 تنبيهات مواعيد تراخيص الشاحنات والفحص الفني والإطارات</text>
+    <rect x="70" y="1685" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="280" y="1710" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول الأسطول: fleet_vehicles, fuel_logs, odometer_reads</text>
+
+    <!-- Dept 14: Logistics -->
+    <rect x="570" y="1540" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="800" y="1580" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">14. رحلات السائقين والشحن (Logistics)</text>
+    <text x="590" y="1615" font-weight="700" font-size="14" fill="#e2e8f0">🔄 تكليف السائق بالرحلة ← تسليم العميل ← إشعار الاستلام</text>
+    <text x="590" y="1650" font-weight="700" font-size="14" fill="#e2e8f0">🔄 تصفية عهد الوقود ومصاريف الطرق والسولار بالخزنة</text>
+    <rect x="590" y="1685" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="800" y="1710" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول الرحلات: fleet_trips, driver_allowances</text>
+
+    <!-- Dept 15: AI Engine -->
+    <rect x="1090" y="1540" width="460" height="280" rx="16" fill="#1e293b" stroke="#3b82f6" stroke-width="3"/>
+    <text x="1320" y="1580" font-weight="900" font-size="20" text-anchor="middle" fill="#60a5fa">15. الذكاء الاصطناعي والـ CEO (AI Suite)</text>
+    <text x="1110" y="1615" font-weight="700" font-size="14" fill="#e2e8f0">🔄 شات بوت تفاعلي باللغة العربية لإجابة استفسارات الموظفين</text>
+    <text x="1110" y="1650" font-weight="700" font-size="14" fill="#e2e8f0">🔄 لوحة قيادة تنبؤية للرئيس التنفيذي للتنبيه بالأخطار والمالية</text>
+    <rect x="1110" y="1685" width="420" height="40" rx="8" fill="#0284c7"/>
+    <text x="1320" y="1710" font-weight="bold" font-size="13" text-anchor="middle" fill="#ffffff">🗄️ جداول الذكاء الاصطناعي: ai_prompts, ceo_analytics</text>
+  </g>
+
+  <!-- Connective Arrows Row 5 to Central Hub -->
+  <path d="M 280 1820 L 800 1920" stroke="#fbbf24" stroke-width="4" marker-end="url(#arrow-gold)"/>
+  <path d="M 800 1820 L 800 1920" stroke="#fbbf24" stroke-width="4" marker-end="url(#arrow-gold)"/>
+  <path d="M 1320 1820 L 800 1920" stroke="#fbbf24" stroke-width="4" marker-end="url(#arrow-gold)"/>
+
+  <!-- CENTRAL DATABASE HUB (170 TABLES CORE) -->
+  <g id="central-hub">
+    <rect x="50" y="1920" width="1500" height="380" rx="24" fill="linear-gradient(135deg, #0f172a, #1e3a8a)" stroke="#38bdf8" stroke-width="5" filter="url(#glow)"/>
+    <text x="800" y="1980" font-weight="900" font-size="32" text-anchor="middle" fill="#38bdf8">🌐 النواة المركزية لقواعد البيانات (170 DATABASE TABLES ARCHITECTURE HUB)</text>
+    <text x="800" y="2025" font-weight="800" font-size="20" text-anchor="middle" fill="#ffffff">الربط والتأثير المحاسبي والمخزني الآلي واللحظي بين جميع الـ 15 إدارة والدورات التشغيلية</text>
+    
+    <g transform="translate(100, 2060)">
+      <rect x="0" y="0" width="260" height="90" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+      <text x="130" y="40" font-weight="bold" font-size="16" text-anchor="middle" fill="#60a5fa">الحسابات والأمان (22)</text>
+      <text x="130" y="65" font-size="13" text-anchor="middle" fill="#cbd5e1">users, screen_permissions</text>
+
+      <rect x="290" y="0" width="260" height="90" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+      <text x="420" y="40" font-weight="bold" font-size="16" text-anchor="middle" fill="#60a5fa">HR والرواتب (43)</text>
+      <text x="420" y="65" font-size="13" text-anchor="middle" fill="#cbd5e1">payroll, attendance, shifts</text>
+
+      <rect x="580" y="0" width="260" height="90" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+      <text x="710" y="40" font-weight="bold" font-size="16" text-anchor="middle" fill="#60a5fa">المالية والخزائن (40)</text>
+      <text x="710" y="65" font-size="13" text-anchor="middle" fill="#cbd5e1">journal_entries, safes</text>
+
+      <rect x="870" y="0" width="260" height="90" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+      <text x="1000" y="40" font-weight="bold" font-size="16" text-anchor="middle" fill="#60a5fa">المشتريات والمخازن (37)</text>
+      <text x="1000" y="65" font-size="13" text-anchor="middle" fill="#cbd5e1">suppliers, inventory</text>
+
+      <rect x="1160" y="0" width="240" height="90" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+      <text x="1280" y="40" font-weight="bold" font-size="16" text-anchor="middle" fill="#60a5fa">الإنتاج والأسطول (28)</text>
+      <text x="1280" y="65" font-size="13" text-anchor="middle" fill="#cbd5e1">bom, fleet_trips</text>
+    </g>
+
+    <text x="800" y="2220" font-weight="700" font-size="16" text-anchor="middle" fill="#fbbf24">🔒 Supabase Enterprise Cloud Infrastructure with Row-Level Security (RLS) & Instant Automated Backup</text>
+  </g>
+</svg>
+`;
+
+fs.writeFileSync(path.join(__dirname, 'master_map_standalone.html'), `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>خريطة النظام الشاملة - Master ERP Map</title>
+  <title>Mega Master Integrated System Map</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Cairo', sans-serif;
-      background: #0f172a;
-      color: #ffffff;
-      padding: 40px;
-      width: 2400px;
-      direction: rtl;
-    }
-    .map-container {
-      background: #1e293b;
-      border: 6px solid #3b82f6;
-      border-radius: 24px;
-      padding: 50px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
-    }
-    .map-header {
-      text-align: center;
-      background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
-      padding: 30px;
-      border-radius: 16px;
-      margin-bottom: 40px;
-      border: 3px solid #60a5fa;
-    }
-    .map-header h1 { font-size: 36pt; font-weight: 900; color: #ffffff; margin-bottom: 10px; }
-    .map-header p { font-size: 18pt; font-weight: 700; color: #93c5fd; }
-    
-    .grid-container {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 30px;
-      margin-bottom: 40px;
-    }
-
-    .dept-card {
-      background: #0f172a;
-      border: 3px solid #3b82f6;
-      border-radius: 16px;
-      padding: 25px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    }
-    .dept-title {
-      font-size: 18pt;
-      font-weight: 800;
-      color: #60a5fa;
-      border-bottom: 2px solid #2563eb;
-      padding-bottom: 10px;
-      margin-bottom: 15px;
-    }
-    .dept-wf {
-      background: #1e293b;
-      border-right: 4px solid #60a5fa;
-      padding: 12px 16px;
-      margin-bottom: 12px;
-      border-radius: 8px;
-      font-size: 13pt;
-      color: #e2e8f0;
-    }
-    .dept-tables {
-      background: #0284c7;
-      color: #ffffff;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 11pt;
-      font-weight: bold;
-      margin-top: 10px;
-    }
-
-    .central-hub {
-      background: linear-gradient(135deg, #0f172a, #1e3a8a);
-      border: 5px solid #60a5fa;
-      border-radius: 20px;
-      padding: 40px;
-      text-align: center;
-      margin-top: 30px;
-    }
-    .hub-title { font-size: 26pt; font-weight: 900; color: #38bdf8; margin-bottom: 15px; }
-    .hub-desc { font-size: 16pt; color: #f1f5f9; line-height: 1.8; }
+    body { margin:0; padding:0; background:#0f172a; display:flex; justify-content:center; }
   </style>
 </head>
 <body>
-
-<div class="map-container">
-  <div class="map-header">
-    <h1>NINJA SMART TECHNOLOGY FACTORY ERP</h1>
-    <p>الخريطة الهندسية الكبرى للنظام بالكامل — ربط الإدارات الـ 15، الدورات التشغيلية، وسكيما الـ 170 جدول</p>
-  </div>
-
-  <div class="grid-container">
-
-    <!-- Dept 1 -->
-    <div class="dept-card">
-      <div class="dept-title">1. إدارة المبيعات وخدمة العملاء</div>
-      <div class="dept-wf">🔄 دورة المبيعات: RFQ ← عرض سعر ← أمر مبيعات ← BOM ← تحصيل خزنة ← إذن شحن ← فاتورة ← تسليم العميل</div>
-      <div class="dept-wf">🔄 دورة المرتجعات: طلب مرتجع ← فحص جودة ← إذن إضافة ← إشعار دائن ← تسوية</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: sales_orders, quotations, customers, credit_notes, delivery_notes</div>
-    </div>
-
-    <!-- Dept 2 -->
-    <div class="dept-card">
-      <div class="dept-title">2. إدارة المشتريات والموردين</div>
-      <div class="dept-wf">🔄 دورة الشراء: طلب احتياج PR ← عروض أسعار RFQ ← أمر شراء PO ← استلام QC ← سداد المورد</div>
-      <div class="dept-wf">🔄 دورة الموردين: تسجيل MVR ← تقييم أداء ← اعتماد المورد ← تجديد الاتفاقية</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: suppliers, purchase_orders, purchase_requests, supplier_invoices</div>
-    </div>
-
-    <!-- Dept 3 -->
-    <div class="dept-card">
-      <div class="dept-title">3. إدارة الموارد البشرية والرواتب</div>
-      <div class="dept-wf">🔄 20 دورة HR: توظيف ATS ← مقابلات ← عقود ← QR حضور ← سلف يومية/شهري ← جزاءات ← إجازات ← رواتب Pay</div>
-      <div class="dept-wf">🔄 دورة التخارج: تسليم العهد ← تصفية مستحقات ← إخلاء طرف ← تجميد حساب</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: users, payroll, attendance, leave_requests, worker_advances, loans</div>
-    </div>
-
-    <!-- Dept 4 -->
-    <div class="dept-card">
-      <div class="dept-title">4. إدارة الحضور والـ QR Code</div>
-      <div class="dept-wf">🔄 مسح الكود اليومي ← مطابقة الشيفت ← تسجيل التأخير والغياب آلياً</div>
-      <div class="dept-wf">🔄 تقديم تظلم تأخير ← موافقة HR ← تعديل كشف الحضور</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: attendance, shifts, attendance_appeals, QR_logs</div>
-    </div>
-
-    <!-- Dept 5 -->
-    <div class="dept-card">
-      <div class="dept-title">5. إدارة التوظيف الذكي ATS</div>
-      <div class="dept-wf">🔄 رفع السير الذاتية PDF ← تحليل المهارات آلياً بالذكاء الاصطناعي ← ترتيب المتقدمين</div>
-      <div class="dept-wf">🔄 جدولة المقابلات الفنية ← تقييم اللجنة ← إصدار عرض العمل</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: ats_applications, job_postings, interview_schedules</div>
-    </div>
-
-    <!-- Dept 6 -->
-    <div class="dept-card">
-      <div class="dept-title">6. الإدارة المالية والقيود المحاسبية</div>
-      <div class="dept-wf">🔄 إنشاء قيد متوازن آلياً لكل حركة (بيع/شراء/رواتب) بدون تدخل يدوي</div>
-      <div class="dept-wf">🔄 الإقفال الشهري ← ميزان المراجعة ← قائمة الدخل والميزانية العمومية</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: journal_entries, chart_of_accounts, fiscal_years, ledger</div>
-    </div>
-
-    <!-- Dept 7 -->
-    <div class="dept-card">
-      <div class="dept-title">7. إدارة الخزائن والبنوك</div>
-      <div class="dept-wf">🔄 صرف وقبض نقدي ← فحص السيولة المتاحة ← حظر السحب عند المكشوف</div>
-      <div class="dept-wf">🔄 تحويل نقدية بين الخزائن والبنوك ← اعتماد الإدارة ← ترحيل الحسابات</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: finance_safes, bank_accounts, cash_transfers, bank_checks</div>
-    </div>
-
-    <!-- Dept 8 -->
-    <div class="dept-card">
-      <div class="dept-title">8. إدارة مراكز التكلفة</div>
-      <div class="dept-wf">🔄 توجيه المصروفات والرواتب لكود مركز التكلفة (خط إنتاج/مشروع)</div>
-      <div class="dept-wf">🔄 تقرير تحليل الربحية والإنتاجية لكل مركز تكلفة على حدة</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: cost_centers, cost_allocations, line_profitability</div>
-    </div>
-
-    <!-- Dept 9 -->
-    <div class="dept-card">
-      <div class="dept-title">9. إدارة المخازن ورصيد الخامات</div>
-      <div class="dept-wf">🔄 إذن إضافة خامات ← خصم آلي فور التغذية لخط الإنتاج ← التنبيه لحد إعادة الطلب</div>
-      <div class="dept-wf">🔄 الجرد الدوري الدوري ← تسوية عجز أو زيادة المخزون</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: inventory_items, stock_movements, warehouses, stock_adjustments</div>
-    </div>
-
-    <!-- Dept 10 -->
-    <div class="dept-card">
-      <div class="dept-title">10. إدارة خطوط الإنتاج والـ BOM</div>
-      <div class="dept-wf">🔄 أمر تشغيل ← خصم معايير الخامة من قائمة BOM آلياً ← متابعة نسب الإنجاز</div>
-      <div class="dept-wf">🔄 إنهاء التصنيع ← تحويل المنتج التام لمخزن المبيعات</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: bom, production_orders, work_centers, finished_goods</div>
-    </div>
-
-    <!-- Dept 11 -->
-    <div class="dept-card">
-      <div class="dept-title">11. إدارة ضبط الجودة والفحص المعملي</div>
-      <div class="dept-wf">🔄 سحب عينات خامات المشتريات ← الفحص المعملي ← إجازة/رفض الشحنة</div>
-      <div class="dept-wf">🔄 فحص عينات خطوط الإنتاج ← عزل العيوب قبل التعبئة والتحميل</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: qc_inspections, quality_standards, rejected_materials</div>
-    </div>
-
-    <!-- Dept 12 -->
-    <div class="dept-card">
-      <div class="dept-title">12. إدارة الصيانة وقطع الغيار</div>
-      <div class="dept-wf">🔄 تقديم بلاغ عطل طارئ ← صرف قطع الغيار من المخزن ← إصلاح الماكينة</div>
-      <div class="dept-wf">🔄 الصيانة الوقائية السنوية ← تتبع ساعات التشغيل والزيوت</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: equipment, maintenance_logs, spare_parts, machine_downtime</div>
-    </div>
-
-    <!-- Dept 13 -->
-    <div class="dept-card">
-      <div class="dept-title">13. إدارة أسطول الشاحنات والعداد</div>
-      <div class="dept-wf">🔄 تتبع قراءة العداد Odometer ← صرف السولار ← حساب معدل استهلاك الوقود</div>
-      <div class="dept-wf">🔄 التنبيه بمواعيد تراخيص الشاحنات والفحص الفني والإطارات</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: fleet_vehicles, fuel_logs, vehicle_licenses, odometer_reads</div>
-    </div>
-
-    <!-- Dept 14 -->
-    <div class="dept-card">
-      <div class="dept-title">14. إدارة رحلات السائقين والشحن</div>
-      <div class="dept-wf">🔄 تكليف السائق بالرحلة ← تسليم البضاعة للعميل ← استلام إشعار التسليم</div>
-      <div class="dept-wf">🔄 تصفية عهد السائق ومصاريف الكارتة والوقود بالخزنة</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: fleet_trips, driver_allowances, trip_expenses, waybills</div>
-    </div>
-
-    <!-- Dept 15 -->
-    <div class="dept-card">
-      <div class="dept-title">15. منظومة الذكاء الاصطناعي والـ CEO</div>
-      <div class="dept-wf">🔄 شات بوت تفاعلي باللغة العربية للإجابة عن أسئلة واستفسارات الموظفين</div>
-      <div class="dept-wf">🔄 لوحة قيادة تنبؤية للرئيس التنفيذي للتنبيه بالأخطار والمخاطر الماليّة</div>
-      <div class="dept-tables">🗄️ الجداول المرتبطة: ai_prompts, ceo_analytics, ai_chat_history, system_kpis</div>
-    </div>
-
-  </div>
-
-  <!-- CENTRAL DATABASE HUB -->
-  <div class="central-hub">
-    <div class="hub-title">🌐 النواة المركزية المحركة لقواعد البيانات (170 DATABASE TABLES HUB)</div>
-    <div class="hub-desc">
-      تترابط جميع الإدارات الـ 15 والدورات التشغيلية الموضحة أعلاه في قاعدة بيانات سحابية موحدة (Supabase Cloud Infrastructure).<br>
-      يتم التحديث والتأثير المحاسبي والمخزني التلقائي فور تنفيذ أي إجراء في أي شاشة بالسيستم، مع التشفير الكامل وصلاحيات الشاشات RLS.
-    </div>
-  </div>
-
-</div>
-
+  ${megaSVG}
 </body>
 </html>
-`;
+`);
 
-fs.writeFileSync(path.join(__dirname, 'master_map_standalone.html'), megaMapHTML);
-console.log('Saved standalone map HTML: master_map_standalone.html');
+console.log('Saved standalone mega map HTML: master_map_standalone.html');
 
 async function exportPNG() {
   const browser = await puppeteer.launch({
@@ -250,7 +251,7 @@ async function exportPNG() {
   });
 
   const page = await browser.newPage();
-  await page.setViewport({ width: 2500, height: 3500, deviceScaleFactor: 2 });
+  await page.setViewport({ width: 3300, height: 4900, deviceScaleFactor: 1 });
   
   const fileUrl = 'file:///' + path.join(__dirname, 'master_map_standalone.html').replace(/\\/g, '/');
   await page.goto(fileUrl, { waitUntil: 'networkidle0' });
@@ -258,7 +259,7 @@ async function exportPNG() {
   const pngPath = path.join(__dirname, 'Master_ERP_Integrated_System_Map.png');
   await page.screenshot({ path: pngPath, fullPage: true });
 
-  console.log(`Successfully exported ultra high-resolution map image: ${pngPath}`);
+  console.log(`Successfully exported ultra mega high-res map image: ${pngPath}`);
   await browser.close();
 }
 

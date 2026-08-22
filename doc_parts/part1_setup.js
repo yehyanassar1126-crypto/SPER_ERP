@@ -31,26 +31,62 @@ tr:nth-child(even) { background-color: #f8fafc; }
 .proposal-card { background: #f8fafc; border: 2px solid #3b82f6; border-radius: 10px; padding: 20px; margin-top: 20px; }
 `;
 
-// SVG helper: creates a flow diagram with N steps
-function flowSVG(steps, h=130) {
+// SVG helper: creates an enhanced visual flowchart with numbered step badges and arrows
+function flowSVG(steps, h=140) {
   const w = 820;
-  const boxW = Math.min(160, (w - 30) / steps.length - 10);
-  const boxH = 65;
-  const y = (h - boxH) / 2;
-  const fills = ['#eff6ff','#dbeafe','#bfdbfe','#93c5fd','#60a5fa','#3b82f6','#2563eb','#1d4ed8'];
-  const strokes = ['#3b82f6','#2563eb','#1d4ed8','#1e3a8a','#1e3a8a','#1e3a8a','#1e3a8a','#0f172a'];
+  const count = steps.length;
+  const gap = (w - 20) / count;
+  const boxW = Math.min(160, gap - 12);
+  const boxH = 75;
+  const y = (h - boxH) / 2 + 5;
+  
+  const gradients = [
+    { start: '#eff6ff', end: '#dbeafe', stroke: '#2563eb', text: '#1e3a8a', badge: '#2563eb' },
+    { start: '#dbeafe', end: '#bfdbfe', stroke: '#1d4ed8', text: '#1e3a8a', badge: '#1d4ed8' },
+    { start: '#bfdbfe', end: '#93c5fd', stroke: '#1e3a8a', text: '#0f172a', badge: '#1e3a8a' },
+    { start: '#93c5fd', end: '#60a5fa', stroke: '#1e3a8a', text: '#0f172a', badge: '#0f172a' },
+    { start: '#60a5fa', end: '#3b82f6', stroke: '#1e3a8a', text: '#ffffff', badge: '#ffffff' },
+    { start: '#3b82f6', end: '#2563eb', stroke: '#1d4ed8', text: '#ffffff', badge: '#ffffff' },
+    { start: '#2563eb', end: '#1d4ed8', stroke: '#1e3a8a', text: '#ffffff', badge: '#ffffff' },
+    { start: '#1d4ed8', end: '#1e3a8a', stroke: '#0f172a', text: '#ffffff', badge: '#ffffff' }
+  ];
+
   let svg = `<svg class="diagram-svg" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
-  const gap = (w - 20) / steps.length;
+  svg += `<defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+  </defs>`;
+
   steps.forEach((s, i) => {
     const x = 10 + i * gap;
-    const fi = Math.min(i, fills.length - 1);
-    const textColor = i >= 6 ? '#ffffff' : '#0f172a';
-    svg += `<rect x="${x}" y="${y}" width="${boxW}" height="${boxH}" rx="8" fill="${fills[fi]}" stroke="${strokes[fi]}" stroke-width="2"/>`;
-    svg += `<text x="${x + boxW/2}" y="${y + boxH/2 + 4}" font-weight="bold" font-size="9.5" text-anchor="middle" fill="${textColor}">${s}</text>`;
-    if (i < steps.length - 1) {
-      svg += `<path d="M ${x + boxW} ${y + boxH/2} L ${x + gap} ${y + boxH/2}" stroke="#2563eb" stroke-width="2"/>`;
+    const g = gradients[Math.min(i, gradients.length - 1)];
+    const gradId = `grad_${i}_${Math.floor(Math.random()*1000)}`;
+
+    svg += `<defs>
+      <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="${g.start}"/>
+        <stop offset="100%" stop-color="${g.end}"/>
+      </linearGradient>
+    </defs>`;
+
+    // Main Card Rect
+    svg += `<rect x="${x}" y="${y}" width="${boxW}" height="${boxH}" rx="10" fill="url(#${gradId})" stroke="${g.stroke}" stroke-width="2" filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.08))"/>`;
+
+    // Step Badge Circle
+    svg += `<circle cx="${x + 18}" cy="${y + 18}" r="11" fill="${g.stroke}"/>`;
+    svg += `<text x="${x + 18}" y="${y + 22}" font-weight="bold" font-size="10" text-anchor="middle" fill="#ffffff">${i + 1}</text>`;
+
+    // Step Label
+    svg += `<text x="${x + boxW/2}" y="${y + 48}" font-weight="800" font-size="9.5" text-anchor="middle" fill="${g.text}">${s}</text>`;
+
+    // Connecting Arrow
+    if (i < count - 1) {
+      const nextX = 10 + (i + 1) * gap;
+      svg += `<path d="M ${x + boxW + 2} ${y + boxH/2} L ${nextX - 4} ${y + boxH/2}" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)"/>`;
     }
   });
+
   svg += '</svg>';
   return svg;
 }
@@ -193,12 +229,10 @@ departments.forEach(dept => {
   });
 });
 
-// Build DB tables compact listing
-let dbHTML = `<table><thead><tr><th style="width:40px">#</th><th style="width:180px">اسم الجدول</th><th>الوظيفة</th></tr></thead><tbody>`;
+// Build DB tables listing with NO text descriptions (Name and Index only)
+let dbHTML = `<table><thead><tr><th style="width:60px">#</th><th>اسم الجدول بقاعدة البيانات (Table Name)</th></tr></thead><tbody>`;
 tableKeys.forEach((tName, idx) => {
-  const t = dbSchema[tName];
-  const short = t.explanation.split(':').length > 1 ? t.explanation.split(':')[1].split('،')[0].trim() : t.explanation.split('،')[0];
-  dbHTML += `<tr><td>${idx+1}</td><td><code>${t.name}</code></td><td>${short}</td></tr>`;
+  dbHTML += `<tr><td>${idx+1}</td><td><code>${tName}</code></td></tr>`;
 });
 dbHTML += '</tbody></table>';
 
