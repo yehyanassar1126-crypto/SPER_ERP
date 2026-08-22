@@ -1,0 +1,244 @@
+// ===== ERP MODULE: Maintenance (إدارة الصيانة) =====
+window.Pages = window.Pages || {};
+
+Pages.maintenance = function(el) {
+  var isOwner = App.isOwner();
+  var isMaintenance = App.user && (App.user.department === 'Maintenance' || App.user.role === 'maintenance manager' || App.user.role === 'technician');
+  var isManager = App.isManager();
+  
+  // Production requests maintenance, Maintenance manages it.
+  var canEdit = isOwner || isMaintenance;
+  var isProduction = App.user && (App.user.department === 'Production' || App.user.role === 'hall manager');
+  var isHRManager = App.user && App.user.role === 'hr manager';
+  var canViewAll = canEdit || isHRManager || isProduction;
+
+  var hasAccess = isOwner || isProduction || isMaintenance || isHRManager;
+  if (!hasAccess) {
+    el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to Production, Maintenance, and HR Managers.</p></div>';
+    return;
+  }
+
+  var requests = [];
+  var schedules = [];
+
+  function loadData() {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading Maintenance...</div>';
+    Promise.all([
+      sbClient.from('maintenance_requests').select('*').order('created_at', {ascending:false}),
+      sbClient.from('maintenance_schedules').select('*').order('scheduled_date', {ascending:true})
+    ]).then(function(res) {
+      if (!res[0].error) requests = res[0].data || [];
+      if (!res[1].error) schedules = res[1].data || [];
+      render();
+    });
+  }
+
+  function render() {
+    var pendingReqs = requests.filter(function(r) { return r.status === 'pending'; });
+    var inProgReqs = requests.filter(function(r) { return r.status === 'in_progress'; });
+    var upcomingSchedules = schedules.filter(function(s) { return new Date(s.scheduled_date) >= new Date() && s.status !== 'completed'; });
+
+    var html = '<div class="toolbar" style="display:flex;justify-content:space-between;margin-bottom:24px">';
+    html += '<h3>Maintenance & Facilities (إدارة الصيانة والمرافق)</h3>';
+    html += '<div style="display:flex;gap:8px">';
+    if (canEdit) {
+      html += '<button class="btn btn-outline" onclick="requestMaintPartsModal()">' + icon('package') + ' طلب قطع غيار وعدة</button>';
+    }
+    if (isProduction || isOwner) {
+      html += '<button class="btn btn-primary" onclick="newMaintenanceRequest()">' + icon('tool') + ' Request Maintenance (طلب صيانة)</button>';
+    }
+    html += '</div></div>';
+
+    html += '<div class="stats-grid" style="margin-bottom:24px">';
+    html += _statCard('#ef4444','alertTriangle',pendingReqs.length,'Pending Requests (أعطال مسجلة)');
+    html += _statCard('#3b82f6','tool',inProgReqs.length,'In Progress (جاري الإصلاح)');
+    html += _statCard('#f59e0b','calendar',upcomingSchedules.length,'Upcoming PM (صيانة وقائية)');
+    html += '</div>';
+
+    html += '<div class="grid-2">';
+    
+    // 1. Maintenance Requests (Breakdowns)
+    html += '<div class="card"><div class="card-header"><div><h3>🛠️ Maintenance Requests (طلبات الإصلاح)</h3><p>Reported breakdowns and issues</p></div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
+    html += '<th>Date</th><th>Asset / Location</th><th>Issue</th><th>Priority</th><th>Status</th>' + (canEdit ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+    
+    var visibleRequests = canViewAll ? requests : requests.filter(function(r) { return r.requested_by === App.user.full_name; });
+    
+    if (visibleRequests.length === 0) {
+      html += '<tr><td colspan="' + (canEdit ? '6' : '5') + '" style="text-align:center;padding:30px;color:var(--text-muted)">No maintenance requests found</td></tr>';
+    } else {
+      visibleRequests.forEach(function(r) {
+        var sBadge = 'warning';
+        if (r.status === 'in_progress') sBadge = 'primary';
+        if (r.status === 'resolved') sBadge = 'success';
+
+        html += '<tr><td>' + formatDate(r.created_at) + '</td><td style="font-weight:600">' + (r.equipment_name || r.asset_name || '-') + '</td><td>' + r.issue_description + '</td>';
+        html += '<td><span class="badge badge-' + (r.priority === 'high' ? 'danger' : 'warning') + '">' + r.priority.toUpperCase() + '</span></td>';
+        html += '<td><span class="badge badge-' + sBadge + '">' + r.status.replace('_', ' ').toUpperCase() + '</span></td>';
+        
+        if (canEdit) {
+          html += '<td>';
+          if (r.status === 'pending') {
+            html += '<button class="btn btn-xs btn-primary" onclick="updateMaintStatus(\'' + r.id + '\', \'in_progress\')">Start Work</button>';
+          } else if (r.status === 'in_progress') {
+            html += '<button class="btn btn-xs btn-success" onclick="updateMaintStatus(\'' + r.id + '\', \'resolved\')">Mark Resolved</button>';
+          } else {
+            html += '<span style="color:var(--text-muted);font-size:0.8rem">Done</span>';
+          }
+          html += '</td>';
+        }
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+
+    // 2. Preventive Maintenance Schedule
+    html += '<div class="card"><div class="card-header"><div style="display:flex;justify-content:space-between;width:100%;align-items:center"><div><h3>📅 Preventive Maintenance (الصيانة الوقائية)</h3><p>Scheduled inspections and servicing</p></div>';
+    if (canEdit) html += '<button class="btn btn-sm btn-outline" onclick="newScheduleModal()">' + icon('plus') + ' Add Task</button>';
+    html += '</div></div><div class="card-body no-pad"><div class="table-container"><table class="data-table"><thead><tr>';
+    html += '<th>Date</th><th>Asset</th><th>Task Description</th><th>Assigned To</th><th>Status</th>' + (canEdit ? '<th>Actions</th>' : '') + '</tr></thead><tbody>';
+    
+    if (schedules.length === 0) {
+      html += '<tr><td colspan="' + (canEdit ? '6' : '5') + '" style="text-align:center;padding:30px;color:var(--text-muted)">No scheduled tasks</td></tr>';
+    } else {
+      schedules.forEach(function(s) {
+        var isOverdue = new Date(s.scheduled_date) < new Date() && s.status !== 'completed';
+        var dColor = isOverdue ? 'color:var(--accent-danger);font-weight:bold' : '';
+        
+        html += '<tr><td style="' + dColor + '">' + s.scheduled_date + (isOverdue ? ' (Overdue)' : '') + '</td>';
+        html += '<td style="font-weight:600">' + (s.asset_name || s.equipment_name || '-') + '</td><td>' + s.task_description + '</td><td>' + (s.assigned_to || 'Unassigned') + '</td>';
+        html += '<td><span class="badge badge-' + (s.status === 'completed' ? 'success' : 'secondary') + '">' + s.status.toUpperCase() + '</span></td>';
+        
+        if (canEdit) {
+          html += '<td>';
+          if (s.status !== 'completed') {
+            html += '<button class="btn btn-xs btn-success" onclick="completeSchedule(\'' + s.id + '\')">Complete</button>';
+          } else {
+            html += '<span style="color:var(--text-muted);font-size:0.8rem">Done</span>';
+          }
+          html += '</td>';
+        }
+        html += '</tr>';
+      });
+    }
+    html += '</tbody></table></div></div></div>';
+
+    html += '</div>'; // end grid-2
+    el.innerHTML = html;
+  }
+
+  window.newMaintenanceRequest = function() {
+    var b = '<div class="form-field"><label>Asset / Location (المعدة أو المكان) *</label><input type="text" id="mr-asset" class="form-input" placeholder="e.g. Generator 1, Office AC, Forklift"></div>';
+    b += '<div class="form-field"><label>Issue Description (وصف العطل) *</label><textarea id="mr-issue" class="form-input" rows="3"></textarea></div>';
+    b += '<div class="form-field"><label>Priority (الأهمية) *</label><select id="mr-prio" class="form-input"><option value="low">Low (بسيطة)</option><option value="medium" selected>Medium (متوسطة)</option><option value="high">High (عاجلة / توقف إنتاج)</option></select></div>';
+    var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-mr">Submit Request</button>';
+    App.showModal('Request Maintenance', b, f);
+
+    document.getElementById('save-mr').addEventListener('click', function() {
+      var ast = document.getElementById('mr-asset').value.trim();
+      var iss = document.getElementById('mr-issue').value.trim();
+      var pr = document.getElementById('mr-prio').value;
+      if (!ast || !iss) return alert('Please fill in all fields');
+
+      sbClient.from('maintenance_requests').insert({
+        equipment_name: ast, issue_description: iss, priority: pr,
+        requested_by: App.user.full_name, status: 'pending'
+      }).then(function(r) {
+        if (r.error) return alert(r.error.message);
+        App.closeModal(); loadData();
+        showToast('Maintenance request submitted', 'success');
+      });
+    });
+  };
+
+  window.updateMaintStatus = function(id, newStatus) {
+    sbClient.from('maintenance_requests').update({status: newStatus}).eq('id', id).then(function(r) {
+      if(r.error) return alert(r.error.message);
+      loadData();
+    });
+  };
+
+  window.newScheduleModal = function() {
+    var b = '<div class="form-field"><label>Asset Name *</label><input type="text" id="ms-asset" class="form-input"></div>';
+    b += '<div class="form-field"><label>Task Description *</label><input type="text" id="ms-task" class="form-input" placeholder="e.g. Oil Change, Filter Replacement"></div>';
+    b += '<div class="form-field"><label>Scheduled Date *</label><input type="date" id="ms-date" class="form-input"></div>';
+    b += '<div class="form-field"><label>Assigned Technician</label><input type="text" id="ms-tech" class="form-input" placeholder="e.g. Ahmed Ali"></div>';
+    var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-ms">Add Schedule</button>';
+    App.showModal('Add Preventive Maintenance', b, f);
+
+    document.getElementById('save-ms').addEventListener('click', function() {
+      var ast = document.getElementById('ms-asset').value.trim();
+      var tsk = document.getElementById('ms-task').value.trim();
+      var dt = document.getElementById('ms-date').value;
+      var tch = document.getElementById('ms-tech').value;
+      if (!ast || !tsk || !dt) return alert('Please fill in required fields');
+
+      sbClient.from('maintenance_schedules').insert({
+        asset_name: ast, task_description: tsk, scheduled_date: dt,
+        assigned_to: tch, status: 'pending'
+      }).then(function(r) {
+        if (r.error) return alert(r.error.message);
+        App.closeModal(); loadData();
+        showToast('Schedule added', 'success');
+      });
+    });
+  };
+
+  window.completeSchedule = function(id) {
+    if(!confirm('Mark this scheduled task as completed?')) return;
+    sbClient.from('maintenance_schedules').update({status: 'completed'}).eq('id', id).then(function(r) {
+      if(r.error) return alert(r.error.message);
+      loadData();
+    });
+  };
+
+  window.requestMaintPartsModal = function() {
+    var b = '<div class="form-field"><label>Item Name (اسم الصنف) *</label><input type="text" id="mpr-item" class="form-input" placeholder="e.g. مفتاح 10, رولمان بلي"></div>';
+    b += '<div class="form-field"><label>Quantity (الكمية) *</label><input type="number" id="mpr-qty" class="form-input" value="1" min="1"></div>';
+    b += '<div class="form-field"><label>Type (النوع) *</label><select id="mpr-type" class="form-input" onchange="document.getElementById(\'mpr-machine-wrap\').style.display=this.value===\'spare_part\'?\'block\':\'none\'">';
+    b += '<option value="spare_part">Spare Part (قطعة غيار - تستهلك)</option>';
+    b += '<option value="tool">Tool (عُهدة / عدة - تسترجع)</option>';
+    b += '</select></div>';
+    b += '<div class="form-field" id="mpr-machine-wrap"><label>Machine/Asset (المعدة المرتبطة) *</label><input type="text" id="mpr-mach" class="form-input" placeholder="e.g. ماكينة التعبئة"></div>';
+    var f = '<button class="btn btn-outline" onclick="App.closeModal()">Cancel</button><button class="btn btn-primary" id="save-mpr">Send Request</button>';
+    App.showModal('Request Parts/Tools from Inventory', b, f);
+
+    document.getElementById('save-mpr').addEventListener('click', function() {
+      var item = document.getElementById('mpr-item').value.trim();
+      var qty = parseInt(document.getElementById('mpr-qty').value, 10);
+      var type = document.getElementById('mpr-type').value;
+      var mach = document.getElementById('mpr-mach').value.trim();
+      
+      if (!item || !qty || qty <= 0) return alert('Please enter valid item and quantity');
+      if (type === 'spare_part' && !mach) return alert('Please specify the machine/asset for the spare part');
+
+      var btn = this;
+      btn.innerHTML = 'Sending...'; btn.disabled = true;
+
+      if (type === 'spare_part') {
+        sbClient.from('spare_parts_requests').insert({
+          requested_by_name: App.user.full_name,
+          department: App.user.department,
+          machine_or_vehicle: mach,
+          item_name: item,
+          requested_quantity: qty,
+          status: 'pending_approval'
+        }).then(function(r) {
+          if (r.error) { btn.innerHTML = 'Send Request'; btn.disabled = false; return alert(r.error.message); }
+          App.closeModal(); showToast('Spare Part request sent to Spare Parts Lifecycle!', 'success');
+        });
+      } else {
+        sbClient.from('material_requests').insert({
+          item_name: item,
+          quantity_needed: qty,
+          requested_by: 'Maintenance (Tool)',
+          status: 'pending'
+        }).then(function(r) {
+          if (r.error) { btn.innerHTML = 'Send Request'; btn.disabled = false; return alert(r.error.message); }
+          App.closeModal(); showToast('Tool request sent to Inventory successfully!', 'success');
+        });
+      }
+    });
+  };
+
+  loadData();
+};
