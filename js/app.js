@@ -262,27 +262,20 @@ var App = {
 
     // --- SCROLL PRESERVATION LOGIC ---
     var pc = document.getElementById('page-content');
-    App._scrollFreezeTimer = null;
     App._lastScrollY = 0;
     
     pc.addEventListener('click', function(e) {
        if (e.target.tagName !== 'A' && !e.target.closest('a')) {
-           App._lastScrollY = window.scrollY;
-           pc.style.minHeight = pc.offsetHeight + 'px';
-           clearTimeout(App._scrollFreezeTimer);
-           App._scrollFreezeTimer = setTimeout(function() { pc.style.minHeight = ''; }, 800);
+           App._lastScrollY = pc.scrollTop;
        }
     });
     pc.addEventListener('change', function(e) {
-       App._lastScrollY = window.scrollY;
-       pc.style.minHeight = pc.offsetHeight + 'px';
-       clearTimeout(App._scrollFreezeTimer);
-       App._scrollFreezeTimer = setTimeout(function() { pc.style.minHeight = ''; }, 800);
+       App._lastScrollY = pc.scrollTop;
     });
     
     var mo = new MutationObserver(function() {
-       if (App._lastScrollY > 0 && pc.style.minHeight) {
-           window.scrollTo(0, App._lastScrollY);
+       if (App._lastScrollY > 0 && !App._isNavigating) {
+           pc.scrollTop = App._lastScrollY;
        }
     });
     mo.observe(pc, { childList: true, subtree: true });
@@ -304,16 +297,15 @@ var App = {
   navigate: function (page) {
     var isSamePage = (App.activePage === page);
     App.activePage = page;
+    App._isNavigating = !isSamePage;
+    
     var sidebarNav = document.querySelector('.sidebar-nav');
     var scrollPos = sidebarNav ? sidebarNav.scrollTop : 0;
     
-    // Clear scroll freeze if navigating to a different page
     if (!isSamePage) {
-        var pc = document.getElementById('page-content');
-        if (pc) pc.style.minHeight = '';
-        clearTimeout(App._scrollFreezeTimer);
         App._lastScrollY = 0;
-        window.scrollTo(0, 0);
+        var pc = document.getElementById('page-content');
+        if (pc) pc.scrollTop = 0;
     }
     
     App.renderSidebar();
@@ -324,6 +316,8 @@ var App = {
     if (newSidebarNav) {
       newSidebarNav.scrollTop = scrollPos;
     }
+    
+    setTimeout(function() { App._isNavigating = false; }, 100);
   },
 
   // ========== SIDEBAR ==========
