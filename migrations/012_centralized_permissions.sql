@@ -28,21 +28,24 @@ ALTER TABLE permission_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "permission_templates_all" ON permission_templates FOR ALL USING (true) WITH CHECK (true);
 
 -- 4. AI Reports table
-CREATE TABLE IF NOT EXISTS ai_reports (
+-- Drop first in case of partial creation from previous attempt
+DROP TABLE IF EXISTS ai_reports;
+
+CREATE TABLE ai_reports (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  report_type TEXT NOT NULL,           -- 'monthly', 'semiannual', 'annual', 'custom'
-  period TEXT NOT NULL,                -- 'august-2026', 'h1-2026', '2026', 'custom'
+  report_type TEXT NOT NULL,
+  period TEXT NOT NULL,
   title TEXT NOT NULL,
   content JSONB NOT NULL DEFAULT '{}',
   summary TEXT,
   generated_by UUID REFERENCES users(id) ON DELETE SET NULL,
   generated_by_name TEXT,
-  year INTEGER,
-  month INTEGER,
-  half INTEGER,                        -- 1 or 2 for semiannual
+  report_year INTEGER,
+  report_month INTEGER,
+  report_half INTEGER,
   from_date DATE,
   to_date DATE,
-  status TEXT DEFAULT 'generated',     -- 'generated', 'reviewed', 'archived'
+  status TEXT DEFAULT 'generated',
   language TEXT DEFAULT 'ar',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -50,11 +53,11 @@ CREATE TABLE IF NOT EXISTS ai_reports (
 
 -- Prevent duplicate reports for same period
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_reports_unique 
-  ON ai_reports(report_type, period, year) 
+  ON ai_reports(report_type, period, report_year) 
   WHERE report_type != 'custom';
 
 CREATE INDEX IF NOT EXISTS idx_ai_reports_type ON ai_reports(report_type);
-CREATE INDEX IF NOT EXISTS idx_ai_reports_year ON ai_reports(year);
+CREATE INDEX IF NOT EXISTS idx_ai_reports_year ON ai_reports(report_year);
 CREATE INDEX IF NOT EXISTS idx_ai_reports_created ON ai_reports(created_at DESC);
 
 ALTER TABLE ai_reports ENABLE ROW LEVEL SECURITY;

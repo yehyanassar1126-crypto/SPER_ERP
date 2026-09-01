@@ -28,15 +28,15 @@ window.AIReportGenerator = {
         summary: (analysis.executive_summary && analysis.executive_summary[lang]) || '',
         generated_by: App.user.id,
         generated_by_name: App.user.full_name,
-        year: year,
-        month: month,
+        report_year: year,
+        report_month: month,
         from_date: from.toISOString().slice(0,10),
         to_date: to.toISOString().slice(0,10),
         language: lang,
         status: 'generated'
       };
 
-      sbClient.from('ai_reports').upsert(record, {onConflict:'report_type,period,year'}).then(function(res) {
+      sbClient.from('ai_reports').upsert(record, {onConflict:'report_type,period,report_year'}).then(function(res) {
         if(res.error) { console.error('Report save error:', res.error); if(cb) cb(null, res.error); return; }
         if(cb) cb(record);
       });
@@ -63,11 +63,11 @@ window.AIReportGenerator = {
         report_type: 'semiannual', period: period, title: title, content: analysis,
         summary: (analysis.executive_summary && analysis.executive_summary[lang]) || '',
         generated_by: App.user.id, generated_by_name: App.user.full_name,
-        year: year, half: half,
+        report_year: year, report_half: half,
         from_date: from.toISOString().slice(0,10), to_date: to.toISOString().slice(0,10),
         language: lang, status: 'generated'
       };
-      sbClient.from('ai_reports').upsert(record, {onConflict:'report_type,period,year'}).then(function(res) {
+      sbClient.from('ai_reports').upsert(record, {onConflict:'report_type,period,report_year'}).then(function(res) {
         if(res.error) { if(cb) cb(null, res.error); return; }
         if(cb) cb(record);
       });
@@ -88,11 +88,11 @@ window.AIReportGenerator = {
         report_type: 'annual', period: 'annual-' + year, title: title, content: analysis,
         summary: (analysis.executive_summary && analysis.executive_summary[lang]) || '',
         generated_by: App.user.id, generated_by_name: App.user.full_name,
-        year: year,
+        report_year: year,
         from_date: from.toISOString().slice(0,10), to_date: to.toISOString().slice(0,10),
         language: lang, status: 'generated'
       };
-      sbClient.from('ai_reports').upsert(record, {onConflict:'report_type,period,year'}).then(function(res) {
+      sbClient.from('ai_reports').upsert(record, {onConflict:'report_type,period,report_year'}).then(function(res) {
         if(res.error) { if(cb) cb(null, res.error); return; }
         if(cb) cb(record);
       });
@@ -114,7 +114,7 @@ window.AIReportGenerator = {
         report_type: 'custom', period: period, title: title, content: analysis,
         summary: (analysis.executive_summary && analysis.executive_summary[lang]) || '',
         generated_by: App.user.id, generated_by_name: App.user.full_name,
-        year: fromDate.getFullYear(),
+        report_year: fromDate.getFullYear(),
         from_date: fromDate.toISOString().slice(0,10), to_date: toDate.toISOString().slice(0,10),
         language: lang, status: 'generated'
       };
@@ -153,7 +153,7 @@ window.AIReportGenerator = {
    * Fetch report history
    */
   getHistory: function(cb) {
-    sbClient.from('ai_reports').select('id,report_type,period,title,year,month,half,from_date,to_date,status,language,generated_by_name,created_at')
+    sbClient.from('ai_reports').select('id,report_type,period,title,report_year,report_month,report_half,from_date,to_date,status,language,generated_by_name,created_at')
       .order('created_at', {ascending: false}).limit(50)
       .then(function(res) { if(cb) cb(res.data || []); });
   }
