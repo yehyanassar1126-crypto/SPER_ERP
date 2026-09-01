@@ -111,6 +111,15 @@ var App = {
       App.renderApp();
       // Auto-generate missing AI reports for owner
       if (typeof AIReportGenerator !== 'undefined') setTimeout(function(){ AIReportGenerator.autoGenerate(); }, 3000);
+      // DB health check: verify permission system tables exist
+      if (userData.role && userData.role.toLowerCase() === 'owner') {
+        sbClient.from('permission_templates').select('id').limit(1).then(function(r) {
+          if (r.error && r.error.code === '42P01') {
+            showToast('⚠️ جداول الصلاحيات غير موجودة — شغّل migrations/012_centralized_permissions.sql في Supabase SQL Editor', 'error');
+            console.error('[DB] Missing tables. Run migrations/012_centralized_permissions.sql');
+          }
+        });
+      }
       // Log login to both audit_log and login_history
       sbClient.from('audit_log').insert({ action: 'LOGIN', user_name: res.data.full_name, details: res.data.role.toUpperCase() + ' user logged in', user_id: res.data.id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); } });
       sbClient.from('login_history').insert({ user_id: res.data.id, user_name: res.data.full_name, login_status: 'success' }).then(function(){});

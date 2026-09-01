@@ -1,6 +1,6 @@
 -- =============================================
 -- Migration 012: Centralized Permissions + User Language + AI Reports
--- Run this in Supabase SQL Editor
+-- SAFE TO RUN MULTIPLE TIMES (idempotent)
 -- =============================================
 
 -- 1. Add preferred_language column to users table
@@ -25,13 +25,11 @@ CREATE TABLE IF NOT EXISTS permission_templates (
 CREATE INDEX IF NOT EXISTS idx_perm_template_role ON permission_templates(role);
 
 ALTER TABLE permission_templates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "permission_templates_all" ON permission_templates;
 CREATE POLICY "permission_templates_all" ON permission_templates FOR ALL USING (true) WITH CHECK (true);
 
 -- 4. AI Reports table
--- Drop first in case of partial creation from previous attempt
-DROP TABLE IF EXISTS ai_reports;
-
-CREATE TABLE ai_reports (
+CREATE TABLE IF NOT EXISTS ai_reports (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   report_type TEXT NOT NULL,
   period TEXT NOT NULL,
@@ -51,7 +49,6 @@ CREATE TABLE ai_reports (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Prevent duplicate reports for same period
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_reports_unique 
   ON ai_reports(report_type, period, report_year) 
   WHERE report_type != 'custom';
@@ -61,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_reports_year ON ai_reports(report_year);
 CREATE INDEX IF NOT EXISTS idx_ai_reports_created ON ai_reports(created_at DESC);
 
 ALTER TABLE ai_reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ai_reports_all" ON ai_reports;
 CREATE POLICY "ai_reports_all" ON ai_reports FOR ALL USING (true) WITH CHECK (true);
 
 -- 5. Seed default permission templates for common roles
@@ -116,7 +114,7 @@ FROM (VALUES
 CROSS JOIN (VALUES ('view'),('create'),('edit'),('delete'),('approve'),('reject'),('export'),('print')) AS a(action)
 ON CONFLICT (role, screen_id, action) DO NOTHING;
 
--- 6. Update function for auto-updating updated_at
+-- 6. Auto-update trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -125,14 +123,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply trigger to ai_reports
 DROP TRIGGER IF EXISTS update_ai_reports_updated_at ON ai_reports;
 CREATE TRIGGER update_ai_reports_updated_at
   BEFORE UPDATE ON ai_reports
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Done!
--- After running this migration, the frontend code will handle:
--- 1. Loading user preferred_language on login
--- 2. Using permission_templates for new user setup
--- 3. Storing AI reports in ai_reports table
+-- 7. Enable Realtime on screen_permissions
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'screen_permissions'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE screen_permissions;
+  END IF;
+END $$;
