@@ -3,6 +3,18 @@
 // =============================================
 var ERPPermissions = {
 
+  // Module-grouped screens for better organization
+  moduleGroups: {
+    'Self Service (بياناتي)': ['dashboard','hr-personal','my-attendance','scan-checkin','scan-checkout','my-leaves','my-salary','my-overtime','my-loans','my-medical','my-delays','my-missions','my-expenses','complaints'],
+    'Workplace (مكان العمل)': ['announcements','internal-chat','shift-swap','calendar','task-management','ai-mind'],
+    'Management (الإدارة)': ['dept-purchase-approvals','friday-work','team-adjustments'],
+    'HR (الموارد البشرية)': ['employees','attendance','leaves','absence-leave','shifts','overtime','all-delays','all-missions','employee-warnings','asset-assignment','payroll','payroll-funding','hr-adjustments','recruitment','hr-ats','documents','performance','uniforms','loans','expenses','medical-requests','nursing-medical-approvals','offboarding','training','performance-reviews','hr-qr-generator','org-directory'],
+    'Operations (العمليات)': ['inventory','purchase-requests','erp-sales','erp-products','customer-requests','erp-planning','erp-production','erp-bom','production-trace','erp-quality','engineering','erp-maintenance','erp-equipment','maint-companies','spare-parts','logistics','erp-fleet','erp-suppliers','supplier-performance','supplier-portal'],
+    'Finance (المالية)': ['petty-cash','financial-reports','chart-of-accounts','driver-payments'],
+    'Admin (إدارة النظام)': ['reports','kpi-dashboard','audit-log','login-history','activity-log-page','document-management','approval-workflows','global-search','system-settings','screen-permissions','notification-settings','it-tickets','legal-affairs','facebook-leads'],
+    'Enterprise (التحكم المؤسسي)': ['owner-dashboard','ceo-dashboard','cost-centers','activity-timeline','ai-ceo-dashboard','ai-reports']
+  },
+
   allScreens: [
     // Basic Employee Screens (My Info)
     {id:'dashboard',label:'My Dashboard'},
@@ -104,12 +116,13 @@ var ERPPermissions = {
     {id:'notification-settings',label:'Notification Settings'},
     {id:'facebook-leads',label:'Facebook Leads'},
     
-    // Owner
+    // Owner / Enterprise
     {id:'owner-dashboard',label:'Owner Dashboard'},
     {id:'ceo-dashboard',label:'CEO Dashboard'},
     {id:'cost-centers',label:'Cost Centers'},
     {id:'activity-timeline',label:'Activity Timeline'},
-    {id:'ai-ceo-dashboard',label:'AI CEO Dashboard'}
+    {id:'ai-ceo-dashboard',label:'AI CEO Dashboard'},
+    {id:'ai-reports',label:'AI Reports (تقارير ذكية)'}
   ],
 
   actions: ['view','create','edit','delete','approve','reject','export','print'],
@@ -122,6 +135,19 @@ var ERPPermissions = {
     html += '<option>owner</option><option>hr manager</option><option>hr</option><option>hall manager</option><option>department head</option>';
     html += '<option>employee</option><option>warehouse manager</option><option>procurement manager</option><option>driver</option></select></div>';
     html += '<button class="btn btn-primary" style="align-self:flex-end" onclick="ERPPermissions.loadPerms()">تحميل الصلاحيات</button></div>';
+
+    // Bulk Actions Bar
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-color)">';
+    html += '<span style="font-weight:700;align-self:center;margin-right:8px">⚡ Bulk Actions:</span>';
+    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.grantModule(\'HR (الموارد البشرية)\')">✅ Grant All HR</button>';
+    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.grantModule(\'Operations (العمليات)\')">✅ Grant All Ops</button>';
+    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.grantModule(\'Finance (المالية)\')">✅ Grant All Finance</button>';
+    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.grantModule(\'Admin (إدارة النظام)\')">✅ Grant All Admin</button>';
+    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.selectAll(true)">☑️ Grant ALL</button>';
+    html += '<button class="btn btn-xs btn-outline" style="color:var(--accent-danger);border-color:var(--accent-danger)" onclick="ERPPermissions.selectAll(false)">❌ Revoke ALL</button>';
+    html += '<button class="btn btn-xs btn-outline" style="color:var(--accent-info);border-color:var(--accent-info)" onclick="ERPPermissions.copyFromTemplate()">📋 Copy from Role Template</button>';
+    html += '</div>';
+
     html += '<div id="perm-grid"></div>';
     document.getElementById('page-content').innerHTML = html;
 
@@ -297,7 +323,6 @@ var ERPPermissions = {
     });
     
     // Always add a dummy system record to prove this user has a custom configuration
-    // This prevents the system from falling back to default legacy menus if all other perms are removed
     perms.push({
         user_id: userId || null, role: role || null,
         screen_id: 'SYSTEM_CONFIG',
@@ -321,6 +346,98 @@ var ERPPermissions = {
           details: 'Updated permissions for '+(userId||role)+': '+perms.length+' permissions',
           user_id: App.user?App.user.id:null
         }).then(function(){});
+      });
+    });
+  },
+
+  /**
+   * Bulk grant all screens in a module group
+   * @param {string} moduleName - Key from moduleGroups
+   */
+  grantModule: function(moduleName) {
+    var screens = ERPPermissions.moduleGroups[moduleName];
+    if (!screens || screens.length === 0) { showToast('Module not found', 'warning'); return; }
+
+    screens.forEach(function(screenId) {
+      document.querySelectorAll('.perm-cb[data-screen="'+screenId+'"]').forEach(function(cb) {
+        cb.checked = true;
+      });
+    });
+    showToast('✅ Granted all permissions for: ' + moduleName, 'success');
+  },
+
+  /**
+   * Copy permissions from permission_templates table for a selected role
+   */
+  copyFromTemplate: function() {
+    var roles = ['employee', 'hr manager', 'hr', 'hall manager', 'department head', 'warehouse manager', 'procurement manager', 'driver'];
+    var roleHtml = roles.map(function(r) { return '<option value="'+r+'">'+r+'</option>'; }).join('');
+
+    if (typeof showModal === 'function') {
+      showModal('📋 Copy from Role Template', 
+        '<div class="form-group"><label>Select Role Template</label>' +
+        '<select class="form-input" id="template-role-select">' + roleHtml + '</select></div>' +
+        '<p style="color:var(--text-muted);font-size:0.85rem">This will check all screens that are granted for the selected role in the permission_templates table.</p>',
+        function() {
+          var selectedRole = document.getElementById('template-role-select').value;
+          ERPPermissions._loadTemplate(selectedRole);
+        }
+      );
+    } else {
+      var selectedRole = prompt('Enter role name (employee, hr manager, hr, hall manager, department head):');
+      if (selectedRole) ERPPermissions._loadTemplate(selectedRole);
+    }
+  },
+
+  _loadTemplate: function(role) {
+    sbClient.from('permission_templates').select('screen_id,action').eq('role', role).eq('granted', true).then(function(res) {
+      if (!res.data || res.data.length === 0) {
+        showToast('No templates found for role: ' + role, 'warning');
+        return;
+      }
+
+      // First uncheck all
+      document.querySelectorAll('.perm-cb').forEach(function(cb) { cb.checked = false; });
+
+      // Check the ones from template
+      var count = 0;
+      res.data.forEach(function(t) {
+        var cb = document.querySelector('.perm-cb[data-screen="'+t.screen_id+'"][data-action="'+t.action+'"]');
+        if (cb) { cb.checked = true; count++; }
+      });
+
+      showToast('📋 Loaded ' + count + ' permissions from template: ' + role, 'success');
+    });
+  },
+
+  /**
+   * Auto-apply permission_templates when creating a new user
+   * Call this after inserting a new user into the users table
+   * @param {string} userId - New user's UUID
+   * @param {string} role - User's role
+   * @param {function} cb - Callback
+   */
+  applyTemplateForUser: function(userId, role, cb) {
+    if (!userId || !role) { if (cb) cb(false); return; }
+
+    sbClient.from('permission_templates').select('screen_id,action,granted').eq('role', role.toLowerCase()).eq('granted', true).then(function(res) {
+      if (!res.data || res.data.length === 0) {
+        console.log('[Permissions] No templates for role:', role);
+        if (cb) cb(false);
+        return;
+      }
+
+      var perms = res.data.map(function(t) {
+        return { user_id: userId, role: role.toLowerCase(), screen_id: t.screen_id, action: t.action, granted: true };
+      });
+
+      // Add SYSTEM_CONFIG marker
+      perms.push({ user_id: userId, role: role.toLowerCase(), screen_id: 'SYSTEM_CONFIG', action: 'custom', granted: true });
+
+      sbClient.from('screen_permissions').insert(perms).then(function(r) {
+        if (r.error) { console.error('[Permissions] Template apply error:', r.error); if (cb) cb(false); return; }
+        console.log('[Permissions] Applied', perms.length, 'template permissions for', userId);
+        if (cb) cb(true);
       });
     });
   }

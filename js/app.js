@@ -2407,6 +2407,10 @@ Pages.employees = function (el) {
                  // Automatically insert into logistics_drivers
                  sbClient.from('logistics_drivers').insert({ id: r.data.id, employee_id: r.data.id, driver_name: form.full_name, car_number: 'N/A', driver_type: form.driver_type }).then(function(){});
               }
+              // Auto-apply permission templates for the new user's role
+              if (typeof ERPPermissions !== 'undefined' && ERPPermissions.applyTemplateForUser) {
+                ERPPermissions.applyTemplateForUser(r.data.id, form.role || 'employee');
+              }
               employees.push(r.data);
               render();
               showToast('Employee added!', 'success');
