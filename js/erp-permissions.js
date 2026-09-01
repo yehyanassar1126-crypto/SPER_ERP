@@ -312,39 +312,84 @@ var ERPPermissions = {
   saveAll: function() {
     var userId = document.getElementById('perm-user').value;
     var role = document.getElementById('perm-role').value;
-    var perms = [];
+    if (!userId && !role) { showToast('اختر مستخدم أو Role', 'warning'); return; }
+
+    // Collect what's currently checked in the UI
+    var wantedPerms = {};
     document.querySelectorAll('.perm-cb:checked').forEach(function(cb) {
-      perms.push({
-        user_id: userId || null, role: role || null,
-        screen_id: cb.getAttribute('data-screen'),
-        action: cb.getAttribute('data-action'),
-        granted: true
+      var key = cb.getAttribute('data-screen') + '|' + cb.getAttribute('data-action');
+      wantedPerms[key] = { screen_id: cb.getAttribute('data-screen'), action: cb.getAttribute('data-action') };
+    });
+    // Always include SYSTEM_CONFIG marker
+    wantedPerms['SYSTEM_CONFIG|custom'] = { screen_id: 'SYSTEM_CONFIG', action: 'custom' };
+
+    // Fetch current DB permissions for this user/role
+    var query = sbClient.from('screen_permissions').select('id,screen_id,action');
+    if (userId) query = query.eq('user_id', userId);
+    else query = query.eq('role', role);
+
+    query.then(function(res) {
+      var existingPerms = {};
+      (res.data || []).forEach(function(p) {
+        existingPerms[p.screen_id + '|' + p.action] = p.id;
       });
-    });
-    
-    // Always add a dummy system record to prove this user has a custom configuration
-    perms.push({
-        user_id: userId || null, role: role || null,
-        screen_id: 'SYSTEM_CONFIG',
-        action: 'custom',
-        granted: true
-    });
 
-    // Delete old then insert new
-    var delQuery = sbClient.from('screen_permissions').delete();
-    if (userId) delQuery = delQuery.eq('user_id', userId);
-    else if (role) delQuery = delQuery.eq('role', role);
+      // Calculate diff: what to ADD and what to REMOVE
+      var toInsert = [];
+      var toDeleteIds = [];
 
-    delQuery.then(function() {
-      if (perms.length === 0) { showToast('تم مسح كل الصلاحيات','info'); return; }
-      sbClient.from('screen_permissions').insert(perms).then(function(r) {
-        if (r.error) { showToast('خطأ: '+r.error.message,'error'); return; }
-        showToast('تم حفظ '+perms.length+' صلاحية بنجاح ✅','success');
+      // Find NEW permissions (in UI but not in DB)
+      for (var key in wantedPerms) {
+        if (!existingPerms[key]) {
+          toInsert.push({
+            user_id: userId || null, role: role || null,
+            screen_id: wantedPerms[key].screen_id,
+            action: wantedPerms[key].action,
+            granted: true
+          });
+        }
+      }
+
+      // Find REMOVED permissions (in DB but not in UI)
+      for (var key2 in existingPerms) {
+        if (!wantedPerms[key2]) {
+          toDeleteIds.push(existingPerms[key2]);
+        }
+      }
+
+      // Execute changes
+      var promises = [];
+
+      if (toInsert.length > 0) {
+        promises.push(sbClient.from('screen_permissions').insert(toInsert));
+      }
+      if (toDeleteIds.length > 0) {
+        promises.push(sbClient.from('screen_permissions').delete().in('id', toDeleteIds));
+      }
+
+      if (promises.length === 0) {
+        showToast('لا يوجد تغييرات للحفظ', 'info');
+        return;
+      }
+
+      Promise.all(promises).then(function(results) {
+        var hasError = results.some(function(r) { return r.error; });
+        if (hasError) {
+          var errMsg = results.filter(function(r){return r.error;}).map(function(r){return r.error.message;}).join(', ');
+          showToast('خطأ: ' + errMsg, 'error');
+          return;
+        }
+
+        var msg = '';
+        if (toInsert.length > 0) msg += '✅ تم إضافة ' + toInsert.length + ' صلاحية';
+        if (toDeleteIds.length > 0) msg += (msg ? ' | ' : '') + '❌ تم إزالة ' + toDeleteIds.length + ' صلاحية';
+        showToast(msg, 'success');
+
         // Audit log
         sbClient.from('audit_log').insert({
-          action: 'PERMISSION_CHANGE', user_name: App.user?App.user.full_name:'',
-          details: 'Updated permissions for '+(userId||role)+': '+perms.length+' permissions',
-          user_id: App.user?App.user.id:null
+          action: 'PERMISSION_CHANGE', user_name: App.user ? App.user.full_name : '',
+          details: 'Permissions for ' + (userId || role) + ': +' + toInsert.length + ' -' + toDeleteIds.length,
+          user_id: App.user ? App.user.id : null
         }).then(function(){});
       });
     });
