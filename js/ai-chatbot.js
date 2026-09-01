@@ -102,12 +102,32 @@ var AIChatbot = {
     var text = input.value.trim();
     if(!text) return;
     input.value = '';
+
+    // Sanitize query against prompt injection
+    if(typeof AIPermissionLayer !== 'undefined') {
+      text = AIPermissionLayer.sanitizeQuery(text);
+    }
+
     AIChatbot.addUserMsg(text);
+
+    // Check permissions BEFORE fetching any data
+    if(typeof AIPermissionLayer !== 'undefined') {
+      var validation = AIPermissionLayer.validateQuery(text);
+      if(!validation.allowed) {
+        AIChatbot.addBotMsg('🔒 ' + validation.message);
+        return;
+      }
+    }
+
     AIChatbot.showTyping();
 
     // Ensure data is loaded
     if(!AIChatbot.data && typeof AIBrain !== 'undefined') {
       AIBrain.runFullAnalysis(function(a) {
+        // Filter data by permission before AI processes it
+        if(typeof AIPermissionLayer !== 'undefined') {
+          a.raw = AIPermissionLayer.filterData(a.raw);
+        }
         AIChatbot.data = a;
         setTimeout(function(){ AIChatbot.processQuery(text); }, 500);
       });

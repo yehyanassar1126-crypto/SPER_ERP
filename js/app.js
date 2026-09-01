@@ -106,7 +106,11 @@ var App = {
       App.loadNotifications();
       // Load permissions
       if (typeof SecurityHelpers !== 'undefined') SecurityHelpers.loadPermissions();
+      // Initialize per-user language from DB
+      if (typeof I18nEngine !== 'undefined') I18nEngine.init();
       App.renderApp();
+      // Auto-generate missing AI reports for owner
+      if (typeof AIReportGenerator !== 'undefined') setTimeout(function(){ AIReportGenerator.autoGenerate(); }, 3000);
       // Log login to both audit_log and login_history
       sbClient.from('audit_log').insert({ action: 'LOGIN', user_name: res.data.full_name, details: res.data.role.toUpperCase() + ' user logged in', user_id: res.data.id }).then(function (r) { if (r && r.error) { console.error("Supabase Error:", r.error); } });
       sbClient.from('login_history').insert({ user_id: res.data.id, user_name: res.data.full_name, login_status: 'success' }).then(function(){});
@@ -693,7 +697,8 @@ var App = {
             { id: 'ceo-dashboard', label: 'CEO Dashboard (لوحة المدير)', icon: 'trendingUp' },
             { id: 'cost-centers', label: 'Cost Centers (تكلفة الإدارات)', icon: 'pieChart' },
             { id: 'activity-timeline', label: 'Activity Timeline (سجل العمليات)', icon: 'clock' },
-            { id: 'ai-ceo-dashboard', label: '🧠 AI CEO Dashboard (لوحة الذكاء الاصطناعي)', icon: 'brain' }
+            { id: 'ai-ceo-dashboard', label: '🧠 AI CEO Dashboard (لوحة الذكاء الاصطناعي)', icon: 'brain' },
+            { id: 'ai-reports', label: '📊 AI Reports (تقارير الذكاء الاصطناعي)', icon: 'barChart' }
           ]
         });
       }
@@ -997,19 +1002,27 @@ var App = {
       'employee-warnings': { title: '⚠️ Employee Warnings', sub: 'Disciplinary actions and penalties' },
       'ceo-dashboard': { title: '📊 CEO Dashboard', sub: 'Enterprise High-Level Overview' },
       'activity-timeline': { title: '🕐 Activity Timeline', sub: 'Real-time audit of all operations' },
-      'dept-purchase-approvals': { title: '📦 موافقات طلبات الشراء', sub: 'Department Purchase Approvals — موافقة المدير على طلبات الشراء' }
+      'dept-purchase-approvals': { title: '📦 موافقات طلبات الشراء', sub: 'Department Purchase Approvals — موافقة المدير على طلبات الشراء' },
+      'ai-reports': { title: '📊 AI Reports (تقارير الذكاء الاصطناعي)', sub: 'Comprehensive AI-powered analytics and reporting' }
     };
     var page = titles[App.activePage] || { title: 'Dashboard', sub: '' };
     var unread = App.getUnreadCount();
 
     document.getElementById('header').innerHTML =
       '<div class="header-left"><button class="menu-toggle" id="menu-toggle">' + icon('menu') + '</button><div class="header-title"><h2>' + page.title + '</h2><p>' + page.sub + '</p></div></div>' +
-      '<div class="header-right"><button class="btn btn-sm btn-outline" id="lang-toggle-btn" style="margin-right:14px">' + (localStorage.getItem('lang') === 'ar' ? 'English' : 'عربي') + '</button><button class="header-btn" id="notif-toggle" title="Notifications">' + icon('bell') +
+      '<div class="header-right"><button class="btn btn-sm btn-outline" id="lang-toggle-btn" style="margin-right:14px">' + ((typeof I18nEngine !== 'undefined' ? I18nEngine.currentLang : localStorage.getItem('lang')) === 'ar' ? 'English' : 'عربي') + '</button><button class="header-btn" id="notif-toggle" title="Notifications">' + icon('bell') +
       '<span class="notif-badge" id="notif-badge" style="display:' + (unread > 0 ? 'flex' : 'none') + '">' + (unread > 9 ? '9+' : unread) + '</span></button></div>';
 
     document.getElementById('menu-toggle').addEventListener('click', App.toggleSidebar);
     document.getElementById('notif-toggle').addEventListener('click', function () { App.showNotifPanel(); });
-    document.getElementById('lang-toggle-btn').addEventListener('click', function () { var curr = localStorage.getItem('lang'); if (curr === 'ar') { localStorage.setItem('lang', 'en'); document.body.classList.remove('rtl-layout'); } else { localStorage.setItem('lang', 'ar'); document.body.classList.add('rtl-layout'); } window.location.reload(); });
+    document.getElementById('lang-toggle-btn').addEventListener('click', function () {
+      if (typeof I18nEngine !== 'undefined') {
+        var newLang = I18nEngine.currentLang === 'ar' ? 'en' : 'ar';
+        I18nEngine.switchLanguage(newLang);
+      } else {
+        var curr = localStorage.getItem('lang'); if (curr === 'ar') { localStorage.setItem('lang', 'en'); document.body.classList.remove('rtl-layout'); } else { localStorage.setItem('lang', 'ar'); document.body.classList.add('rtl-layout'); } window.location.reload();
+      }
+    });
   },
 
   // ========== NOTIFICATION PANEL ==========
@@ -1048,6 +1061,13 @@ var App = {
       App.activePage = App.activePage || 'logistics';
     } else {
       App.activePage = App.activePage || 'dashboard';
+    }
+
+    // PermissionGuard: check screen access before rendering
+    var pageId = App.activePage;
+    if (typeof PermissionGuard !== 'undefined' && pageId !== 'dashboard' && !PermissionGuard.canView(pageId)) {
+      PermissionGuard.renderAccessDenied(el);
+      return;
     }
 
     switch (App.activePage) {
@@ -1186,6 +1206,7 @@ var App = {
       case 'ai-ceo-dashboard': if (Pages.aiCeoDashboard) Pages.aiCeoDashboard(el); else el.innerHTML = 'AI Module loading...'; break;
       case 'activity-timeline': if (Pages['activity-timeline']) Pages['activity-timeline'](el); else el.innerHTML = 'Module loading...'; break;
       case 'dept-purchase-approvals': if (Pages['deptPurchaseApprovals']) Pages['deptPurchaseApprovals'](el); else el.innerHTML = 'Module loading...'; break;
+      case 'ai-reports': if (typeof Pages.aiReports === 'function') Pages.aiReports(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>AI Reports Module Loading...</h3></div>'; break;
       case 'dashboard':
         if (App.isOwner() && Pages['ceo-dashboard']) Pages['ceo-dashboard'](el);
         else Pages.empDashboard(el);
@@ -1195,6 +1216,10 @@ var App = {
     
     if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.applyPermissionsUI) {
       SecurityHelpers.applyPermissionsUI(pageId);
+    }
+    // Enforce action-level permissions on page buttons
+    if (typeof PermissionGuard !== 'undefined') {
+      setTimeout(function(){ PermissionGuard.enforceActionPermissions(pageId); }, 300);
     }
   },
 
