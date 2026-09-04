@@ -127,6 +127,29 @@ var ERPPermissions = {
 
   actions: ['view','create','edit','delete','approve','reject','export','print'],
 
+  isCurrentUserOwner: function() {
+    if (typeof App === 'undefined' || !App.user) return false;
+    var r = (App.user.role || '').toLowerCase();
+    var d = (App.user.department || '').toLowerCase();
+    return r === 'owner' || r === 'admin' || r === 'system admin' || d === 'owner';
+  },
+
+  isTargetOwner: function(userId, role) {
+    if (role) {
+      var tr = role.toLowerCase();
+      if (tr === 'owner' || tr === 'admin' || tr === 'system admin') return true;
+    }
+    if (userId && ERPPermissions.allUsers) {
+      var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
+      if (u) {
+        var ur = (u.role || '').toLowerCase();
+        var ud = (u.department || '').toLowerCase();
+        if (ur === 'owner' || ur === 'admin' || ur === 'system admin' || ud === 'owner') return true;
+      }
+    }
+    return false;
+  },
+
   render: function() {
     var html = '<div class="page-header"><h2>🔐 Screen Permissions (صلاحيات الشاشات)</h2></div>';
     html += '<div class="form-row" style="margin-bottom:20px;gap:12px">';
@@ -137,15 +160,15 @@ var ERPPermissions = {
     html += '<button class="btn btn-primary" style="align-self:flex-end" onclick="ERPPermissions.loadPerms()">تحميل الصلاحيات</button></div>';
 
     // Bulk Actions Bar
-    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-color)">';
+    html += '<div id="bulk-actions-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-color)">';
     html += '<span style="font-weight:700;align-self:center;margin-right:8px">⚡ Bulk Actions:</span>';
-    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.grantModule(\'HR (الموارد البشرية)\')">✅ Grant All HR</button>';
-    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.grantModule(\'Operations (العمليات)\')">✅ Grant All Ops</button>';
-    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.grantModule(\'Finance (المالية)\')">✅ Grant All Finance</button>';
-    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.grantModule(\'Admin (إدارة النظام)\')">✅ Grant All Admin</button>';
-    html += '<button class="btn btn-xs btn-outline" onclick="ERPPermissions.selectAll(true)">☑️ Grant ALL</button>';
-    html += '<button class="btn btn-xs btn-outline" style="color:var(--accent-danger);border-color:var(--accent-danger)" onclick="ERPPermissions.selectAll(false)">❌ Revoke ALL</button>';
-    html += '<button class="btn btn-xs btn-outline" style="color:var(--accent-info);border-color:var(--accent-info)" onclick="ERPPermissions.copyFromTemplate()">📋 Copy from Role Template</button>';
+    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'HR (الموارد البشرية)\')">✅ Grant All HR</button>';
+    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'Operations (العمليات)\')">✅ Grant All Ops</button>';
+    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'Finance (المالية)\')">✅ Grant All Finance</button>';
+    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'Admin (إدارة النظام)\')">✅ Grant All Admin</button>';
+    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.selectAll(true)">☑️ Grant ALL</button>';
+    html += '<button class="btn btn-xs btn-outline bulk-btn" style="color:var(--accent-danger);border-color:var(--accent-danger)" onclick="ERPPermissions.selectAll(false)">❌ Revoke ALL</button>';
+    html += '<button class="btn btn-xs btn-outline bulk-btn" style="color:var(--accent-info);border-color:var(--accent-info)" onclick="ERPPermissions.copyFromTemplate()">📋 Copy from Role Template</button>';
     html += '</div>';
 
     html += '<div id="perm-grid"></div>';
@@ -167,10 +190,13 @@ var ERPPermissions = {
     var role = document.getElementById('perm-role').value;
     var el = document.getElementById('perm-grid');
 
+    if (!userId && !role) { el.innerHTML = '<p class="text-muted">اختر مستخدم أو Role</p>'; return; }
+
+    var isRestricted = !ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role);
+
     var query = sbClient.from('screen_permissions').select('*');
     if (userId) query = query.eq('user_id', userId);
     else if (role) query = query.eq('role', role);
-    else { el.innerHTML = '<p class="text-muted">اختر مستخدم أو Role</p>'; return; }
 
     query.then(function(r) {
       var existing = {};
@@ -224,7 +250,6 @@ var ERPPermissions = {
       ERPPermissions.allScreens.forEach(function(s) {
         var hasPerm = ERPPermissions.actions.some(function(a) { return existing[s.id + '_' + a]; });
         if (hasPerm || defaultScreens.includes(s.id)) {
-            // Check ALL permissions by default if it's a default screen but has no explicit permissions yet
             if(!hasPerm) { 
                 ERPPermissions.actions.forEach(function(act) {
                     existing[s.id + '_' + act] = { granted: true };
@@ -236,11 +261,19 @@ var ERPPermissions = {
         }
       });
 
-      var html = '<div style="margin-bottom:16px;display:flex;gap:12px;align-items:center;">';
-      html += '<select id="add-screen-select" class="form-input" style="max-width:300px"><option value="">— إضافة شاشة جديدة —</option>';
+      var html = '';
+
+      if (isRestricted) {
+        html += '<div style="margin-bottom:16px;background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;padding:12px 16px;border-radius:10px;font-weight:bold;direction:rtl;text-align:right;display:flex;align-items:center;gap:10px;">';
+        html += '<span style="font-size:20px;">🔒</span> <span>تنبيه أمني: حساب HR لا يمتلك صلاحية تعديل أو سحب أو إضافة صلاحيات لحساب المالك (Owner/Admin). تعديل صلاحيات المالك متاح حكراً للمالك فقط.</span>';
+        html += '</div>';
+      }
+
+      html += '<div style="margin-bottom:16px;display:flex;gap:12px;align-items:center;">';
+      html += '<select id="add-screen-select" class="form-input" style="max-width:300px" ' + (isRestricted ? 'disabled' : '') + '><option value="">— إضافة شاشة جديدة —</option>';
       availableScreens.forEach(function(s) { html += '<option value="'+s.id+'">'+s.label+' ('+s.id+')</option>'; });
       html += '</select>';
-      html += '<button class="btn btn-outline" onclick="ERPPermissions.addScreenRow()">➕ إضافة شاشة</button>';
+      html += '<button class="btn btn-outline" onclick="ERPPermissions.addScreenRow()" ' + (isRestricted ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '') + '>➕ إضافة شاشة</button>';
       html += '</div>';
 
       html += '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>الشاشة</th>';
@@ -248,30 +281,52 @@ var ERPPermissions = {
       html += '<th>الكل</th><th>إزالة</th></tr></thead><tbody id="perms-tbody">';
 
       userScreens.forEach(function(s) {
-        html += ERPPermissions._renderRow(s, existing);
+        html += ERPPermissions._renderRow(s, existing, isRestricted);
       });
       html += '</tbody></table></div>';
       html += '<div style="margin-top:20px;display:flex;gap:12px">';
-      html += '<button class="btn btn-primary" onclick="ERPPermissions.saveAll()">💾 حفظ الصلاحيات</button>';
-      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(true)">تحديد الكل</button>';
-      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(false)">إلغاء الكل</button></div>';
+      html += '<button class="btn btn-primary" onclick="ERPPermissions.saveAll()" ' + (isRestricted ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '') + '>💾 حفظ الصلاحيات</button>';
+      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(true)" ' + (isRestricted ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '') + '>تحديد الكل</button>';
+      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(false)" ' + (isRestricted ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '') + '>إلغاء الكل</button></div>';
       el.innerHTML = html;
+
+      // Disable bulk action buttons if restricted
+      document.querySelectorAll('.bulk-btn').forEach(function(btn) {
+        if (isRestricted) {
+          btn.setAttribute('disabled', 'true');
+          btn.style.opacity = '0.5';
+          btn.style.cursor = 'not-allowed';
+        } else {
+          btn.removeAttribute('disabled');
+          btn.style.opacity = '1';
+          btn.style.cursor = 'pointer';
+        }
+      });
     });
   },
 
-  _renderRow: function(s, existing) {
+  _renderRow: function(s, existing, isRestricted) {
+    var disabledAttr = isRestricted ? 'disabled' : '';
     var html = '<tr id="row-'+s.id+'"><td><strong>'+s.label+'</strong><br><small class="text-muted">'+s.id+'</small></td>';
     ERPPermissions.actions.forEach(function(a) {
       var checked = existing && existing[s.id + '_' + a] ? 'checked' : '';
-      html += '<td style="text-align:center"><input type="checkbox" class="perm-cb" data-screen="'+s.id+'" data-action="'+a+'" '+checked+'></td>';
+      html += '<td style="text-align:center"><input type="checkbox" class="perm-cb" data-screen="'+s.id+'" data-action="'+a+'" '+checked+' '+disabledAttr+'></td>';
     });
-    html += '<td style="text-align:center"><input type="checkbox" class="perm-all" data-screen="'+s.id+'" onchange="ERPPermissions.toggleRow(this)"></td>';
-    html += '<td style="text-align:center"><button class="btn btn-xs btn-outline" style="color:red;border-color:red" onclick="ERPPermissions.removeScreenRow(\''+s.id+'\', \''+s.label+'\')">🗑️</button></td></tr>';
+    html += '<td style="text-align:center"><input type="checkbox" class="perm-all" data-screen="'+s.id+'" onchange="ERPPermissions.toggleRow(this)" '+disabledAttr+'></td>';
+    html += '<td style="text-align:center"><button class="btn btn-xs btn-outline" style="color:red;border-color:red" onclick="ERPPermissions.removeScreenRow(\''+s.id+'\', \''+s.label+'\')" '+disabledAttr+'>🗑️</button></td></tr>';
     return html;
   },
 
   addScreenRow: function() {
+    var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
+    var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
+    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
+      showToast('⛔ غير مسموح لـ HR بإضافة شاشات لحساب المالك (Owner)', 'error');
+      return;
+    }
+
     var select = document.getElementById('add-screen-select');
+    if(!select) return;
     var screenId = select.value;
     if(!screenId) return;
     var screenObj = ERPPermissions.allScreens.find(function(s){ return s.id === screenId; });
@@ -281,16 +336,27 @@ var ERPPermissions = {
     var temp = document.createElement('tbody');
     var defaultPerms = {};
     defaultPerms[screenId + '_view'] = true;
-    temp.innerHTML = ERPPermissions._renderRow(screenObj, defaultPerms);
+    temp.innerHTML = ERPPermissions._renderRow(screenObj, defaultPerms, false);
     tbody.appendChild(temp.firstChild);
 
-    // Remove from select
+    // Remove option from dropdown & reset selection
     var option = select.querySelector('option[value="'+screenId+'"]');
     if(option) option.remove();
+    select.value = "";
+    showToast('تمت إضافة شاشة (' + screenObj.label + ') - اضغط 💾 حفظ الصلاحيات لتفعيلها', 'info');
   },
 
   removeScreenRow: function(id, label) {
-    document.getElementById('row-'+id).remove();
+    var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
+    var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
+    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
+      showToast('⛔ غير مسموح لـ HR بحذف شاشات لحساب المالك (Owner)', 'error');
+      return;
+    }
+
+    var row = document.getElementById('row-'+id);
+    if (row) row.remove();
+
     var select = document.getElementById('add-screen-select');
     if(select) {
       var opt = document.createElement('option');
@@ -300,11 +366,22 @@ var ERPPermissions = {
   },
 
   toggleRow: function(cb) {
+    var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
+    var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
+    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) return;
+
     var screen = cb.getAttribute('data-screen');
     document.querySelectorAll('.perm-cb[data-screen="'+screen+'"]').forEach(function(c) { c.checked = cb.checked; });
   },
 
   selectAll: function(val) {
+    var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
+    var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
+    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
+      showToast('⛔ غير مسموح لـ HR بتعديل صلاحيات المالك (Owner)', 'error');
+      return;
+    }
+
     document.querySelectorAll('.perm-cb').forEach(function(c) { c.checked = val; });
     document.querySelectorAll('.perm-all').forEach(function(c) { c.checked = val; });
   },
@@ -313,6 +390,11 @@ var ERPPermissions = {
     var userId = document.getElementById('perm-user').value;
     var role = document.getElementById('perm-role').value;
     if (!userId && !role) { showToast('اختر مستخدم أو Role', 'warning'); return; }
+
+    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
+      showToast('⛔ غير مسموح لـ HR بتعديل أو سحب أو إضافة صلاحيات لم حساب المالك (Owner)', 'error');
+      return;
+    }
 
     // Collect what's currently checked in the UI
     var wantedPerms = {};
@@ -368,7 +450,7 @@ var ERPPermissions = {
       }
 
       if (promises.length === 0) {
-        showToast('لا يوجد تغييرات للحفظ', 'info');
+        showToast('لا يوجد تغييرات جديدة للحفظ', 'info');
         return;
       }
 
@@ -380,17 +462,30 @@ var ERPPermissions = {
           return;
         }
 
-        var msg = '';
-        if (toInsert.length > 0) msg += '✅ تم إضافة ' + toInsert.length + ' صلاحية';
-        if (toDeleteIds.length > 0) msg += (msg ? ' | ' : '') + '❌ تم إزالة ' + toDeleteIds.length + ' صلاحية';
+        var targetUserObj = ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return x.id === userId; }) : null;
+        var targetName = targetUserObj ? targetUserObj.full_name : (role || 'المستخدم');
+
+        var msg = '✅ تم حفظ صلاحيات ' + targetName + ' بنجاح';
+        if (toInsert.length > 0) msg += ' (إضافة ' + toInsert.length + ')';
+        if (toDeleteIds.length > 0) msg += ' (سحب ' + toDeleteIds.length + ')';
         showToast(msg, 'success');
 
         // Audit log
         sbClient.from('audit_log').insert({
           action: 'PERMISSION_CHANGE', user_name: App.user ? App.user.full_name : '',
-          details: 'Permissions for ' + (userId || role) + ': +' + toInsert.length + ' -' + toDeleteIds.length,
+          details: 'Permissions for ' + targetName + ': +' + toInsert.length + ' -' + toDeleteIds.length,
           user_id: App.user ? App.user.id : null
         }).then(function(){});
+
+        // Instant sidebar update if editing active user's permissions
+        if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.loadPermissions) {
+          if ((userId && App.user && App.user.id === userId) || (role && App.user && App.user.role === role)) {
+            SecurityHelpers.loadPermissions();
+          }
+        }
+
+        // Reload permissions table grid
+        ERPPermissions.loadPerms();
       });
     });
   },
