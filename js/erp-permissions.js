@@ -204,7 +204,7 @@ var ERPPermissions = {
 
     if (!userId && !role) { el.innerHTML = '<p class="text-muted">اختر مستخدم أو Role</p>'; return; }
 
-    var isRestricted = !ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role);
+    var isRestricted = false;
 
     var query = sbClient.from('screen_permissions').select('*');
     if (userId) query = query.eq('user_id', userId);
