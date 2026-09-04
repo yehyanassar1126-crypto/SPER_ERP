@@ -1142,8 +1142,14 @@ var App = {
         else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-global-search.js?v=' + Date.now(); s.onload = function() { ERPSupplierPerf.render(); }; document.body.appendChild(s); }
         break;
       case 'screen-permissions': 
-        if (typeof ERPPermissions !== 'undefined') ERPPermissions.render(); 
-        else { el.innerHTML='<div class="loading">Loading...</div>'; var s = document.createElement('script'); s.src = 'js/erp-permissions.js?v=' + Date.now(); s.onload = function() { ERPPermissions.render(); }; document.body.appendChild(s); }
+        el.innerHTML = '<div class="loading">Loading permissions module...</div>';
+        var oldPermScript = document.getElementById('script-erp-permissions');
+        if (oldPermScript) oldPermScript.remove();
+        var sPerm = document.createElement('script');
+        sPerm.id = 'script-erp-permissions';
+        sPerm.src = 'js/erp-permissions.js?v=' + Date.now();
+        sPerm.onload = function() { if (typeof ERPPermissions !== 'undefined') ERPPermissions.render(); };
+        document.body.appendChild(sPerm);
         break;
       case 'production-trace': 
         if (typeof ERPTraceability !== 'undefined') ERPTraceability.renderTrace(); 
