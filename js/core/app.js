@@ -4129,8 +4129,10 @@ Pages.payroll = function (el) {
                 firstActiveDay = 99; // no active days, all fridays unpaid
               } else {
                 attRecords.forEach(function (att) {
-                  var dayNum = parseInt(att.date.split('-')[2], 10);
-                  if (dayNum < firstActiveDay) firstActiveDay = dayNum;
+                  if (att.status !== 'absent' && att.status !== 'leave') {
+                    var dayNum = parseInt(att.date.split('-')[2], 10);
+                    if (dayNum < firstActiveDay) firstActiveDay = dayNum;
+                  }
                 });
                 leaveRecords.forEach(function(lv) {
                   if (lv.start_date >= monthStart && lv.start_date <= monthEnd && lv.status === 'approved') {
@@ -4140,6 +4142,8 @@ Pages.payroll = function (el) {
                 });
               }
 
+              var yy = month.split('-')[0];
+              var mm = month.split('-')[1];
               var fridaysCount = 0;
               var totalFridaysInMonth = 0;
               for (var fDay = 1; fDay <= lastDay; fDay++) {
@@ -4149,13 +4153,13 @@ Pages.payroll = function (el) {
                 }
               }
 
-              var attendedDays = attRecords.length;
+              var attendedDays = attRecords.filter(function(att) {
+                return att.status !== 'absent' && att.status !== 'leave';
+              }).length;
               var paidDaysDisplay = attendedDays + fridaysCount;
 
-              // Use a standard 30-day baseline for salary calculation.
-              // This perfectly prorates new hires and handles 28/31-day months correctly.
               var totalPaidDays = attendedDays + fridaysCount + Math.floor(approvedLeaveDays);
-              var totalMissedDays = Math.max(0, 30 - totalPaidDays);
+              var totalMissedDays = Math.min(30, Math.max(0, lastDay - totalPaidDays));
               var calculatedAbsenceDeductions = Math.round(totalMissedDays * dailyRate);
 
               var earnedSoFar = base; // Start from full 30 days base

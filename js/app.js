@@ -4100,21 +4100,28 @@ Pages.payroll = function (el) {
                         else { for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) { if (d.getDay() !== 5) approvedLeaveDays++; } }
                       });
 
-                      // Fridays
+                      // Fridays and First Active Day
                       var firstActiveDay = lastDay;
                       if (attRecords.length === 0 && approvedLeaveDays === 0) { firstActiveDay = 99; }
                       else {
-                        attRecords.forEach(function(att) { var dn = parseInt(att.date.split('-')[2], 10); if (dn < firstActiveDay) firstActiveDay = dn; });
-                        leaveRecords.forEach(function(lv) { if (lv.start_date >= monthStart && lv.start_date <= monthEnd) { var dn = parseInt(lv.start_date.split('-')[2], 10); if (dn < firstActiveDay) firstActiveDay = dn; } });
+                        attRecords.forEach(function(att) {
+                          if (att.status !== 'absent' && att.status !== 'leave') {
+                            var dn = parseInt(att.date.split('-')[2], 10);
+                            if (dn < firstActiveDay) firstActiveDay = dn;
+                          }
+                        });
+                        leaveRecords.forEach(function(lv) { if (lv.start_date >= monthStart && lv.start_date <= monthEnd && lv.status === 'approved') { var dn = parseInt(lv.start_date.split('-')[2], 10); if (dn < firstActiveDay) firstActiveDay = dn; } });
                       }
                       var fridaysCount = 0;
                       for (var fDay = 1; fDay <= lastDay; fDay++) {
                         if (new Date(Number(yy), Number(mm) - 1, fDay).getDay() === 5) { if (fDay >= firstActiveDay) fridaysCount++; }
                       }
 
-                      var attendedDays = attRecords.length;
+                      var attendedDays = attRecords.filter(function(att) {
+                        return att.status !== 'absent' && att.status !== 'leave';
+                      }).length;
                       var totalPaidDays = attendedDays + fridaysCount + Math.floor(approvedLeaveDays);
-                      var totalMissedDays = Math.max(0, 30 - totalPaidDays);
+                      var totalMissedDays = Math.min(30, Math.max(0, lastDay - totalPaidDays));
                       var absenceDeductions = Math.round(totalMissedDays * dailyRate);
                       var insuranceDeduction = isInsured ? Math.round(insSalary * 0.10) : 0;
 
@@ -4309,8 +4316,10 @@ Pages.payroll = function (el) {
                 firstActiveDay = 99; // no active days, all fridays unpaid
               } else {
                 attRecords.forEach(function (att) {
-                  var dayNum = parseInt(att.date.split('-')[2], 10);
-                  if (dayNum < firstActiveDay) firstActiveDay = dayNum;
+                  if (att.status !== 'absent' && att.status !== 'leave') {
+                    var dayNum = parseInt(att.date.split('-')[2], 10);
+                    if (dayNum < firstActiveDay) firstActiveDay = dayNum;
+                  }
                 });
                 leaveRecords.forEach(function(lv) {
                   if (lv.start_date >= monthStart && lv.start_date <= monthEnd && lv.status === 'approved') {
@@ -4331,13 +4340,13 @@ Pages.payroll = function (el) {
                 }
               }
 
-              var attendedDays = attRecords.length;
+              var attendedDays = attRecords.filter(function(att) {
+                return att.status !== 'absent' && att.status !== 'leave';
+              }).length;
               var paidDaysDisplay = attendedDays + fridaysCount;
 
-              // Use a standard 30-day baseline for salary calculation.
-              // This perfectly prorates new hires and handles 28/31-day months correctly.
               var totalPaidDays = attendedDays + fridaysCount + Math.floor(approvedLeaveDays);
-              var totalMissedDays = Math.max(0, 30 - totalPaidDays);
+              var totalMissedDays = Math.min(30, Math.max(0, lastDay - totalPaidDays));
               var calculatedAbsenceDeductions = Math.round(totalMissedDays * dailyRate);
 
               var earnedSoFar = base; // Start from full 30 days base
