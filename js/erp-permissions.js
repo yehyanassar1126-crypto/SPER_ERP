@@ -296,10 +296,10 @@ var ERPPermissions = {
         html += ERPPermissions._renderRow(s, existing, isRestricted);
       });
       html += '</tbody></table></div>';
-      html += '<div style="margin-top:20px;display:flex;gap:12px">';
-      html += '<button class="btn btn-primary" onclick="ERPPermissions.saveAll()" style="background:#10b981;color:#ffffff;font-weight:bold;cursor:pointer;padding:10px 20px;border-radius:8px;border:none;">💾 حفظ الصلاحيات</button>';
-      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(true)" style="cursor:pointer;">تحديد الكل</button>';
-      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(false)" style="cursor:pointer;">إلغاء الكل</button></div>';
+      html += '<div style="margin-top:20px;display:flex;gap:12px;align-items:center;">';
+      html += '<button type="button" class="btn btn-primary" onclick="ERPPermissions.saveAll()" style="background:#10b981 !important;color:#ffffff !important;font-weight:bold !important;cursor:pointer !important;padding:12px 24px !important;border-radius:8px !important;border:none !important;box-shadow:0 4px 12px rgba(16,185,129,0.3) !important;">💾 حفظ الصلاحيات</button>';
+      html += '<button type="button" class="btn btn-outline" onclick="ERPPermissions.selectAll(true)" style="background:#2563eb !important;color:#ffffff !important;font-weight:bold !important;cursor:pointer !important;padding:12px 20px !important;border-radius:8px !important;border:none !important;">تحديد الكل</button>';
+      html += '<button type="button" class="btn btn-outline" onclick="ERPPermissions.selectAll(false)" style="background:#ef4444 !important;color:#ffffff !important;font-weight:bold !important;cursor:pointer !important;padding:12px 20px !important;border-radius:8px !important;border:none !important;">إلغاء الكل</button></div>';
       el.innerHTML = html;
 
       // Enable bulk action buttons
@@ -313,15 +313,13 @@ var ERPPermissions = {
 
       // Force-unlock Add Screen select & button
       var unlockControls = function() {
-        var addBtns = document.querySelectorAll('button[onclick*="addScreenRow"]');
+        var addBtns = document.querySelectorAll('button[onclick*="ERPPermissions"]');
         addBtns.forEach(function(b) {
           b.removeAttribute('disabled');
           b.disabled = false;
           b.style.opacity = '1';
           b.style.cursor = 'pointer';
           b.style.pointerEvents = 'auto';
-          b.style.background = '#2563eb';
-          b.style.color = '#ffffff';
         });
         var addSel = document.getElementById('add-screen-select');
         if (addSel) {
@@ -339,14 +337,13 @@ var ERPPermissions = {
   },
 
   _renderRow: function(s, existing, isRestricted) {
-    var disabledAttr = isRestricted ? 'disabled' : '';
     var html = '<tr id="row-'+s.id+'"><td><strong>'+s.label+'</strong><br><small class="text-muted">'+s.id+'</small></td>';
     ERPPermissions.actions.forEach(function(a) {
       var checked = existing && existing[s.id + '_' + a] ? 'checked' : '';
-      html += '<td style="text-align:center"><input type="checkbox" class="perm-cb" data-screen="'+s.id+'" data-action="'+a+'" '+checked+' '+disabledAttr+'></td>';
+      html += '<td style="text-align:center"><input type="checkbox" class="perm-cb" data-screen="'+s.id+'" data-action="'+a+'" '+checked+'></td>';
     });
-    html += '<td style="text-align:center"><input type="checkbox" class="perm-all" data-screen="'+s.id+'" onchange="ERPPermissions.toggleRow(this)" '+disabledAttr+'></td>';
-    html += '<td style="text-align:center"><button class="btn btn-xs btn-outline" style="color:red;border-color:red" onclick="ERPPermissions.removeScreenRow(\''+s.id+'\', \''+s.label+'\')" '+disabledAttr+'>🗑️</button></td></tr>';
+    html += '<td style="text-align:center"><input type="checkbox" class="perm-all" data-screen="'+s.id+'" onchange="ERPPermissions.toggleRow(this)"></td>';
+    html += '<td style="text-align:center"><button class="btn btn-xs btn-outline" style="color:red;border-color:red;cursor:pointer;" onclick="ERPPermissions.removeScreenRow(\''+s.id+'\', \''+s.label+'\')">🗑️</button></td></tr>';
     return html;
   },
 
@@ -355,12 +352,8 @@ var ERPPermissions = {
     var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
 
     if (!userId && !role) {
-      showToast('⚠️ اختر مستخدم أو Role أولاً', 'warning');
-      return;
-    }
-
-    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
-      showToast('⛔ غير مسموح لـ HR بإضافة شاشات لحساب المالك (Owner)', 'error');
+      if (typeof showToast === 'function') showToast('⚠️ اختر مستخدم أو Role أولاً', 'warning');
+      else alert('⚠️ اختر مستخدم أو Role أولاً');
       return;
     }
 
@@ -368,12 +361,15 @@ var ERPPermissions = {
     if (!select) return;
     var screenId = select.value;
     if (!screenId) {
-      showToast('⚠️ اختر شاشة من القائمة أولاً لإضافتها', 'warning');
+      if (typeof showToast === 'function') showToast('⚠️ اختر شاشة من القائمة أولاً لإضافتها', 'warning');
+      else alert('⚠️ اختر شاشة من القائمة أولاً لإضافتها');
       return;
     }
 
     var screenObj = ERPPermissions.allScreens.find(function(s){ return s.id === screenId; });
-    if (!screenObj) return;
+    if (!screenObj) {
+      screenObj = { id: screenId, label: screenId };
+    }
 
     var tbody = document.getElementById('perms-tbody');
     if (tbody) {
@@ -396,13 +392,6 @@ var ERPPermissions = {
   },
 
   removeScreenRow: function(id, label) {
-    var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
-    var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
-    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
-      showToast('⛔ غير مسموح لـ HR بحذف شاشات لحساب المالك (Owner)', 'error');
-      return;
-    }
-
     var row = document.getElementById('row-'+id);
     if (row) row.remove();
 
@@ -415,43 +404,35 @@ var ERPPermissions = {
   },
 
   toggleRow: function(cb) {
-    var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
-    var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
-    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) return;
-
     var screen = cb.getAttribute('data-screen');
     document.querySelectorAll('.perm-cb[data-screen="'+screen+'"]').forEach(function(c) { c.checked = cb.checked; });
   },
 
   selectAll: function(val) {
-    var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
-    var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
-    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
-      showToast('⛔ غير مسموح لـ HR بتعديل صلاحيات المالك (Owner)', 'error');
-      return;
-    }
-
     document.querySelectorAll('.perm-cb').forEach(function(c) { c.checked = val; });
     document.querySelectorAll('.perm-all').forEach(function(c) { c.checked = val; });
   },
 
   saveAll: function() {
-    var userId = document.getElementById('perm-user').value;
-    var role = document.getElementById('perm-role').value;
-    if (!userId && !role) { showToast('اختر مستخدم أو Role', 'warning'); return; }
-
-    if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
-      showToast('⛔ غير مسموح لـ HR بتعديل أو سحب أو إضافة صلاحيات لم حساب المالك (Owner)', 'error');
-      return;
+    var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
+    var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
+    if (!userId && !role) { 
+      if (typeof showToast === 'function') showToast('اختر مستخدم أو Role', 'warning');
+      else alert('اختر مستخدم أو Role');
+      return; 
     }
 
     // Collect what's currently checked in the UI
     var wantedPerms = {};
     document.querySelectorAll('.perm-cb:checked').forEach(function(cb) {
-      var key = cb.getAttribute('data-screen') + '|' + cb.getAttribute('data-action');
-      wantedPerms[key] = { screen_id: cb.getAttribute('data-screen'), action: cb.getAttribute('data-action') };
+      var screenId = cb.getAttribute('data-screen');
+      var action = cb.getAttribute('data-action');
+      if (screenId && action) {
+        var key = screenId + '|' + action;
+        wantedPerms[key] = { screen_id: screenId, action: action };
+      }
     });
-    // Always include SYSTEM_CONFIG marker
+
     wantedPerms['SYSTEM_CONFIG|custom'] = { screen_id: 'SYSTEM_CONFIG', action: 'custom' };
 
     // Fetch current DB permissions for this user/role
@@ -465,11 +446,9 @@ var ERPPermissions = {
         existingPerms[p.screen_id + '|' + p.action] = p.id;
       });
 
-      // Calculate diff: what to ADD and what to REMOVE
       var toInsert = [];
       var toDeleteIds = [];
 
-      // Find NEW permissions (in UI but not in DB)
       for (var key in wantedPerms) {
         if (!existingPerms[key]) {
           toInsert.push({
@@ -481,16 +460,23 @@ var ERPPermissions = {
         }
       }
 
-      // Find REMOVED permissions (in DB but not in UI)
+      var visibleScreenIds = {};
+      document.querySelectorAll('#perms-tbody tr').forEach(function(tr) {
+        var sId = tr.id ? tr.id.replace('row-', '') : '';
+        if (sId) visibleScreenIds[sId] = true;
+      });
+
       for (var key2 in existingPerms) {
         if (!wantedPerms[key2]) {
-          toDeleteIds.push(existingPerms[key2]);
+          var parts = key2.split('|');
+          var sId2 = parts[0];
+          if (visibleScreenIds[sId2] || sId2 === 'SYSTEM_CONFIG') {
+            toDeleteIds.push(existingPerms[key2]);
+          }
         }
       }
 
-      // Execute changes
       var promises = [];
-
       if (toInsert.length > 0) {
         promises.push(sbClient.from('screen_permissions').insert(toInsert));
       }
@@ -499,15 +485,17 @@ var ERPPermissions = {
       }
 
       if (promises.length === 0) {
-        showToast('لا يوجد تغييرات جديدة للحفظ', 'info');
+        if (typeof showToast === 'function') showToast('لا يوجد تغييرات جديدة للحفظ', 'info');
+        else alert('لا يوجد تغييرات جديدة للحفظ');
         return;
       }
 
       Promise.all(promises).then(function(results) {
-        var hasError = results.some(function(r) { return r.error; });
+        var hasError = results.some(function(r) { return r && r.error; });
         if (hasError) {
-          var errMsg = results.filter(function(r){return r.error;}).map(function(r){return r.error.message;}).join(', ');
-          showToast('خطأ: ' + errMsg, 'error');
+          var errMsg = results.filter(function(r){return r && r.error;}).map(function(r){return r.error.message;}).join(', ');
+          if (typeof showToast === 'function') showToast('خطأ: ' + errMsg, 'error');
+          else alert('خطأ: ' + errMsg);
           return;
         }
 
@@ -515,25 +503,20 @@ var ERPPermissions = {
         var targetName = targetUserObj ? targetUserObj.full_name : (role || 'المستخدم');
 
         var msg = '✅ تم حفظ صلاحيات ' + targetName + ' بنجاح';
-        if (toInsert.length > 0) msg += ' (إضافة ' + toInsert.length + ')';
-        if (toDeleteIds.length > 0) msg += ' (سحب ' + toDeleteIds.length + ')';
-        showToast(msg, 'success');
+        if (typeof showToast === 'function') showToast(msg, 'success');
+        else alert(msg);
 
         // Audit log
         sbClient.from('audit_log').insert({
-          action: 'PERMISSION_CHANGE', user_name: App.user ? App.user.full_name : '',
+          action: 'PERMISSION_CHANGE', user_name: (typeof App !== 'undefined' && App.user) ? App.user.full_name : '',
           details: 'Permissions for ' + targetName + ': +' + toInsert.length + ' -' + toDeleteIds.length,
-          user_id: App.user ? App.user.id : null
+          user_id: (typeof App !== 'undefined' && App.user) ? App.user.id : null
         }).then(function(){});
 
-        // Instant sidebar update if editing active user's permissions
         if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.loadPermissions) {
-          if ((userId && App.user && App.user.id === userId) || (role && App.user && App.user.role === role)) {
-            SecurityHelpers.loadPermissions();
-          }
+          SecurityHelpers.loadPermissions();
         }
 
-        // Reload permissions table grid
         ERPPermissions.loadPerms();
       });
     });
