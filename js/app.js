@@ -4178,6 +4178,8 @@ Pages.payroll = function (el) {
                 });
               }
 
+              var yy = month.split('-')[0];
+              var mm = month.split('-')[1];
               var fridaysCount = 0;
               var totalFridaysInMonth = 0;
               for (var fDay = 1; fDay <= lastDay; fDay++) {
