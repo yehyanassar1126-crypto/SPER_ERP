@@ -3978,72 +3978,214 @@ Pages.payroll = function (el) {
             App.showModal('Auto-Calculate Salary', b, modalButtons, true);
             
             window.generateAllPayrolls = async function() {
-                var sel = document.getElementById('pf-emp');
-                var originalPrompt = window.prompt;
+                var selMonth = document.getElementById('pf-m').value;
+                if (!selMonth) { alert('اختر الشهر أولاً'); return; }
+
+                var allUsers = window._payrollUsersCache || [];
                 
-                var optionsToGenerate = [];
-                for(var i=1; i<sel.options.length; i++) {
-                    if(!sel.options[i].text.includes('✅')) {
-                        optionsToGenerate.push(i);
-                    }
-                }
+                // Get already-generated payrolls for this month
+                var pRes = await sbClient.from('payroll').select('employee_id').eq('month', selMonth);
+                var generatedIds = (pRes.data || []).map(function(x) { return x.employee_id; });
+                
+                var usersToProcess = allUsers.filter(function(u) {
+                    return generatedIds.indexOf(u.id) === -1;
+                });
 
-                if(optionsToGenerate.length === 0) {
-                    alert("جميع الموظفين تم إصدار رواتبهم لهذا الشهر بنجاح!");
+                if (usersToProcess.length === 0) {
+                    alert("جميع الموظفين تم إصدار رواتبهم لهذا الشهر بنجاح! ✅");
                     return;
                 }
 
-                if(!confirm("سيتم إصدار رواتب لـ " + optionsToGenerate.length + " موظف متبقي تلقائياً. هل أنت متأكد؟")) {
+                if (!confirm("سيتم إصدار رواتب لـ " + usersToProcess.length + " موظف متبقي تلقائياً.\nالشهر: " + selMonth + "\n\nهل أنت متأكد؟")) {
                     return;
                 }
 
-                var userOtp = originalPrompt('أدخل رمز OTP للموافقة على إصدار رواتب الجميع (1234):');
+                var userOtp = prompt('🔐 أدخل رمز OTP للموافقة على إصدار رواتب الجميع (1234):');
                 if (userOtp !== '1234') {
                     showToast('تم إلغاء العملية: رمز OTP غير صحيح', 'danger');
                     return;
                 }
-                window.prompt = function() { return '1234'; }; // Bypass OTP for batch processing
-                
-                // CRITICAL FIX: Prevent modal from closing after each save
-                var originalCloseModal = App.closeModal;
-                App.closeModal = function() {};
 
                 var resultDiv = document.getElementById('pf-calc-result');
-                var oldText = "";
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = '<h4 style="font-weight:700;margin-bottom:12px">⚡ جاري إصدار رواتب الجميع...</h4>';
 
-                for(var idx of optionsToGenerate) {
-                    sel.selectedIndex = idx;
-                    resultDiv.style.display = 'block';
-                    
-                    document.getElementById('pf-calc').click();
-                    
-                    // Wait for calculate to finish (save button becomes enabled)
-                    await new Promise(resolve => {
-                        var checkInt = setInterval(function() {
-                            if(!document.getElementById('pf-save').disabled) {
-                                clearInterval(checkInt);
-                                resolve();
-                            }
-                        }, 100);
-                    });
+                var yy = selMonth.split('-')[0];
+                var mm = selMonth.split('-')[1];
+                var monthStart = selMonth + '-01';
+                var lastDay = new Date(Number(yy), Number(mm), 0).getDate();
+                var monthEnd = selMonth + '-' + lastDay;
 
-                    // Update UI to show progress
-                    resultDiv.innerHTML += '<p style="text-align:center;color:var(--accent-success)">✅ ' + sel.options[idx].text + ' processed.</p>';
+                var allPayrollData = []; // Collect for Excel export
+                var successCount = 0;
+                var errorCount = 0;
 
-                    // Click save
-                    document.getElementById('pf-save').click();
-                    
-                    // Wait for db insert
-                    await new Promise(r => setTimeout(r, 1000)); 
+                for (var ui = 0; ui < usersToProcess.length; ui++) {
+                    var u = usersToProcess[ui];
+                    var empName = u.full_name;
+                    var base = Number(u.base_salary) || 0;
+                    var empDept = u.department || '';
+                    var isInsured = !!u.insurance_active;
+                    var insSalary = Number(u.insurance_salary) || 0;
+
+                    resultDiv.innerHTML = '<h4 style="font-weight:700;margin-bottom:12px">⚡ جاري إصدار رواتب الجميع... (' + (ui + 1) + '/' + usersToProcess.length + ')</h4>' +
+                      '<p style="color:var(--accent-info)">📊 جاري حساب: ' + empName + ' - ' + empDept + '</p>' +
+                      '<div style="background:var(--bg-secondary);border-radius:8px;height:20px;overflow:hidden;margin-top:8px"><div style="width:' + Math.round(((ui+1)/usersToProcess.length)*100) + '%;height:100%;background:linear-gradient(90deg,#6366f1,#22c55e);transition:width 0.3s;border-radius:8px"></div></div>';
+
+                    try {
+                      var results = await Promise.all([
+                        sbClient.from('attendance').select('date, status, delay_minutes, delay_excused').eq('employee_id', u.id).gte('date', monthStart).lte('date', monthEnd),
+                        sbClient.from('overtime').select('date, hours, rate').eq('employee_id', u.id).eq('status', 'approved').gte('date', monthStart).lte('date', monthEnd),
+                        sbClient.from('salary_adjustments').select('type, amount').eq('employee_id', u.id).eq('month', selMonth).eq('status', 'approved'),
+                        sbClient.from('leave_requests').select('start_date, end_date, days, status').eq('employee_id', u.id).eq('status', 'approved'),
+                        sbClient.from('medical_requests').select('amount, created_at').eq('employee_id', u.id).eq('status', 'approved'),
+                        sbClient.from('loans').select('id, amount, monthly_deduction, remaining_amount, deferred_months').eq('employee_id', u.id).eq('status', 'approved').gt('remaining_amount', 0)
+                      ]);
+
+                      var attRecords = results[0].data || [];
+                      var otRecords = results[1].data || [];
+                      var adjRecords = results[2].data || [];
+                      var leaveRecords = results[3].data || [];
+                      var medicalRecords = (results[4].data || []).filter(function(m) { return m.created_at && m.created_at.substring(0, 7) === selMonth; });
+                      var loanRecords = results[5].data || [];
+
+                      var dailyRate = Math.round(base / 30);
+                      var hourlyRate = dailyRate / 8;
+
+                      // Overtime
+                      var totalOTPay = 0;
+                      otRecords.forEach(function(ot) { totalOTPay += hourlyRate * (ot.hours || 0) * (ot.rate || 1.5); });
+                      totalOTPay = Math.round(totalOTPay);
+
+                      // Adjustments
+                      var totalBonuses = 0, totalPenalties = 0;
+                      adjRecords.forEach(function(adj) {
+                        if (adj.type === 'bonus') totalBonuses += (adj.amount || 0);
+                        else totalPenalties += (adj.amount || 0);
+                      });
+
+                      // Medical
+                      var totalMedical = 0;
+                      medicalRecords.forEach(function(m) { totalMedical += (m.amount || 0); });
+
+                      // Loans
+                      var totalLoanDeduction = 0;
+                      loanRecords.forEach(function(loan) {
+                        var deferred = loan.deferred_months || [];
+                        if (deferred.indexOf(selMonth) === -1) {
+                          totalLoanDeduction += Math.min(loan.monthly_deduction, loan.remaining_amount);
+                        }
+                      });
+
+                      // Late deductions
+                      var totalLateDeduction = 0;
+                      attRecords.forEach(function(att) {
+                        if (att.status === 'leave') return;
+                        var dm = att.delay_minutes || 0;
+                        var lateDed = 0;
+                        if (!att.delay_excused) {
+                          if (dm >= 240) lateDed = dailyRate * 1;
+                          else if (dm > 120) lateDed = dailyRate * 0.5;
+                          else if (dm > 15) lateDed = dailyRate * 0.25;
+                        }
+                        totalLateDeduction += Math.round(lateDed);
+                      });
+
+                      // Approved leave days
+                      var approvedLeaveDays = 0;
+                      leaveRecords.forEach(function(lv) {
+                        var s = new Date(lv.start_date > monthStart ? lv.start_date : monthStart);
+                        var e = new Date(lv.end_date < monthEnd ? lv.end_date : monthEnd);
+                        if (Number(lv.days) === 0.5) { approvedLeaveDays += 0.5; }
+                        else { for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) { if (d.getDay() !== 5) approvedLeaveDays++; } }
+                      });
+
+                      // Fridays
+                      var firstActiveDay = lastDay;
+                      if (attRecords.length === 0 && approvedLeaveDays === 0) { firstActiveDay = 99; }
+                      else {
+                        attRecords.forEach(function(att) { var dn = parseInt(att.date.split('-')[2], 10); if (dn < firstActiveDay) firstActiveDay = dn; });
+                        leaveRecords.forEach(function(lv) { if (lv.start_date >= monthStart && lv.start_date <= monthEnd) { var dn = parseInt(lv.start_date.split('-')[2], 10); if (dn < firstActiveDay) firstActiveDay = dn; } });
+                      }
+                      var fridaysCount = 0;
+                      for (var fDay = 1; fDay <= lastDay; fDay++) {
+                        if (new Date(Number(yy), Number(mm) - 1, fDay).getDay() === 5) { if (fDay >= firstActiveDay) fridaysCount++; }
+                      }
+
+                      var attendedDays = attRecords.length;
+                      var totalPaidDays = attendedDays + fridaysCount + Math.floor(approvedLeaveDays);
+                      var totalMissedDays = Math.max(0, 30 - totalPaidDays);
+                      var absenceDeductions = Math.round(totalMissedDays * dailyRate);
+                      var insuranceDeduction = isInsured ? Math.round(insSalary * 0.10) : 0;
+
+                      var totalEarnings = base + totalOTPay + totalBonuses + totalMedical;
+                      var totalDeductions = totalPenalties + totalLateDeduction + absenceDeductions + insuranceDeduction + totalLoanDeduction;
+                      var net = Math.max(0, totalEarnings - totalDeductions);
+
+                      var payrollRecord = {
+                        employee_id: u.id, employee_name: empName, department: empDept,
+                        month: selMonth, base_salary: base,
+                        overtime_pay: totalOTPay, bonuses: totalBonuses + totalMedical,
+                        performance_bonus: 0, penalties: totalPenalties,
+                        late_deductions: totalLateDeduction, absence_deductions: absenceDeductions,
+                        insurance_deduction: insuranceDeduction, loan_deduction: totalLoanDeduction,
+                        net_salary: net, status: 'processing'
+                      };
+
+                      var saveRes = await sbClient.from('payroll').upsert([payrollRecord], { onConflict: 'employee_id, month' });
+                      if (saveRes.error) {
+                        console.error('Payroll save error for ' + empName + ':', saveRes.error);
+                        errorCount++;
+                      } else {
+                        successCount++;
+                        // Collect for Excel
+                        allPayrollData.push({
+                          'الاسم': empName,
+                          'القسم': empDept,
+                          'الشهر': selMonth,
+                          'الراتب الأساسي': base,
+                          'أيام الحضور': attendedDays,
+                          'الجمع المدفوعة': fridaysCount,
+                          'الإجازات': approvedLeaveDays,
+                          'أيام الغياب': totalMissedDays,
+                          'العمل الإضافي': totalOTPay,
+                          'المكافآت': totalBonuses,
+                          'البدل الطبي': totalMedical,
+                          'خصم التأخير': totalLateDeduction,
+                          'خصم الغياب': absenceDeductions,
+                          'خصم التأمين': insuranceDeduction,
+                          'خصم القروض': totalLoanDeduction,
+                          'إجمالي الجزاءات': totalPenalties,
+                          'صافي الراتب': net
+                        });
+                      }
+
+                    } catch (err) {
+                      console.error('Error processing ' + empName + ':', err);
+                      errorCount++;
+                    }
                 }
 
-                window.prompt = originalPrompt;
-                App.closeModal = originalCloseModal;
-                App.closeModal(); // Close the modal once the batch is fully complete
-                showToast("تم إصدار جميع الرواتب بنجاح!", "success");
-                
-                // Force a page reload to refresh the main payroll table
-                setTimeout(function(){ App.navigate('payroll'); }, 1000);
+                // Show final result
+                var summaryHtml = '<h4 style="font-weight:700;margin-bottom:16px;color:var(--accent-success)">✅ تم إصدار رواتب الجميع!</h4>';
+                summaryHtml += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">';
+                summaryHtml += '<div style="text-align:center;padding:12px;background:rgba(34,197,94,0.1);border-radius:8px"><div style="font-size:1.5rem;font-weight:800;color:var(--accent-success)">' + successCount + '</div><div style="font-size:0.8rem;color:var(--text-muted)">نجح</div></div>';
+                summaryHtml += '<div style="text-align:center;padding:12px;background:rgba(239,68,68,0.1);border-radius:8px"><div style="font-size:1.5rem;font-weight:800;color:var(--accent-danger)">' + errorCount + '</div><div style="font-size:0.8rem;color:var(--text-muted)">فشل</div></div>';
+                summaryHtml += '<div style="text-align:center;padding:12px;background:rgba(99,102,241,0.1);border-radius:8px"><div style="font-size:1.5rem;font-weight:800;color:var(--accent-primary)">' + allPayrollData.reduce(function(s,r){ return s + r['صافي الراتب']; }, 0).toLocaleString() + '</div><div style="font-size:0.8rem;color:var(--text-muted)">إجمالي EGP</div></div>';
+                summaryHtml += '</div>';
+                summaryHtml += '<button class="btn btn-success" id="batch-export-excel" style="width:100%;padding:12px;font-size:1rem;font-weight:700">📥 تصدير كشف الرواتب Excel</button>';
+                resultDiv.innerHTML = summaryHtml;
+
+                // Excel export button
+                document.getElementById('batch-export-excel').addEventListener('click', function() {
+                    exportToExcel(allPayrollData, 'كشف_رواتب_' + selMonth);
+                    showToast('✅ تم تحميل كشف الرواتب بنجاح', 'success');
+                });
+
+                // Store data globally for re-export
+                window._lastBatchPayroll = allPayrollData;
+
+                showToast("✅ تم إصدار " + successCount + " راتب بنجاح!", "success");
             };
 
             
