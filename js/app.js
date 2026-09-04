@@ -4191,8 +4191,8 @@ Pages.payroll = function (el) {
             
             window.updatePayrollDropdown = function() {
               var selMonth = document.getElementById('pf-m').value;
-              sbClient.from('payroll').select('user_id').eq('month', selMonth).then(function(pRes) {
-                var generatedIds = (pRes.data || []).map(x => x.user_id);
+              sbClient.from('payroll').select('employee_id').eq('month', selMonth).then(function(pRes) {
+                var generatedIds = (pRes.data || []).map(function(x) { return x.employee_id; });
                 var sel = document.getElementById('pf-emp');
                 var prevVal = sel.value;
                 var opts = '<option value="">-- Select --</option>';
