@@ -255,15 +255,19 @@ var ERPPermissions = {
 
       if (isRestricted) {
         html += '<div style="margin-bottom:16px;background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;padding:12px 16px;border-radius:10px;font-weight:bold;direction:rtl;text-align:right;display:flex;align-items:center;gap:10px;">';
-        html += '<span style="font-size:20px;">🔒</span> <span>تنبيه أمني: حساب HR لا يمتلك صلاحية تعديل أو سحب أو إضافة صلاحيات لحساب المالك (Owner/Admin). تعديل صلاحيات المالك متاح حكراً للمالك فقط.</span>';
+        html += '<span style="font-size:20px;">🔒</span> <span>تنبيه أمني: حساب HR لا يمتلك صلاحية تعديل أو سحب أو إضافة صلاحيات لحساب المالك (Owner). تعديل صلاحيات المالك متاح حكراً للمالك فقط.</span>';
         html += '</div>';
       }
 
+      var btnStyle = isRestricted 
+        ? 'background:#64748b;color:#cbd5e1;font-weight:bold;cursor:not-allowed;opacity:0.5;padding:8px 18px;border-radius:8px;border:none;'
+        : 'background:#2563eb;color:#ffffff;font-weight:bold;cursor:pointer;padding:8px 18px;border-radius:8px;border:none;box-shadow:0 2px 8px rgba(37,99,235,0.4);';
+
       html += '<div style="margin-bottom:16px;display:flex;gap:12px;align-items:center;">';
-      html += '<select id="add-screen-select" class="form-input" style="max-width:300px" ' + (isRestricted ? 'disabled' : '') + '><option value="">— إضافة شاشة جديدة —</option>';
+      html += '<select id="add-screen-select" class="form-input" style="max-width:320px" ' + (isRestricted ? 'disabled' : '') + '><option value="">— إضافة شاشة جديدة —</option>';
       availableScreens.forEach(function(s) { html += '<option value="'+s.id+'">'+s.label+' ('+s.id+')</option>'; });
       html += '</select>';
-      html += '<button class="btn btn-outline" onclick="ERPPermissions.addScreenRow()" ' + (isRestricted ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '') + '>➕ إضافة شاشة</button>';
+      html += '<button type="button" class="btn btn-primary" onclick="ERPPermissions.addScreenRow()" style="' + btnStyle + '" ' + (isRestricted ? 'disabled' : '') + '>➕ إضافة الشاشة</button>';
       html += '</div>';
 
       html += '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>الشاشة</th>';
@@ -310,30 +314,46 @@ var ERPPermissions = {
   addScreenRow: function() {
     var userId = document.getElementById('perm-user') ? document.getElementById('perm-user').value : '';
     var role = document.getElementById('perm-role') ? document.getElementById('perm-role').value : '';
+
+    if (!userId && !role) {
+      showToast('⚠️ اختر مستخدم أو Role أولاً', 'warning');
+      return;
+    }
+
     if (!ERPPermissions.isCurrentUserOwner() && ERPPermissions.isTargetOwner(userId, role)) {
       showToast('⛔ غير مسموح لـ HR بإضافة شاشات لحساب المالك (Owner)', 'error');
       return;
     }
 
     var select = document.getElementById('add-screen-select');
-    if(!select) return;
+    if (!select) return;
     var screenId = select.value;
-    if(!screenId) return;
+    if (!screenId) {
+      showToast('⚠️ اختر شاشة من القائمة أولاً لإضافتها', 'warning');
+      return;
+    }
+
     var screenObj = ERPPermissions.allScreens.find(function(s){ return s.id === screenId; });
-    if(!screenObj) return;
+    if (!screenObj) return;
 
     var tbody = document.getElementById('perms-tbody');
-    var temp = document.createElement('tbody');
-    var defaultPerms = {};
-    defaultPerms[screenId + '_view'] = true;
-    temp.innerHTML = ERPPermissions._renderRow(screenObj, defaultPerms, false);
-    tbody.appendChild(temp.firstChild);
+    if (tbody) {
+      var temp = document.createElement('tbody');
+      var defaultPerms = {};
+      ERPPermissions.actions.forEach(function(act) {
+        defaultPerms[screenId + '_' + act] = { granted: true };
+      });
+      temp.innerHTML = ERPPermissions._renderRow(screenObj, defaultPerms, false);
+      tbody.insertBefore(temp.firstChild, tbody.firstChild);
+    }
 
     // Remove option from dropdown & reset selection
     var option = select.querySelector('option[value="'+screenId+'"]');
-    if(option) option.remove();
+    if (option) option.remove();
     select.value = "";
-    showToast('تمت إضافة شاشة (' + screenObj.label + ') - اضغط 💾 حفظ الصلاحيات لتفعيلها', 'info');
+
+    // Auto-save permissions immediately to Supabase
+    ERPPermissions.saveAll();
   },
 
   removeScreenRow: function(id, label) {
