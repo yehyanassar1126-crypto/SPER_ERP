@@ -128,23 +128,25 @@ var ERPPermissions = {
   actions: ['view','create','edit','delete','approve','reject','export','print'],
 
   isCurrentUserOwner: function() {
+    if (typeof App !== 'undefined' && typeof App.isOwner === 'function') {
+      return App.isOwner();
+    }
     if (typeof App === 'undefined' || !App.user) return false;
     var r = (App.user.role || '').toLowerCase();
-    var d = (App.user.department || '').toLowerCase();
-    return r === 'owner' || r === 'admin' || r === 'system admin' || d === 'owner';
+    return r === 'owner';
   },
 
   isTargetOwner: function(userId, role) {
-    if (role) {
-      var tr = role.toLowerCase();
-      if (tr === 'owner' || tr === 'admin' || tr === 'system admin') return true;
-    }
-    if (userId && ERPPermissions.allUsers) {
-      var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
-      if (u) {
-        var ur = (u.role || '').toLowerCase();
-        var ud = (u.department || '').toLowerCase();
-        if (ur === 'owner' || ur === 'admin' || ur === 'system admin' || ud === 'owner') return true;
+    if (role && role.toLowerCase() === 'owner') return true;
+    if (userId) {
+      if (ERPPermissions.allUsers) {
+        var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
+        if (u && u.role && u.role.toLowerCase() === 'owner') return true;
+      }
+      var sel = document.getElementById('perm-user');
+      if (sel && sel.selectedOptions && sel.selectedOptions[0]) {
+        var optRole = sel.selectedOptions[0].getAttribute('data-role') || '';
+        if (optRole.toLowerCase() === 'owner') return true;
       }
     }
     return false;
@@ -179,6 +181,7 @@ var ERPPermissions = {
       ERPPermissions.allUsers = r.data || [];
       ERPPermissions.allUsers.forEach(function(u) {
         var opt = document.createElement('option'); opt.value = u.id;
+        opt.setAttribute('data-role', u.role || '');
         opt.textContent = u.full_name + ' (' + u.role + ')'; 
         sel.appendChild(opt);
       });
