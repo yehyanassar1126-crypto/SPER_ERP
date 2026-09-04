@@ -302,18 +302,39 @@ var ERPPermissions = {
       html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(false)" style="cursor:pointer;">إلغاء الكل</button></div>';
       el.innerHTML = html;
 
-      // Disable bulk action buttons if restricted
+      // Enable bulk action buttons
       document.querySelectorAll('.bulk-btn').forEach(function(btn) {
-        if (isRestricted) {
-          btn.setAttribute('disabled', 'true');
-          btn.style.opacity = '0.5';
-          btn.style.cursor = 'not-allowed';
-        } else {
-          btn.removeAttribute('disabled');
-          btn.style.opacity = '1';
-          btn.style.cursor = 'pointer';
-        }
+        btn.removeAttribute('disabled');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.style.pointerEvents = 'auto';
       });
+
+      // Force-unlock Add Screen select & button
+      var unlockControls = function() {
+        var addBtns = document.querySelectorAll('button[onclick*="addScreenRow"]');
+        addBtns.forEach(function(b) {
+          b.removeAttribute('disabled');
+          b.disabled = false;
+          b.style.opacity = '1';
+          b.style.cursor = 'pointer';
+          b.style.pointerEvents = 'auto';
+          b.style.background = '#2563eb';
+          b.style.color = '#ffffff';
+        });
+        var addSel = document.getElementById('add-screen-select');
+        if (addSel) {
+          addSel.removeAttribute('disabled');
+          addSel.disabled = false;
+          addSel.style.opacity = '1';
+          addSel.style.cursor = 'pointer';
+          addSel.style.pointerEvents = 'auto';
+        }
+      };
+      unlockControls();
+      setTimeout(unlockControls, 100);
+      setTimeout(unlockControls, 500);
     });
   },
 
@@ -691,4 +712,29 @@ var ERPTraceability = {
   }
 };
 
-if (typeof window !== 'undefined') { window.ERPPermissions = ERPPermissions; window.ERPTraceability = ERPTraceability; }
+if (typeof window !== 'undefined') { 
+  window.ERPPermissions = ERPPermissions; 
+  window.ERPTraceability = ERPTraceability; 
+
+  setInterval(function() {
+    var btns = document.querySelectorAll('button[onclick*="addScreenRow"]');
+    btns.forEach(function(b) {
+      if (b.hasAttribute('disabled') || b.disabled || b.style.opacity === '0.5' || b.style.pointerEvents === 'none') {
+        b.removeAttribute('disabled');
+        b.disabled = false;
+        b.style.opacity = '1';
+        b.style.cursor = 'pointer';
+        b.style.pointerEvents = 'auto';
+        b.style.background = '#2563eb';
+        b.style.color = '#ffffff';
+      }
+    });
+    var sel = document.getElementById('add-screen-select');
+    if (sel && (sel.hasAttribute('disabled') || sel.disabled)) {
+      sel.removeAttribute('disabled');
+      sel.disabled = false;
+      sel.style.opacity = '1';
+      sel.style.pointerEvents = 'auto';
+    }
+  }, 200);
+}
