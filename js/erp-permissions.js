@@ -281,15 +281,11 @@ var ERPPermissions = {
         html += '</div>';
       }
 
-      var btnStyle = isRestricted 
-        ? 'background:#64748b;color:#cbd5e1;font-weight:bold;cursor:not-allowed;opacity:0.5;padding:8px 18px;border-radius:8px;border:none;'
-        : 'background:#2563eb;color:#ffffff;font-weight:bold;cursor:pointer;padding:8px 18px;border-radius:8px;border:none;box-shadow:0 2px 8px rgba(37,99,235,0.4);';
-
       html += '<div style="margin-bottom:16px;display:flex;gap:12px;align-items:center;">';
-      html += '<select id="add-screen-select" class="form-input" style="max-width:320px" ' + (isRestricted ? 'disabled' : '') + '><option value="">— إضافة شاشة جديدة —</option>';
+      html += '<select id="add-screen-select" class="form-input" style="max-width:320px"><option value="">— إضافة شاشة جديدة —</option>';
       availableScreens.forEach(function(s) { html += '<option value="'+s.id+'">'+s.label+' ('+s.id+')</option>'; });
       html += '</select>';
-      html += '<button type="button" class="btn btn-primary" onclick="ERPPermissions.addScreenRow()" style="' + btnStyle + '" ' + (isRestricted ? 'disabled' : '') + '>➕ إضافة الشاشة</button>';
+      html += '<button type="button" class="btn btn-primary" onclick="ERPPermissions.addScreenRow()" style="background:#2563eb;color:#ffffff;font-weight:bold;cursor:pointer;padding:8px 18px;border-radius:8px;border:none;box-shadow:0 2px 8px rgba(37,99,235,0.4);">➕ إضافة الشاشة</button>';
       html += '</div>';
 
       html += '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>الشاشة</th>';
@@ -301,9 +297,9 @@ var ERPPermissions = {
       });
       html += '</tbody></table></div>';
       html += '<div style="margin-top:20px;display:flex;gap:12px">';
-      html += '<button class="btn btn-primary" onclick="ERPPermissions.saveAll()" ' + (isRestricted ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '') + '>💾 حفظ الصلاحيات</button>';
-      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(true)" ' + (isRestricted ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '') + '>تحديد الكل</button>';
-      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(false)" ' + (isRestricted ? 'disabled style="opacity:0.5;cursor:not-allowed"' : '') + '>إلغاء الكل</button></div>';
+      html += '<button class="btn btn-primary" onclick="ERPPermissions.saveAll()" style="background:#10b981;color:#ffffff;font-weight:bold;cursor:pointer;padding:10px 20px;border-radius:8px;border:none;">💾 حفظ الصلاحيات</button>';
+      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(true)" style="cursor:pointer;">تحديد الكل</button>';
+      html += '<button class="btn btn-outline" onclick="ERPPermissions.selectAll(false)" style="cursor:pointer;">إلغاء الكل</button></div>';
       el.innerHTML = html;
 
       // Disable bulk action buttons if restricted
