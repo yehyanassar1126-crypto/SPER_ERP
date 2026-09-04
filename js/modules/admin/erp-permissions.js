@@ -124,17 +124,26 @@ var ERPPermissions = {
   },
 
   isTargetOwner: function(userId, role) {
-    if (role && role.toLowerCase() === 'owner') return true;
     if (userId) {
-      if (ERPPermissions.allUsers) {
+      if (ERPPermissions.allUsers && ERPPermissions.allUsers.length > 0) {
         var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
-        if (u && u.role && u.role.toLowerCase() === 'owner') return true;
+        if (u) {
+          var ur = (u.role || '').trim().toLowerCase();
+          return ur === 'owner';
+        }
       }
       var sel = document.getElementById('perm-user');
-      if (sel && sel.selectedOptions && sel.selectedOptions[0]) {
-        var optRole = sel.selectedOptions[0].getAttribute('data-role') || '';
-        if (optRole.toLowerCase() === 'owner') return true;
+      if (sel && sel.selectedIndex > 0) {
+        var opt = sel.options[sel.selectedIndex];
+        if (opt) {
+          var optRole = (opt.getAttribute('data-role') || '').trim().toLowerCase();
+          return optRole === 'owner';
+        }
       }
+      return false;
+    }
+    if (role && role.trim().toLowerCase() === 'owner') {
+      return true;
     }
     return false;
   },
