@@ -251,6 +251,11 @@ window.PermissionGuard = {
    * Enhanced version of SecurityHelpers.applyPermissionsUI
    */
   enforceActionPermissions: function(screenId) {
+    if (PermissionGuard._domObserver) {
+      PermissionGuard._domObserver.disconnect();
+      PermissionGuard._domObserver = null;
+    }
+
     if (!App.user || (App.user.role && App.user.role.toLowerCase() === 'owner')) return;
     // Don't enforce action permissions on the permissions management page itself
     if (screenId === 'screen-permissions') return;
@@ -288,7 +293,6 @@ window.PermissionGuard = {
 
     // Watch for dynamic DOM changes
     var contentEl = document.getElementById('page-content') || document.body;
-    if (PermissionGuard._domObserver) PermissionGuard._domObserver.disconnect();
     PermissionGuard._domObserver = new MutationObserver(function(mutations) {
       var hasNew = false;
       mutations.forEach(function(m) { if (m.addedNodes.length > 0) hasNew = true; });

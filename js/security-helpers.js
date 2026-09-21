@@ -189,9 +189,14 @@ window.SecurityHelpers = {
   },
 
   _permObserver: null,
+  _uiObserver: null,
 
   // Apply permission restrictions to the current screen's buttons automatically
   applyPermissionsUI: function(currentModule) {
+    if (SecurityHelpers._uiObserver) {
+      SecurityHelpers._uiObserver.disconnect();
+      SecurityHelpers._uiObserver = null;
+    }
     if (!App.user || App.user.role === 'owner') return; // Owner has full access
     // Don't enforce on the permissions management page itself
     if (currentModule === 'screen-permissions') return;
@@ -232,16 +237,14 @@ window.SecurityHelpers = {
     setTimeout(enforceButtons, 500);
 
     // Watch for dynamic DOM changes (like tables loading async)
-    if (SecurityHelpers._permObserver) SecurityHelpers._permObserver.disconnect();
-    
     var contentEl = document.getElementById('page-content') || document.body;
-    SecurityHelpers._permObserver = new MutationObserver(function(mutations) {
+    SecurityHelpers._uiObserver = new MutationObserver(function(mutations) {
       var needsCheck = false;
       mutations.forEach(function(m) { if(m.addedNodes.length > 0) needsCheck = true; });
       if(needsCheck) enforceButtons();
     });
     
-    SecurityHelpers._permObserver.observe(contentEl, { childList: true, subtree: true });
+    SecurityHelpers._uiObserver.observe(contentEl, { childList: true, subtree: true });
   },
 
   // Input sanitization
