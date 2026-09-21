@@ -193,6 +193,8 @@ window.SecurityHelpers = {
   // Apply permission restrictions to the current screen's buttons automatically
   applyPermissionsUI: function(currentModule) {
     if (!App.user || App.user.role === 'owner') return; // Owner has full access
+    // Don't enforce on the permissions management page itself
+    if (currentModule === 'screen-permissions') return;
     
     var enforceButtons = function() {
       document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item)').forEach(function(btn) {

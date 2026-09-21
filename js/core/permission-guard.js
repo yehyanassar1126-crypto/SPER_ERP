@@ -252,6 +252,8 @@ window.PermissionGuard = {
    */
   enforceActionPermissions: function(screenId) {
     if (!App.user || (App.user.role && App.user.role.toLowerCase() === 'owner')) return;
+    // Don't enforce action permissions on the permissions management page itself
+    if (screenId === 'screen-permissions') return;
 
     var _enforce = function() {
       document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item):not([data-pg-checked])').forEach(function(btn) {

@@ -278,6 +278,11 @@ var ERPPermissions = {
       html += '<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>الشاشة</th>';
       ERPPermissions.actions.forEach(function(a) { html += '<th style="text-align:center">'+a+'</th>'; });
       html += '<th>الكل</th><th>إزالة</th></tr></thead><tbody id="perms-tbody">';
+
+      userScreens.forEach(function(s) {
+        html += ERPPermissions._renderRow(s, existing, isRestricted);
+      });
+      html += '</tbody></table></div>';
       html += '<div style="margin-top:20px;display:flex;gap:12px;align-items:center;">';
       html += '<button type="button" class="btn btn-primary" onclick="ERPPermissions.saveAll()" style="background:#10b981 !important;color:#ffffff !important;font-weight:bold !important;cursor:pointer !important;padding:12px 24px !important;border-radius:8px !important;border:none !important;box-shadow:0 4px 12px rgba(16,185,129,0.3) !important;">💾 حفظ الصلاحيات</button>';
       html += '<button type="button" class="btn btn-outline" onclick="ERPPermissions.selectAll(true)" style="background:#2563eb !important;color:#ffffff !important;font-weight:bold !important;cursor:pointer !important;padding:12px 20px !important;border-radius:8px !important;border:none !important;">تحديد الكل</button>';
@@ -497,7 +502,6 @@ var ERPPermissions = {
 
         if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.loadPermissions) {
             SecurityHelpers.loadPermissions();
-          }
         }
 
         // Reload permissions table grid
