@@ -28,7 +28,7 @@ window.PermissionGuard = {
     'employee-warnings': 'hr', 'asset-assignment': 'hr', 'payroll': 'hr',
     'payroll-funding': 'hr', 'hr-adjustments': 'hr', 'recruitment': 'hr',
     'hr-ats': 'hr', 'documents': 'hr', 'performance': 'hr', 'uniforms': 'hr',
-    'medical-requests': 'hr', 'nursing-medical-approvals': 'hr', 'loans': 'hr',
+    'medical-requests': 'hr', 'nursing-medical-approvals': 'hr', 'nursing-page': 'hr', 'loans': 'hr',
     'expenses': 'hr', 'complaints': 'hr', 'offboarding': 'hr',
     'performance-reviews': 'hr', 'training': 'hr', 'hr-qr-generator': 'hr',
     // Operations

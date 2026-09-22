@@ -764,3 +764,120 @@ CREATE POLICY "customer_feedback_all" ON customer_feedback FOR ALL USING (true) 
 -- ============================================================
 -- DONE! All enterprise tables created (34+ tables total)
 -- ============================================================
+
+-- ============================================================
+-- 🏥 PART 6: NURSING & FACTORY CLINIC MANAGEMENT HUB
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.clinic_visits (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  employee_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  employee_name text NOT NULL,
+  department text,
+  visit_type text NOT NULL DEFAULT 'checkup',
+  blood_pressure text,
+  temperature numeric,
+  heart_rate numeric,
+  blood_sugar numeric,
+  complaint text,
+  diagnosis text,
+  treatment text,
+  medicine_dispensed text,
+  medicine_qty numeric DEFAULT 0,
+  disposition text DEFAULT 'return_to_work',
+  referral_details text,
+  notes text,
+  attended_by text
+);
+
+ALTER TABLE public.clinic_visits ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all for clinic_visits" ON public.clinic_visits;
+CREATE POLICY "Enable all for clinic_visits" ON public.clinic_visits FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.clinic_injuries (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  incident_date timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  employee_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  employee_name text NOT NULL,
+  department text,
+  location text,
+  severity text NOT NULL DEFAULT 'minor',
+  injury_type text NOT NULL,
+  description text NOT NULL,
+  root_cause text,
+  immediate_action text,
+  hospitalized boolean DEFAULT false,
+  hospital_name text,
+  lost_work_days numeric DEFAULT 0,
+  supervisor_notified text,
+  status text DEFAULT 'under_treatment',
+  investigation_notes text,
+  logged_by text
+);
+
+ALTER TABLE public.clinic_injuries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all for clinic_injuries" ON public.clinic_injuries;
+CREATE POLICY "Enable all for clinic_injuries" ON public.clinic_injuries FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.clinic_rest_permits (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  employee_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  employee_name text NOT NULL,
+  department text,
+  permit_type text DEFAULT 'clinic_rest',
+  start_time timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  end_time timestamp with time zone,
+  duration text,
+  diagnosis text,
+  gate_pass_authorized boolean DEFAULT false,
+  status text DEFAULT 'active',
+  returned_at timestamp with time zone,
+  issued_by text,
+  notes text
+);
+
+ALTER TABLE public.clinic_rest_permits ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all for clinic_rest_permits" ON public.clinic_rest_permits;
+CREATE POLICY "Enable all for clinic_rest_permits" ON public.clinic_rest_permits FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.clinic_medications (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  name text NOT NULL,
+  generic_name text,
+  category text NOT NULL DEFAULT 'first_aid',
+  unit text NOT NULL DEFAULT 'Box',
+  current_stock numeric NOT NULL DEFAULT 0,
+  min_threshold numeric NOT NULL DEFAULT 5,
+  expiry_date date,
+  batch_no text,
+  location text,
+  notes text,
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.clinic_medications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all for clinic_medications" ON public.clinic_medications;
+CREATE POLICY "Enable all for clinic_medications" ON public.clinic_medications FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.clinic_dispense_logs (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  medication_id uuid REFERENCES public.clinic_medications(id) ON DELETE CASCADE,
+  medication_name text NOT NULL,
+  employee_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  employee_name text NOT NULL,
+  quantity numeric NOT NULL DEFAULT 1,
+  reason text,
+  visit_id uuid REFERENCES public.clinic_visits(id) ON DELETE SET NULL,
+  dispensed_by text
+);
+
+ALTER TABLE public.clinic_dispense_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable all for clinic_dispense_logs" ON public.clinic_dispense_logs;
+CREATE POLICY "Enable all for clinic_dispense_logs" ON public.clinic_dispense_logs FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.medical_requests ADD COLUMN IF NOT EXISTS rejection_reason text;
+

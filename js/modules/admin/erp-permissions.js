@@ -94,9 +94,9 @@ var ERPPermissions = {
     {id:'erp-suppliers',label:'Suppliers'},
     {id:'supplier-performance',label:'Supplier Performance'},
     
-    // Other
     {id:'it-tickets',label:'IT Support'},
     {id:'legal-affairs',label:'Legal Affairs'},
+    {id:'nursing-page',label:'Factory Clinic & Nursing (عيادة المصنع والتمريض)'},
     {id:'nursing-medical-approvals',label:'Nursing Approvals'},
     {id:'global-search',label:'Global Search'},
     {id:'system-settings',label:'System Settings'},
@@ -226,7 +226,7 @@ var ERPPermissions = {
                 }
                 
                 if (isHR) {
-                    defaultScreens.push('employees', 'attendance', 'leaves', 'shifts', 'overtime', 'reports', 'audit-log', 'hr-qr-generator', 'hr-adjustments', 'team-adjustments', 'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'loans', 'expenses', 'complaints', 'medical-requests', 'nursing-medical-approvals', 'ai-mind', 'org-directory', 'offboarding', 'training', 'performance-reviews');
+                    defaultScreens.push('employees', 'attendance', 'leaves', 'shifts', 'overtime', 'reports', 'audit-log', 'hr-qr-generator', 'hr-adjustments', 'team-adjustments', 'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'loans', 'expenses', 'complaints', 'medical-requests', 'nursing-medical-approvals', 'nursing-page', 'ai-mind', 'org-directory', 'offboarding', 'training', 'performance-reviews');
                 }
                 
                 // 3. Department specific
@@ -240,6 +240,12 @@ var ERPPermissions = {
                 if(dep === 'Engineering' || roleStr === 'engineer' || roleStr === 'engineering manager' || roleStr === 'technical office') defaultScreens.push('engineering');
                 if(dep === 'Logistics' || roleStr === 'logistics manager' || roleStr === 'driver') defaultScreens.push('logistics', 'erp-fleet');
                 if(dep === 'IT') defaultScreens.push('it-tickets', 'system-settings', 'global-search', 'screen-permissions', 'notification-settings', 'facebook-leads');
+
+                // 4. Nursing & Clinic
+                var isMedical = dep === 'Medical' || dep === 'Nursing' || dep === 'Clinic' || roleStr === 'nursing management' || roleStr === 'nurse' || roleStr === 'nursing manager' || roleStr === 'doctor';
+                if (isMedical) {
+                    defaultScreens.push('nursing-page', 'nursing-medical-approvals', 'medical-requests');
+                }
             }
         }
       }

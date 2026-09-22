@@ -8,7 +8,7 @@ var ERPPermissions = {
     'Self Service (بياناتي)': ['dashboard','hr-personal','my-attendance','scan-checkin','scan-checkout','my-leaves','my-salary','my-overtime','my-loans','my-medical','my-delays','my-missions','my-expenses','complaints'],
     'Workplace (مكان العمل)': ['announcements','internal-chat','shift-swap','calendar','task-management','ai-mind'],
     'Management (الإدارة)': ['dept-purchase-approvals','friday-work','team-adjustments'],
-    'HR (الموارد البشرية)': ['employees','attendance','leaves','absence-leave','shifts','overtime','all-delays','all-missions','employee-warnings','asset-assignment','payroll','payroll-funding','hr-adjustments','recruitment','hr-ats','documents','performance','uniforms','loans','expenses','medical-requests','nursing-medical-approvals','offboarding','training','performance-reviews','hr-qr-generator','org-directory'],
+    'HR (الموارد البشرية)': ['employees','attendance','leaves','absence-leave','shifts','overtime','all-delays','all-missions','employee-warnings','asset-assignment','payroll','payroll-funding','hr-adjustments','recruitment','hr-ats','documents','performance','uniforms','loans','expenses','medical-requests','nursing-medical-approvals','nursing-page','offboarding','training','performance-reviews','hr-qr-generator','org-directory'],
     'Operations (العمليات)': ['inventory','purchase-requests','erp-sales','erp-products','customer-requests','erp-planning','erp-production','erp-bom','production-trace','erp-quality','engineering','erp-maintenance','erp-equipment','maint-companies','spare-parts','logistics','erp-fleet','erp-suppliers','supplier-performance','supplier-portal'],
     'Finance (المالية)': ['petty-cash','financial-reports','chart-of-accounts','driver-payments'],
     'Admin (إدارة النظام)': ['reports','kpi-dashboard','audit-log','login-history','activity-log-page','document-management','approval-workflows','global-search','system-settings','screen-permissions','notification-settings','it-tickets','legal-affairs','facebook-leads'],
@@ -109,6 +109,7 @@ var ERPPermissions = {
     // Other
     {id:'it-tickets',label:'IT Support'},
     {id:'legal-affairs',label:'Legal Affairs'},
+    {id:'nursing-page',label:'Factory Clinic & Nursing (عيادة المصنع والتمريض)'},
     {id:'nursing-medical-approvals',label:'Nursing Approvals'},
     {id:'global-search',label:'Global Search'},
     {id:'system-settings',label:'System Settings'},
@@ -166,7 +167,7 @@ var ERPPermissions = {
     html += '<div class="form-row" style="margin-bottom:20px;gap:12px">';
     html += '<div class="form-group" style="flex:1"><label>المستخدم</label><select class="form-input" id="perm-user" onchange="ERPPermissions.loadPerms()"><option value="">— اختر مستخدم —</option></select></div>';
     html += '<div class="form-group" style="flex:1"><label>أو الـ Role</label><select class="form-input" id="perm-role" onchange="ERPPermissions.loadPerms()"><option value="">— كل الأدوار —</option>';
-    html += '<option>owner</option><option>hr manager</option><option>hr</option><option>hall manager</option><option>department head</option>';
+    html += '<option>owner</option><option>hr manager</option><option>hr</option><option>nursing management</option><option>nurse</option><option>hall manager</option><option>department head</option>';
     html += '<option>employee</option><option>warehouse manager</option><option>procurement manager</option><option>driver</option></select></div>';
     html += '<button class="btn btn-primary" style="align-self:flex-end" onclick="ERPPermissions.loadPerms()">تحميل الصلاحيات</button></div>';
 
@@ -215,11 +216,17 @@ var ERPPermissions = {
       (r.data||[]).forEach(function(p) { existing[p.screen_id + '_' + p.action] = p; });
 
       var defaultScreens = [];
+      var roleStr = (role || '').toLowerCase();
+      var dep = '';
       if (userId && ERPPermissions.allUsers) {
         var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
         if(u) {
-            var dep = u.department || ''; var roleStr = u.role || '';
-            
+            dep = u.department || '';
+            roleStr = (u.role || '').toLowerCase();
+        }
+      }
+
+      if (userId || role) {
             // 1. Basic screens for ALL users (My Info, Workplace, Other)
             defaultScreens.push(
                 'dashboard', 'my-attendance', 'scan-checkin', 'scan-checkout', 'my-leaves', 'my-salary', 
@@ -239,7 +246,7 @@ var ERPPermissions = {
                 }
                 
                 if (isHR) {
-                    defaultScreens.push('employees', 'attendance', 'leaves', 'shifts', 'overtime', 'reports', 'audit-log', 'hr-qr-generator', 'hr-adjustments', 'team-adjustments', 'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'loans', 'expenses', 'complaints', 'medical-requests', 'nursing-medical-approvals', 'ai-mind', 'org-directory', 'offboarding', 'training', 'performance-reviews');
+                    defaultScreens.push('employees', 'attendance', 'leaves', 'shifts', 'overtime', 'reports', 'audit-log', 'hr-qr-generator', 'hr-adjustments', 'team-adjustments', 'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'loans', 'expenses', 'complaints', 'medical-requests', 'nursing-medical-approvals', 'nursing-page', 'ai-mind', 'org-directory', 'offboarding', 'training', 'performance-reviews');
                 }
                 
                 // 3. Department specific
@@ -253,8 +260,13 @@ var ERPPermissions = {
                 if(dep === 'Engineering' || roleStr === 'engineer' || roleStr === 'engineering manager' || roleStr === 'technical office') defaultScreens.push('engineering');
                 if(dep === 'Logistics' || roleStr === 'logistics manager' || roleStr === 'driver') defaultScreens.push('logistics', 'erp-fleet');
                 if(dep === 'IT') defaultScreens.push('it-tickets', 'system-settings', 'global-search', 'screen-permissions', 'notification-settings', 'facebook-leads');
+
+                // 4. Nursing & Factory Clinic Department or Role
+                var isMedical = dep === 'Medical' || dep === 'Nursing' || dep === 'Clinic' || roleStr === 'nursing management' || roleStr === 'nurse' || roleStr === 'nursing manager' || roleStr === 'doctor';
+                if (isMedical) {
+                    defaultScreens.push('nursing-page', 'nursing-medical-approvals', 'medical-requests');
+                }
             }
-        }
       }
 
       var userScreens = [];

@@ -139,7 +139,12 @@ var App = {
   isOwner: function () { return App.user && App.user.role && App.user.role.toLowerCase() === 'owner'; },
   isHR: function () { return App.user && App.user.role && ['owner', 'hr manager', 'hr'].indexOf(App.user.role.toLowerCase()) !== -1; },
   isManager: function () { return App.user && App.user.role && ['owner', 'hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager'].indexOf(App.user.role.toLowerCase()) !== -1; },
-  isNursing: function () { return App.user && App.user.role && App.user.role.toLowerCase() === 'nursing management'; },
+  isNursing: function () {
+    return App.user && (
+      (App.user.role && ['nursing management', 'nurse', 'nursing manager', 'doctor'].indexOf(App.user.role.toLowerCase()) !== -1) ||
+      (App.user.department && ['medical', 'nursing', 'clinic'].indexOf(App.user.department.toLowerCase()) !== -1)
+    );
+  },
   getRoleLevel: function (r) { if (!r) return 1; var rl = r.toLowerCase(); return rl === 'owner' ? 6 : rl === 'hr manager' ? 5 : rl === 'hr' ? 4 : (rl === 'hall manager' || rl === 'nursing management') ? 3 : rl === 'department head' ? 2 : 1; },
 
   showLoginError: function (msg) {
@@ -384,7 +389,8 @@ var App = {
                 { id: 'performance', label: 'Performance', icon: 'trendingUp' },
                 { id: 'uniforms', label: 'Uniforms', icon: 'shield' },
                 { id: 'medical-requests', label: 'Medical Requests', icon: 'heart' },
-                { id: 'nursing-medical-approvals', label: 'Medical Approvals', icon: 'heart' },
+                { id: 'nursing-page', label: 'Factory Clinic & Nursing', icon: 'heart' },
+                { id: 'nursing-medical-approvals', label: 'Medical Approvals', icon: 'checkCircle' },
                 { id: 'loans', label: 'Loans & Advances', icon: 'creditCard' },
                 { id: 'expenses', label: 'Expenses', icon: 'receipt' },
                 { id: 'complaints', label: 'Complaints', icon: 'gavel' },
@@ -478,7 +484,8 @@ var App = {
               { id: 'performance', label: window.I18n ? window.I18n.t('sidebar_performance') : 'Performance', icon: 'trendingUp' },
               { id: 'uniforms', label: window.I18n ? window.I18n.t('sidebar_uniforms') : 'Uniforms', icon: 'shield' },
               { id: 'medical-requests', label: window.I18n ? window.I18n.t('sidebar_medical_requests') : 'Medical Requests', icon: 'heart' },
-              { id: 'nursing-medical-approvals', label: window.I18n ? window.I18n.t('sidebar_nursing_medical_approvals') : 'Medical Approvals', icon: 'heart' },
+              { id: 'nursing-page', label: window.I18n ? window.I18n.t('sidebar_nursing_page') : 'Factory Clinic & Nursing', icon: 'heart' },
+              { id: 'nursing-medical-approvals', label: window.I18n ? window.I18n.t('sidebar_nursing_medical_approvals') : 'Medical Approvals', icon: 'checkCircle' },
               { id: 'loans', label: window.I18n ? window.I18n.t('sidebar_loans') : 'Loans & Advances', icon: 'creditCard' },
               { id: 'expenses', label: window.I18n ? window.I18n.t('sidebar_expenses') : 'Expenses', icon: 'receipt' },
               { id: 'complaints', label: window.I18n ? window.I18n.t('sidebar_complaints') : 'Disciplinary & Grievances', icon: 'gavel' },
@@ -600,7 +607,8 @@ var App = {
           { section: 'Overview', items: [{ id: 'dashboard', label: 'My Dashboard', icon: 'layoutDashboard' }] },
           {
             section: 'Nursing Management (إدارة التمريض)', items: [
-              { id: 'nursing-medical-approvals', label: window.I18n ? window.I18n.t('sidebar_nursing_medical_approvals') : 'Medical Approvals', icon: 'heart' },
+              { id: 'nursing-page', label: window.I18n ? window.I18n.t('sidebar_nursing_page') : 'Factory Clinic & Nursing', icon: 'heart' },
+              { id: 'nursing-medical-approvals', label: window.I18n ? window.I18n.t('sidebar_nursing_medical_approvals') : 'Medical Approvals', icon: 'checkCircle' },
             ]
           },
           {
@@ -941,6 +949,7 @@ var App = {
       'medical-requests': { title: 'Medical Requests', sub: 'Manage medical needs and disbursements' },
       'my-medical': { title: 'My Medical Needs', sub: 'Upload medical needs and receipts' },
       'nursing-medical-approvals': { title: '🏥 Medical Approvals (موافقات طبية)', sub: 'Review employee medical requests' },
+      'nursing-page': { title: '🏥 Factory Clinic & Nursing Hub (عيادة المصنع والتمريض)', sub: 'Daily clinic visits, occupational health, safety injuries, rest permits & pharmacy' },
       'ai-mind': { title: 'AI Mind', sub: 'Neural-powered workforce intelligence' },
       'org-directory': { title: 'Company Directory', sub: 'Interactive Org Chart & Skills Finder' },
       'shift-swap': { title: 'Shift Marketplace', sub: 'Request and accept shift swaps intelligently' },
@@ -1084,7 +1093,8 @@ var App = {
       case 'legal-affairs': if (Pages.legalAffairs) Pages.legalAffairs(el); else el.innerHTML = 'Module missing'; break;
       case 'my-loans': Pages.myLoans(el); break;
       case 'medical-requests': Pages.medicalRequests(el); break;
-      case 'nursing-medical-approvals': Pages.medicalRequests(el); break;
+      case 'nursing-medical-approvals': Pages.nursingHub ? Pages.nursingHub(el, 'approvals') : Pages.medicalRequests(el); break;
+      case 'nursing-page': Pages.nursingHub ? Pages.nursingHub(el) : Pages.medicalRequests(el); break;
       case 'my-medical': Pages.myMedical(el); break;
       case 'ai-mind': Pages.aiMind(el); break;
       case 'org-directory': Pages.orgDirectory(el); break;
@@ -1466,11 +1476,11 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Nursing Module
-    html += '<div onclick="App.navigate(\'nursing-medical-approvals\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f43f5e\'; this.style.boxShadow=\'0 12px 30px rgba(244,63,94,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'nursing-page\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#f43f5e\'; this.style.boxShadow=\'0 12px 30px rgba(244,63,94,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(244,63,94,0.1); color: #f43f5e; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('heart', 26) + '</div>';
-    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Nursing (التمريض)</h3>';
-    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Employee health records, medical checkups, sick leaves, and clinic visits.</p>';
-    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(244,63,94,0.1); color: #f43f5e; font-size: 0.8rem; font-weight: 700;">Active</span></div>';
+    html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Nursing & Factory Clinic (عيادة المصنع والتمريض)</h3>';
+    html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Employee health records, triage checkups, work safety injuries, rest permits, and clinic pharmacy.</p>';
+    html += '<div><span style="padding: 6px 12px; border-radius: 20px; background: rgba(244,63,94,0.1); color: #f43f5e; font-size: 0.8rem; font-weight: 700;">Active Hub</span></div>';
     html += '</div>';
 
     // Cost Centers Module
