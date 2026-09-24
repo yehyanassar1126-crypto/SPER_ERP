@@ -574,7 +574,38 @@ var App = {
               { id: 'system-settings', label: '⚙️ Settings (الإعدادات)', icon: 'settings' },
               { id: 'screen-permissions', label: '🔐 Permissions (الصلاحيات)', icon: 'shield' },
               { id: 'notification-settings', label: '🔔 Notifications (الإشعارات)', icon: 'bell' },
+              { id: 'workflow-engine', label: '⚙️ Workflow Engine (محرك سير العمل)', icon: 'refreshCw' },
+              { id: 'integration-hub', label: '🔗 Integration Hub (مركز التكامل)', icon: 'server' },
               { id: 'facebook-leads', label: '📘 Facebook Leads', icon: 'globe' },
+            ]
+          },
+          {
+            section: '🏭 Manufacturing Intelligence (ذكاء التصنيع)', items: [
+              { id: 'production-analysis', label: '📊 Production Analysis (تحليل الإنتاج)', icon: 'barChart' },
+              { id: 'oee-dashboard', label: '📈 OEE Dashboard (كفاءة التشغيل)', icon: 'pieChart' },
+              { id: 'mrp-planning', label: '📋 MRP Planning (تخطيط المواد)', icon: 'list' },
+              { id: 'aps-scheduling', label: '📅 APS Scheduling (جدولة الإنتاج)', icon: 'calendar' },
+              { id: 'advanced-quality', label: '✅ Advanced Quality (جودة متقدمة)', icon: 'checkCircle' },
+              { id: 'wms-management', label: '📦 WMS (إدارة المستودعات)', icon: 'package' },
+              { id: 'advanced-maintenance', label: '🔧 Advanced Maintenance (صيانة متقدمة)', icon: 'tool' },
+            ]
+          },
+          {
+            section: '💰 Advanced Finance (مالية متقدمة)', items: [
+              { id: 'advanced-finance', label: '📊 AR/AP Aging & Costs (تقادم وتكاليف)', icon: 'trendingUp' },
+              { id: 'sustainability', label: '🌱 Sustainability (الاستدامة)', icon: 'globe' },
+            ]
+          },
+          {
+            section: '👥 Advanced HR (موارد بشرية متقدمة)', items: [
+              { id: 'advanced-hr', label: '🎯 Skills & Analytics (مهارات وتحليلات)', icon: 'users' },
+            ]
+          },
+          {
+            section: '🤖 AI & Intelligence (الذكاء الاصطناعي)', items: [
+              { id: 'ai-copilot', label: '🤖 AI Copilot (المساعد الذكي)', icon: 'brain' },
+              { id: 'ai-agents', label: '⚡ AI Agents (وكلاء AI)', icon: 'settings' },
+              { id: 'executive-intelligence', label: '👑 Executive Intelligence (الذكاء التنفيذي)', icon: 'pieChart' },
             ]
           }
         ];
@@ -639,6 +670,22 @@ var App = {
           {
             section: 'Workplace', items: [
               { id: 'shift-swap', label: 'Shift Marketplace', icon: 'refreshCw' }
+            ]
+          },
+          {
+            section: '🏭 Manufacturing Intelligence (ذكاء التصنيع)', items: [
+              { id: 'production-analysis', label: '📊 Production Analysis (تحليل الإنتاج)', icon: 'barChart' },
+              { id: 'oee-dashboard', label: '📈 OEE Dashboard (كفاءة التشغيل)', icon: 'pieChart' },
+              { id: 'mrp-planning', label: '📋 MRP Planning (تخطيط المواد)', icon: 'list' },
+              { id: 'aps-scheduling', label: '📅 APS Scheduling (جدولة الإنتاج)', icon: 'calendar' },
+              { id: 'advanced-quality', label: '✅ Advanced Quality (جودة متقدمة)', icon: 'checkCircle' },
+              { id: 'wms-management', label: '📦 WMS (إدارة المستودعات)', icon: 'package' },
+              { id: 'advanced-maintenance', label: '🔧 Advanced Maintenance (صيانة متقدمة)', icon: 'tool' },
+            ]
+          },
+          {
+            section: '🤖 AI Tools (أدوات ذكية)', items: [
+              { id: 'ai-copilot', label: '🤖 AI Copilot (المساعد الذكي)', icon: 'brain' },
             ]
           }
         ];
