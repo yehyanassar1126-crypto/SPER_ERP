@@ -449,6 +449,15 @@ var App = {
                 { id: 'advanced-quality', label: 'Advanced Quality', icon: 'checkCircle' },
                 { id: 'wms-management', label: 'WMS / Warehouse', icon: 'package' },
                 { id: 'advanced-maintenance', label: 'Advanced Maintenance', icon: 'tool' },
+                { id: 'production-kanban', label: 'Production Kanban', icon: 'list' },
+                { id: 'shop-floor', label: 'Shop Floor Display', icon: 'monitor' },
+            ]},
+            { section: 'Sales & Pricing', items: [
+                { id: 'pricing-management', label: 'Pricing Management', icon: 'dollarSign' },
+                { id: 'credit-management', label: 'Credit Management', icon: 'creditCard' },
+                { id: 'rma-management', label: 'Returns (RMA)', icon: 'refreshCw' },
+                { id: 'contract-management', label: 'Contracts', icon: 'fileText' },
+                { id: 'demand-forecasting', label: 'Demand Forecasting', icon: 'trendingUp' },
             ]},
             { section: 'Finance & Accounting', items: [
                 { id: 'petty-cash', label: 'Financial Suite', icon: 'dollarSign' },
@@ -456,6 +465,7 @@ var App = {
                 { id: 'chart-of-accounts', label: 'Chart of Accounts', icon: 'list' },
                 { id: 'driver-payments', label: 'Driver Payments', icon: 'truck' },
                 { id: 'advanced-finance', label: 'Advanced Finance', icon: 'trendingUp' },
+                { id: 'einvoice-system', label: 'E-Invoice (فاتورة إلكترونية)', icon: 'fileText' },
             ]},
             { section: 'Human Resources+', items: [
                 { id: 'advanced-hr', label: 'Skills & Workforce Analytics', icon: 'users' },
@@ -468,6 +478,10 @@ var App = {
             { section: 'Administration', items: [
                 { id: 'reports', label: 'Reports', icon: 'barChart' },
                 { id: 'kpi-dashboard', label: 'KPI Dashboard', icon: 'pieChart' },
+                { id: 'dashboard-builder', label: 'Dashboard Builder', icon: 'layoutDashboard' },
+                { id: 'report-builder', label: 'Report Builder', icon: 'barChart' },
+                { id: 'balanced-scorecard', label: 'Balanced Scorecard', icon: 'trendingUp' },
+                { id: 'print-templates', label: 'Print Templates', icon: 'fileText' },
                 { id: 'audit-log', label: 'Audit Log', icon: 'fileText' },
                 { id: 'login-history', label: 'Login History', icon: 'logIn' },
                 { id: 'activity-log-page', label: 'Activity Log', icon: 'list' },
@@ -574,6 +588,10 @@ var App = {
               { id: 'system-settings', label: '⚙️ Settings (الإعدادات)', icon: 'settings' },
               { id: 'screen-permissions', label: '🔐 Permissions (الصلاحيات)', icon: 'shield' },
               { id: 'notification-settings', label: '🔔 Notifications (الإشعارات)', icon: 'bell' },
+              { id: 'dashboard-builder', label: '📊 Dashboard Builder (منشئ اللوحات)', icon: 'layoutDashboard' },
+              { id: 'report-builder', label: '📋 Report Builder (منشئ التقارير)', icon: 'barChart' },
+              { id: 'balanced-scorecard', label: '🎯 Balanced Scorecard (بطاقة الأداء)', icon: 'trendingUp' },
+              { id: 'print-templates', label: '🖨️ Print Templates (قوالب الطباعة)', icon: 'fileText' },
               { id: 'workflow-engine', label: '⚙️ Workflow Engine (محرك سير العمل)', icon: 'refreshCw' },
               { id: 'integration-hub', label: '🔗 Integration Hub (مركز التكامل)', icon: 'server' },
               { id: 'facebook-leads', label: '📘 Facebook Leads', icon: 'globe' },
@@ -588,11 +606,23 @@ var App = {
               { id: 'advanced-quality', label: '✅ Advanced Quality (جودة متقدمة)', icon: 'checkCircle' },
               { id: 'wms-management', label: '📦 WMS (إدارة المستودعات)', icon: 'package' },
               { id: 'advanced-maintenance', label: '🔧 Advanced Maintenance (صيانة متقدمة)', icon: 'tool' },
+              { id: 'production-kanban', label: '📋 Production Kanban (كانبان)', icon: 'list' },
+              { id: 'shop-floor', label: '🏭 Shop Floor Display (شاشة المصنع)', icon: 'monitor' },
+            ]
+          },
+          {
+            section: '💵 Sales & Pricing (المبيعات والتسعير)', items: [
+              { id: 'pricing-management', label: '💰 Pricing (التسعير)', icon: 'dollarSign' },
+              { id: 'credit-management', label: '💳 Credit Management (إدارة الائتمان)', icon: 'creditCard' },
+              { id: 'rma-management', label: '🔄 Returns / RMA (المرتجعات)', icon: 'refreshCw' },
+              { id: 'contract-management', label: '📋 Contracts (العقود)', icon: 'fileText' },
+              { id: 'demand-forecasting', label: '📈 Demand Forecasting (التنبؤ بالطلب)', icon: 'trendingUp' },
             ]
           },
           {
             section: '💰 Advanced Finance (مالية متقدمة)', items: [
               { id: 'advanced-finance', label: '📊 AR/AP Aging & Costs (تقادم وتكاليف)', icon: 'trendingUp' },
+              { id: 'einvoice-system', label: '🧾 E-Invoice (الفاتورة الإلكترونية)', icon: 'fileText' },
               { id: 'sustainability', label: '🌱 Sustainability (الاستدامة)', icon: 'globe' },
             ]
           },
@@ -681,6 +711,9 @@ var App = {
               { id: 'advanced-quality', label: '✅ Advanced Quality (جودة متقدمة)', icon: 'checkCircle' },
               { id: 'wms-management', label: '📦 WMS (إدارة المستودعات)', icon: 'package' },
               { id: 'advanced-maintenance', label: '🔧 Advanced Maintenance (صيانة متقدمة)', icon: 'tool' },
+              { id: 'production-kanban', label: '📋 Production Kanban (كانبان)', icon: 'list' },
+              { id: 'shop-floor', label: '🏭 Shop Floor Display (شاشة المصنع)', icon: 'monitor' },
+              { id: 'demand-forecasting', label: '📈 Demand Forecasting (التنبؤ بالطلب)', icon: 'trendingUp' },
             ]
           },
           {
@@ -1335,6 +1368,20 @@ var App = {
       case 'workflow-engine': if (typeof Pages.workflowEngine === 'function') Pages.workflowEngine(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Workflow Engine...</h3></div>'; break;
       case 'sustainability': if (typeof Pages.sustainability === 'function') Pages.sustainability(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Sustainability...</h3></div>'; break;
       case 'integration-hub': if (typeof Pages.integrationHub === 'function') Pages.integrationHub(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Integration Hub...</h3></div>'; break;
+
+      // ========== COMPETITIVE ENTERPRISE FEATURES (v15.0) ==========
+      case 'pricing-management': if (typeof Pages.pricingManagement === 'function') Pages.pricingManagement(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Pricing...</h3></div>'; break;
+      case 'credit-management': if (typeof Pages.creditManagement === 'function') Pages.creditManagement(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Credit Management...</h3></div>'; break;
+      case 'rma-management': if (typeof Pages.rmaManagement === 'function') Pages.rmaManagement(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading RMA...</h3></div>'; break;
+      case 'einvoice-system': if (typeof Pages.einvoiceSystem === 'function') Pages.einvoiceSystem(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading E-Invoice...</h3></div>'; break;
+      case 'print-templates': if (typeof Pages.printTemplates === 'function') Pages.printTemplates(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Print Templates...</h3></div>'; break;
+      case 'demand-forecasting': if (typeof Pages.demandForecasting === 'function') Pages.demandForecasting(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Forecasting...</h3></div>'; break;
+      case 'dashboard-builder': if (typeof Pages.dashboardBuilder === 'function') Pages.dashboardBuilder(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Dashboard Builder...</h3></div>'; break;
+      case 'report-builder': if (typeof Pages.reportBuilder === 'function') Pages.reportBuilder(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Report Builder...</h3></div>'; break;
+      case 'shop-floor': if (typeof Pages.shopFloor === 'function') Pages.shopFloor(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Shop Floor...</h3></div>'; break;
+      case 'contract-management': if (typeof Pages.contractManagement === 'function') Pages.contractManagement(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Contracts...</h3></div>'; break;
+      case 'production-kanban': if (typeof Pages.productionKanban === 'function') Pages.productionKanban(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Kanban...</h3></div>'; break;
+      case 'balanced-scorecard': if (typeof Pages.balancedScorecard === 'function') Pages.balancedScorecard(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Scorecard...</h3></div>'; break;
 
       default: Pages.empDashboard(el);
     }
