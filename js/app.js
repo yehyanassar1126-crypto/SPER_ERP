@@ -8,6 +8,15 @@ var App = {
     App.user = null;
     localStorage.removeItem('hr_portal_user');
 
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(function(reg) {
+        console.log('✅ Service Worker registered');
+      }).catch(function(err) {
+        console.log('⚠️ SW registration failed (non-critical):', err);
+      });
+    }
+
     // One-time migration for leaves from 1/6/2026
     if (!localStorage.getItem('migrated_leaves_1_6_2026_v2')) {
       localStorage.setItem('migrated_leaves_1_6_2026_v2', 'true');
@@ -433,12 +442,28 @@ var App = {
                 { id: 'erp-suppliers', label: 'Suppliers', icon: 'users' },
                 { id: 'supplier-performance', label: 'Supplier Rating', icon: 'trendingUp' },
                 { id: 'supplier-portal', label: 'Supplier Portal', icon: 'layoutDashboard' },
+                { id: 'production-analysis', label: 'Production Analysis', icon: 'barChart' },
+                { id: 'oee-dashboard', label: 'OEE Dashboard', icon: 'pieChart' },
+                { id: 'mrp-planning', label: 'MRP Planning', icon: 'list' },
+                { id: 'aps-scheduling', label: 'APS Scheduling', icon: 'calendar' },
+                { id: 'advanced-quality', label: 'Advanced Quality', icon: 'checkCircle' },
+                { id: 'wms-management', label: 'WMS / Warehouse', icon: 'package' },
+                { id: 'advanced-maintenance', label: 'Advanced Maintenance', icon: 'tool' },
             ]},
             { section: 'Finance & Accounting', items: [
                 { id: 'petty-cash', label: 'Financial Suite', icon: 'dollarSign' },
                 { id: 'financial-reports', label: 'Financial Reports', icon: 'barChart' },
                 { id: 'chart-of-accounts', label: 'Chart of Accounts', icon: 'list' },
                 { id: 'driver-payments', label: 'Driver Payments', icon: 'truck' },
+                { id: 'advanced-finance', label: 'Advanced Finance', icon: 'trendingUp' },
+            ]},
+            { section: 'Human Resources+', items: [
+                { id: 'advanced-hr', label: 'Skills & Workforce Analytics', icon: 'users' },
+            ]},
+            { section: 'AI & Intelligence', items: [
+                { id: 'ai-copilot', label: 'AI Copilot', icon: 'brain' },
+                { id: 'ai-agents', label: 'AI Agents', icon: 'settings' },
+                { id: 'executive-intelligence', label: 'Executive Intelligence', icon: 'pieChart' },
             ]},
             { section: 'Administration', items: [
                 { id: 'reports', label: 'Reports', icon: 'barChart' },
@@ -454,6 +479,9 @@ var App = {
                 { id: 'system-settings', label: 'System Settings', icon: 'settings' },
                 { id: 'screen-permissions', label: 'Permissions', icon: 'shield' },
                 { id: 'notification-settings', label: 'Notifications', icon: 'bell' },
+                { id: 'workflow-engine', label: 'Workflow Engine', icon: 'refreshCw' },
+                { id: 'sustainability', label: 'Sustainability', icon: 'globe' },
+                { id: 'integration-hub', label: 'Integration Hub', icon: 'server' },
                 { id: 'facebook-leads', label: 'Facebook Leads', icon: 'globe' },
             ]},
             { section: 'Enterprise Control', items: [
@@ -462,6 +490,7 @@ var App = {
                 { id: 'ai-ceo-dashboard', label: 'AI CEO Dashboard', icon: 'brain' },
                 { id: 'cost-centers', label: 'Cost Centers', icon: 'briefcase' },
                 { id: 'activity-timeline', label: 'Activity Timeline', icon: 'clock' },
+                { id: 'executive-intelligence', label: 'Executive Intelligence', icon: 'pieChart' },
             ]}
           ];
       } else {
@@ -1236,6 +1265,30 @@ var App = {
         if (App.isOwner() && Pages['ceo-dashboard']) Pages['ceo-dashboard'](el);
         else Pages.empDashboard(el);
         break;
+
+      // ========== ENTERPRISE MANUFACTURING INTELLIGENCE (v14.0) ==========
+      case 'production-analysis': if (typeof Pages.productionAnalysis === 'function') Pages.productionAnalysis(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Production Analysis...</h3></div>'; break;
+      case 'oee-dashboard': if (typeof Pages.oeeDashboard === 'function') Pages.oeeDashboard(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading OEE Dashboard...</h3></div>'; break;
+      case 'mrp-planning': if (typeof Pages.mrpPlanning === 'function') Pages.mrpPlanning(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading MRP...</h3></div>'; break;
+      case 'aps-scheduling': if (typeof Pages.apsScheduling === 'function') Pages.apsScheduling(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading APS...</h3></div>'; break;
+
+      // ========== ADVANCED QUALITY / WMS / MAINTENANCE (v14.0) ==========
+      case 'advanced-quality': if (typeof Pages.advancedQuality === 'function') Pages.advancedQuality(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Advanced Quality...</h3></div>'; break;
+      case 'wms-management': if (typeof Pages.wmsManagement === 'function') Pages.wmsManagement(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading WMS...</h3></div>'; break;
+      case 'advanced-maintenance': if (typeof Pages.advancedMaintenance === 'function') Pages.advancedMaintenance(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Advanced Maintenance...</h3></div>'; break;
+
+      // ========== AI COPILOT & EXECUTIVE INTELLIGENCE (v14.0) ==========
+      case 'ai-copilot': if (typeof Pages.aiCopilot === 'function') Pages.aiCopilot(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading AI Copilot...</h3></div>'; break;
+      case 'executive-intelligence': if (typeof Pages.executiveIntelligence === 'function') Pages.executiveIntelligence(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Executive Intelligence...</h3></div>'; break;
+      case 'ai-agents': if (typeof Pages.aiAgents === 'function') Pages.aiAgents(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading AI Agents...</h3></div>'; break;
+
+      // ========== ADVANCED FINANCE / HR / WORKFLOW / SUSTAINABILITY (v14.0) ==========
+      case 'advanced-finance': if (typeof Pages.advancedFinance === 'function') Pages.advancedFinance(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Advanced Finance...</h3></div>'; break;
+      case 'advanced-hr': if (typeof Pages.advancedHR === 'function') Pages.advancedHR(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Advanced HR...</h3></div>'; break;
+      case 'workflow-engine': if (typeof Pages.workflowEngine === 'function') Pages.workflowEngine(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Workflow Engine...</h3></div>'; break;
+      case 'sustainability': if (typeof Pages.sustainability === 'function') Pages.sustainability(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Sustainability...</h3></div>'; break;
+      case 'integration-hub': if (typeof Pages.integrationHub === 'function') Pages.integrationHub(el); else el.innerHTML = '<div style="padding:40px;text-align:center"><h3>Loading Integration Hub...</h3></div>'; break;
+
       default: Pages.empDashboard(el);
     }
     
