@@ -22,23 +22,23 @@ Pages.costCenters = function(el) {
     var endOfMonth = new Date(selectedYear, selectedMonth, 0, 23, 59, 59).toISOString();
 
     Promise.all([
-      sbClient.from('users').select('id, full_name, department, base_salary, role').eq('status', 'active'),
-      sbClient.from('salary_adjustments').select('*').gte('created_at', startOfMonth).lte('created_at', endOfMonth).eq('status', 'approved'),
-      sbClient.from('attendance').select('employee_id, overtime_amount, delay_minutes').gte('date', startOfMonth).lte('date', endOfMonth),
-      sbClient.from('petty_cash_transactions').select('*').gte('created_at', startOfMonth).lte('created_at', endOfMonth).eq('type', 'expense').eq('status', 'approved'),
-      sbClient.from('driver_missions').select('total_cost, driver_cost, fuel_amount').gte('created_at', startOfMonth).lte('created_at', endOfMonth),
-      sbClient.from('maintenance_records').select('cost').gte('created_at', startOfMonth).lte('created_at', endOfMonth)
+      sbClient.from('users').select('id, full_name, department, base_salary, role').eq('status', 'active').then(function(r){ return r.data || []; }).catch(function(){ return []; }),
+      sbClient.from('salary_adjustments').select('*').gte('created_at', startOfMonth).lte('created_at', endOfMonth).eq('status', 'approved').then(function(r){ return r.data || []; }).catch(function(){ return []; }),
+      sbClient.from('attendance').select('employee_id, overtime_amount, delay_minutes').gte('date', startOfMonth).lte('date', endOfMonth).then(function(r){ return r.data || []; }).catch(function(){ return []; }),
+      sbClient.from('expenses').select('*').gte('created_at', startOfMonth).lte('created_at', endOfMonth).then(function(r){ return r.data || []; }).catch(function(){ return []; }),
+      sbClient.from('missions').select('*').gte('created_at', startOfMonth).lte('created_at', endOfMonth).then(function(r){ return r.data || []; }).catch(function(){ return []; }),
+      sbClient.from('spare_parts_requests').select('repair_cost_estimate, department, created_at').gte('created_at', startOfMonth).lte('created_at', endOfMonth).then(function(r){ return r.data || []; }).catch(function(){ return []; })
     ]).then(function(results) {
-      dataCache.users = results[0].data || [];
-      dataCache.adjustments = results[1].data || [];
-      dataCache.attendance = results[2].data || [];
-      dataCache.pettyCash = results[3].data || [];
-      dataCache.missions = results[4].data || [];
-      dataCache.maintenance = results[5].data || [];
+      dataCache.users = results[0] || [];
+      dataCache.adjustments = results[1] || [];
+      dataCache.attendance = results[2] || [];
+      dataCache.pettyCash = results[3] || [];
+      dataCache.missions = results[4] || [];
+      dataCache.maintenance = results[5] || [];
       
       renderDashboard();
     }).catch(function(err) {
-      el.innerHTML = '<div style="padding:40px;color:var(--accent-danger);text-align:center">Error loading data: ' + err.message + '</div>';
+      el.innerHTML = '<div style="padding:40px;color:var(--accent-danger);text-align:center">Error loading data: ' + (err ? err.message : 'Unknown error') + '</div>';
     });
   }
 
@@ -73,7 +73,7 @@ Pages.costCenters = function(el) {
 
     // 4. Expenses
     dataCache.pettyCash.forEach(function(e) {
-      var d = e.department || userDept[e.requested_by] || 'Administration'; 
+      var d = e.department || userDept[e.employee_id] || userDept[e.requested_by] || 'Administration'; 
       if (!depts[d]) depts[d] = { name: d, headcount: 0, salaries: 0, overtime: 0, bonuses: 0, penalties: 0, expenses: 0, logistics: 0, maintenance: 0, total: 0 };
       depts[d].expenses += (parseFloat(e.amount) || 0);
     });
@@ -89,7 +89,7 @@ Pages.costCenters = function(el) {
     var maintDept = 'Maintenance';
     if (!depts[maintDept]) depts[maintDept] = { name: maintDept, headcount: 0, salaries: 0, overtime: 0, bonuses: 0, penalties: 0, expenses: 0, logistics: 0, maintenance: 0, total: 0 };
     dataCache.maintenance.forEach(function(m) {
-      depts[maintDept].maintenance += (parseFloat(m.cost) || 0);
+      depts[maintDept].maintenance += (parseFloat(m.repair_cost_estimate) || parseFloat(m.cost) || 0);
     });
 
     // Calculate Totals

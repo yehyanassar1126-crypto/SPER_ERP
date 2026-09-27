@@ -75,20 +75,26 @@ Pages.recruitment = function (el) {
     }
   }
 
-  // Fetch from DB or mock if table missing
+  // Fetch from DB with resilient fallbacks
   Promise.all([
-    sbClient.from('recruitment_jobs').select('*'),
-    sbClient.from('recruitment_applicants').select('*')
+    sbClient.from('job_postings').select('*').then(function(r){ return r.data && r.data.length ? r.data : null; }).catch(function(){ return null; }),
+    sbClient.from('ats_applications').select('*').then(function(r){ return r.data || []; }).catch(function(){ return []; })
   ]).then(function (results) {
-    if (results[0].error && results[0].error.code === '42P01') {
-      // Table doesn\'t exist, use mock data
-      jobs = [{id: '1', title: 'Senior Developer', department: 'IT', status: 'open'}, {id: '2', title: 'HR Specialist', department: 'HR', status: 'closed'}];
-      applicants = [];
+    if (results[0]) {
+      jobs = results[0];
+      applicants = results[1] || [];
+      render();
     } else {
-      jobs = results[0].data || [];
-      applicants = results[1].data || [];
+      sbClient.from('recruitment_jobs').select('*').then(function(r2) {
+        jobs = (r2 && r2.data) ? r2.data : [];
+        applicants = results[1] || [];
+        render();
+      }).catch(function() {
+        jobs = [];
+        applicants = results[1] || [];
+        render();
+      });
     }
-    render();
   });
   
   el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading Recruitment ATS...</div>';

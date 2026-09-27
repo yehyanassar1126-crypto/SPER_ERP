@@ -1001,16 +1001,13 @@ var App = {
     menu.forEach(function (section) {
       var visibleItems = [];
       section.items.forEach(function(item) {
-          if (App.user && App.user.role === 'owner') {
+          if (App.user && (App.user.role === 'owner' || (App.user.role && App.user.role.toLowerCase() === 'owner'))) {
               visibleItems.push(item);
-          } else if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers._hasCustomConfig) {
-              // If DB permissions exist (even if all are revoked), strictly rely on them for visibility
-              var hasView = SecurityHelpers._cachedPermissions.some(function(p) {
-                  return p.module === item.id && p.granted;
-              });
-              if (hasView) visibleItems.push(item);
+          } else if (typeof SecurityHelpers !== 'undefined') {
+              if (SecurityHelpers.hasPermission(item.id, 'view')) {
+                  visibleItems.push(item);
+              }
           } else {
-              // Fallback to legacy logic: if it reached here, legacy logic allowed it, and user has NO custom config
               visibleItems.push(item);
           }
       });

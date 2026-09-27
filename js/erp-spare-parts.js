@@ -11,9 +11,9 @@ Pages.spareParts = function(el) {
   var isLogistics = App.user && App.user.department === 'Logistics';
 
   var canRequest = true; // Any employee could potentially request, but mostly Maintenance/Logistics
-  var canApprove = isManager || isOwner || isHR || isWarehouse;
-  var canIssue = isWarehouse || isOwner;
-  var canCheckQuality = isSparePartsInspector || isOwner;
+  var canApprove = isManager || isOwner || isHR || isWarehouse || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('spare-parts', 'approve'));
+  var canIssue = isWarehouse || isOwner || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('spare-parts', 'approve'));
+  var canCheckQuality = isSparePartsInspector || isOwner || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('spare-parts', 'approve'));
 
   var requests = [];
 

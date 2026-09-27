@@ -47,7 +47,7 @@ window.SalesWorkflow = {
 Pages.sales = function(el) {
   var isOwner = App.isOwner();
   var isSales = App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager');
-  var canEdit = isOwner || isSales;
+  var canEdit = isOwner || isSales || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('erp-sales', 'view'));
 
   if (!canEdit) {
     el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Sales department.</p></div>';

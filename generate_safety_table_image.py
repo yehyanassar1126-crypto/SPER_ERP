@@ -1,0 +1,322 @@
+import os
+import asyncio
+from playwright.async_api import async_playwright
+
+HTML_SAFETY_TABLE = """<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Occupational Safety & Health (HSE) Cycles - Ninja Smart Factory ERP</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: #0c0a09;
+    color: #e2e8f0;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+    padding: 30px;
+    width: 1850px;
+  }
+
+  .container {
+    background: #1c1917;
+    border: 1px solid #292524;
+    border-radius: 14px;
+    padding: 25px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 22px;
+    padding: 20px;
+    background: linear-gradient(135deg, #292524, #1c1917);
+    border-radius: 10px;
+    border: 1px solid #f97316;
+    position: relative;
+  }
+  .header h1 {
+    font-size: 27px;
+    font-weight: 900;
+    color: #fb923c;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 15px;
+    color: #fdba74;
+    font-weight: 600;
+  }
+
+  .badge-bar {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .badge-macro {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: #292524;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  th {
+    background: #44403c;
+    color: #ffffff;
+    padding: 11px 10px;
+    font-size: 13.5px;
+    font-weight: 800;
+    text-align: right;
+    border-bottom: 2px solid #f97316;
+  }
+
+  td {
+    padding: 10px 10px;
+    border-bottom: 1px solid #44403c;
+    font-size: 12.5px;
+    vertical-align: middle;
+  }
+
+  tr:nth-child(even) {
+    background: #201d1b;
+  }
+  tr:hover {
+    background: #2d2825;
+  }
+
+  .num-badge {
+    background: #78350f;
+    color: #fde68a;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 12px;
+    text-align: center;
+    display: inline-block;
+  }
+
+  .cycle-name {
+    font-weight: 800;
+    font-size: 13.5px;
+    color: #f8fafc;
+  }
+  .cycle-cat {
+    font-size: 11px;
+    color: #fdba74;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .screen-tag {
+    display: inline-block;
+    background: rgba(249, 115, 22, 0.15);
+    border: 1px solid #ea580c;
+    color: #fed7aa;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin: 2px;
+  }
+
+  .output-cell {
+    color: #e7e5e4;
+    line-height: 1.35;
+    font-size: 12px;
+  }
+
+  .target-badge {
+    display: inline-block;
+    background: #064e3b;
+    border: 1px solid #10b981;
+    color: #a7f3d0;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .target-alert {
+    background: #7f1d1d;
+    border: 1px solid #ef4444;
+    color: #fecaca;
+  }
+  .target-warn {
+    background: #713f12;
+    border: 1px solid #eab308;
+    color: #fef08a;
+  }
+  .target-sec {
+    background: #1e3a8a;
+    border: 1px solid #38bdf8;
+    color: #bae6fd;
+  }
+
+  .footer-summary {
+    margin-top: 18px;
+    padding: 14px 20px;
+    background: linear-gradient(90deg, #292524, #1c1917);
+    border-radius: 8px;
+    border: 1px solid #f97316;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #fdba74;
+  }
+  .footer-summary b {
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <div class="header">
+    <h1>NINJA SMART FACTORY ERP - مصفوفة الدورات التشغيلية والوقائية الـ 12 للسلامة والصحة المهنية (HSE)</h1>
+    <p>حماية الأرواح، اشتراطات بيئة العمل الآمنة، مهمات الوقاية PPE، إدارة إصابات العمل، وخطط الطوارئ والدفاع المدني</p>
+    <div class="badge-bar">
+      <span class="badge-macro" style="background:#7c2d12; color:#ffedd5;">4 محاور وقائية ورقابية</span>
+      <span class="badge-macro" style="background:#14532d; color:#bbf7d0;">12 دورة تشغيلية وتنظيمية</span>
+      <span class="badge-macro" style="background:#831843; color:#fce7f3;">مكافحة الحوادث والحرائق والتراخيص</span>
+      <span class="badge-macro" style="background:#1e3a8a; color:#bfdbfe;">الامتثال لمعايير ISO 45001 ومكتب السلامة</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 3.5%;">#</th>
+        <th style="width: 22%;">دورة السلامة والصحة المهنية</th>
+        <th style="width: 24%;">الشاشات المرتبطة في النظام</th>
+        <th style="width: 31%;">مخرجات وهدف الدورة التشغيلي بالمصنع</th>
+        <th style="width: 19.5%;">المصب النهائي للبيانات</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="num-badge">01</span></td>
+        <td><span class="cycle-name">دورة صرف وتجديد مهمات الوقاية (PPE)</span><span class="cycle-cat">محور: مهمات الوقاية وبيئة العمل الصناعية</span></td>
+        <td><span class="screen-tag">41. الزي الرسمي</span><span class="screen-tag">50. تسليم العهد</span><span class="screen-tag">29. الموظفين</span></td>
+        <td>صرف خوذات الأمان، أحذية السيفتي، النظارات الواقية، والكمامات طبقاً لطبيعة كل قسم ومتابعة مدة الاستهلاك المقررة.</td>
+        <td><span class="target-badge">سجل عهدة وقاية شخصية معتمد</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">02</span></td>
+        <td><span class="cycle-name">دورة التفتيش الدوري على حواجز الماكينات</span><span class="cycle-cat">محور: مهمات الوقاية وبيئة العمل الصناعية</span></td>
+        <td><span class="screen-tag">24. المعدات</span><span class="screen-tag">22. الصيانة</span><span class="screen-tag">55. التقويم</span></td>
+        <td>فحص أجهزة الإيقاف الطارئ (E-Stop)، الحواجز الميكانيكية، وحساسات الليزر لخطوط الإنتاج لمنع حوادث البتر والانحشار.</td>
+        <td><span class="target-badge target-sec">تقرير أمان الماكينات وجاهزية التشغيل</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">03</span></td>
+        <td><span class="cycle-name">دورة قياس وتقييم مخاطر بيئة العمل الصناعية</span><span class="cycle-cat">محور: مهمات الوقاية وبيئة العمل الصناعية</span></td>
+        <td><span class="screen-tag">60. المستندات</span><span class="screen-tag">58. العقل الذكي</span></td>
+        <td>قياس مستويات الضوضاء، الإضاءة، الغازات المنبعثة، والحرارة بصالات الإنتاج ومطابقتها للحدود المسموحة بيئياً وصحياً.</td>
+        <td><span class="target-badge">سجل المخاطر البيئية والفيزيائية المعتمد</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">04</span></td>
+        <td><span class="cycle-name">دورة الإبلاغ والاستجابة لإصابات وحوادث العمل</span><span class="cycle-cat">محور: إدارة حوادث العمل والتحقيقات</span></td>
+        <td><span class="screen-tag">73. الاحتياجات الطبية</span><span class="screen-tag">42. الطلبات الطبية</span><span class="screen-tag">57. الإشعارات</span></td>
+        <td>التدخل الفوري لتقديم الإسعافات الأولية ونقل المصاب للمستشفى مع إطلاق إشعار حرج للإدارة الطبية ومسؤول السلامة.</td>
+        <td><span class="target-badge target-alert">سجل حوادث العمل وتفادي تكرار الإصابة</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">05</span></td>
+        <td><span class="cycle-name">دورة التحقيق في الحوادث وتحليل الأسباب الجذرية</span><span class="cycle-cat">محور: إدارة حوادث العمل والتحقيقات</span></td>
+        <td><span class="screen-tag">46. الشكاوى والجزاءات</span><span class="screen-tag">60. المستندات</span><span class="screen-tag">11. القانونية</span></td>
+        <td>معاينة موقع الحادث وتفريغ الكاميرات وسماع شهود العيان وتحليل السبب الجذري (RCA) لاتخاذ الإجراء التصحيحي (CAPA).</td>
+        <td><span class="target-badge target-alert">محضر تحقيق حادث وإجراء تصحيحي ملزم</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">06</span></td>
+        <td><span class="cycle-name">دورة الإخطار القانوني والتأميني لإصابة العمل</span><span class="cycle-cat">محور: إدارة حوادث العمل والتحقيقات</span></td>
+        <td><span class="screen-tag">11. شؤون قانونية</span><span class="screen-tag">43. موافقات الطبية</span><span class="screen-tag">60. المستندات</span></td>
+        <td>تحرير استمارة إخطار إصابة عمل رسمية (س 5 تأمينات) وإرسالها لمكتب العمل والتأمينات خلال 48 ساعة لحفظ حقوق العامل والمصنع.</td>
+        <td><span class="target-badge target-warn">إخطار تأميني رسمي موثق حكومياً</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">07</span></td>
+        <td><span class="cycle-name">دورة تدريبات الإخلاء ومناورات مكافحة الحريق</span><span class="cycle-cat">محور: خطط الطوارئ وتراخيص الدفاع المدني</span></td>
+        <td><span class="screen-tag">49. تدريب</span><span class="screen-tag">55. التقويم</span><span class="screen-tag">52. الإعلانات</span></td>
+        <td>تنظيم مناورات إخلاء وهمية نصف سنوية لجميع خطوط الإنتاج وتدريب فرق الطوارئ على استخدام طفايات وخراطيم الحريق.</td>
+        <td><span class="target-badge target-sec">شهادة إتمام مناورة إخلاء معتمدة</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">08</span></td>
+        <td><span class="cycle-name">دورة فحص وصيانة شبكات إنذار وإطفاء الحريق</span><span class="cycle-cat">محور: خطط الطوارئ وتراخيص الدفاع المدني</span></td>
+        <td><span class="screen-tag">22. الصيانة</span><span class="screen-tag">23. شركات الصيانة</span><span class="screen-tag">24. المعدات</span></td>
+        <td>الفحص الدوري الشهري لضغط طلمبات الحريق، الرشاشات التلقائية (Sprinklers)، وصلاحية خراطيم وطفايات البودرة والـ CO2.</td>
+        <td><span class="target-badge target-sec">تقرير فحص شبكة الحماية المدنية</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">09</span></td>
+        <td><span class="cycle-name">دورة تجديد تراخيص السلامة والدفاع المدني</span><span class="cycle-cat">محور: خطط الطوارئ وتراخيص الدفاع المدني</span></td>
+        <td><span class="screen-tag">11. شؤون قانونية</span><span class="screen-tag">55. التقويم</span><span class="screen-tag">60. المستندات</span></td>
+        <td>متابعة استيفاء ملاحظات لجان التفتيش وتجديد موافقة الحماية المدنية السنوية وتفادي فرض غرامات أو قرارات غلق جزئي.</td>
+        <td><span class="target-badge">شهادة صلاحية دفاع مدني سارية رسمياً</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">10</span></td>
+        <td><span class="cycle-name">دورة الفحوصات الطبية الدورية للأمراض المهنية</span><span class="cycle-cat">محور: الرقابة الصحية وضبط المخالفات</span></td>
+        <td><span class="screen-tag">42. الطلبات الطبية</span><span class="screen-tag">43. موافقات الطبية</span><span class="screen-tag">29. الموظفين</span></td>
+        <td>إجراء الفحوصات المهنية السنوية لعمال الدهانات (وظائف كبد ورئة)، عمال المكابس (سمعيات)، وسائقي الرافعات (نظر وباطنة).</td>
+        <td><span class="target-badge">شهادات لياقة مهنية وسجل صحي معتمد</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">11</span></td>
+        <td><span class="cycle-name">دورة ضبط مخالفات السلامة والإنذارات التصاعدية</span><span class="cycle-cat">محور: الرقابة الصحية وضبط المخالفات</span></td>
+        <td><span class="screen-tag">46. الشكاوى والجزاءات</span><span class="screen-tag">51. الإنذارات</span><span class="screen-tag">37. المرتبات</span></td>
+        <td>رصد عدم ارتداء مهمات الوقاية (PPE) أو التدخين في المناطق الخطرة، وتوقيع الجزاءات والإنذارات الرسمية فوراً.</td>
+        <td><span class="target-badge target-warn">إنذار رسمي وخصم تأديبي بمسير الرواتب (37)</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">12</span></td>
+        <td><span class="cycle-name">دورة تصاريح العمل في الأماكن الخطرة (PTW)</span><span class="cycle-cat">محور: الرقابة الصحية وضبط المخالفات</span></td>
+        <td><span class="screen-tag">59. المهام</span><span class="screen-tag">47. عمل الجمعة</span><span class="screen-tag">11. شؤون قانونية</span></td>
+        <td>إصدار تصاريح العمل الساخن (لحام/قطع)، العمل في الأماكن المغلقة، أو العمل على ارتفاعات، والتحقق من عزل مصادر الطاقة (LOTO).</td>
+        <td><span class="target-badge">تصريح عمل ساخن / آمن معتمد وموقع</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-summary">
+    <div><b>ملاحظة معمارية للمناقشة:</b> إدارة السلامة والصحة المهنية هي <b>صمام أمان الأرواح والمنشآت الصناعية</b>؛ وتكاملها مع الصيانة والعيادة والشؤون القانونية يحمي المصنع من الحوادث الجسيمة والغرامات التنظيمية.</div>
+    <div style="font-weight:700; color:#fb923c;">Ninja Smart Factory ERP © 2026</div>
+  </div>
+
+</div>
+
+</body>
+</html>
+"""
+
+async def generate_safety_table_image():
+    html_path = os.path.abspath("ninja_safety_table.html")
+    png_path = os.path.abspath("ninja_safety_cycles_table.png")
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(HTML_SAFETY_TABLE)
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page(viewport={"width": 1900, "height": 1200}, device_scale_factor=2)
+        await page.goto(f"file:///{html_path.replace(os.sep, '/')}", wait_until="networkidle")
+        await page.wait_for_timeout(500)
+        await page.screenshot(path=png_path, full_page=True)
+        await browser.close()
+    print(f"Safety Table Image generated successfully at: {png_path}")
+
+if __name__ == "__main__":
+    asyncio.run(generate_safety_table_image())

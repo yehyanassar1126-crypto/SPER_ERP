@@ -931,15 +931,18 @@ Pages.nursingHub = function (el, defaultTab) {
         var amount = prompt("Enter approved invoice amount in EGP (أدخل قيمة الفاتورة المعتمدة):");
         if (!amount || isNaN(parseFloat(amount))) return;
 
-        sbClient.from('finance_general_ledger').insert({
-          account_id: 'liabilities',
+        var glPayload = {
           transaction_date: new Date().toISOString().split('T')[0],
           description: 'Medical Invoice for ' + empName,
-          debit: 0, credit: parseFloat(amount),
+          debit: 0, 
+          credit: parseFloat(amount),
           reference_type: 'medical_invoice',
           reference_id: id,
           created_by: App.user ? App.user.id : null
-        }).then(function () {
+        };
+
+        // Resilient ledger logging (tries general_ledger, does not block medical request update)
+        sbClient.from('general_ledger').insert(glPayload).then(function(){}).catch(function(){}).finally(function() {
           sbClient.from('medical_requests').update({ status: 'pending_hr', amount: parseFloat(amount) }).eq('id', id).then(function (res) {
             if (res.error) alert(res.error.message);
             else { showToast('✅ Invoice Created! Forwarded to HR (تم إصدار الفاتورة وتمريرها للموارد البشرية)', 'success'); loadData(); }

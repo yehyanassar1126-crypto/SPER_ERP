@@ -1,0 +1,322 @@
+import os
+import asyncio
+from playwright.async_api import async_playwright
+
+HTML_OWNER_TABLE = """<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Owner & Executive Leadership Cycles - Ninja Smart Factory ERP</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: #0c0a09;
+    color: #e2e8f0;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+    padding: 30px;
+    width: 1850px;
+  }
+
+  .container {
+    background: #171513;
+    border: 1px solid #332a1e;
+    border-radius: 14px;
+    padding: 25px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 22px;
+    padding: 20px;
+    background: linear-gradient(135deg, #2b2111, #171513);
+    border-radius: 10px;
+    border: 1px solid #d97706;
+    position: relative;
+  }
+  .header h1 {
+    font-size: 27px;
+    font-weight: 900;
+    color: #fbbf24;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 15px;
+    color: #fde68a;
+    font-weight: 600;
+  }
+
+  .badge-bar {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .badge-macro {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: #24201b;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  th {
+    background: #3d311d;
+    color: #ffffff;
+    padding: 11px 10px;
+    font-size: 13.5px;
+    font-weight: 800;
+    text-align: right;
+    border-bottom: 2px solid #d97706;
+  }
+
+  td {
+    padding: 10px 10px;
+    border-bottom: 1px solid #383025;
+    font-size: 12.5px;
+    vertical-align: middle;
+  }
+
+  tr:nth-child(even) {
+    background: #1c1915;
+  }
+  tr:hover {
+    background: #2e281f;
+  }
+
+  .num-badge {
+    background: #78350f;
+    color: #fef3c7;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 12px;
+    text-align: center;
+    display: inline-block;
+  }
+
+  .cycle-name {
+    font-weight: 800;
+    font-size: 13.5px;
+    color: #ffffff;
+  }
+  .cycle-cat {
+    font-size: 11px;
+    color: #fbbf24;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .screen-tag {
+    display: inline-block;
+    background: rgba(217, 119, 6, 0.18);
+    border: 1px solid #d97706;
+    color: #fde68a;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin: 2px;
+  }
+
+  .output-cell {
+    color: #f5f5f4;
+    line-height: 1.35;
+    font-size: 12px;
+  }
+
+  .target-badge {
+    display: inline-block;
+    background: #064e3b;
+    border: 1px solid #10b981;
+    color: #a7f3d0;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+  .target-gold {
+    background: #713f12;
+    border: 1px solid #eab308;
+    color: #fef08a;
+  }
+  .target-sec {
+    background: #701a75;
+    border: 1px solid #d946ef;
+    color: #f5d0fe;
+  }
+  .target-ops {
+    background: #1e3a8a;
+    border: 1px solid #38bdf8;
+    color: #bae6fd;
+  }
+
+  .footer-summary {
+    margin-top: 18px;
+    padding: 14px 20px;
+    background: linear-gradient(90deg, #2b2111, #171513);
+    border-radius: 8px;
+    border: 1px solid #d97706;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #fde68a;
+  }
+  .footer-summary b {
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <div class="header">
+    <h1>NINJA SMART FACTORY ERP - مصفوفة الدورات الاستراتيجية والقيادية الـ 12 للمالك والإدارة العليا (Owner)</h1>
+    <p>الرؤية المالية الشاملة EBITDA، الذكاء التنبؤي وكشف التسريب المالي، حوكمة العمليات، ومؤشرات الأداء السيادية للمصنع</p>
+    <div class="badge-bar">
+      <span class="badge-macro" style="background:#451a03; color:#fde68a;">4 محاور قيادية استراتيجية</span>
+      <span class="badge-macro" style="background:#1e3a8a; color:#bfdbfe;">12 دورة سيادية وتنظيمية</span>
+      <span class="badge-macro" style="background:#701a75; color:#f5d0fe;">كشف التسريب المالي والرقابة اللحظية</span>
+      <span class="badge-macro" style="background:#065f46; color:#a7f3d0;">تعظيم القيمة السوقية للمصنع والعائد ROI</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 3.5%;">#</th>
+        <th style="width: 22%;">الدورة الاستراتيجية والمحور</th>
+        <th style="width: 24%;">الشاشات المرتبطة في النظام</th>
+        <th style="width: 31%;">مخرجات وهدف الدورة التشغيلي بالمصنع</th>
+        <th style="width: 19.5%;">المصب النهائي للبيانات</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="num-badge">01</span></td>
+        <td><span class="cycle-name">دورة الرقابة على السيولة ومؤشرات الـ EBITDA</span><span class="cycle-cat">محور: الرؤية المالية الاستراتيجية وحماية الأصول</span></td>
+        <td><span class="screen-tag">1. لوحة المالك</span><span class="screen-tag">8. الإدارة المالية</span></td>
+        <td>الاطلاع اللحظي على صافي الربحية التشغيلية، التدفقات النقدية بالبنوك، إجمالي الذمم المدينة، وقيمة المخزون الإجمالية.</td>
+        <td><span class="target-badge target-gold">التقرير المالي السيادي والموقف النقدي</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">02</span></td>
+        <td><span class="cycle-name">دورة كشف نقاط التسريب المالي وانحراف الموازنات</span><span class="cycle-cat">محور: الرؤية المالية الاستراتيجية وحماية الأصول</span></td>
+        <td><span class="screen-tag">5. الذكاء للأونر</span><span class="screen-tag">3. تكلفة الإدارات</span></td>
+        <td>خوارزميات ذكية ترصد أي زيادة غير مبررة في استهلاك الخامات، الهدر بالخطوط، أو تجاوز موازنة مركز تكلفة محدد.</td>
+        <td><span class="target-badge target-gold">تنبيهات استباقية لوقف نزيف الأموال</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">03</span></td>
+        <td><span class="cycle-name">دورة تقييم أصول المصنع والعائد الرأسمالي (ROI)</span><span class="cycle-cat">محور: الرؤية المالية الاستراتيجية وحماية الأصول</span></td>
+        <td><span class="screen-tag">1. لوحة المالك</span><span class="screen-tag">24. المعدات</span><span class="screen-tag">9. شجرة الحسابات</span></td>
+        <td>متابعة القيمة الدفترية والسوقية لخطوط الإنتاج والعقارات والشاحنات ومعدل إهلاكها السنوي ومردود استثماراتها.</td>
+        <td><span class="target-badge">القيمة الرأسمالية الصافية للمصنع</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">04</span></td>
+        <td><span class="cycle-name">دورة التنبؤ بالطلب المستقبلي وتخطيط التوسعات</span><span class="cycle-cat">محور: الذكاء الاصطناعي التنبؤي وتطوير السوق</span></td>
+        <td><span class="screen-tag">5. الذكاء للأونر</span><span class="screen-tag">15. خطة الإنتاج</span><span class="screen-tag">12. أوامر البيع</span></td>
+        <td>تحليل اتجاهات السوق التاريخية للتنبؤ بحجم مبيعات المواسم القادمة لتحديد الحاجة لإضافة ماكينات أو خطوط جديدة.</td>
+        <td><span class="target-badge target-ops">خطة التوسع الرأسمالي والإنتاجي للمصنع</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">05</span></td>
+        <td><span class="cycle-name">دورة الرقابة على سياسات التسعير وهوامش الربح</span><span class="cycle-cat">محور: الذكاء الاصطناعي التنبؤي وتطوير السوق</span></td>
+        <td><span class="screen-tag">13. منتجات</span><span class="screen-tag">12. أوامر البيع</span><span class="screen-tag">1. لوحة المالك</span></td>
+        <td>اعتماد قوائم الأسعار وهوامش الربح المستهدفة لكل عائلة منتجات وضبط حدود الخصومات المسموحة لمديري المبيعات.</td>
+        <td><span class="target-badge target-gold">سياسة تسعير معتمدة وضمان هامش الربح</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">06</span></td>
+        <td><span class="cycle-name">دورة تحليل تكلفة الجودة الرديئة (COPQ)</span><span class="cycle-cat">محور: الذكاء الاصطناعي التنبؤي وتطوير السوق</span></td>
+        <td><span class="screen-tag">5. الذكاء للأونر</span><span class="screen-tag">21. فحوصات الجودة</span><span class="screen-tag">17. أوامر الإنتاج</span></td>
+        <td>حساب الخسائر المالية الناتجة عن المنتجات المعيبة، إعادة التشغيل، ومرتجعات العملاء وتحديد الخط الأكثر هدراً.</td>
+        <td><span class="target-badge target-gold">خطة خفض تكلفة الهدر وعيوب التصنيع</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">07</span></td>
+        <td><span class="cycle-name">دورة التدقيق والرقابة على سجل العمليات (Audit)</span><span class="cycle-cat">محور: حوكمة العمليات والرقابة والنزاهة</span></td>
+        <td><span class="screen-tag">4. سجل العمليات</span><span class="screen-tag">1. لوحة المالك</span></td>
+        <td>مراقبة فورية لأي تعديل على الفواتير، مسح القيود، تعديل الأرصدة المخزنية، أو التغيير في رواتب القيادات.</td>
+        <td><span class="target-badge target-sec">شفافية تامة ومنع أي شبهة تلاعب داخلي</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">08</span></td>
+        <td><span class="cycle-name">دورة اعتماد الصفقات والعقود والمشاريع الكبرى</span><span class="cycle-cat">محور: حوكمة العمليات والرقابة والنزاهة</span></td>
+        <td><span class="screen-tag">11. شؤون قانونية</span><span class="screen-tag">20. المشاريع</span><span class="screen-tag">7. طلبات شراء</span></td>
+        <td>الموافقة السيادية للمالك على عقود شراء الماكينات الكبرى، توريدات المواد الخام السنوية، والاتفاقيات الدولية.</td>
+        <td><span class="target-badge">عقود استثمارية معتمدة بتوقيع المالك</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">09</span></td>
+        <td><span class="cycle-name">دورة ضبط قواعد الحوكمة وتصعيد الأزمات</span><span class="cycle-cat">محور: حوكمة العمليات والرقابة والنزاهة</span></td>
+        <td><span class="screen-tag">58. العقل الذكي</span><span class="screen-tag">57. الإشعارات</span></td>
+        <td>برمجة تنبيهات الطوارئ لإرسال إشعار فوري لهاتف المالك عند توقف خط إنتاج رئيسي لأكثر من ساعتين أو حادث عمل حرج.</td>
+        <td><span class="target-badge target-sec">إشعار أزمة فوري للقيادة العليا</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">10</span></td>
+        <td><span class="cycle-name">دورة متابعة لوحة القيادة المركزية ومؤشرات OEE</span><span class="cycle-cat">محور: قيادة الأداء المؤسسي والقرارات السيادية</span></td>
+        <td><span class="screen-tag">2. لوحة المدير</span><span class="screen-tag">56. لوحة مؤشرات الأداء</span></td>
+        <td>استعراض الكفاءة التشغيلية الكلية للمصنع (OEE)، نسب تنفيذ خطط الإنتاج، ومعدل تسليم طلبيات العملاء في موعدها (OTIF).</td>
+        <td><span class="target-badge target-ops">تقييم الكفاءة الإنتاجية الشاملة للمصنع</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">11</span></td>
+        <td><span class="cycle-name">دورة إصدار القرارات والتعميمات السيادية</span><span class="cycle-cat">محور: قيادة الأداء المؤسسي والقرارات السيادية</span></td>
+        <td><span class="screen-tag">52. الإعلانات</span><span class="screen-tag">53. الشات الداخلي</span></td>
+        <td>بث القرارات الإدارية العليا، الترقيات، التعيينات القيادية، ومواعيد العطلات الرسمية لجميع شاشات وبوابات العاملين.</td>
+        <td><span class="target-badge">تعميم إداري رسمي نافذ فوراً لجميع الإدارات</span></td>
+      </tr>
+      <tr>
+        <td><span class="num-badge">12</span></td>
+        <td><span class="cycle-name">دورة الأرباح السنوية والمكافآت الاستثنائية</span><span class="cycle-cat">محور: قيادة الأداء المؤسسي والقرارات السيادية</span></td>
+        <td><span class="screen-tag">1. لوحة المالك</span><span class="screen-tag">37. المرتبات</span><span class="screen-tag">8. الإدارة المالية</span></td>
+        <td>اعتماد نسب توزيع الأرباح على المساهمين (Dividends) وصرف بونص الأداء السنوي للمهندسين ومديري الأقسام المتميزين.</td>
+        <td><span class="target-badge target-gold">صرف الأرباح ومكافآت الإنجاز السنوية</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-summary">
+    <div><b>ملاحظة معمارية للمناقشة:</b> لوحة المالك والذكاء الإضافي هما <b>قمرة القيادة الاستراتيجية للمصنع (C-Suite Cockpit)</b>؛ حيث تحول ملايين السجلات التشغيلية والمالية إلى قرارات واضحة لتعظيم الأرباح وإيقاف الهدر فوراً.</div>
+    <div style="font-weight:700; color:#fbbf24;">Ninja Smart Factory ERP © 2026</div>
+  </div>
+
+</div>
+
+</body>
+</html>
+"""
+
+async def generate_owner_table_image():
+    html_path = os.path.abspath("ninja_owner_table.html")
+    png_path = os.path.abspath("ninja_owner_cycles_table.png")
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(HTML_OWNER_TABLE)
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page(viewport={"width": 1900, "height": 1250}, device_scale_factor=2)
+        await page.goto(f"file:///{html_path.replace(os.sep, '/')}", wait_until="networkidle")
+        await page.wait_for_timeout(500)
+        await page.screenshot(path=png_path, full_page=True)
+        await browser.close()
+    print(f"Owner Table Image generated successfully at: {png_path}")
+
+if __name__ == "__main__":
+    asyncio.run(generate_owner_table_image())

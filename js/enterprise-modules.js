@@ -1231,7 +1231,7 @@ Pages.inventory = function(el) {
 // MODULE 9: Procurement & Purchase Requests
 // ==========================================
 Pages.purchaseRequests = function(el) {
-  var isAllowed = App.isOwner() || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
+  var isAllowed = App.isOwner() || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('purchase-requests', 'view')) || (App.user && (App.user.role === 'hr manager' || App.user.department === 'Finance' || App.user.department === 'Procurement'));
   if (!isAllowed) {
     el.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-danger)"><h3>Access Denied</h3><p>This module is restricted to Procurement, Finance, HR, and Owner.</p></div>';
     return;
@@ -2420,7 +2420,7 @@ Pages.pettyCash = function(el) {
              return { type: 'safe', id: safe.id, balance: safe.balance };
           });
         } else if (method === 'bank_transfer') {
-          checkPromise = sbClient.from('finance_banks').select('*').order('created_at').limit(1).single().then(function(res) {
+          checkPromise = sbClient.from('finance_bank_accounts').select('*').order('created_at').limit(1).single().then(function(res) {
              var bank = res.data;
              if (!bank || bank.balance < price) throw new Error('❌ عذراً، رصيد البنك لا يكفي لإتمام عملية الصرف!');
              return { type: 'bank', id: bank.id, balance: bank.balance };
@@ -2454,7 +2454,7 @@ Pages.pettyCash = function(el) {
               if (acctData.type === 'safe') {
                  sbClient.from('finance_safes').update({balance: Number(acctData.balance) - price}).eq('id', acctData.id).then(function() {});
               } else if (acctData.type === 'bank') {
-                 sbClient.from('finance_banks').update({balance: Number(acctData.balance) - price}).eq('id', acctData.id).then(function() {});
+                 sbClient.from('finance_bank_accounts').update({balance: Number(acctData.balance) - price}).eq('id', acctData.id).then(function() {});
               }
             }
 
@@ -2689,7 +2689,7 @@ Pages.pettyCash = function(el) {
             if (method === 'cash' && safes.length > 0) {
               sbClient.from('finance_safes').update({balance: Number(safes[0].balance) - amt}).eq('id', safes[0].id).then(function() {});
             } else if (method === 'bank_transfer' && banks.length > 0) {
-              sbClient.from('finance_banks').update({balance: Number(banks[0].balance) - amt}).eq('id', banks[0].id).then(function() {});
+              sbClient.from('finance_bank_accounts').update({balance: Number(banks[0].balance) - amt}).eq('id', banks[0].id).then(function() {});
             }
 
             showToast('✅ تم صرف النقدية', 'success'); App.closeModal(); loadData();

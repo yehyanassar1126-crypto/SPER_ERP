@@ -5,7 +5,8 @@ Pages.payrollFunding = function(el) {
   var isFinance = App.user && App.user.department === 'Finance';
   var isOwner = App.isOwner();
   var isHR = App.isHR();
-  if(!isFinance && !isOwner && !isHR) {
+  var hasPerm = typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('payroll-funding', 'view');
+  if(!isFinance && !isOwner && !isHR && !hasPerm) {
     el.innerHTML = '<div class="alert alert-danger text-center">Access Denied. Finance & HR Management only.</div>';
     return;
   }

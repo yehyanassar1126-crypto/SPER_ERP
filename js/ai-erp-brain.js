@@ -22,7 +22,7 @@ var AIBrain = {
     sbClient.from('suppliers').select('*').then(function(r){ data.suppliers = r.data||[]; done(); });
     sbClient.from('maintenance_requests').select('*').then(function(r){ data.maintenance = r.data||[]; done(); });
     sbClient.from('production_orders').select('*').then(function(r){ data.production = r.data||[]; done(); });
-    sbClient.from('quality_inspections').select('*').then(function(r){ data.quality = r.data||[]; done(); });
+    sbClient.from('qc_inspections').select('*').then(function(r){ data.quality = r.data||[]; done(); }).catch(function(){ data.quality = []; done(); });
     sbClient.from('expenses').select('*').then(function(r){ data.expenses = r.data||[]; done(); });
     sbClient.from('loans').select('*').then(function(r){ data.loans = r.data||[]; done(); });
   },

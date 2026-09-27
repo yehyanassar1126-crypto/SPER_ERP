@@ -10,9 +10,9 @@ Pages.maintenance = function(el) {
   var canEdit = isOwner || isMaintenance;
   var isProduction = App.user && (App.user.department === 'Production' || App.user.role === 'hall manager');
   var isHRManager = App.user && App.user.role === 'hr manager';
-  var canViewAll = canEdit || isHRManager || isProduction;
-
-  var hasAccess = isOwner || isProduction || isMaintenance || isHRManager;
+  var hasPerm = typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('erp-maintenance', 'view');
+  var hasAccess = isOwner || isProduction || isMaintenance || isHRManager || hasPerm;
+  var canViewAll = canEdit || isHRManager || isProduction || hasPerm;
   if (!hasAccess) {
     el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to Production, Maintenance, and HR Managers.</p></div>';
     return;

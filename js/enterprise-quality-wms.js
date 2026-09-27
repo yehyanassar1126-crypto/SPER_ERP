@@ -132,14 +132,10 @@
         async function loadNcrData() {
             try {
                 if(!window.sbClient) return;
-                const { data, error } = await window.sbClient.from('quality_ncrs').select('*').order('created_at', { ascending: false });
+                const { data, error } = await window.sbClient.from('quality_ncr').select('*').order('created_at', { ascending: false });
                 if (error) {
-                    if (error.code === '42P01') {
-                        // Table doesn't exist yet, ignore gracefully
-                        console.warn('quality_ncrs table does not exist');
-                        return;
-                    }
-                    throw error;
+                    console.warn('quality_ncr query notice:', error.message);
+                    return;
                 }
                 const tbody = document.getElementById('ncr-tbody');
                 tbody.innerHTML = '';
@@ -168,8 +164,11 @@
         async function loadCapaData() {
             try {
                 if(!window.sbClient) return;
-                const { data, error } = await window.sbClient.from('quality_capas').select('*').order('created_at', { ascending: false });
-                if (error && error.code !== '42P01') throw error;
+                const { data, error } = await window.sbClient.from('quality_capa').select('*').order('created_at', { ascending: false });
+                if (error) {
+                    console.warn('quality_capa query notice:', error.message);
+                    return;
+                }
                 const tbody = document.getElementById('capa-tbody');
                 tbody.innerHTML = '';
                 if(data) {

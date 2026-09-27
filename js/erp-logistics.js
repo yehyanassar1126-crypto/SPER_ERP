@@ -426,14 +426,15 @@ window.ERPLogistics = {
                     let timeIn = startTime.toTimeString().split(' ')[0].substring(0,5);
                     let timeOut = endTime.toTimeString().split(' ')[0].substring(0,5);
                     
-                    sbClient.from('hr_attendance').insert({
-                       user_id: App.user.id,
+                    sbClient.from('attendance').insert({
+                       employee_id: App.user.employee_id || App.user.id,
                        employee_name: App.user.full_name,
+                       department: App.user.department || 'Logistics',
                        date: dateStr,
-                       time_in: timeIn,
-                       time_out: timeOut,
-                       total_hours: parseFloat(diffHrs),
-                       status: 'Present'
+                       check_in: timeIn,
+                       check_out: timeOut,
+                       working_hours: parseFloat(diffHrs),
+                       status: 'present'
                     }).then(function(){
                        if (parseFloat(diffHrs) > 8) {
                           let extraHours = parseFloat(diffHrs) - 8;

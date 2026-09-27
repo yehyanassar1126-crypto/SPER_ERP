@@ -4,7 +4,7 @@ window.Pages = window.Pages || {};
 Pages.production = function(el) {
   var isOwner = App.isOwner();
   var isProduction = App.user && (App.user.department === 'Production' || App.user.role === 'hall manager');
-  var canEdit = isOwner || isProduction;
+  var canEdit = isOwner || isProduction || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('erp-production', 'view'));
 
   if (!canEdit) {
     el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Production department.</p></div>';

@@ -4,7 +4,7 @@ window.Pages = window.Pages || {};
 Pages.planning = function(el) {
   var isOwner = App.isOwner();
   var isPlanning = App.user && (App.user.department === 'Planning' || App.user.role === 'planning manager');
-  var canEdit = isOwner || isPlanning;
+  var canEdit = isOwner || isPlanning || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('erp-planning', 'view'));
 
   if (!canEdit) {
     el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Planning department.</p></div>';
