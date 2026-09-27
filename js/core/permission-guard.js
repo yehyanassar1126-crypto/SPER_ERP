@@ -134,9 +134,9 @@ window.PermissionGuard = {
 
     action = (action || 'view').toLowerCase();
 
-    // Self-service screens: allow view + create for own requests
+    // Self-service screens: allow view + create + edit for own requests
     if (PermissionGuard._selfServiceScreens.indexOf(screenId) !== -1) {
-      if (action === 'view' || action === 'create') return true;
+      if (action === 'view' || action === 'create' || action === 'edit') return true;
     }
 
     // Strict centralized check via SecurityHelpers
@@ -260,35 +260,111 @@ window.PermissionGuard = {
     if (screenId === 'screen-permissions') return;
 
     var _enforce = function() {
-      document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item):not([data-pg-checked])').forEach(function(btn) {
-        btn.setAttribute('data-pg-checked', 'true');
-        var action = 'view';
-        var text = (btn.innerText || '').toLowerCase();
+      var buttons = document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item)');
 
-        if (text.match(/إضافة|create|add|جديد|new|post/)) action = 'create';
-        else if (text.match(/تعديل|edit|update|حفظ|save/)) action = 'edit';
-        else if (text.match(/حذف|delete|remove|مسح|🗑/)) action = 'delete';
-        else if (text.match(/اعتماد|approve|موافقة/)) action = 'approve';
-        else if (text.match(/رفض|reject/)) action = 'reject';
-        else if (text.match(/تصدير|export|download/)) action = 'export';
-        else if (text.match(/طباعة|print/)) action = 'print';
-        else return;
+      buttons.forEach(function(btn) {
+        var btnText = (btn.innerText || '').trim().toLowerCase();
+        var btnTitle = (btn.getAttribute('title') || '').trim().toLowerCase();
+        var btnOnclick = (btn.getAttribute('onclick') || '').toLowerCase();
+        var btnClass = (btn.className || '').toLowerCase();
+        var btnId = (btn.id || '').toLowerCase();
+        var dataAction = (btn.getAttribute('data-action') || '').toLowerCase();
 
-        if (!PermissionGuard.canAction(screenId, action)) {
-          btn.disabled = true;
-          btn.style.opacity = '0.35';
-          btn.style.cursor = 'not-allowed';
-          btn.title = App.user.preferred_language === 'en'
-            ? 'Action denied: Missing "' + action.toUpperCase() + '" permission for this screen'
-            : 'غير مصرح: ليس لديك صلاحية ' + action.toUpperCase() + ' لهذه الشاشة';
-          btn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
-          btn.addEventListener('click', function(e) { e.stopImmediatePropagation(); e.preventDefault(); return false; }, true);
+        // 1. Exempt modal close, cancel, dismiss buttons
+        if (
+          btn.hasAttribute('data-dismiss') ||
+          btnClass.indexOf('modal-close') !== -1 ||
+          btnClass.indexOf('btn-close') !== -1 ||
+          btnOnclick.indexOf('closemodal') !== -1 ||
+          btnText === 'إلغاء' || btnText === 'cancel' || btnText === 'إغلاق' || btnText === 'close' || btnText === 'رجوع' || btnText === 'back'
+        ) {
+          return;
+        }
+
+        // 2. Exempt navigation tabs, filters, search, paginators
+        if (
+          btn.getAttribute('role') === 'tab' ||
+          btnClass.indexOf('tab') !== -1 ||
+          btnClass.indexOf('filter') !== -1 ||
+          btnClass.indexOf('page-link') !== -1 ||
+          btnClass.indexOf('dropdown') !== -1 ||
+          btnId.indexOf('search') !== -1
+        ) {
+          return;
+        }
+
+        // 3. Exempt buttons inside screen-permissions grid/toolbar
+        if (btn.closest('#bulk-actions-bar') || btn.closest('.perm-toolbar') || btn.closest('#perm-grid')) {
+          return;
+        }
+
+        var fullString = (btnText + ' ' + btnTitle + ' ' + btnId + ' ' + btnOnclick + ' ' + dataAction).toLowerCase();
+
+        var action = null;
+        if (fullString.match(/إضافة|create|add|جديد|new|insert|post/)) {
+          action = 'create';
+        } else if (fullString.match(/تعديل|edit|update|change/)) {
+          action = 'edit';
+        } else if (fullString.match(/حذف|delete|remove|مسح|trash|🗑/)) {
+          action = 'delete';
+        } else if (fullString.match(/اعتماد|approve|موافقة/)) {
+          action = 'approve';
+        } else if (fullString.match(/رفض|reject/)) {
+          action = 'reject';
+        } else if (fullString.match(/تصدير|export|download/)) {
+          action = 'export';
+        } else if (fullString.match(/طباعة|print/)) {
+          action = 'print';
+        } else if (fullString.match(/حفظ|save|submit/)) {
+          // "Save/حفظ/submit" buttons: if user has EITHER create OR edit, allow it!
+          var canSave = PermissionGuard.canAction(screenId, 'create') || PermissionGuard.canAction(screenId, 'edit');
+          if (!canSave) {
+            btn.disabled = true;
+            btn.style.opacity = '0.35';
+            btn.style.cursor = 'not-allowed';
+            btn.title = App.user.preferred_language === 'en'
+              ? 'Action denied: Missing SAVE/EDIT permission for this screen'
+              : 'غير مصرح: ليس لديك صلاحية الحفظ أو التعديل لهذه الشاشة';
+            btn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
+            btn.addEventListener('click', function(e) { e.stopImmediatePropagation(); e.preventDefault(); return false; }, true);
+          } else {
+            if (btn.disabled && btn.style.opacity === '0.35') {
+              btn.disabled = false;
+              btn.style.opacity = '';
+              btn.style.cursor = '';
+              btn.title = '';
+            }
+          }
+          return;
+        } else {
+          return;
+        }
+
+        if (action) {
+          if (!PermissionGuard.canAction(screenId, action)) {
+            btn.disabled = true;
+            btn.style.opacity = '0.35';
+            btn.style.cursor = 'not-allowed';
+            btn.title = App.user.preferred_language === 'en'
+              ? 'Action denied: Missing "' + action.toUpperCase() + '" permission for this screen'
+              : 'غير مصرح: ليس لديك صلاحية ' + action.toUpperCase() + ' لهذه الشاشة';
+            btn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
+            btn.addEventListener('click', function(e) { e.stopImmediatePropagation(); e.preventDefault(); return false; }, true);
+          } else {
+            // Restore enabled state if permission is granted
+            if (btn.disabled && btn.style.opacity === '0.35') {
+              btn.disabled = false;
+              btn.style.opacity = '';
+              btn.style.cursor = '';
+              btn.title = '';
+            }
+          }
         }
       });
     };
 
     _enforce();
-    setTimeout(_enforce, 500);
+    setTimeout(_enforce, 400);
 
     var contentEl = document.getElementById('page-content') || document.body;
     PermissionGuard._domObserver = new MutationObserver(function(mutations) {
@@ -297,6 +373,10 @@ window.PermissionGuard = {
       if (hasNew) _enforce();
     });
     PermissionGuard._domObserver.observe(contentEl, { childList: true, subtree: true });
+    var modalContainer = document.getElementById('modal-container') || document.querySelector('.modal-overlay');
+    if (modalContainer && modalContainer !== contentEl) {
+      PermissionGuard._domObserver.observe(modalContainer, { childList: true, subtree: true });
+    }
   },
 
   _domObserver: null

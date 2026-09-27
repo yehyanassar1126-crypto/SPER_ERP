@@ -429,11 +429,14 @@ var ERPPermissions = {
           defaultIds = ERPPermissions.allScreens.map(function(s){ return s.id; });
         } else if (['hr manager', 'hr'].indexOf(roleStr) !== -1 || dep === 'HR') {
           defaultIds = defaultIds.concat([
-            'employees', 'attendance', 'leaves', 'shifts', 'overtime', 'reports',
-            'audit-log', 'hr-qr-generator', 'hr-adjustments', 'team-adjustments',
+            'employees', 'attendance', 'leaves', 'shifts', 'overtime', 'absence-leave', 'all-delays',
+            'all-missions', 'employee-warnings', 'asset-assignment', 'payroll', 'payroll-funding',
+            'hr-adjustments', 'team-adjustments', 'dept-purchase-approvals', 'friday-work',
             'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'loans',
-            'expenses', 'medical-requests', 'nursing-page', 'org-directory', 'offboarding',
-            'training', 'performance-reviews', 'advanced-hr'
+            'expenses', 'medical-requests', 'nursing-page', 'nursing-medical-approvals', 'org-directory',
+            'offboarding', 'training', 'performance-reviews', 'advanced-hr', 'hr-qr-generator',
+            'reports', 'kpi-dashboard', 'print-templates', 'document-management', 'approval-workflows',
+            'global-search', 'audit-log', 'login-history', 'activity-log-page', 'ai-mind', 'it-tickets'
           ]);
         }
 
@@ -444,10 +447,14 @@ var ERPPermissions = {
           return defaultIds.indexOf(s.id) === -1;
         });
 
-        // Set default granted=true in memory for view
+        // Set default granted in memory
         userScreens.forEach(function(s) {
           ERPPermissions.actions.forEach(function(act) {
-            existing[s.id + '_' + act] = { granted: (act === 'view' || act === 'create') };
+            var isGranted = (act === 'view' || act === 'create');
+            if (roleStr === 'owner' || ['hr manager', 'hr'].indexOf(roleStr) !== -1 || dep === 'HR') {
+              isGranted = true;
+            }
+            existing[s.id + '_' + act] = { granted: isGranted };
           });
         });
       }

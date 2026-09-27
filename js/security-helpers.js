@@ -110,15 +110,22 @@ window.SecurityHelpers = {
     });
   },
 
-  // Permission checking - Centralized ACL Hierarchy (User Override > Role Default)
+  // Permission checking - Centralized ACL Hierarchy (User Override > Role Default > Domain Fallback)
   hasPermission: function(module, action) {
     if (!App.user) return false;
     // Owner has all permissions
     if (App.user.role && App.user.role.toLowerCase() === 'owner') return true;
 
     action = (action || 'view').toLowerCase();
+    var roleClean = (App.user.role || '').trim().toLowerCase();
 
-    // Self-service screens: all authenticated users can view and create their own records
+    // 0. Restricted system screens that strictly only Owner can access
+    var ownerOnlyScreens = ['system-settings', 'owner-dashboard', 'ceo-dashboard', 'ai-ceo-dashboard', 'screen-permissions'];
+    if (ownerOnlyScreens.indexOf(module) !== -1 && roleClean !== 'owner') {
+      return false;
+    }
+
+    // 1. Self-service screens: all authenticated users can view, create, and edit their own requests
     var selfServiceScreens = [
       'dashboard', 'hr-personal', 'my-attendance', 'scan-checkin', 'scan-checkout',
       'my-leaves', 'my-salary', 'my-overtime', 'my-loans', 'my-medical',
@@ -127,58 +134,87 @@ window.SecurityHelpers = {
     ];
 
     if (selfServiceScreens.indexOf(module) !== -1) {
-      if (action === 'view' || action === 'create') return true;
+      if (action === 'view' || action === 'create' || action === 'edit') return true;
     }
 
-    // 1. Check USER-SPECIFIC override first (highest precedence)
+    // 2. Check USER-SPECIFIC override first (highest precedence)
     if (SecurityHelpers._userPerms && SecurityHelpers._userPerms.length > 0) {
       var uMatch = SecurityHelpers._userPerms.find(function(p) {
-        return p.screen_id === module && p.action.toLowerCase() === action;
+        return p.screen_id === module && p.action && p.action.toLowerCase() === action;
       });
       if (uMatch !== undefined) {
         return uMatch.granted === true;
       }
     }
 
-    // 2. Check ROLE-SPECIFIC default
+    // 3. Check ROLE-SPECIFIC default from DB (second highest precedence)
     if (SecurityHelpers._rolePerms && SecurityHelpers._rolePerms.length > 0) {
       var rMatch = SecurityHelpers._rolePerms.find(function(p) {
-        return p.screen_id === module && p.action.toLowerCase() === action;
+        return p.screen_id === module && p.action && p.action.toLowerCase() === action;
       });
       if (rMatch !== undefined) {
         return rMatch.granted === true;
       }
     }
 
-    // 3. If custom permissions exist for this user or role, but this action wasn't granted:
-    if (SecurityHelpers._hasCustomConfig) {
-      return false;
+    // 4. Role-based Domain Authority Fallback:
+    // When no explicit record is found in DB for (module, action), don't blindly lock out users from their department's screens.
+    if (roleClean === 'hr manager' || roleClean === 'hr') {
+      var hrScreens = [
+        'employees', 'attendance', 'shifts', 'overtime', 'absence-leave', 'all-delays', 'all-missions',
+        'employee-warnings', 'asset-assignment', 'payroll', 'payroll-funding', 'hr-adjustments',
+        'recruitment', 'hr-ats', 'documents', 'performance', 'uniforms', 'medical-requests',
+        'nursing-page', 'nursing-medical-approvals', 'loans', 'expenses', 'complaints', 'offboarding',
+        'performance-reviews', 'training', 'hr-qr-generator', 'advanced-hr', 'hr-admin',
+        'leaves', 'friday-work', 'team-adjustments', 'dept-purchase-approvals',
+        'reports', 'kpi-dashboard', 'print-templates', 'document-management', 'approval-workflows',
+        'global-search', 'audit-log', 'login-history', 'activity-log-page', 'ai-mind', 'it-tickets'
+      ];
+      if (hrScreens.indexOf(module) !== -1) {
+        return true;
+      }
     }
 
-    // 4. Fallback legacy logic for initial setup when no custom permissions in DB
-    var roleClean = (App.user.role || '').toLowerCase();
-    if (['hr manager', 'hr'].indexOf(roleClean) !== -1) {
-      if (['system-settings', 'owner-dashboard', 'ceo-dashboard', 'ai-ceo-dashboard'].indexOf(module) !== -1) return false;
-      return true;
-    }
     if (['hall manager', 'department head', 'manager', 'supervisor', 'procurement manager', 'warehouse manager', 'planning manager', 'sales manager'].indexOf(roleClean) !== -1) {
-      if (['system-settings', 'owner-dashboard', 'ceo-dashboard', 'ai-ceo-dashboard', 'screen-permissions'].indexOf(module) !== -1) return false;
-      if (action === 'view' || action === 'create' || action === 'approve' || action === 'reject') return true;
+      var managerScreens = [
+        'leaves', 'dept-purchase-approvals', 'friday-work', 'team-adjustments', 'reports',
+        'kpi-dashboard', 'document-management', 'approval-workflows', 'global-search',
+        'production-analysis', 'oee-dashboard', 'mrp-planning', 'aps-scheduling', 'advanced-quality',
+        'wms-management', 'advanced-maintenance', 'production-kanban', 'shop-floor', 'demand-forecasting'
+      ];
+      if (managerScreens.indexOf(module) !== -1) {
+        if (action === 'view' || action === 'create' || action === 'edit' || action === 'approve' || action === 'reject' || action === 'export') {
+          return true;
+        }
+      }
     }
+
     if (['driver'].indexOf(roleClean) !== -1) {
       if (module === 'logistics' && (action === 'view' || action === 'create')) return true;
       return false;
     }
+
     if (['nursing management', 'nurse', 'nursing manager', 'doctor'].indexOf(roleClean) !== -1) {
-      if (['nursing-page', 'nursing-medical-approvals'].indexOf(module) !== -1) return true;
+      if (['nursing-page', 'nursing-medical-approvals', 'medical-requests'].indexOf(module) !== -1) return true;
       return false;
     }
+
     if (['spare parts inspector'].indexOf(roleClean) !== -1) {
       if (['spare-parts', 'erp-equipment'].indexOf(module) !== -1) return true;
       return false;
     }
+
     if (['procurement specialist'].indexOf(roleClean) !== -1) {
       if (['purchase-requests', 'erp-suppliers'].indexOf(module) !== -1) return true;
+      return false;
+    }
+
+    if (['warehouse manager'].indexOf(roleClean) !== -1) {
+      if (['inventory', 'purchase-requests', 'spare-parts', 'wms-management'].indexOf(module) !== -1) return true;
+    }
+
+    // 5. If custom permissions exist for other screens, and this action is neither explicitly granted nor in domain authority:
+    if (SecurityHelpers._hasCustomConfig) {
       return false;
     }
 
@@ -374,51 +410,9 @@ window.SecurityHelpers = {
 
   // Apply permission restrictions to the current screen's buttons automatically
   applyPermissionsUI: function(currentModule) {
-    if (SecurityHelpers._uiObserver) {
-      SecurityHelpers._uiObserver.disconnect();
-      SecurityHelpers._uiObserver = null;
+    if (typeof PermissionGuard !== 'undefined' && PermissionGuard.enforceActionPermissions) {
+      PermissionGuard.enforceActionPermissions(currentModule);
     }
-    if (!App.user || (App.user.role && App.user.role.toLowerCase() === 'owner')) return;
-    if (currentModule === 'screen-permissions') return;
-    
-    var enforceButtons = function() {
-      document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item):not([data-perm-checked])').forEach(function(btn) {
-        var action = 'view';
-        var text = (btn.innerText || '').toLowerCase();
-        
-        if (text.match(/إضافة|create|add|جديد|new|post/)) action = 'create';
-        else if (text.match(/تعديل|edit|update|حفظ|save/)) action = 'edit';
-        else if (text.match(/حذف|delete|remove|مسح|🗑/)) action = 'delete';
-        else if (text.match(/اعتماد|approve|موافقة/)) action = 'approve';
-        else if (text.match(/رفض|reject/)) action = 'reject';
-        else if (text.match(/تصدير|export|download/)) action = 'export';
-        else if (text.match(/طباعة|print/)) action = 'print';
-
-        if (action !== 'view') {
-          if (!SecurityHelpers.hasPermission(currentModule, action)) {
-            btn.disabled = true;
-            btn.style.opacity = '0.35';
-            btn.style.cursor = 'not-allowed';
-            btn.title = 'ليس لديك صلاحية لهذا الإجراء (صلاحية ' + action + ' غير ممنوحة)';
-            btn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
-            btn.addEventListener('click', function(e){ e.stopImmediatePropagation(); e.preventDefault(); return false; }, true);
-          }
-        }
-        btn.setAttribute('data-perm-checked', 'true');
-      });
-    };
-
-    enforceButtons();
-    setTimeout(enforceButtons, 500);
-
-    var contentEl = document.getElementById('page-content') || document.body;
-    SecurityHelpers._uiObserver = new MutationObserver(function(mutations) {
-      var needsCheck = false;
-      mutations.forEach(function(m) { if(m.addedNodes.length > 0) needsCheck = true; });
-      if(needsCheck) enforceButtons();
-    });
-    
-    SecurityHelpers._uiObserver.observe(contentEl, { childList: true, subtree: true });
   },
 
   sanitizeInput: function(input) {

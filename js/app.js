@@ -503,8 +503,7 @@ var App = {
                 { id: 'ceo-dashboard', label: 'CEO Dashboard', icon: 'barChart' },
                 { id: 'ai-ceo-dashboard', label: 'AI CEO Dashboard', icon: 'brain' },
                 { id: 'cost-centers', label: 'Cost Centers', icon: 'briefcase' },
-                { id: 'activity-timeline', label: 'Activity Timeline', icon: 'clock' },
-                { id: 'executive-intelligence', label: 'Executive Intelligence', icon: 'pieChart' },
+                { id: 'activity-timeline', label: 'Activity Timeline', icon: 'clock' }
             ]}
           ];
       } else {
@@ -998,17 +997,22 @@ var App = {
 
     var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="public/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
     html += '<nav class="sidebar-nav">';
+    var renderedScreens = {};
     menu.forEach(function (section) {
       var visibleItems = [];
       section.items.forEach(function(item) {
+          if (!item || !item.id || renderedScreens[item.id]) return;
           if (App.user && (App.user.role === 'owner' || (App.user.role && App.user.role.toLowerCase() === 'owner'))) {
               visibleItems.push(item);
+              renderedScreens[item.id] = true;
           } else if (typeof SecurityHelpers !== 'undefined') {
               if (SecurityHelpers.hasPermission(item.id, 'view')) {
                   visibleItems.push(item);
+                  renderedScreens[item.id] = true;
               }
           } else {
               visibleItems.push(item);
+              renderedScreens[item.id] = true;
           }
       });
 
@@ -1646,7 +1650,7 @@ Pages.ownerDashboard = function (el) {
     html += '</div>';
 
     // Spare Parts Module
-    html += '<div onclick="App.navigate(\'erp-spare-parts\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#10b981\'; this.style.boxShadow=\'0 12px 30px rgba(16,185,129,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
+    html += '<div onclick="App.navigate(\'spare-parts\')" style="background: var(--bg-card); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform=\'translateY(-5px)\'; this.style.borderColor=\'#10b981\'; this.style.boxShadow=\'0 12px 30px rgba(16,185,129,0.15)\'" onmouseout="this.style.transform=\'none\'; this.style.borderColor=\'var(--border-color)\'; this.style.boxShadow=\'none\'">';
     html += '<div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(16,185,129,0.1); color: #10b981; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">' + icon('settings', 26) + '</div>';
     html += '<h3 style="margin-bottom: 10px; font-size: 1.2rem;">Spare Parts (قطع الغيار)</h3>';
     html += '<p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">Spare parts inventory tracking, consumption, and requests.</p>';
@@ -2746,7 +2750,7 @@ Pages.fridayWork = function (el) {
 Pages.attendance = function (el) {
   var isPersonalView = (App.activePage === 'my-attendance');
   var isHR = App.isHR() && !isPersonalView;
-  var canEdit = App.user && (App.user.role === 'hr manager' || App.user.role === 'owner') && !isPersonalView;
+  var canEdit = !isPersonalView && (App.isOwner() || (typeof PermissionGuard !== 'undefined' && PermissionGuard.canAction('attendance', 'edit')) || (App.user && ['owner', 'hr manager', 'hr'].indexOf((App.user.role || '').toLowerCase()) !== -1));
   var records = isHR ? [] : [].filter(function (a) { return a.employee_id === App.user.id; });
   var search = '';
   var deptFilter = '';
