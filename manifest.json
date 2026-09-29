@@ -1,0 +1,25 @@
+{
+  "name": "Ninja Factory ERP",
+  "short_name": "NF ERP",
+  "description": "Enterprise Manufacturing ERP System - AI Powered",
+  "start_url": "/portal.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050505",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "public/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "public/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "ar",
+  "dir": "rtl"
+}
