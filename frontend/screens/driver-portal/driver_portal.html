@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة السائقين | Driver Portal</title>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="../../shared/css/style.css">
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      background-color: #f4f6f8;
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .driver-header {
+      background: linear-gradient(135deg, #1e1b4b, #4f46e5);
+      color: white;
+      padding: 24px;
+      text-align: center;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .driver-container {
+      padding: 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .form-group {
+      margin-bottom: 24px;
+    }
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .form-select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 1.1rem;
+      background: white;
+    }
+    .action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      border-radius: 16px;
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s;
+    }
+    .action-btn:active {
+      transform: scale(0.98);
+    }
+    .btn-out { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .btn-in { background: linear-gradient(135deg, #10b981, #059669); }
+    
+    #reader-container {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      background: black;
+    }
+    .close-reader {
+      margin-top: 20px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="driver-header">
+    <h1 style="margin: 0; font-size: 1.8rem;">بوابة السائقين</h1>
+    <p style="margin: 8px 0 0 0; color: #cbd5e1; font-weight: 600;">بوابة تسجيل الدخول والخروج السريع</p>
+  </div>
+
+  <div class="driver-container">
+    <div class="form-group" id="driver-select-container">
+      <label class="form-label">أنا السائق: (اختر اسمك)</label>
+      <select class="form-select" id="driver-select">
+        <option value="">جاري تحميل قائمة السائقين...</option>
+      </select>
+    </div>
+
+    <button class="action-btn btn-out" onclick="startScanner('Gate Out')">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 8px;"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+      تسجيل خروج (Gate Out)
+    </button>
+    
+    <button class="action-btn btn-in" onclick="startScanner('Gate In')">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom: 8px;"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+      تسجيل دخول (Gate In)
+    </button>
+  </div>
+
+  <div id="reader-container">
+    <h3 style="color:white; margin-bottom:20px; font-family:'Cairo';">وجه الكاميرا نحو الـ QR Code الخاص بالبوابة</h3>
+    <div id="reader"></div>
+    <button class="close-reader" onclick="stopScanner()">إلغاء (Cancel)</button>
+  </div>
+
+  <script src="../../shared/js/config.js"></script>
+  <script src="../../shared/js/supabaseClient.js"></script>
+  <script>
+    let html5QrCode = null;
+    let scanTypeAction = '';
+
+    async function initDriverPortal() {
+      // Fetch drivers directly from logistics_drivers (Publicly readable due to RLS policies or we use anon key)
+      const { data: drivers, error } = await sbClient.from('logistics_drivers').select('*').order('created_at', { ascending: false });
+      
+      const select = document.getElementById('driver-select');
+      
+      if (error) {
+        select.innerHTML = '<option value="">حدث خطأ في تحميل السائقين</option>';
+        console.error(error);
+        return;
+      }
+      
+      if (!drivers || drivers.length === 0) {
+        select.innerHTML = '<option value="">لا يوجد سائقين مسجلين</option>';
+        return;
+      }
+
+      select.innerHTML = '<option value="">-- اختر اسمك من القائمة --</option>';
+      drivers.forEach(d => {
+        let opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.driver_name + ' (سيارة: ' + d.car_number + ')';
+        select.appendChild(opt);
+      });
+    }
+
+    function startScanner(type) {
+      const driverId = document.getElementById('driver-select').value;
+      if (!driverId) {
+        alert("يرجى اختيار اسمك من القائمة أولاً!");
+        return;
+      }
+
+      scanTypeAction = type;
+      document.getElementById('reader-container').style.display = 'flex';
+      
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        onScanFailure
+      ).catch(err => {
+        alert("فشل في فتح الكاميرا: " + err);
+        stopScanner();
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          document.getElementById('reader-container').style.display = 'none';
+          html5QrCode = null;
+        }).catch(err => console.error(err));
+      } else {
+        document.getElementById('reader-container').style.display = 'none';
+      }
+    }
+
+    async function onScanSuccess(decodedText, decodedResult) {
+      stopScanner();
+      try {
+        let data = JSON.parse(decodedText);
+        if(data.hr_id === 'qr-station') {
+          // Valid Gate QR
+          const select = document.getElementById('driver-select');
+          const driverId = select.value;
+          // Extract just the name without the car number
+          const fullText = select.options[select.selectedIndex].textContent;
+          const driverName = fullText.split(' (سيارة:')[0];
+          
+          const { error } = await sbClient.from('logistics_gate_logs').insert({
+            driver_id: driverId,
+            driver_name: driverName,
+            scan_type: scanTypeAction
+          });
+          
+          if (error) {
+            alert('حدث خطأ أثناء التسجيل. تأكد من إعداد قاعدة البيانات.');
+            console.error(error);
+          } else {
+            alert('✅ تمت حركة (' + scanTypeAction + ') بنجاح للسائق: ' + driverName);
+            // Reset selection for next driver
+            select.value = "";
+          }
+        } else {
+          alert('❌ كود QR غير صحيح. الرجاء استخدام كود بوابة المصنع.');
+        }
+      } catch(e) {
+        alert('❌ كود QR غير معروف.');
+      }
+    }
+
+    function onScanFailure(error) {
+      // Background scanning errors, ignore
+    }
+
+    document.addEventListener('DOMContentLoaded', initDriverPortal);
+  </script>
+</body>
+</html>

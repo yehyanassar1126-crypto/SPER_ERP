@@ -1,7 +1,12 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/", "destination": "/portal.html" },
-    { "source": "/index.html", "destination": "/portal.html" }
+  "redirects": [
+    { "source": "/", "destination": "/frontend/screens/portal/portal.html", "permanent": false },
+    { "source": "/portal.html", "destination": "/frontend/screens/portal/portal.html", "permanent": false },
+    { "source": "/driver_portal.html", "destination": "/frontend/screens/driver-portal/driver_portal.html", "permanent": false },
+    { "source": "/customer_auth.html", "destination": "/frontend/screens/customer-auth/customer_auth.html", "permanent": false },
+    { "source": "/public_catalog.html", "destination": "/frontend/screens/public-catalog/public_catalog.html", "permanent": false },
+    { "source": "/qr.html", "destination": "/frontend/screens/qr/qr.html", "permanent": false },
+    { "source": "/price_quotation.html", "destination": "/frontend/screens/price-quotation/price_quotation.html", "permanent": false }
   ]
 }
