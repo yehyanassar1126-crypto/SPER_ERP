@@ -1,5 +1,9 @@
 {
   "cleanUrls": true,
+  "rewrites": [
+    { "source": "/assets/:match*", "destination": "/frontend/shared/assets/:match*" },
+    { "source": "/public/:match*", "destination": "/frontend/shared/assets/:match*" }
+  ],
   "redirects": [
     { "source": "/", "destination": "/frontend/screens/portal/portal.html", "permanent": false },
     { "source": "/portal.html", "destination": "/frontend/screens/portal/portal.html", "permanent": false },

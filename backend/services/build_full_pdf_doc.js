@@ -95,11 +95,18 @@ const tableKeys = Object.keys(dbSchema).sort();
 console.log(`Successfully parsed ${tableKeys.length} database tables.`);
 
 // 2. Load Logo Image as Base64 Data URI
-const logoPath = path.join(__dirname, 'public', 'logo.png');
+const candidateLogoPaths = [
+  path.join(__dirname, '../../frontend/shared/assets', 'logo.png'),
+  path.join(__dirname, '../../public', 'logo.png'),
+  path.join(__dirname, 'public', 'logo.png')
+];
 let logoDataUri = '';
-if (fs.existsSync(logoPath)) {
-  const logoBase64 = fs.readFileSync(logoPath).toString('base64');
-  logoDataUri = `data:image/png;base64,${logoBase64}`;
+for (const p of candidateLogoPaths) {
+  if (fs.existsSync(p)) {
+    const logoBase64 = fs.readFileSync(p).toString('base64');
+    logoDataUri = `data:image/png;base64,${logoBase64}`;
+    break;
+  }
 }
 
 // 3. Generate Complete Master HTML Template

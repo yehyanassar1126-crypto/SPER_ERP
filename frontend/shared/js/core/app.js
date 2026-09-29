@@ -226,7 +226,7 @@ var App = {
 
     document.getElementById('app').innerHTML = '<div class="login-wrapper"><div class="login-bg"></div><div class="login-card">' +
       '<div style="text-align:right;margin-bottom:12px"><button type="button" class="btn btn-xs btn-outline" id="login-lang-toggle">' + switchBtnText + '</button></div>' +
-      '<div class="login-logo"><img src="../../assets/logo.png" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(225,29,72,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>ERP System</p></div>' +
+      '<div class="login-logo"><img src="../../shared/assets/logo.png" onerror="this.onerror=null; this.src=\'../../assets/logo.png\';" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(225,29,72,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>ERP System</p></div>' +
       '<form class="login-form" id="login-form">' +
       '<div id="login-error" class="login-error" style="display:none"></div>' +
       '<div class="form-group"><label class="form-label">' + uLabel + '</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="' + uPlaceholder + '" id="login-username" autofocus></div></div>' +
@@ -895,7 +895,7 @@ var App = {
     
     App._currentMenuConfig = menu;
 
-    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="../../assets/logo.png" onerror="this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
+    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="../../shared/assets/logo.png" onerror="if(this.src.indexOf(\'shared\')!==-1){this.src=\'../../assets/logo.png\';}else{this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
       var visibleItems = [];
