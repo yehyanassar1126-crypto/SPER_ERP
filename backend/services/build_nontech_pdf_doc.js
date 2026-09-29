@@ -8,33 +8,33 @@ console.log('=== Starting Master ERP Manual Generator (Blue Edition v5) ===');
 // 1. Parse Database Schema to extract all tables
 function parseDatabaseSchema() {
   const sqlFiles = [
-    'supabase_schema.sql',
-    'setup_erp_v2.sql',
-    'setup_accounting.sql',
-    'setup_fleet_module.sql',
-    'setup_logistics.sql',
-    'setup_spare_parts.sql',
-    'setup_engineering.sql',
-    'setup_hr_absence.sql',
-    'setup_attendance_v2.sql',
-    'SUPABASE_COPY_PASTE.sql',
-    'SUPABASE_PART5_ONLY.sql',
-    'driver_system_upgrade.sql',
-    'fleet_odometer_setup.sql',
-    'migrations/001_enterprise_security.sql',
-    'migrations/002_enterprise_multi.sql',
-    'migrations/003_enterprise_features.sql',
-    'migrations/004_enterprise_kpis_views.sql',
-    'migrations/005_enterprise_extra.sql',
-    'migrations/006_public_product_catalog.sql',
-    'migrations/007_client_auth.sql',
-    'migrations/007_premium_ats.sql',
-    'migrations/008_manufacturing_equipment.sql',
-    'migrations/009_password_encryption.sql',
-    'migrations/010_bilingual_chat.sql',
-    'migrations/011_screen_permissions.sql',
-    'migrations/ai_erp_migration.sql',
-    'migrations/setup_finance_enterprise.sql'
+    '../models/supabase_schema.sql',
+    '../models/setup_erp_v2.sql',
+    '../models/setup_accounting.sql',
+    '../models/setup_fleet_module.sql',
+    '../models/setup_logistics.sql',
+    '../models/setup_spare_parts.sql',
+    '../models/setup_engineering.sql',
+    '../models/setup_hr_absence.sql',
+    '../models/setup_attendance_v2.sql',
+    '../models/SUPABASE_COPY_PASTE.sql',
+    '../models/SUPABASE_PART5_ONLY.sql',
+    '../models/driver_system_upgrade.sql',
+    '../models/fleet_odometer_setup.sql',
+    '../models/001_enterprise_security.sql',
+    '../models/002_enterprise_multi.sql',
+    '../models/003_enterprise_features.sql',
+    '../models/004_enterprise_kpis_views.sql',
+    '../models/005_enterprise_extra.sql',
+    '../models/006_public_product_catalog.sql',
+    '../models/007_client_auth.sql',
+    '../models/007_premium_ats.sql',
+    '../models/008_manufacturing_equipment.sql',
+    '../models/009_password_encryption.sql',
+    '../models/010_bilingual_chat.sql',
+    '../models/011_screen_permissions.sql',
+    '../models/ai_erp_migration.sql',
+    '../models/setup_finance_enterprise.sql'
   ];
 
   let tables = {};
@@ -328,7 +328,7 @@ const htmlContent = `
 </html>
 `;
 
-fs.writeFileSync(path.join(__dirname, 'master_nontech_erp_documentation.html'), htmlContent);
+fs.writeFileSync(path.join(__dirname, '../../frontend/shared/docs/master_nontech_erp_documentation.html'), htmlContent);
 console.log('Successfully generated HTML template: master_nontech_erp_documentation.html');
 
 // 4. Render HTML to PDF via Puppeteer
@@ -340,7 +340,7 @@ async function renderPdf() {
   });
 
   const page = await browser.newPage();
-  const htmlPath = 'file:///' + path.join(__dirname, 'master_nontech_erp_documentation.html').replace(/\\/g, '/');
+  const htmlPath = 'file:///' + path.join(__dirname, '../../frontend/shared/docs/master_nontech_erp_documentation.html').replace(/\\/g, '/');
   
   console.log('Loading HTML content into Puppeteer...');
   await page.goto(htmlPath, { waitUntil: 'networkidle0', timeout: 120000 });
