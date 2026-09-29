@@ -395,7 +395,7 @@ const megaSVG = `
 </svg>
 `;
 
-fs.writeFileSync(path.join(__dirname, 'master_map_standalone.html'), `
+fs.writeFileSync(path.join(__dirname, '../../frontend/shared/docs/master_map_standalone.html'), `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -423,7 +423,7 @@ async function exportPNG() {
   const page = await browser.newPage();
   await page.setViewport({ width: 3800, height: 5600, deviceScaleFactor: 1 });
   
-  const fileUrl = 'file:///' + path.join(__dirname, 'master_map_standalone.html').replace(/\\/g, '/');
+  const fileUrl = 'file:///' + path.join(__dirname, '../../frontend/shared/docs/master_map_standalone.html').replace(/\\/g, '/');
   await page.goto(fileUrl, { waitUntil: 'networkidle0' });
 
   const pngPath = path.join(__dirname, 'Master_ERP_Integrated_System_Map.png');

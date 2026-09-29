@@ -36,7 +36,7 @@ matches.forEach((m, i) => {
                 fs.writeFileSync('full_system_manual_arabic_with_base64.md', content);
                 console.log('All images downloaded as base64. Generating PDF...');
                 
-                mdPdf({cssPath: 'pdf-style.css', paperFormat: 'A4', remarkable: {html: true}}).from('full_system_manual_arabic_with_base64.md').to('full_system_manual_arabic.pdf', function() {
+                mdPdf({cssPath: '../../frontend/shared/css/pdf-style.css', paperFormat: 'A4', remarkable: {html: true}}).from('full_system_manual_arabic_with_base64.md').to('full_system_manual_arabic.pdf', function() {
                     console.log('PDF generated successfully with base64 images.');
                 });
             }
