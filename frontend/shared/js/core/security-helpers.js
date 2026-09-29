@@ -126,6 +126,10 @@ window.SecurityHelpers = {
       if (module === 'settings' && action === 'manage') return false;
       return true;
     }
+    // External suppliers and customers have full access to their self-service portal
+    if (App.user && (App.user.role === 'supplier_external' || App.user.role === 'customer' || App.user.role === 'client')) {
+      if (module === 'supplier-portal' || module === 'customer-portal') return true;
+    }
     // Check cached permissions
     var perms = SecurityHelpers._cachedPermissions || [];
     return perms.some(function(p) {
@@ -193,10 +197,12 @@ window.SecurityHelpers = {
   // Apply permission restrictions to the current screen's buttons automatically
   applyPermissionsUI: function(currentModule) {
     if (!App.user || App.user.role === 'owner') return; // Owner has full access
+    // Never restrict external customer/supplier self-service portal
+    if (App.user.role === 'supplier_external' || App.user.role === 'customer' || App.user.role === 'client' || currentModule === 'supplier-portal' || currentModule === 'customer-portal') return;
     
     var enforceButtons = function() {
       document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item)').forEach(function(btn) {
-        if(btn.hasAttribute('data-perm-checked')) return; // already processed
+        if(btn.hasAttribute('data-perm-checked') || btn.hasAttribute('data-perm-bypass') || btn.classList.contains('btn-customer-req') || btn.classList.contains('btn-bypass-perm')) return;
         
         var action = 'view';
         var text = btn.innerText.toLowerCase();

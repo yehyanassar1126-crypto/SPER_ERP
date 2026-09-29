@@ -46,8 +46,18 @@ window.SalesWorkflow = {
 
 Pages.sales = function(el) {
   var isOwner = App.isOwner();
-  var isSales = App.user && (App.user.department === 'Sales' || App.user.role === 'sales manager');
-  var canEdit = isOwner || isSales || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('erp-sales', 'view'));
+  var userDept = (App.user && App.user.department ? App.user.department.trim().toLowerCase() : '');
+  var userRole = (App.user && App.user.role ? App.user.role.trim().toLowerCase() : '');
+
+  // If customer lands on Sales screen, seamlessly delegate to customer portal
+  if (App.user && (userRole === 'supplier_external' || userRole === 'customer' || userRole === 'client')) {
+    if (Pages['supplier-portal']) return Pages['supplier-portal'](el);
+  }
+
+  var isSales = userDept === 'sales' || userDept === 'المبيعات' || userRole.includes('sales') || userRole.includes('مبيعات');
+  var isPlanning = userDept === 'planning' || userDept === 'التخطيط' || userRole.includes('planning') || userRole.includes('تخطيط');
+  var isMgmt = isOwner || userRole === 'ceo' || userRole === 'gm' || userRole === 'manager' || userRole.includes('admin');
+  var canEdit = isOwner || isSales || isPlanning || isMgmt || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('erp-sales', 'view'));
 
   if (!canEdit) {
     el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Sales department.</p></div>';
@@ -97,18 +107,26 @@ Pages.sales = function(el) {
         var actions = '';
         if (o.status === 'Pending Sales Review') {
           actions += '<div style="display:flex;flex-direction:column;gap:4px">';
-          actions += '<button class="btn btn-sm btn-success" onclick="window.salesAcceptExternalOrder(\'' + o.id + '\')">✅ قبول</button>';
-          actions += '<button class="btn btn-sm btn-danger" onclick="window.salesReject(\'' + o.id + '\')">❌ رفض</button>';
+          actions += '<button class="btn btn-sm btn-success" onclick="window.salesAcceptExternalOrder(\'' + o.id + '\')">✅ قبول وإرسال للتخطيط</button>';
+          actions += '<button class="btn btn-sm btn-danger" onclick="window.salesRejectExternalOrder(\'' + o.id + '\')">❌ رفض الطلب</button>';
           actions += '</div>';
-        } else if (o.status === 'Waiting Customer Approval') {
+        } else if (o.status === 'New Request') {
+          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesSendToPlanning(\'' + o.id + '\')">📤 إرسال للتخطيط</button>';
+        } else if (o.status === 'Under Planning Review') {
+          actions += '<span style="color:var(--accent-primary);font-size:0.8rem">⏳ قيد المراجعة في التخطيط</span>';
+        } else if (o.status === 'Waiting Customer Approval' || o.status === 'Raw Material Shortage - Purchase Requested') {
           // Show partial qty info from planning
           var planInfo = o.planning_notes ? '<div style="font-size:0.75rem;color:var(--accent-warning);margin-bottom:6px">📋 ' + o.planning_notes + '</div>' : '';
           actions += planInfo;
           actions += '<div style="display:flex;flex-direction:column;gap:4px">';
-          actions += '<button class="btn btn-sm btn-success" onclick="window.salesCustomerPartial(\'' + o.id + '\',' + o.quantity_available + ',' + o.quantity_requested + ')">✅ يقبل الجزئي</button>';
-          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesCustomerFullWait(\'' + o.id + '\')">⏳ ينتظر الكامل</button>';
+          actions += '<button class="btn btn-sm btn-success" onclick="window.salesCustomerPartial(\'' + o.id + '\',' + o.quantity_available + ',' + o.quantity_requested + ')">✅ قبول الجزئي</button>';
+          actions += '<button class="btn btn-sm btn-primary" onclick="window.salesCustomerFullWait(\'' + o.id + '\')">⏳ انتظار الكامل</button>';
           actions += '<button class="btn btn-sm btn-danger" onclick="window.salesReject(\'' + o.id + '\')">❌ رفض</button>';
           actions += '</div>';
+        } else if (o.status === 'Customer Approved' || o.status === 'Customer Approved - Partial' || o.status === 'Customer Approved - Full Wait') {
+          actions += '<span style="color:var(--accent-success);font-size:0.8rem">✅ معتمد - بانتظار أمر الإنتاج</span>';
+        } else if (o.status === 'Production Started') {
+          actions += '<span style="color:var(--accent-primary);font-size:0.8rem">⚙️ قيد الإنتاج والمتابعة</span>';
         } else if (o.status === 'Ready For Delivery' || o.status === 'Ready For Customer Delivery' || o.status === 'Received by Warehouse') {
           actions += '<button class="btn btn-sm btn-primary" onclick="window.salesTransferToFinance(\'' + o.id + '\')">💳 تحويل للحسابات (للدفع)</button>';
         } else if (o.status === 'Pending Payment') {
@@ -167,7 +185,7 @@ Pages.sales = function(el) {
       product_name: prod,
       quantity_requested: Number(qty),
       delivery_date_requested: date,
-      status: 'New Request',
+      status: 'Under Planning Review',
       total_amount: totalAmt,
       paid_amount: 0,
       remaining_amount: totalAmt,
@@ -182,7 +200,7 @@ Pages.sales = function(el) {
       }
       App.closeModal();
       render();
-      showToast('تم إنشاء الطلب وإرساله للتخطيط', 'success');
+      showToast('تم إنشاء الطلب وإرساله للتخطيط بنجاح', 'success');
     });
   };
 
@@ -236,8 +254,19 @@ Pages.sales = function(el) {
   };
 
   window.salesAcceptExternalOrder = function(id) {
-    if (!confirm('هل توافق على هذا الطلب ليتم إرساله إلى التخطيط؟')) return;
-    SalesWorkflow.updateStatus(id, 'New Request', null, render);
+    if (!confirm('هل توافق على هذا الطلب ليتم إرساله مباشرة إلى التخطيط؟')) return;
+    SalesWorkflow.updateStatus(id, 'Under Planning Review', {}, function() {
+      render();
+      showToast('تم قبول الطلب وإرساله لإدارة التخطيط بنجاح', 'success');
+    });
+  };
+
+  window.salesSendToPlanning = function(id) {
+    if (!confirm('تأكيد إرسال الطلب إلى إدارة التخطيط لمراجعة المخزون؟')) return;
+    SalesWorkflow.updateStatus(id, 'Under Planning Review', {}, function() {
+      render();
+      showToast('تم إرسال الطلب للتخطيط بنجاح', 'success');
+    });
   };
 
   window.salesRejectExternalOrder = function(id) {

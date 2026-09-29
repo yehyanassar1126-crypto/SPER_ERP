@@ -475,7 +475,15 @@ window.ERPSuppliers = {
   customerRejectQuantity: function(id) {
     var reason = prompt('يرجى كتابة سبب الرفض (اختياري):');
     if(reason === null) return;
-    sbClient.from('sales_workflow_orders').update({ status: 'Rejected By Customer', rejection_reason: reason }).eq('id', id).then(function(res) {
+    sbClient.from('sales_workflow_orders').update({ status: 'Rejected By Customer', rejection_reason: reason, customer_decision: 'rejected' }).eq('id', id).then(function(res) {
+      if (res.error) return alert("حدث خطأ: " + res.error.message);
+      Pages['supplier-portal'](document.getElementById('page-content'));
+    });
+  },
+
+  customerWaitFull: function(id) {
+    if(!confirm('هل تفضل انتظار وصول كافة الخامات لتسليم الطلبية كاملة؟')) return;
+    sbClient.from('sales_workflow_orders').update({ status: 'Customer Approved - Full Wait', customer_decision: 'full_wait' }).eq('id', id).then(function(res) {
       if (res.error) return alert("حدث خطأ: " + res.error.message);
       Pages['supplier-portal'](document.getElementById('page-content'));
     });
@@ -524,8 +532,9 @@ window.ERPSuppliers = {
 
 window.Pages = window.Pages || {};
 Pages['supplier-portal'] = function(el) {
-  var isSupplier = App.user && App.user.role === 'supplier_external';
-  var isAuthInternal = App.isOwner() || (App.user && (App.user.department === 'Sales' || App.user.department === 'Finance'));
+  var isSupplier = App.user && (App.user.role === 'supplier_external' || App.user.role === 'customer' || App.user.role === 'client');
+  var userDept = (App.user && App.user.department ? App.user.department.trim().toLowerCase() : '');
+  var isAuthInternal = App.isOwner() || (App.user && (userDept === 'sales' || userDept === 'المبيعات' || userDept === 'finance' || userDept === 'المالية' || userDept === 'planning' || userDept === 'التخطيط'));
   
   if (!isSupplier && !isAuthInternal) {
     el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied</h2></div>';
@@ -542,8 +551,8 @@ Pages['supplier-portal'] = function(el) {
   
   html += '<div class="grid-2" style="margin-top:20px">';
   var ordersHeader = '<h3>أوامر البيع / طلباتك</h3>';
-  if (isSupplier) {
-    ordersHeader += '<button class="btn btn-sm btn-primary" onclick="ERPSuppliers.customerSendRequest()">' + icon('plus') + ' طلب شراء جديد</button>';
+  if (isSupplier || App.isOwner()) {
+    ordersHeader += '<button type="button" class="btn btn-sm btn-primary btn-customer-req" data-perm-bypass="true" data-perm-checked="true" style="opacity:1 !important; cursor:pointer !important; pointer-events:auto !important;" onclick="ERPSuppliers.customerSendRequest()">' + icon('plus') + ' طلب شراء جديد</button>';
   }
   
   html += '<div class="card" style="grid-column: span 2;"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center">' + ordersHeader + '</div><div class="card-body" id="sup-ext-orders">Loading...</div></div>';
@@ -583,14 +592,15 @@ Pages['supplier-portal'] = function(el) {
         oHtml += '<td>' + (o.quantity_available !== null ? '<span style="color:var(--accent-primary)">' + o.quantity_available + '</span>' : '-') + '</td>';
         oHtml += '<td>' + (o.delivery_date_requested || '-') + '</td>';
         oHtml += '<td>' + (window.SalesWorkflow ? window.SalesWorkflow.getStatusBadge(o.status) : '<span class="badge">' + o.status + '</span>') + '</td>';
-        oHtml += '<td>' + (o.rejection_reason || '-') + '</td>';
+        oHtml += '<td>' + (o.planning_notes || o.rejection_reason || '-') + '</td>';
         if (isSupplier) {
           var acts = '';
           if (o.status === 'Out For Delivery') {
-            acts += '<button class="btn btn-sm btn-success" onclick="ERPSuppliers.acceptDelivery(\''+o.id+'\')">تأكيد الاستلام ✅</button>';
-          } else if (o.status === 'Waiting Customer Approval') {
-            acts += '<button class="btn btn-sm btn-success" onclick="ERPSuppliers.customerApproveQuantity(\''+o.id+'\')" style="margin-bottom:4px">موافق على الكمية</button><br>';
-            acts += '<button class="btn btn-sm btn-danger" onclick="ERPSuppliers.customerRejectQuantity(\''+o.id+'\')">رفض الطلب</button>';
+            acts += '<button class="btn btn-sm btn-success" data-perm-bypass="true" onclick="ERPSuppliers.acceptDelivery(\''+o.id+'\')">تأكيد الاستلام ✅</button>';
+          } else if (o.status === 'Waiting Customer Approval' || o.status === 'Raw Material Shortage - Purchase Requested') {
+            acts += '<button class="btn btn-sm btn-success" data-perm-bypass="true" onclick="ERPSuppliers.customerApproveQuantity(\''+o.id+'\')" style="margin-bottom:4px">موافق على البدء بالكمية المتاحة (' + (o.quantity_available || 'المتاحة') + ')</button><br>';
+            acts += '<button class="btn btn-sm btn-outline" data-perm-bypass="true" onclick="ERPSuppliers.customerWaitFull(\''+o.id+'\')" style="margin-bottom:4px;border-color:var(--accent-primary);color:var(--accent-primary)">انتظار التوريد الكامل</button><br>';
+            acts += '<button class="btn btn-sm btn-danger" data-perm-bypass="true" onclick="ERPSuppliers.customerRejectQuantity(\''+o.id+'\')">رفض الطلب</button>';
           } else {
             acts += '-';
           }

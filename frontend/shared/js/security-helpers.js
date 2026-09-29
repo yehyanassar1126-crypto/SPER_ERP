@@ -125,6 +125,11 @@ window.SecurityHelpers = {
       return false;
     }
 
+    // External suppliers and customers have full access to their self-service portal
+    if (App.user && (roleClean === 'supplier_external' || roleClean === 'customer' || roleClean === 'client')) {
+      if (module === 'supplier-portal' || module === 'customer-portal') return true;
+    }
+
     // 1. Self-service screens: all authenticated users can view, create, and edit their own requests
     var selfServiceScreens = [
       'dashboard', 'hr-personal', 'my-attendance', 'scan-checkin', 'scan-checkout',
@@ -410,6 +415,8 @@ window.SecurityHelpers = {
 
   // Apply permission restrictions to the current screen's buttons automatically
   applyPermissionsUI: function(currentModule) {
+    if (!App.user || (App.user.role && App.user.role.toLowerCase() === 'owner')) return;
+    if (App.user && (App.user.role === 'supplier_external' || App.user.role === 'customer' || App.user.role === 'client' || currentModule === 'supplier-portal' || currentModule === 'customer-portal')) return;
     if (typeof PermissionGuard !== 'undefined' && PermissionGuard.enforceActionPermissions) {
       PermissionGuard.enforceActionPermissions(currentModule);
     }

@@ -3,8 +3,13 @@ window.Pages = window.Pages || {};
 
 Pages.planning = function(el) {
   var isOwner = App.isOwner();
-  var isPlanning = App.user && (App.user.department === 'Planning' || App.user.role === 'planning manager');
-  var canEdit = isOwner || isPlanning;
+  var userDept = (App.user && App.user.department ? App.user.department.trim().toLowerCase() : '');
+  var userRole = (App.user && App.user.role ? App.user.role.trim().toLowerCase() : '');
+
+  var isPlanning = userDept === 'planning' || userDept === 'التخطيط' || userRole.includes('planning') || userRole.includes('تخطيط');
+  var isSales = userDept === 'sales' || userDept === 'المبيعات' || userRole.includes('sales') || userRole.includes('مبيعات');
+  var isMgmt = isOwner || userRole === 'ceo' || userRole === 'gm' || userRole === 'manager' || userRole.includes('admin');
+  var canEdit = isOwner || isPlanning || isSales || isMgmt || (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.hasPermission('erp-planning', 'view'));
 
   if (!canEdit) {
     el.innerHTML = '<div style="padding:60px;text-align:center;color:var(--accent-danger)"><h2>🚫 Access Denied (غير مصرح)</h2><p>This module is restricted to the Planning department.</p></div>';
@@ -47,17 +52,28 @@ Pages.planning = function(el) {
         tHtml += '<td>' + SalesWorkflow.getStatusBadge(o.status) + '</td>';
 
         var actions = '';
-        if (o.status === 'New Request') {
-          actions = '<button class="btn btn-sm btn-primary" onclick="window.planReview(\'' + o.id + '\',' + o.quantity_requested + ',\'' + o.product_name + '\')">🔍 مراجعة المخزون</button>';
+        if (o.status === 'New Request' || o.status === 'Under Planning Review' || o.status === 'Pending Sales Review') {
+          actions = '<button class="btn btn-sm btn-primary" onclick="window.planReview(\'' + o.id + '\',' + o.quantity_requested + ',\'' + o.product_name + '\')">🔍 مراجعة المخزون والخامات</button>';
         } else if (o.status === 'Customer Approved' || o.status === 'Customer Approved - Partial' || o.status === 'Customer Approved - Full Wait') {
           actions = '<button class="btn btn-sm btn-warning" onclick="window.planStartProd(\'' + o.id + '\')">⚙️ إصدار أمر إنتاج</button>';
-        } else if (o.status === 'Received by Warehouse') {
-          actions = '<button class="btn btn-sm btn-success" onclick="window.planReadyDeliv(\'' + o.id + '\')">📦 إبلاغ المبيعات (جاهز)</button>';
+        } else if (o.status === 'Waiting Customer Approval') {
+          actions = '<div style="display:flex;flex-direction:column;gap:4px">';
+          actions += '<span style="color:var(--accent-warning);font-size:0.8rem">⏳ بانتظار موافقة العميل / المبيعات</span>';
+          if (o.quantity_available && Number(o.quantity_available) > 0) {
+            actions += '<button class="btn btn-sm btn-outline" style="border-color:var(--accent-primary);color:var(--accent-primary)" onclick="window.planStartProd(\'' + o.id + '\')">⚡ بدء إنتاج المتاح (' + o.quantity_available + ')</button>';
+          }
+          actions += '</div>';
         } else if (o.status === 'Raw Material Shortage - Purchase Requested') {
           actions = '<div style="display:flex;flex-direction:column;gap:4px">';
           actions += '<span style="color:var(--accent-warning);font-size:0.8rem">⏳ انتظار الخامات</span>';
           actions += '<button class="btn btn-sm btn-primary" onclick="window.planStartProd(\'' + o.id + '\')">🔄 الخامات وصلت (إصدار أمر إنتاج)</button>';
           actions += '</div>';
+        } else if (o.status === 'Production Started') {
+          actions = '<span style="color:var(--accent-primary);font-size:0.8rem">🏭 جاري الإنتاج</span>';
+        } else if (o.status === 'Received by Warehouse') {
+          actions = '<button class="btn btn-sm btn-success" onclick="window.planReadyDeliv(\'' + o.id + '\')">📦 إبلاغ المبيعات (جاهز)</button>';
+        } else if (o.status === 'Ready For Delivery') {
+          actions = '<span style="color:var(--accent-success);font-size:0.8rem">✅ جاهز للتسليم (تم إبلاغ المبيعات)</span>';
         } else {
           actions = '<span style="color:var(--text-muted);font-size:0.8rem">-</span>';
         }
@@ -121,18 +137,18 @@ Pages.planning = function(el) {
             planning_notes: planNotes,
             expected_full_delivery_date: expectedDate
           }, function() {
-            // Also create a purchase request for the shortage
+            // Also create a purchase request for the shortage in background
+            var reqByName = (App.user ? (App.user.full_name || App.user.username || 'Planning') : 'Planning') + ' (Planning)';
             sbClient.from('purchase_requests').insert({
               item_name: 'خامات إنتاج: ' + productName,
               requested_quantity: reqQty - availNum,
               status: 'pending',
-              requested_by: App.user.full_name + ' (Planning)',
+              requested_by: reqByName,
               description: 'نقص خامات لأمر بيع — الكمية الناقصة: ' + (reqQty - availNum),
               delivery_date: expectedDate
             }).then(function(pr) {
-              SalesWorkflow.updateStatus(id, 'Raw Material Shortage - Purchase Requested', {}, function() {});
               render();
-              showToast('تم إشعار المبيعات وإنشاء طلب شراء للكمية الناقصة', 'warning');
+              showToast('تم إشعار المبيعات والعميل بنقص الخامات وفتح خيارات الاعتماد', 'warning');
             });
           });
         }
