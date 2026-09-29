@@ -42,7 +42,7 @@ function updateAuthUI() {
     `;
   } else {
     authArea.innerHTML = `
-      <button class="btn btn-outline" onclick="window.location.href='customer_auth.html'" style="padding:8px 16px; font-size:0.85rem;">
+      <button class="btn btn-outline" onclick="window.location.href='../../../../screens/customer-auth/customer_auth.html'" style="padding:8px 16px; font-size:0.85rem;">
         <i class="fa-solid fa-user"></i> تسجيل الدخول
       </button>
     `;

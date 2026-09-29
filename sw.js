@@ -4,18 +4,18 @@
 
 var CACHE_NAME = 'nf-erp-v14';
 var STATIC_ASSETS = [
-  '/portal.html',
-  '/css/styles.css',
-  '/css/ai-mind.css',
-  '/css/enterprise-ux.css',
-  '/css/ai-erp.css',
-  '/js/config.js',
-  '/js/constants.js',
-  '/js/icons.js',
-  '/js/helpers.js',
-  '/js/translations.js',
-  '/public/logo.png',
-  '/manifest.json'
+  '../screens/portal/portal.html',
+  'css/styles.css',
+  'css/ai-mind.css',
+  'css/enterprise-ux.css',
+  'css/ai-erp.css',
+  'js/config.js',
+  'js/constants.js',
+  'js/icons.js',
+  'js/helpers.js',
+  'js/translations.js',
+  'assets/logo.png',
+  'manifest.json'
 ];
 
 // Install: cache static assets

@@ -84,7 +84,7 @@ window.Pages.productsCatalog = function(el) {
   };
 
   window.viewPublicCatalog = function() {
-    window.open('/public_catalog.html', '_blank');
+    window.open('../../../../screens/public-catalog/public_catalog.html', '_blank');
   };
 
   window.newProductForm = function() {

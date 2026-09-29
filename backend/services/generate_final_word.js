@@ -2,7 +2,7 @@ const fs = require('fs');
 const https = require('https');
 const { marked } = require('marked');
 
-let content = fs.readFileSync('Final_ERP_Proposal.md', 'utf8');
+let content = fs.readFileSync('../../docs/Final_ERP_Proposal.md', 'utf8');
 const regex = /```mermaid\n([\s\S]*?)```/g;
 let matches = [];
 let match;
