@@ -237,15 +237,111 @@ var App = {
 
   // ========== RENDERING ==========
   renderLogin: function () {
-    document.getElementById('app').innerHTML = '<div class="login-wrapper"><div class="login-bg"></div><div class="login-card">' +
-      '<div class="login-logo"><img src="../../shared/assets/logo.png" onerror="this.onerror=null; this.src=\'../assets/logo.png\';" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(225,29,72,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>ERP System</p></div>' +
-      '<form class="login-form" id="login-form">' +
-      '<div id="login-error" class="login-error" style="display:none"></div>' +
-      '<div class="form-group"><label class="form-label">Username (اسم المستخدم)</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="Enter your username" id="login-username" autofocus></div></div>' +
-      '<div class="form-group"><label class="form-label">Password (كلمة المرور)</label><div class="form-input-wrapper"><input type="password" class="form-input" placeholder="Enter your password" id="login-password"></div></div>' +
-      '<button type="submit" class="login-btn" id="login-submit">Sign In (تسجيل الدخول)</button></form>' +
+    var lang = (typeof I18nEngine !== 'undefined' && I18nEngine.currentLang) || localStorage.getItem('lang') || 'ar';
+    var isAr = (lang === 'ar');
+    var uLabel = isAr ? 'اسم المستخدم' : 'Username';
+    var uPlaceholder = isAr ? 'أدخل اسم المستخدم' : 'Enter your username';
+    var pLabel = isAr ? 'كلمة المرور' : 'Password';
+    var pPlaceholder = isAr ? 'أدخل كلمة المرور' : 'Enter your password';
+    var btnText = isAr ? 'تسجيل الدخول' : 'Sign In';
+    var switchBtnText = isAr ? 'English' : 'عربي';
 
-      '</div></div>';
+    var titleText = isAr ? 'منظومة الإدارة الذكية والربط الرقمي الشامل لجميع قطاعات المصنع' : 'Smart Enterprise Resource Planning & Department Integration System';
+    var deptsTitle = isAr ? '🔗 شبكة الربط والتكامل المباشر بين الإدارات' : '🔗 Unified Department Integration Network';
+    var pSpeedDesc = isAr ? 'استجابة فورية وتدفق لحظي للمعلومات' : 'Instant operational flow & real-time actions';
+    var pIntegDesc = isAr ? 'ربط تلقائي يبدأ من أمر البيع حتى التسليم' : 'Seamless workflow from Sales to Delivery';
+    var pCapDesc = isAr ? 'أعلى استغلال للطاقات الإنتاجية وتقليل الهدر' : 'Optimal resource allocation & zero waste';
+    var pEffDesc = isAr ? 'مؤشرات أداء ورقابة مدعومة بالذكاء الاصطناعي' : 'AI-driven KPI tracking & live analytics';
+
+    var depts = isAr ? [
+      '🏭 الإنتاج والتصنيع',
+      '📊 التخطيط ومراقبة الخامات',
+      '🤝 المبيعات وبوابة العملاء',
+      '📦 المستودعات والمخازن',
+      '🚚 المشتريات وإمداد الموردين',
+      '🔬 توكيد ومراقبة الجودة',
+      '💰 المالية والمحاسبة والتحصيل',
+      '👥 الموارد البشرية وشؤون الأفراد',
+      '🛠️ الصيانة الفنية والمرافق',
+      '🛡️ السلامة المهنية والبيئة'
+    ] : [
+      '🏭 Manufacturing & Production',
+      '📊 Planning & Material Control',
+      '🤝 Sales & Customer Portal',
+      '📦 Warehouse & Inventory',
+      '🚚 Procurement & Supply Chain',
+      '🔬 Quality Assurance & QC',
+      '💰 Finance & General Ledger',
+      '👥 Human Resources (HR)',
+      '🛠️ Maintenance & Facilities',
+      '🛡️ Health, Safety & Environment'
+    ];
+
+    var deptsHtml = depts.map(function(d) {
+      return '<div class="sper-dept-chip"><span>' + d + '</span></div>';
+    }).join('');
+
+    var logoDataUri = (typeof SPER_LOGO_DATA_URI !== 'undefined' && SPER_LOGO_DATA_URI) ? SPER_LOGO_DATA_URI : '../../shared/assets/sper_erp_logo.png';
+
+    document.getElementById('app').innerHTML = '<div class="login-wrapper">' +
+      '<div class="login-bg"></div>' +
+      '<div class="sper-login-container">' +
+
+        // Auth Card
+        '<div class="sper-auth-card">' +
+          '<div class="sper-auth-header">' +
+            '<div class="sper-lang-wrapper">' +
+              '<button type="button" class="btn btn-xs btn-outline" id="login-lang-toggle">' + switchBtnText + '</button>' +
+            '</div>' +
+            '<div class="sper-auth-emblem">' +
+              '<img src="' + logoDataUri + '" onerror="this.src=\'../../shared/assets/logo.png\';" alt="SPER_ERP" class="sper-mini-emblem">' +
+            '</div>' +
+            '<h2>' + (isAr ? 'تسجيل الدخول' : 'Sign In') + '</h2>' +
+            '<p>' + (isAr ? 'أدخل بيانات حسابك للوصول إلى نظام SPER_ERP' : 'Enter your credentials to access SPER_ERP') + '</p>' +
+          '</div>' +
+
+          '<form class="login-form" id="login-form">' +
+            '<div id="login-error" class="login-error" style="display:none"></div>' +
+            '<div class="form-group">' +
+              '<label class="form-label">' + uLabel + '</label>' +
+              '<div class="form-input-wrapper">' +
+                '<input type="text" class="form-input" placeholder="' + uPlaceholder + '" id="login-username" autofocus>' +
+              '</div>' +
+            '</div>' +
+            '<div class="form-group">' +
+              '<label class="form-label">' + pLabel + '</label>' +
+              '<div class="form-input-wrapper">' +
+                '<input type="password" class="form-input" placeholder="' + pPlaceholder + '" id="login-password">' +
+              '</div>' +
+            '</div>' +
+            '<button type="submit" class="sper-login-btn" id="login-submit">' +
+              '<span>' + btnText + '</span>' +
+              '<span style="font-size:1.15rem">🚀</span>' +
+            '</button>' +
+          '</form>' +
+
+          '<div class="sper-auth-footer">' +
+            '<span>🛡️ SPER_ERP Enterprise v10.0</span>' +
+            '<span class="sper-secure-dot"></span>' +
+            '<span>' + (isAr ? 'منظومة مشفرة ومؤمّنة' : 'Secured Access') + '</span>' +
+          '</div>' +
+        '</div>' +
+
+      '</div>' +
+    '</div>';
+
+    var langToggle = document.getElementById('login-lang-toggle');
+    if (langToggle) {
+      langToggle.addEventListener('click', function() {
+        var curr = localStorage.getItem('lang') || 'ar';
+        var next = (curr === 'ar') ? 'en' : 'ar';
+        localStorage.setItem('lang', next);
+        if (typeof I18nEngine !== 'undefined') I18nEngine.currentLang = next;
+        if (next === 'ar') document.body.classList.add('rtl-layout');
+        else document.body.classList.remove('rtl-layout');
+        App.renderLogin();
+      });
+    }
 
     document.getElementById('login-form').addEventListener('submit', function (e) {
       e.preventDefault();
@@ -995,7 +1091,7 @@ var App = {
     
     App._currentMenuConfig = menu;
 
-    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="../../shared/assets/logo.png" onerror="if(this.src.indexOf(\'shared\')!==-1){this.src=\'../assets/logo.png\';}else{this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
+    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="../../shared/assets/sper_erp_logo.png" onerror="this.src=\'../../shared/assets/logo.png\';" alt="SPER_ERP" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>SPER_ERP</h2><p>Enterprise System</p></div></div>';
     html += '<nav class="sidebar-nav">';
     var renderedScreens = {};
     menu.forEach(function (section) {

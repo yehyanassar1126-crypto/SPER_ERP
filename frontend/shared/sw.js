@@ -1,19 +1,20 @@
-// ===== NINJA FACTORY ERP — SERVICE WORKER (PWA) =====
-// Provides basic offline caching for static assets
-// and queue support for factory floor operations
+// ===== SPER_ERP — SERVICE WORKER (PWA) =====
+// Network-first strategy to ensure instant updates with offline fallback
 
-var CACHE_NAME = 'nf-erp-v14';
+var CACHE_NAME = 'sper-erp-v25';
 var STATIC_ASSETS = [
   '../screens/portal/portal.html',
   'css/styles.css',
   'css/ai-mind.css',
   'css/enterprise-ux.css',
   'css/ai-erp.css',
-  'js/config.js',
-  'js/constants.js',
-  'js/icons.js',
-  'js/helpers.js',
-  'js/translations.js',
+  'js/core/config.js',
+  'js/core/constants.js',
+  'js/core/icons.js',
+  'js/core/helpers.js',
+  'js/core/sper-logo-data.js',
+  'js/core/app.js',
+  'assets/sper_erp_logo.png',
   'assets/logo.png',
   'manifest.json'
 ];
@@ -22,14 +23,14 @@ var STATIC_ASSETS = [
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      console.log('[SW] Caching static assets');
+      console.log('[SW] Caching SPER_ERP assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: purge all old caches
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(cacheNames) {
@@ -37,6 +38,7 @@ self.addEventListener('activate', function(event) {
         cacheNames.filter(function(name) {
           return name !== CACHE_NAME;
         }).map(function(name) {
+          console.log('[SW] Purging old cache:', name);
           return caches.delete(name);
         })
       );
@@ -45,36 +47,31 @@ self.addEventListener('activate', function(event) {
   self.clients.claim();
 });
 
-// Fetch: Network first, cache fallback for navigation
-// Cache first for static assets
+// Fetch: NETWORK FIRST for everything to ensure the user always sees the latest updates immediately
 self.addEventListener('fetch', function(event) {
   var url = new URL(event.request.url);
   
-  // Skip Supabase API calls - always network
+  // Skip Supabase API calls
   if (url.hostname.includes('supabase') || url.hostname.includes('cdn.jsdelivr') || url.hostname.includes('unpkg')) {
     return;
   }
 
-  // Static assets: cache first
-  if (event.request.method === 'GET' && (
-    url.pathname.endsWith('.css') || 
-    url.pathname.endsWith('.js') || 
-    url.pathname.endsWith('.png') || 
-    url.pathname.endsWith('.svg')
-  )) {
-    event.respondWith(
-      caches.match(event.request).then(function(response) {
-        return response || fetch(event.request).then(function(networkResponse) {
-          var responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, responseToCache);
-          });
-          return networkResponse;
+  // Network first with cache fallback
+  event.respondWith(
+    fetch(event.request).then(function(networkResponse) {
+      if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
+        var responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then(function(cache) {
+          cache.put(event.request, responseToCache);
         });
-      })
-    );
-    return;
-  }
+      }
+      return networkResponse;
+    }).catch(function() {
+      return caches.match(event.request);
+    })
+  );
+  return;
+});
 
   // HTML pages: network first, cache fallback
   if (event.request.method === 'GET' && event.request.headers.get('accept').includes('text/html')) {

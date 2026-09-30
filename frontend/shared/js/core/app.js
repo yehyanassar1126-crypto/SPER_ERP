@@ -259,66 +259,20 @@ var App = {
       return '<div class="sper-dept-chip"><span>' + d + '</span></div>';
     }).join('');
 
+    var logoDataUri = (typeof SPER_LOGO_DATA_URI !== 'undefined' && SPER_LOGO_DATA_URI) ? SPER_LOGO_DATA_URI : '../../shared/assets/sper_erp_logo.png';
+
     document.getElementById('app').innerHTML = '<div class="login-wrapper">' +
       '<div class="login-bg"></div>' +
       '<div class="sper-login-container">' +
 
-        // Left / Hero Showcase: SPER_ERP Brand & Department Integration
-        '<div class="sper-brand-showcase">' +
-          '<div>' +
-            '<div class="sper-brand-header">' +
-              '<div class="sper-emblem-glow">' +
-                '<img src="../../shared/assets/sper_erp_logo.png" onerror="this.src=\'../../shared/assets/logo.png\';" alt="SPER_ERP Logo" class="sper-main-logo">' +
-              '</div>' +
-              '<div class="sper-brand-titles">' +
-                '<h1 class="sper-title-gradient">SPER_ERP</h1>' +
-                '<div class="sper-motto">SMARTER &bull; CONNECTED &bull; STRONGER</div>' +
-                '<p class="sper-tagline">' + titleText + '</p>' +
-              '</div>' +
-            '</div>' +
-
-            '<div class="sper-integration-section">' +
-              '<div class="sper-section-title"><span>' + deptsTitle + '</span></div>' +
-              '<div class="sper-dept-grid">' + deptsHtml + '</div>' +
-            '</div>' +
-          '</div>' +
-
-          '<div class="sper-pillars-grid">' +
-            '<div class="sper-pillar-card">' +
-              '<div class="sper-pillar-icon">⚡</div>' +
-              '<div class="sper-pillar-en">SPEED</div>' +
-              '<div class="sper-pillar-ar">' + (isAr ? 'سرعة' : 'Speed') + '</div>' +
-              '<div class="sper-pillar-desc">' + pSpeedDesc + '</div>' +
-            '</div>' +
-            '<div class="sper-pillar-card">' +
-              '<div class="sper-pillar-icon">🔄</div>' +
-              '<div class="sper-pillar-en">INTEGRATION</div>' +
-              '<div class="sper-pillar-ar">' + (isAr ? 'تكامل' : 'Integration') + '</div>' +
-              '<div class="sper-pillar-desc">' + pIntegDesc + '</div>' +
-            '</div>' +
-            '<div class="sper-pillar-card">' +
-              '<div class="sper-pillar-icon">⚙️</div>' +
-              '<div class="sper-pillar-en">CAPABILITY</div>' +
-              '<div class="sper-pillar-ar">' + (isAr ? 'كفاءة' : 'Capability') + '</div>' +
-              '<div class="sper-pillar-desc">' + pCapDesc + '</div>' +
-            '</div>' +
-            '<div class="sper-pillar-card">' +
-              '<div class="sper-pillar-icon">📈</div>' +
-              '<div class="sper-pillar-en">EFFECTIVENESS</div>' +
-              '<div class="sper-pillar-ar">' + (isAr ? 'الإنتاجية' : 'Effectiveness') + '</div>' +
-              '<div class="sper-pillar-desc">' + pEffDesc + '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-
-        // Right / Auth Card
+        // Auth Card
         '<div class="sper-auth-card">' +
           '<div class="sper-auth-header">' +
             '<div class="sper-lang-wrapper">' +
               '<button type="button" class="btn btn-xs btn-outline" id="login-lang-toggle">' + switchBtnText + '</button>' +
             '</div>' +
             '<div class="sper-auth-emblem">' +
-              '<img src="../../shared/assets/sper_erp_logo.png" onerror="this.src=\'../../shared/assets/logo.png\';" alt="SPER_ERP" class="sper-mini-emblem">' +
+              '<img src="' + logoDataUri + '" onerror="this.src=\'../../shared/assets/logo.png\';" alt="SPER_ERP" class="sper-mini-emblem">' +
             '</div>' +
             '<h2>' + (isAr ? 'تسجيل الدخول' : 'Sign In') + '</h2>' +
             '<p>' + (isAr ? 'أدخل بيانات حسابك للوصول إلى نظام SPER_ERP' : 'Enter your credentials to access SPER_ERP') + '</p>' +

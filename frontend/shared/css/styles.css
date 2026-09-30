@@ -515,12 +515,11 @@ body.rtl-layout .chart-container { direction: ltr; }
 /* ===== SPER_ERP LOGIN EXPERIENCE ===== */
 .sper-login-container {
   width: 100%;
-  max-width: 1140px;
+  max-width: 480px;
   margin: 20px auto;
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 28px;
-  align-items: stretch;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: relative;
   z-index: 10;
   padding: 16px;
@@ -709,6 +708,7 @@ body.rtl-layout .chart-container { direction: ltr; }
 
 /* SPER AUTH CARD */
 .sper-auth-card {
+  width: 100%;
   background: linear-gradient(160deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 30, 0.98));
   border: 1px solid rgba(59, 130, 246, 0.35);
   border-radius: var(--radius-xl);
@@ -814,8 +814,7 @@ body.rtl-layout .chart-container { direction: ltr; }
 
 @media (max-width: 960px) {
   .sper-login-container {
-    grid-template-columns: 1fr;
-    max-width: 540px;
+    max-width: 480px;
     margin: 10px auto;
   }
   .sper-pillars-grid {
