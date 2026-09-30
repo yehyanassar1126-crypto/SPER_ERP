@@ -224,15 +224,135 @@ var App = {
     var btnText = isAr ? 'تسجيل الدخول' : 'Sign In';
     var switchBtnText = isAr ? 'English' : 'عربي';
 
-    document.getElementById('app').innerHTML = '<div class="login-wrapper"><div class="login-bg"></div><div class="login-card">' +
-      '<div style="text-align:right;margin-bottom:12px"><button type="button" class="btn btn-xs btn-outline" id="login-lang-toggle">' + switchBtnText + '</button></div>' +
-      '<div class="login-logo"><img src="../../shared/assets/logo.png" onerror="this.onerror=null; this.src=\'../../assets/logo.png\';" alt="Logo" style="width:130px;height:130px;border-radius:12px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);border:2px solid rgba(225,29,72,0.5);margin-bottom:16px;background:rgba(255,255,255,0.05);padding:4px"><h1>Ninja Factory</h1><p>ERP System</p></div>' +
-      '<form class="login-form" id="login-form">' +
-      '<div id="login-error" class="login-error" style="display:none"></div>' +
-      '<div class="form-group"><label class="form-label">' + uLabel + '</label><div class="form-input-wrapper"><input type="text" class="form-input" placeholder="' + uPlaceholder + '" id="login-username" autofocus></div></div>' +
-      '<div class="form-group"><label class="form-label">' + pLabel + '</label><div class="form-input-wrapper"><input type="password" class="form-input" placeholder="' + pPlaceholder + '" id="login-password"></div></div>' +
-      '<button type="submit" class="login-btn" id="login-submit">' + btnText + '</button></form>' +
-      '</div></div>';
+    var titleText = isAr ? 'منظومة الإدارة الذكية والربط الرقمي الشامل لجميع قطاعات المصنع' : 'Smart Enterprise Resource Planning & Department Integration System';
+    var deptsTitle = isAr ? '🔗 شبكة الربط والتكامل المباشر بين الإدارات' : '🔗 Unified Department Integration Network';
+    var pSpeedDesc = isAr ? 'استجابة فورية وتدفق لحظي للمعلومات' : 'Instant operational flow & real-time actions';
+    var pIntegDesc = isAr ? 'ربط تلقائي يبدأ من أمر البيع حتى التسليم' : 'Seamless workflow from Sales to Delivery';
+    var pCapDesc = isAr ? 'أعلى استغلال للطاقات الإنتاجية وتقليل الهدر' : 'Optimal resource allocation & zero waste';
+    var pEffDesc = isAr ? 'مؤشرات أداء ورقابة مدعومة بالذكاء الاصطناعي' : 'AI-driven KPI tracking & live analytics';
+
+    var depts = isAr ? [
+      '🏭 الإنتاج والتصنيع',
+      '📊 التخطيط ومراقبة الخامات',
+      '🤝 المبيعات وبوابة العملاء',
+      '📦 المستودعات والمخازن',
+      '🚚 المشتريات وإمداد الموردين',
+      '🔬 توكيد ومراقبة الجودة',
+      '💰 المالية والمحاسبة والتحصيل',
+      '👥 الموارد البشرية وشؤون الأفراد',
+      '🛠️ الصيانة الفنية والمرافق',
+      '🛡️ السلامة المهنية والبيئة'
+    ] : [
+      '🏭 Manufacturing & Production',
+      '📊 Planning & Material Control',
+      '🤝 Sales & Customer Portal',
+      '📦 Warehouse & Inventory',
+      '🚚 Procurement & Supply Chain',
+      '🔬 Quality Assurance & QC',
+      '💰 Finance & General Ledger',
+      '👥 Human Resources (HR)',
+      '🛠️ Maintenance & Facilities',
+      '🛡️ Health, Safety & Environment'
+    ];
+
+    var deptsHtml = depts.map(function(d) {
+      return '<div class="sper-dept-chip"><span>' + d + '</span></div>';
+    }).join('');
+
+    document.getElementById('app').innerHTML = '<div class="login-wrapper">' +
+      '<div class="login-bg"></div>' +
+      '<div class="sper-login-container">' +
+
+        // Left / Hero Showcase: SPER_ERP Brand & Department Integration
+        '<div class="sper-brand-showcase">' +
+          '<div>' +
+            '<div class="sper-brand-header">' +
+              '<div class="sper-emblem-glow">' +
+                '<img src="../../shared/assets/sper_erp_logo.png" onerror="this.src=\'../../shared/assets/logo.png\';" alt="SPER_ERP Logo" class="sper-main-logo">' +
+              '</div>' +
+              '<div class="sper-brand-titles">' +
+                '<h1 class="sper-title-gradient">SPER_ERP</h1>' +
+                '<div class="sper-motto">SMARTER &bull; CONNECTED &bull; STRONGER</div>' +
+                '<p class="sper-tagline">' + titleText + '</p>' +
+              '</div>' +
+            '</div>' +
+
+            '<div class="sper-integration-section">' +
+              '<div class="sper-section-title"><span>' + deptsTitle + '</span></div>' +
+              '<div class="sper-dept-grid">' + deptsHtml + '</div>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="sper-pillars-grid">' +
+            '<div class="sper-pillar-card">' +
+              '<div class="sper-pillar-icon">⚡</div>' +
+              '<div class="sper-pillar-en">SPEED</div>' +
+              '<div class="sper-pillar-ar">' + (isAr ? 'سرعة' : 'Speed') + '</div>' +
+              '<div class="sper-pillar-desc">' + pSpeedDesc + '</div>' +
+            '</div>' +
+            '<div class="sper-pillar-card">' +
+              '<div class="sper-pillar-icon">🔄</div>' +
+              '<div class="sper-pillar-en">INTEGRATION</div>' +
+              '<div class="sper-pillar-ar">' + (isAr ? 'تكامل' : 'Integration') + '</div>' +
+              '<div class="sper-pillar-desc">' + pIntegDesc + '</div>' +
+            '</div>' +
+            '<div class="sper-pillar-card">' +
+              '<div class="sper-pillar-icon">⚙️</div>' +
+              '<div class="sper-pillar-en">CAPABILITY</div>' +
+              '<div class="sper-pillar-ar">' + (isAr ? 'كفاءة' : 'Capability') + '</div>' +
+              '<div class="sper-pillar-desc">' + pCapDesc + '</div>' +
+            '</div>' +
+            '<div class="sper-pillar-card">' +
+              '<div class="sper-pillar-icon">📈</div>' +
+              '<div class="sper-pillar-en">EFFECTIVENESS</div>' +
+              '<div class="sper-pillar-ar">' + (isAr ? 'الإنتاجية' : 'Effectiveness') + '</div>' +
+              '<div class="sper-pillar-desc">' + pEffDesc + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        // Right / Auth Card
+        '<div class="sper-auth-card">' +
+          '<div class="sper-auth-header">' +
+            '<div class="sper-lang-wrapper">' +
+              '<button type="button" class="btn btn-xs btn-outline" id="login-lang-toggle">' + switchBtnText + '</button>' +
+            '</div>' +
+            '<div class="sper-auth-emblem">' +
+              '<img src="../../shared/assets/sper_erp_logo.png" onerror="this.src=\'../../shared/assets/logo.png\';" alt="SPER_ERP" class="sper-mini-emblem">' +
+            '</div>' +
+            '<h2>' + (isAr ? 'تسجيل الدخول' : 'Sign In') + '</h2>' +
+            '<p>' + (isAr ? 'أدخل بيانات حسابك للوصول إلى نظام SPER_ERP' : 'Enter your credentials to access SPER_ERP') + '</p>' +
+          '</div>' +
+
+          '<form class="login-form" id="login-form">' +
+            '<div id="login-error" class="login-error" style="display:none"></div>' +
+            '<div class="form-group">' +
+              '<label class="form-label">' + uLabel + '</label>' +
+              '<div class="form-input-wrapper">' +
+                '<input type="text" class="form-input" placeholder="' + uPlaceholder + '" id="login-username" autofocus>' +
+              '</div>' +
+            '</div>' +
+            '<div class="form-group">' +
+              '<label class="form-label">' + pLabel + '</label>' +
+              '<div class="form-input-wrapper">' +
+                '<input type="password" class="form-input" placeholder="' + pPlaceholder + '" id="login-password">' +
+              '</div>' +
+            '</div>' +
+            '<button type="submit" class="sper-login-btn" id="login-submit">' +
+              '<span>' + btnText + '</span>' +
+              '<span style="font-size:1.15rem">🚀</span>' +
+            '</button>' +
+          '</form>' +
+
+          '<div class="sper-auth-footer">' +
+            '<span>🛡️ SPER_ERP Enterprise v10.0</span>' +
+            '<span class="sper-secure-dot"></span>' +
+            '<span>' + (isAr ? 'منظومة مشفرة ومؤمّنة' : 'Secured Access') + '</span>' +
+          '</div>' +
+        '</div>' +
+
+      '</div>' +
+    '</div>';
 
     var langToggle = document.getElementById('login-lang-toggle');
     if (langToggle) {
@@ -895,7 +1015,7 @@ var App = {
     
     App._currentMenuConfig = menu;
 
-    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="../../shared/assets/logo.png" onerror="if(this.src.indexOf(\'shared\')!==-1){this.src=\'../../assets/logo.png\';}else{this.style.display=\'none\'; this.parentNode.innerHTML=icon(\'factory\', 30);}" alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>Ninja Factory</h2><p>ERP System</p></div></div>';
+    var html = '<div class="sidebar-header"><div class="sidebar-logo" style="width:55px;height:55px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(255,255,255,0.1);"><img src="../../shared/assets/sper_erp_logo.png" onerror="this.src=\'../../shared/assets/logo.png\';" alt="SPER_ERP" style="max-width:100%;max-height:100%;object-fit:contain;"></div><div class="sidebar-brand"><h2>SPER_ERP</h2><p>Enterprise System</p></div></div>';
     html += '<nav class="sidebar-nav">';
     menu.forEach(function (section) {
       var visibleItems = [];
@@ -4372,7 +4492,7 @@ Pages.payroll = function (el) {
         var p = payroll.find(function (x) { return x.id === this.getAttribute('data-view-slip'); }.bind(this));
         if (!p) return;
         var body = '<div style="padding:24px;background:var(--bg-tertiary);border-radius:var(--radius-lg);border:1px solid var(--border-color)">';
-        body += '<div style="text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border-color)"><h2 style="font-size:1.2rem;font-weight:800;margin-bottom:4px">Ninja Factory</h2><p style="color:var(--text-tertiary);font-size:0.82rem">Salary Slip - ' + p.month + '</p><p style="color:var(--text-tertiary);font-size:0.82rem">' + p.employee_name + ' — ' + p.department + '</p></div>';
+        body += '<div style="text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border-color)"><h2 style="font-size:1.2rem;font-weight:800;margin-bottom:4px">SPER_ERP</h2><p style="color:var(--text-tertiary);font-size:0.82rem">Salary Slip - ' + p.month + '</p><p style="color:var(--text-tertiary);font-size:0.82rem">' + p.employee_name + ' — ' + p.department + '</p></div>';
         body += '<h4 style="font-size:0.8rem;font-weight:700;color:var(--accent-success);margin-bottom:12px">EARNINGS</h4><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">';
         [['Base Salary', p.base_salary || 0], ['Overtime Pay', p.overtime_pay || 0], ['Bonuses', p.bonuses || 0], ['Performance Bonus', p.performance_bonus || 0]].forEach(function (item) {
           body += '<div style="display:flex;justify-content:space-between;font-size:0.88rem"><span style="color:var(--text-secondary)">' + item[0] + '</span><span style="font-weight:600">EGP ' + (item[1] || 0).toLocaleString() + '</span></div>';

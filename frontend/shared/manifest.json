@@ -1,7 +1,7 @@
 {
-  "name": "Ninja Factory ERP",
-  "short_name": "NF ERP",
-  "description": "Enterprise Manufacturing ERP System - AI Powered",
+  "name": "SPER_ERP Enterprise System",
+  "short_name": "SPER_ERP",
+  "description": "SPER_ERP - Connected Smart Enterprise Resource Planning System",
   "start_url": "../screens/portal/portal.html",
   "display": "standalone",
   "orientation": "any",
