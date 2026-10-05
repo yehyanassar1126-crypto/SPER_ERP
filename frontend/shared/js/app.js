@@ -5,8 +5,15 @@ var App = {
   notifications: [],
 
   init: function () {
+    // Restore the saved session so a reload (e.g. language switch) does not log the user out
     App.user = null;
-    localStorage.removeItem('hr_portal_user');
+    try {
+      var saved = localStorage.getItem('hr_portal_user');
+      if (saved) App.user = JSON.parse(saved);
+    } catch (e) { App.user = null; localStorage.removeItem('hr_portal_user'); }
+    if (App.user && typeof SecurityHelpers !== 'undefined' && SecurityHelpers.loadPermissions) {
+      try { SecurityHelpers.loadPermissions(); } catch (e) {}
+    }
 
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
@@ -5717,5 +5724,3 @@ document.addEventListener('DOMContentLoaded', function () {
     App.init(); 
   }
 });
-
-
