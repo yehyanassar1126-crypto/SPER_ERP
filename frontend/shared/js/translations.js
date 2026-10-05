@@ -992,6 +992,67 @@ const AR_KEYS = {
   "language_changed": "تم تغيير اللغة", "switch_language": "تغيير اللغة"
 };
 
+// ===== English key strings (en.json embedded) =====
+const EN_KEYS = {
+  "lang_en": "English", "lang_ar": "العربية",
+  "sidebar_dashboard": "Dashboard", "sidebar_attendance": "Attendance",
+  "sidebar_delays_log": "Delays Log", "sidebar_missions": "Missions",
+  "sidebar_permission_requests": "Permission Requests", "sidebar_leave_requests": "Leave Requests",
+  "sidebar_shift_management": "Shift Management", "sidebar_overtime": "Overtime",
+  "sidebar_payroll": "Payroll", "sidebar_payroll_funding": "Payroll Funding",
+  "sidebar_salary_adjustments": "Salary Adjustments", "sidebar_recruitment": "Recruitment",
+  "sidebar_hr_ats": "AI ATS", "sidebar_documents": "Documents",
+  "sidebar_performance": "Performance", "sidebar_uniforms": "Uniforms",
+  "sidebar_medical_requests": "Medical Requests", "sidebar_medical_approvals": "Medical Approvals",
+  "sidebar_loans": "Loans & Advances", "sidebar_expenses": "Expenses",
+  "sidebar_disciplinary": "Disciplinary & Grievances", "sidebar_friday_work": "Friday Work",
+  "sidebar_calendar": "Calendar", "sidebar_financial_reports": "Financial Reports",
+  "sidebar_chart_of_accounts": "Chart of Accounts", "sidebar_system_settings": "System Settings",
+  "sidebar_sales_dashboard": "Sales Dashboard", "sidebar_purchase_workflow": "Purchase Workflow",
+  "sidebar_warehouse_inventory": "Warehouse / Inventory", "sidebar_production_planning": "Production & Planning",
+  "sidebar_maintenance_fleet": "Maintenance & Fleet", "sidebar_legal_affairs": "Legal Affairs",
+  "sidebar_quality_control": "Quality Control", "btn_logout": "Logout",
+  "loading": "Loading...", "access_denied": "Access Denied",
+  "sidebar_all_delays": "Delays Log", "sidebar_all_missions": "Missions Log",
+  "sidebar_absence_leave": "Permission Requests", "sidebar_leaves": "Leave Requests",
+  "sidebar_shifts": "Shift Management", "sidebar_hr_adjustments": "Salary Adjustments",
+  "sidebar_nursing_page": "Factory Clinic & Nursing", "sidebar_nursing_medical_approvals": "Nursing Approvals",
+  "sidebar_complaints": "Complaints", "sidebar_finance_kpi": "Financial KPIs",
+  "sidebar_bank_management": "Bank Management", "sidebar_journal_engine": "Journal Engine",
+  "sidebar_checks": "Checks Lifecycle", "sidebar_loans_taxes": "Loans & Taxes",
+  "sidebar_budgets": "Budgets & Valuation", "sidebar_fixed_assets": "Fixed Assets",
+  "sidebar_ai_cfo": "AI CFO & Simulation", "sidebar_closing_wizard": "Closing & Audit",
+  "sidebar_finance_reports_ent": "Professional Reports", "sidebar_driver_payments": "Driver Payments",
+  "sidebar_ai_reports": "AI Intelligence Reports", "sidebar_owner_dashboard": "Owner Dashboard",
+  "sidebar_ceo_dashboard": "CEO Dashboard", "sidebar_ai_ceo_dashboard": "AI CEO Dashboard",
+  "sidebar_cost_centers": "Cost Centers", "sidebar_activity_timeline": "Activity Timeline",
+  "access_denied_title": "Access Denied",
+  "access_denied_msg": "You do not have permission to access this page.",
+  "back_to_dashboard": "Back to Dashboard",
+  "no_permission_action": "You do not have permission for this action",
+  "permissions_title": "Permission Management", "select_user": "Select User", "select_role": "Select Role",
+  "grant_all": "Grant All", "revoke_all": "Revoke All", "save_permissions": "Save Permissions",
+  "permissions_saved": "Permissions saved successfully",
+  "action_view": "View", "action_create": "Create", "action_edit": "Edit", "action_delete": "Delete",
+  "action_approve": "Approve", "action_reject": "Reject", "action_export": "Export", "action_print": "Print",
+  "ai_no_permission": "Sorry, you do not have permission to access this department's data.",
+  "ai_restricted": "This information is available only to authorized users.",
+  "ai_reports_title": "AI Intelligence Reports", "monthly_report": "Monthly Report",
+  "semiannual_report": "Semiannual Report", "annual_report": "Annual Report", "custom_report": "Custom Report",
+  "generate_report": "Generate Report", "report_generated": "Report generated successfully",
+  "generating_report": "Generating report...", "report_history": "Report History",
+  "no_reports": "No reports yet", "select_period": "Select Period", "from_date": "From Date", "to_date": "To Date",
+  "total_employees": "Total Employees", "active_employees": "Active Employees", "new_employees": "New Employees",
+  "employees_left": "Employees Left", "turnover_rate": "Turnover Rate", "attendance_rate": "Attendance Rate",
+  "late_rate": "Late Rate", "absence_rate": "Absence Rate", "overtime_hours": "Overtime Hours",
+  "total_salary_cost": "Total Salary Cost", "avg_salary": "Average Salary", "active_loans": "Active Loans",
+  "dept_analysis": "Department Analysis", "user_activity": "User Activity", "login_count": "Login Count",
+  "most_active_users": "Most Active Users", "most_used_screens": "Most Used Screens",
+  "recommendations": "Recommendations", "anomalies": "Anomalies", "executive_summary": "Executive Summary",
+  "period_comparison": "Period Comparison", "language_changed": "Language Changed",
+  "switch_language": "Switch Language"
+};
+
 // ===== Normalized lookup (fallback when exact match fails) =====
 const EMOJI_RE = /[\p{Extended_Pictographic}\uFE0F\u200D]/gu;
 const AR_PAREN_RE = /\s*\([\u0600-\u06FF][^)]*\)/g;
@@ -1032,6 +1093,13 @@ function translateText(raw) {
 
   // 1) exact
   if (ARABIC_DICT[core]) return lead + ARABIC_DICT[core] + trail;
+
+  // 1.2) bilingual label "English Name (عربي)" -> keep only the Arabic part (+ leading emoji)
+  const bi = core.match(/^([\p{Extended_Pictographic}\uFE0F\s]*)[A-Za-z][^()\u0600-\u06FF]*?\s*\(([\u0600-\u06FF][^)]*)\)\s*$/u);
+  if (bi) {
+    const em = bi[1].trim();
+    return lead + (em ? em + ' ' : '') + bi[2].trim() + trail;
+  }
 
   // 1.5) raw i18n keys (sidebar_xxx, btn_xxx ...) -> ar.json, else humanized dictionary lookup
   if (KEY_RE.test(core)) {
@@ -1143,3 +1211,48 @@ window.findUntranslated = function () {
   console.table([...seen]);
   return [...seen];
 };
+
+// ===== Make I18n.t() never return raw keys (sidebar_xxx) and follow localStorage 'lang' =====
+function patchI18n() {
+  var I = window.I18n;
+  if (!I || typeof I.t !== 'function' || I.t === I._ourT) return;
+  var orig = I.t;
+  I._ourT = function (k) {
+    var dict = (localStorage.getItem('lang') || 'ar') === 'ar' ? AR_KEYS : EN_KEYS;
+    if (typeof k === 'string' && dict[k]) return dict[k];
+    return orig.apply(this, arguments);
+  };
+  I.t = I._ourT;
+}
+
+// ===== Switch language in place: no reload, no logout =====
+function switchLangInPlace() {
+  var next = (localStorage.getItem('lang') || 'ar') === 'ar' ? 'en' : 'ar';
+  localStorage.setItem('lang', next);
+  try { if (typeof I18nEngine !== 'undefined') I18nEngine.currentLang = next; } catch (e) {}
+  try { if (window.I18n) { window.I18n.currentLang = next; window.I18n.lang = next; } } catch (e) {}
+  document.body.classList.toggle('rtl-layout', next === 'ar');
+  patchI18n();
+  if (typeof App !== 'undefined' && App.user) {
+    App.renderSidebar();
+    App.renderHeader();
+    App.renderPage();
+  }
+  if (next === 'ar') translateDOM(document.body); else cleanEnglishDOM(document.body);
+}
+
+// Capture phase: runs before the app's own handler, so the page never reloads
+document.addEventListener('click', function (e) {
+  var btn = e.target && e.target.closest ? e.target.closest('#lang-toggle-btn') : null;
+  if (!btn || typeof App === 'undefined' || !App.user) return;
+  e.stopImmediatePropagation();
+  e.preventDefault();
+  switchLangInPlace();
+}, true);
+
+window.addEventListener('DOMContentLoaded', function () {
+  patchI18n();
+  setTimeout(patchI18n, 0);
+  setTimeout(patchI18n, 300);
+  setTimeout(patchI18n, 1500);
+});
