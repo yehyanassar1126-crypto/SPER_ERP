@@ -63,12 +63,10 @@
   "sidebar_ai_ceo_dashboard": "لوحة الذكاء الاصطناعي",
   "sidebar_cost_centers": "تكلفة الإدارات",
   "sidebar_activity_timeline": "سجل العمليات",
-
   "access_denied_title": "غير مصرح بالدخول",
   "access_denied_msg": "ليس لديك صلاحية للوصول إلى هذه الصفحة.",
   "back_to_dashboard": "العودة للرئيسية",
   "no_permission_action": "ليس لديك صلاحية لهذا الإجراء",
-
   "permissions_title": "إدارة الصلاحيات",
   "select_user": "اختر المستخدم",
   "select_role": "اختر الدور",
@@ -76,7 +74,6 @@
   "revoke_all": "إلغاء الكل",
   "save_permissions": "حفظ الصلاحيات",
   "permissions_saved": "تم حفظ الصلاحيات بنجاح",
-
   "action_view": "عرض",
   "action_create": "إنشاء",
   "action_edit": "تعديل",
@@ -85,10 +82,8 @@
   "action_reject": "رفض",
   "action_export": "تصدير",
   "action_print": "طباعة",
-
   "ai_no_permission": "عذراً، ليس لديك صلاحية للوصول إلى بيانات هذا القسم.",
   "ai_restricted": "هذه المعلومات متاحة فقط للمستخدمين المصرح لهم.",
-
   "ai_reports_title": "تقارير الذكاء الاصطناعي",
   "monthly_report": "تقرير شهري",
   "semiannual_report": "تقرير نصف سنوي",
@@ -102,7 +97,6 @@
   "select_period": "اختر الفترة",
   "from_date": "من تاريخ",
   "to_date": "إلى تاريخ",
-
   "total_employees": "إجمالي الموظفين",
   "active_employees": "الموظفين النشطين",
   "new_employees": "الموظفين الجدد",
@@ -124,7 +118,6 @@
   "anomalies": "الملاحظات غير العادية",
   "executive_summary": "الملخص التنفيذي",
   "period_comparison": "مقارنة بالفترة السابقة",
-
   "language_changed": "تم تغيير اللغة",
   "switch_language": "تغيير اللغة"
 }
