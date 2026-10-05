@@ -8,8 +8,11 @@ var App = {
     // Restore the saved session so a reload (e.g. language switch) does not log the user out
     App.user = null;
     try {
-      var saved = localStorage.getItem('hr_portal_user');
-      if (saved) App.user = JSON.parse(saved);
+       var saved = localStorage.getItem('hr_portal_user') || sessionStorage.getItem('hr_portal_user_backup');
+      if (saved) {
+        App.user = JSON.parse(saved);
+        localStorage.setItem('hr_portal_user', saved);
+      }
     } catch (e) { App.user = null; localStorage.removeItem('hr_portal_user'); }
     if (App.user && typeof SecurityHelpers !== 'undefined' && SecurityHelpers.loadPermissions) {
       try { SecurityHelpers.loadPermissions(); } catch (e) {}
@@ -452,6 +455,7 @@ var App = {
 
   // ========== SIDEBAR ==========
   renderSidebar: function () {
+    f (typeof patchI18n === 'function') patchI18n();
     var menu = [];
     if (App.user.role === 'supplier_external') {
       menu = [
@@ -1257,12 +1261,7 @@ var App = {
     document.getElementById('menu-toggle').addEventListener('click', App.toggleSidebar);
     document.getElementById('notif-toggle').addEventListener('click', function () { App.showNotifPanel(); });
     document.getElementById('lang-toggle-btn').addEventListener('click', function () {
-      if (typeof I18nEngine !== 'undefined') {
-        var newLang = I18nEngine.currentLang === 'ar' ? 'en' : 'ar';
-        I18nEngine.switchLanguage(newLang);
-      } else {
-        var curr = localStorage.getItem('lang'); if (curr === 'ar') { localStorage.setItem('lang', 'en'); document.body.classList.remove('rtl-layout'); } else { localStorage.setItem('lang', 'ar'); document.body.classList.add('rtl-layout'); } window.location.reload();
-      }
+      if (typeof switchLangInPlace === 'function') switchLangInPlace();
     });
   },
 
