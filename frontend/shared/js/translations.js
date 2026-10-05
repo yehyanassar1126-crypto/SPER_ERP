@@ -1086,6 +1086,7 @@ const PHRASE_RE = new RegExp(
 const KEY_RE = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/;
 
 function translateText(raw) {
+  patchI18n();
   if (!raw || !HAS_EN.test(raw)) return null;
   const core = raw.trim();
   if (!core) return null;
@@ -1163,7 +1164,10 @@ function cleanEnglishDOM(container) {
   let n;
   while ((n = walker.nextNode())) nodes.push(n);
   nodes.forEach(x => {
-    const v = x.nodeValue.replace(re, '');
+    let v = x.nodeValue;
+    const core = v.trim();
+    if (KEY_RE.test(core) && EN_KEYS[core]) v = v.replace(core, EN_KEYS[core]);
+    v = v.replace(re, '');
     if (v !== x.nodeValue) x.nodeValue = v;
   });
 }
@@ -1228,11 +1232,22 @@ function patchI18n() {
 // ===== Switch language in place: no reload, no logout =====
 function switchLangInPlace() {
   var next = (localStorage.getItem('lang') || 'ar') === 'ar' ? 'en' : 'ar';
+
+  // ثبّت الجلسة قبل أي حاجة
+  if (typeof App !== 'undefined' && App.user) {
+    var sess = JSON.stringify(App.user);
+    localStorage.setItem('hr_portal_user', sess);
+    try { sessionStorage.setItem('hr_portal_user_backup', sess); } catch (e) {}
+  }
+
   localStorage.setItem('lang', next);
   try { if (typeof I18nEngine !== 'undefined') I18nEngine.currentLang = next; } catch (e) {}
   try { if (window.I18n) { window.I18n.currentLang = next; window.I18n.lang = next; } } catch (e) {}
   document.body.classList.toggle('rtl-layout', next === 'ar');
+  document.documentElement.setAttribute('lang', next);
+  document.documentElement.setAttribute('dir', next === 'ar' ? 'rtl' : 'ltr');
   patchI18n();
+
   if (typeof App !== 'undefined' && App.user) {
     App.renderSidebar();
     App.renderHeader();
