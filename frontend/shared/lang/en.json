@@ -63,12 +63,10 @@
   "sidebar_ai_ceo_dashboard": "AI CEO Dashboard",
   "sidebar_cost_centers": "Cost Centers",
   "sidebar_activity_timeline": "Activity Timeline",
-
   "access_denied_title": "Access Denied",
   "access_denied_msg": "You do not have permission to access this page.",
   "back_to_dashboard": "Back to Dashboard",
   "no_permission_action": "You do not have permission for this action",
-
   "permissions_title": "Permission Management",
   "select_user": "Select User",
   "select_role": "Select Role",
@@ -76,7 +74,6 @@
   "revoke_all": "Revoke All",
   "save_permissions": "Save Permissions",
   "permissions_saved": "Permissions saved successfully",
-
   "action_view": "View",
   "action_create": "Create",
   "action_edit": "Edit",
@@ -85,10 +82,8 @@
   "action_reject": "Reject",
   "action_export": "Export",
   "action_print": "Print",
-
   "ai_no_permission": "Sorry, you do not have permission to access this department's data.",
   "ai_restricted": "This information is available only to authorized users.",
-
   "ai_reports_title": "AI Intelligence Reports",
   "monthly_report": "Monthly Report",
   "semiannual_report": "Semiannual Report",
@@ -102,7 +97,6 @@
   "select_period": "Select Period",
   "from_date": "From Date",
   "to_date": "To Date",
-
   "total_employees": "Total Employees",
   "active_employees": "Active Employees",
   "new_employees": "New Employees",
@@ -124,7 +118,6 @@
   "anomalies": "Anomalies",
   "executive_summary": "Executive Summary",
   "period_comparison": "Period Comparison",
-
   "language_changed": "Language Changed",
   "switch_language": "Switch Language"
 }
