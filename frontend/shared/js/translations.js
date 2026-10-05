@@ -26,14 +26,14 @@ const ARABIC_DICT = {
   "Technical support and issue tracking": "الدعم الفني ومتابعة الأعطال",
   "Cash advances & settlements": "العهد والتسويات السلفة",
   "Warehouse and Procurement workflows": "دورة عمل المخازن والمشتريات",
-
+ 
   // Top Bar & Buttons
   "Smart Factory": "المصنع الذكي",
   "HR Management": "إدارة الموارد البشرية",
   "Notifications": "الإشعارات",
   "Mark all read": "تحديد الكل كمقروء",
   "No notifications yet": "لا توجد إشعارات حتى الآن",
-
+ 
   // Headers & Titles
   "Overview & Analytics": "نظرة عامة وتحليلات",
   "Employee Management": "إدارة الموظفين",
@@ -52,7 +52,7 @@ const ARABIC_DICT = {
   "Your leave requests": "طلبات الإجازة الخاصة بك",
   "Your salary details": "تفاصيل راتبك",
   "Your overtime records": "سجل الوقت الإضافي الخاص بك",
-
+ 
   // Stats Card
   "Total Employees": "إجمالي الموظفين",
   "Present Today": "الحضور اليوم",
@@ -70,7 +70,7 @@ const ARABIC_DICT = {
   "Latest company updates": "آخر تحديثات الشركة",
   "No pending requests": "لا توجد طلبات معلقة",
   "No announcements": "لا توجد إعلانات",
-
+ 
   // Tables
   "Employee": "الموظف",
   "ID": "الكود",
@@ -108,7 +108,7 @@ const ARABIC_DICT = {
   "From": "من",
   "To": "إلى",
   "Reason": "السبب",
-
+ 
   // Forms & Edit
   "All Employees": "جميع الموظفين",
   "Search employees...": "البحث عن موظفين...",
@@ -132,7 +132,7 @@ const ARABIC_DICT = {
   "Edit Employee": "تعديل بيانات الموظف",
   "Add New Employee": "تسجيل موظف جديد",
   "(Check if paperwork is fully submitted)": "(ضع علامة إذا كانت أوراق التعيين مكتملة)",
-  
+ 
   // Badges & Buttons
   "Complete": "مكتمل",
   "⚠️ Missing": "⚠️ غير مكتمل",
@@ -149,7 +149,7 @@ const ARABIC_DICT = {
   "Approve": "قبول",
   "Reject": "رفض",
   "Export": "تصدير",
-
+ 
   // Manager & Adjustments
   "Team Management": "إدارة الفريق",
   "Team Adjustments": "تعديلات الفريق",
@@ -180,7 +180,7 @@ const ARABIC_DICT = {
   "No adjustment requests": "لا توجد طلبات تعديل",
   "Loading team data...": "جاري تحميل بيانات الفريق...",
   "Loading adjustments...": "جاري تحميل التعديلات...",
-
+ 
   // Auto-Calculate Payroll
   "Auto-Calculate Salary": "حساب الراتب تلقائياً",
   "Extra HR Bonus (Manual)": "مكافأة إضافية من HR (يدوي)",
@@ -191,10 +191,7 @@ const ARABIC_DICT = {
   "Select an employee first": "اختر موظف أولاً",
   "Select a month": "اختر شهر",
   "⏳ Calculating...": "⏳ جاري الحساب...",
-
-  // Engineering Department
-  "Engineering": "الهندسة",
-
+ 
   // Payroll Modal
   "Process Salary": "إصدار راتب",
   "Employee *": "الموظف *",
@@ -205,7 +202,7 @@ const ARABIC_DICT = {
   "Process New Salary": "إصدار راتب جديد",
   "Save Record": "حفظ السجل",
   "Salary created!": "تم إصدار الراتب بنجاح!",
-
+ 
   // Specific roles & Factory Positions
   "hr": "موارد بشرية",
   "hall manager": "مدير صالة",
@@ -246,12 +243,10 @@ const ARABIC_DICT = {
   "Nursing Manager": "مدير تمريض",
   "Nurse": "ممرض / ممرضة",
   "Logistics Manager": "مدير حركة / نقل",
-  "Driver": "سائق",
   "Safety & Security Officer": "أمن وسلامة",
   "Secretary": "سكرتارية",
   "Lawyer": "محامي",
-  "Employee": "موظف عادي",
-  
+ 
   // Various text nodes
   "Loading Dashboard...": "جاري تحميل لوحة التحكم...",
   "Loading Your Dashboard...": "جاري تحميل بياناتك...",
@@ -266,16 +261,15 @@ const ARABIC_DICT = {
   "employees found": "موظفين",
   "requests": "طلبات",
   "records": "سجلات",
-  
+ 
   // Specific words
   "All Status": "جميع الحالات",
   "Request Leave": "طلب إجازة",
   "Submit Request": "تقديم الطلب",
   "Log Overtime Hours": "تسجيل ساعات إضافية",
-  "Submit for Approval": "تقديم للاعتماد",
   "Rate Multiplier": "معامل الزيادة",
   "Hours": "عدد الساعات",
-
+ 
   // AI Mind
   "AI Mind": "العقل الذكي",
   "Neural-powered workforce intelligence": "ذكاء القوى العاملة بالشبكات العصبية",
@@ -295,7 +289,7 @@ const ARABIC_DICT = {
   "Department performance": "أداء الأقسام",
   "Recommend improvements": "اقتراح تحسينات",
   "Payroll overview": "نظرة عامة على الرواتب",
-
+ 
   // Extended Modules
   "Recruitment": "التوظيف",
   "Manage job postings and applicants": "إدارة الوظائف والمتقدمين",
@@ -304,7 +298,7 @@ const ARABIC_DICT = {
   "Applicants": "المتقدمين",
   "Post New Job": "نشر وظيفة جديدة",
   "View Candidates": "عرض المرشحين",
-
+ 
   "Documents": "المستندات",
   "Track employee documents and expiries": "متابعة مستندات الموظفين وتاريخ الانتهاء",
   "Document Management": "إدارة المستندات",
@@ -314,7 +308,7 @@ const ARABIC_DICT = {
   "View File": "عرض الملف",
   "Expired": "منتهي",
   "Valid": "ساري",
-
+ 
   "Performance": "الأداء",
   "Employee appraisals and goals": "تقييمات وأهداف الموظفين",
   "Performance & OKRs": "تقييم الأداء والأهداف",
@@ -323,7 +317,7 @@ const ARABIC_DICT = {
   "Goals Met": "تحقيق الأهداف",
   "New Review": "تقييم جديد",
   "Details": "التفاصيل",
-
+ 
   "Uniforms": "العهد (اليونيفورم)",
   "Track issued uniforms and sizes": "متابعة اليونيفورم والمقاسات",
   "Uniform Management": "إدارة العهد والملابس",
@@ -332,7 +326,7 @@ const ARABIC_DICT = {
   "Issued Date": "تاريخ التسليم",
   "Issue Uniform": "تسليم عهدة",
   "Return / Replace": "استرجاع / استبدال",
-
+ 
   // Loans & Advances
   "Loans & Advances": "السلف والقروض",
   "Manage employee loans": "إدارة سلف الموظفين",
@@ -347,7 +341,7 @@ const ARABIC_DICT = {
   "Defer Deduction for This Month": "تأجيل الخصم لهذا الشهر",
   "Request Loan": "طلب سلفة",
   "Track your active and past loans": "تتبع سلفك الحالية والسابقة",
-
+ 
   // Medical Requests
   "Medical Requests": "الطلبات الطبية",
   "Manage medical needs and disbursements": "إدارة الاحتياجات الطبية والمبالغ المنصرفة",
@@ -366,18 +360,18 @@ const ARABIC_DICT = {
   "Disbursed": "تم الصرف",
   "Add Amount": "إضافة مبلغ",
   "Upload Document / Receipt": "رفع مستند / إيصال",
-
+ 
   // My Delays
   "My Delays": "تأخيراتي",
   "Delays Log": "سجل التأخيرات",
   "Your delay and deduction records": "سجل التأخيرات والخصومات الخاصة بك",
   "Delay Records": "سجل التأخيرات",
   "delay records": "سجلات تأخير",
-
+ 
   // Missions
   "Missions": "المأموريات",
   "My Missions": "المأموريات",
-
+ 
   // Enterprise Modules
   "Expenses": "المصروفات",
   "My Expenses": "مصروفاتي",
@@ -388,7 +382,7 @@ const ARABIC_DICT = {
   "Your expense claims": "طلبات المصروفات الخاصة بك",
   "Complaints and disciplinary actions": "الشكاوى والجزاءات",
   "Manage employee exit process": "إدارة سير عمل نهاية خدمة الموظف",
-
+ 
   // Workplace Features
   "Company Directory": "دليل موظفي الشركة",
   "Interactive Org Chart & Skills Finder": "الهيكل التنظيمي التفاعلي ومكتشف المهارات",
@@ -400,7 +394,7 @@ const ARABIC_DICT = {
   "My Offers": "عروضي",
   "Offer Shift": "عرض وردية",
   "Accept & Swap": "قبول التبديل",
-
+ 
   // ERP Modules (Sales, Planning, Production, Quality, Procurement, Inventory)
   "Sales (المبيعات)": "المبيعات",
   "Sales Orders (أوامر البيع)": "أوامر البيع",
@@ -418,7 +412,7 @@ const ARABIC_DICT = {
   "Add Client": "إضافة عميل",
   "Company Name": "اسم الشركة",
   "Contact Person": "الشخص المسؤول",
-
+ 
   "Planning (التخطيط)": "التخطيط",
   "Production Plans": "خطط الإنتاج",
   "Production Plan": "خطة الإنتاج",
@@ -426,7 +420,7 @@ const ARABIC_DICT = {
   "Assigned": "مُسند",
   "Start Date": "تاريخ البدء",
   "End Date": "تاريخ الانتهاء",
-
+ 
   "Production (الإنتاج)": "الإنتاج",
   "Active Orders": "أوامر نشطة",
   "Materials Requested": "خامات مطلوبة",
@@ -435,15 +429,15 @@ const ARABIC_DICT = {
   "Request Materials": "طلب صرف خامات",
   "Needed Qty": "الكمية المطلوبة",
   "Send to QC": "إرسال للجودة",
-
+ 
   "Quality Control (الجودة)": "الجودة",
   "QC Inspections (فحص الجودة)": "فحوصات الجودة",
   "Inspections": "الفحوصات",
   "Total Inspections": "إجمالي الفحوصات",
   "Passed": "مطابق",
-  "Failed": "مرفوض",
+  "Failed": "فاشل",
   "Inspect Finished Goods": "فحص منتجات تامة",
-
+ 
   "Inventory (المخازن)": "المخازن",
   "Raw Materials": "خامات (Raw)",
   "Finished Goods": "منتج تام (Finished)",
@@ -454,8 +448,7 @@ const ARABIC_DICT = {
   "Category": "الفئة",
   "Quantity": "الكمية",
   "Warehouse Type": "نوع المخزن",
-
-  "Procurement": "المشتريات",
+ 
   "Purchase Requests": "طلبات الشراء",
   "Raw Material Receipt": "استلام مواد خام",
   "Pending QC": "بانتظار فحص الجودة",
@@ -464,7 +457,7 @@ const ARABIC_DICT = {
   "Partial Delivery": "تسليم جزئي",
   "Full Wait": "انتظار كامل",
   "Purchase Settlements": "تسويات الشراء",
-
+ 
   // Shifts & Scheduling
   "Admin Shift": "الشيفت الإداري",
   "Admin Shift (09:00 - 17:00)": "الشيفت الإداري (09:00 - 17:00)",
@@ -473,9 +466,8 @@ const ARABIC_DICT = {
   "Night Shift": "الوردية الليلية",
   "Day Shift": "وردية النهار",
   "Shift System *": "نظام الورديات *",
-
+ 
   // Spare Parts Inspector
-  "Spare Parts Inspector": "مراقب قطع غيار",
   "Spare Parts Inspector (مراقب قطع غيار)": "مراقب قطع غيار",
   "spare parts inspector": "مراقب قطع غيار",
   "Spare Parts Lifecycle (دورة قطع الغيار)": "دورة قطع الغيار",
@@ -493,7 +485,7 @@ const ARABIC_DICT = {
   "Inspect Part": "فحص القطعة",
   "Inspection Closed": "تم الفحص والإغلاق",
   "Awaiting Inspection": "في انتظار الفحص",
-
+ 
   // Treasury & Petty Cash
   "Treasury & Petty Cash": "الخزنة والعهد",
   "Bank Balance": "رصيد البنك",
@@ -501,13 +493,12 @@ const ARABIC_DICT = {
   "Deposit": "إيداع",
   "Transfer": "تحويل",
   "Issue Petty Cash": "صرف عهدة",
-  "Purchase Settlements": "تسويات الشراء",
   "Deduct from Advance": "خصم من العهدة",
   "Independent Cash": "صرف كاش مستقل",
   "Employee Advance Balance": "رصيد عهدة الموظف",
   "Pending Finance": "في انتظار تسوية الحسابات",
   "Settlement": "تسوية",
-
+ 
   // Purchase Workflow Statuses
   "pending_approval": "في انتظار الاعتماد",
   "approved": "معتمد",
@@ -516,7 +507,7 @@ const ARABIC_DICT = {
   "issued": "تم الصرف",
   "damaged_returned": "تم تسليم التالف",
   "quality_checked": "تم الفحص والإغلاق",
-
+ 
   // Roles
   "owner": "المالك / المدير العام",
   "hr manager": "مدير موارد بشرية",
@@ -529,17 +520,17 @@ const ARABIC_DICT = {
   "engineer": "مهندس",
   "technical office": "مكتب فني",
   "it": "دعم فني",
-
+ 
   // Quality (Products only)
   "Quality Control": "الجودة",
   "Product Inspection": "فحص المنتجات التامة",
   "Accept": "مطابق",
   "Not Accept": "غير مطابق",
-
+ 
   // Engineering
   "Engineering (الإدارة الهندسية)": "الإدارة الهندسية",
   "Projects & Designs": "المشاريع والرسومات",
-
+ 
   // ATS - AI Applicant Tracking
   "AI ATS (فحص السير الذاتية)": "نظام فحص السير الذاتية بالذكاء الاصطناعي",
   "Upload CVs as PDF and let AI analyze candidate suitability": "ارفع السيرة الذاتية PDF واترك الذكاء الاصطناعي يحللها",
@@ -558,32 +549,32 @@ const ARABIC_DICT = {
   "Analyze with AI": "تحليل بالذكاء الاصطناعي",
   "Save Without AI": "حفظ بدون تحليل",
   "Next Stage": "المرحلة التالية",
-
+ 
   // HR Personal Dashboard
   "My HR Profile": "ملفي الشخصي",
   "Your personal HR records": "بيانات الموارد البشرية الشخصية",
   "My Profile (ملفي الشخصي)": "ملفي الشخصي",
-
+ 
   // Attendance Modifications
   "Edit Attendance": "تعديل سجل الحضور",
   "Delete Checkout": "حذف الانصراف",
   "Reopen Day": "إعادة فتح اليوم",
   "Modification Reason": "سبب التعديل",
   "Modification Type": "نوع التعديل",
-
+ 
   // Overtime
   "Overtime Hours": "ساعات إضافية",
   "Overtime Amount": "مبلغ الإضافي",
   "Friday Work": "عمل الجمعة",
   "Friday Bonus": "بدل الجمعة",
-
+ 
   // QR Security
   "QR Code Expired": "QR منتهي الصلاحية",
   "QR Already Used": "تم استخدام هذا الـ QR مسبقاً",
   "Confirm Check-Out": "تأكيد الانصراف",
-
+ 
   // ===== ENTERPRISE MODULES =====
-
+ 
   // Internal Chat
   "Internal Chat": "الشات الداخلي",
   "💬 Internal Chat": "💬 الشات الداخلي",
@@ -604,7 +595,7 @@ const ARABIC_DICT = {
   "My Manager": "مديري",
   "HR Team": "فريق الموارد البشرية",
   "My Colleagues": "زملائي",
-
+ 
   // Calendar
   "Calendar": "التقويم",
   "📅 Calendar": "📅 التقويم",
@@ -618,10 +609,11 @@ const ARABIC_DICT = {
   "All Day": "طوال اليوم",
   "No events this month": "لا توجد أحداث هذا الشهر",
   "Event created": "تم إنشاء الحدث",
-
+ 
   // Task Management
   "Task Management": "إدارة المهام",
   "📝 Tasks": "📝 المهام",
+  "Tasks": "المهام",
   "Manage and track tasks": "إدارة وتتبع المهام",
   "New Task": "مهمة جديدة",
   "Assign Task": "تعيين مهمة",
@@ -636,7 +628,7 @@ const ARABIC_DICT = {
   "in_progress": "جاري العمل",
   "done": "مكتمل",
   "overdue": "متأخر",
-
+ 
   // KPI Dashboard
   "KPI Dashboard": "لوحة مؤشرات الأداء",
   "📊 KPI Dashboard": "📊 لوحة مؤشرات الأداء",
@@ -644,7 +636,7 @@ const ARABIC_DICT = {
   "Target": "المستهدف",
   "Actual": "الفعلي",
   "Achievement": "نسبة التحقيق",
-
+ 
   // Login History & Activity Log
   "Login History": "سجل تسجيل الدخول",
   "🔐 Login History": "🔐 سجل تسجيل الدخول",
@@ -655,8 +647,7 @@ const ARABIC_DICT = {
   "IP Address": "عنوان IP",
   "Browser": "المتصفح",
   "Success": "ناجح",
-  "Failed": "فاشل",
-
+ 
   // Financial Reports
   "Financial Reports": "التقارير المالية",
   "📊 Financial Reports": "📊 التقارير المالية",
@@ -669,14 +660,14 @@ const ARABIC_DICT = {
   "Net Profit": "صافي الربح",
   "Total Assets": "إجمالي الأصول",
   "Total Liabilities": "إجمالي الالتزامات",
-
+ 
   // Data Export
   "Data Export": "تصدير البيانات",
   "Export to CSV": "تصدير CSV",
   "Export to Excel": "تصدير Excel",
   "Export to PDF": "تصدير PDF",
   "Import Data": "استيراد بيانات",
-
+ 
   // System Settings
   "System Settings": "إعدادات النظام",
   "⚙️ System Settings": "⚙️ إعدادات النظام",
@@ -687,9 +678,8 @@ const ARABIC_DICT = {
   "Settings saved!": "تم حفظ الإعدادات!",
   "Enabled": "مفعل",
   "Disabled": "معطل",
-
-  // Document Management
-  "Document Management": "إدارة المستندات",
+ 
+  // Document Management (UI)
   "📁 Document Management": "📁 إدارة المستندات",
   "📁 Documents": "📁 المستندات",
   "Upload and manage documents": "رفع وإدارة المستندات",
@@ -698,16 +688,15 @@ const ARABIC_DICT = {
   "Module": "القسم",
   "File Type": "نوع الملف",
   "Uploaded By": "رُفع بواسطة",
-
+ 
   // Approval Workflows
   "Approval Workflows": "سير عمل الموافقات",
   "✅ Approval Workflows": "✅ سير عمل الموافقات",
   "✅ Approvals": "✅ الموافقات",
   "Manage approval requests": "إدارة طلبات الموافقات",
   "All Approval Requests": "جميع طلبات الموافقات",
-  "Requested By": "مقدم من",
   "Total": "الإجمالي",
-
+ 
   // Performance Reviews
   "Performance Reviews": "تقييم الأداء",
   "⭐ Performance Reviews": "⭐ تقييم الأداء",
@@ -728,7 +717,7 @@ const ARABIC_DICT = {
   "submitted": "مقدم",
   "reviewed": "تمت المراجعة",
   "acknowledged": "تم الاطلاع",
-
+ 
   // Training & Development
   "Training & Development": "التدريب والتطوير",
   "🎓 Training": "🎓 التدريب",
@@ -750,7 +739,7 @@ const ARABIC_DICT = {
   "ongoing": "جاري",
   "completed": "مكتمل",
   "cancelled": "ملغي",
-
+ 
   // Asset Assignment
   "Asset Assignment": "تسليم العهد",
   "💻 Asset Assignment": "💻 تسليم العهد",
@@ -766,14 +755,14 @@ const ARABIC_DICT = {
   "damaged": "تالف",
   "lost": "مفقود",
   "Laptop": "لابتوب",
-  "Phone": "موبايل",
+  "Mobile": "موبايل",
   "Tablet": "تابلت",
   "Vehicle": "سيارة",
   "Key": "مفتاح",
   "Uniform": "يونيفورم",
   "Tool": "أداة",
   "Return": "استرداد",
-
+ 
   // Employee Warnings
   "Employee Warnings": "الإنذارات والجزاءات",
   "⚠️ Warnings": "⚠️ الإنذارات",
@@ -792,12 +781,11 @@ const ARABIC_DICT = {
   "appealed": "تم الاعتراض",
   "revoked": "ملغي",
   "expired": "منتهي الصلاحية",
-
+ 
   // Collaboration Section
   "Collaboration": "التعاون",
-  "Administration": "الإدارة",
   "Workplace": "بيئة العمل",
-
+ 
   // Common Enterprise
   "Created At": "تاريخ الإنشاء",
   "Updated At": "تاريخ التحديث",
@@ -815,15 +803,14 @@ const ARABIC_DICT = {
   "No data": "لا توجد بيانات",
   "No records found": "لا توجد سجلات",
   "general": "عام",
-  "hr": "موارد بشرية",
   "finance": "المالية",
   "sales": "المبيعات",
   "production": "الإنتاج",
   "quality": "الجودة",
   "maintenance": "الصيانة",
-
+ 
   // ===== NEW MODULES =====
-
+ 
   // BOM
   "BOM (مكونات المنتج)": "مكونات المنتج (BOM)",
   "Bill of Materials & production recipes": "مكونات المنتج ووصفات الإنتاج",
@@ -833,7 +820,7 @@ const ARABIC_DICT = {
   "Waste %": "نسبة الهالك %",
   "Cost/Unit": "تكلفة/وحدة",
   "Version": "الإصدار",
-
+ 
   // Equipment
   "Equipment (المعدات)": "المعدات",
   "Equipment registry, rental & tracking": "سجل المعدات والتأجير والتتبع",
@@ -847,7 +834,7 @@ const ARABIC_DICT = {
   "rented": "مؤجرة",
   "retired": "خارج الخدمة",
   "Equipment Rental": "تأجير المعدات",
-
+ 
   // Maintenance Companies
   "Maintenance Companies (شركات الصيانة)": "شركات الصيانة",
   "Contractor management & visit tracking": "إدارة المقاولين وتتبع الزيارات",
@@ -858,11 +845,11 @@ const ARABIC_DICT = {
   "Total Cost": "التكلفة الإجمالية",
   "Total Visits": "إجمالي الزيارات",
   "Total Spending": "إجمالي الإنفاق",
-
+ 
   // Global Search
   "Global Search (بحث موحد)": "البحث الموحد",
   "Search across all ERP modules": "البحث في جميع أقسام النظام",
-
+ 
   // Supplier Performance
   "Supplier Performance (تقييم الموردين)": "تقييم الموردين",
   "AI-powered supplier rating & analysis": "تقييم الموردين بالذكاء الاصطناعي",
@@ -872,7 +859,7 @@ const ARABIC_DICT = {
   "Return Rate": "نسبة المرتجعات",
   "Overall Score": "التقييم العام",
   "AI Recommendation": "توصية AI",
-
+ 
   // Permissions
   "Screen Permissions (صلاحيات الشاشات)": "صلاحيات الشاشات",
   "Manage user & role access": "إدارة صلاحيات المستخدمين والأدوار",
@@ -880,7 +867,7 @@ const ARABIC_DICT = {
   "Screen": "الشاشة",
   "Grant": "منح",
   "Revoke": "سحب",
-
+ 
   // Traceability
   "Production Traceability (تتبع الإنتاج)": "تتبع الإنتاج",
   "Track batch from raw material to customer": "تتبع الدُفعة من الخامة للعميل",
@@ -891,12 +878,12 @@ const ARABIC_DICT = {
   "QC Inspection": "فحص الجودة",
   "Finished Product": "المنتج النهائي"
 };
-
+ 
 // Set Arabic as default language
 if (!localStorage.getItem('lang')) {
   localStorage.setItem('lang', 'ar');
 }
-
+ 
 // Global Translation function
 function t(text) {
   if (localStorage.getItem('lang') === 'ar' && ARABIC_DICT[text]) {
@@ -904,89 +891,145 @@ function t(text) {
   }
   return text; // return original if no translation or english
 }
-
+ 
+// ===== Normalized lookup (fallback when exact match fails) =====
+const EMOJI_RE = /[\p{Extended_Pictographic}\uFE0F\u200D]/gu;
+const AR_PAREN_RE = /\s*\([\u0600-\u06FF][^)]*\)/g;
+const HAS_AR = /[\u0600-\u06FF]/;
+const HAS_EN = /[A-Za-z]{2,}/;
+ 
+function norm(s) {
+  return s.replace(EMOJI_RE, '').replace(AR_PAREN_RE, '')
+          .replace(/_/g, ' ').replace(/\s*:\s*$/, '')
+          .replace(/\s+/g, ' ').trim().toLowerCase();
+}
+ 
+const NORM_DICT = new Map();
+Object.entries(ARABIC_DICT).forEach(([k, v]) => {
+  const n = norm(k);
+  const val = v.replace(EMOJI_RE, '').replace(/\s+/g, ' ').trim();
+  if (n && !NORM_DICT.has(n)) NORM_DICT.set(n, val);
+});
+ 
+// One-pass, longest-first, whole-word phrase replacement (for mixed strings)
+const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const PHRASE_ALLOW_LOWER = new Set(['requests', 'records']);
+const PHRASE_KEYS = Object.keys(ARABIC_DICT)
+  .filter(k => k.length > 3 && !HAS_AR.test(k) && /^[A-Za-z]/.test(k) &&
+    (/^[A-Z]/.test(k) || k.includes(' ') || PHRASE_ALLOW_LOWER.has(k)))
+  .sort((a, b) => b.length - a.length);
+const PHRASE_RE = new RegExp(
+  '(?<![A-Za-z])(' + PHRASE_KEYS.map(escapeRe).join('|') + ')(?![A-Za-z])', 'g'
+);
+ 
+function translateText(raw) {
+  if (!raw || !HAS_EN.test(raw)) return null;
+  const core = raw.trim();
+  if (!core) return null;
+  const lead = raw.match(/^\s*/)[0], trail = raw.match(/\s*$/)[0];
+ 
+  // 1) exact
+  if (ARABIC_DICT[core]) return lead + ARABIC_DICT[core] + trail;
+ 
+  // 2) normalized (ignores emoji / case / underscores / (arabic) suffix / trailing colon)
+  const hit = NORM_DICT.get(norm(core));
+  if (hit) {
+    const emojiPrefix = (core.match(/^(?:[\p{Extended_Pictographic}\uFE0F\s])+/u) || [''])[0].trim();
+    const colon = /:\s*$/.test(core) ? ':' : '';
+    return lead + (emojiPrefix ? emojiPrefix + ' ' : '') + hit + colon + trail;
+  }
+ 
+  // 3) phrases inside longer text
+  const out = raw.replace(PHRASE_RE, m => ARABIC_DICT[m]);
+  return out !== raw ? out : null;
+}
+ 
+const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'CODE']);
+const ATTRS = ['placeholder', 'title', 'aria-label', 'value'];
+ 
+function translateTextNode(n) {
+  if (!n.parentNode || SKIP.has(n.parentNode.nodeName)) return;
+  const res = translateText(n.nodeValue);
+  if (res !== null && res !== n.nodeValue) n.nodeValue = res;
+}
+ 
+function translateAttrs(el) {
+  ATTRS.forEach(a => {
+    if (!el.hasAttribute || !el.hasAttribute(a)) return;
+    if (a === 'value' && !(el.tagName === 'INPUT' && ['button', 'submit'].includes(el.type))) return;
+    const res = translateText(el.getAttribute(a));
+    if (res !== null && res !== el.getAttribute(a)) el.setAttribute(a, res);
+  });
+}
+ 
 // Automatic DOM Walker
 function translateDOM(container) {
-  if (localStorage.getItem('lang') !== 'ar') return;
-  
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-  const nodesToUpdate = [];
-  
-  let node;
-  while (node = walker.nextNode()) {
-    let rawText = node.nodeValue.trim();
-    if (rawText && ARABIC_DICT[rawText]) {
-      nodesToUpdate.push({n: node, val: ARABIC_DICT[rawText]});
-    } else {
-      // Handle cases where English string is embedded with prefix/suffix
-      // A quick check for exact substring matching:
-      Object.keys(ARABIC_DICT).forEach(key => {
-         if (rawText.includes(key) && key.length > 3) {
-            nodesToUpdate.push({n: node, val: node.nodeValue.replace(key, ARABIC_DICT[key])});
-         }
-      });
-    }
-  }
-
-  // Update text nodes
-  nodesToUpdate.forEach(item => {
-    item.n.nodeValue = item.val;
-  });
-
-  // Translate placeholders and tooltips
-  container.querySelectorAll('[placeholder]').forEach(el => {
-    if (ARABIC_DICT[el.getAttribute('placeholder')]) {
-      el.setAttribute('placeholder', ARABIC_DICT[el.getAttribute('placeholder')]);
-    }
-  });
-  container.querySelectorAll('[title]').forEach(el => {
-    if (ARABIC_DICT[el.getAttribute('title')]) {
-      el.setAttribute('title', ARABIC_DICT[el.getAttribute('title')]);
-    }
-  });
+  if (localStorage.getItem('lang') !== 'ar' || !container) return;
+  if (container.nodeType === 3) return translateTextNode(container);
+  if (container.nodeType !== 1) return;
+  translateAttrs(container);
+  container.querySelectorAll('*').forEach(translateAttrs);
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let n;
+  while ((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(translateTextNode);
 }
-
+ 
 // Clean English DOM by removing parenthesized Arabic
 function cleanEnglishDOM(container) {
-  if (localStorage.getItem('lang') === 'ar') return;
-  var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-  var nodesToUpdate = [];
-  var node;
-  var arabicParenRegex = /\s*\(([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF][^)]*)\)/g;
-  while (node = walker.nextNode()) {
-    var rawText = node.nodeValue;
-    if (rawText && arabicParenRegex.test(rawText)) {
-      nodesToUpdate.push({ n: node, val: rawText.replace(arabicParenRegex, '') });
-    }
-  }
-  nodesToUpdate.forEach(function(item) {
-    item.n.nodeValue = item.val;
+  if (localStorage.getItem('lang') === 'ar' || !container) return;
+  const re = /\s*\(([\u0600-\u06FF][^)]*)\)/g;
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let n;
+  while ((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(x => {
+    const v = x.nodeValue.replace(re, '');
+    if (v !== x.nodeValue) x.nodeValue = v;
   });
 }
-
-// Auto Translation Observer
+ 
+// Observer: elements + bare text nodes + text edits + attribute changes
 window.addEventListener('DOMContentLoaded', () => {
-  const observer = new MutationObserver((mutations) => {
-    var isAr = localStorage.getItem('lang') === 'ar';
+  const isAr = () => localStorage.getItem('lang') === 'ar';
+  const observer = new MutationObserver(mutations => {
     mutations.forEach(m => {
-      if (m.type === 'childList' && m.addedNodes.length > 0) {
+      if (m.type === 'childList') {
         m.addedNodes.forEach(node => {
-           if (node.nodeType === 1) {
-             if (isAr) translateDOM(node);
-             else cleanEnglishDOM(node);
-           }
+          if (isAr()) translateDOM(node);
+          else if (node.nodeType === 1) cleanEnglishDOM(node);
         });
+      } else if (m.type === 'characterData' && isAr()) {
+        translateTextNode(m.target);
+      } else if (m.type === 'attributes' && isAr()) {
+        translateAttrs(m.target);
       }
     });
   });
-  observer.observe(document.body, { childList: true, subtree: true });
-  setTimeout(() => {
-    if (localStorage.getItem('lang') === 'ar') {
-      document.body.classList.add('rtl-layout');
-      translateDOM(document.body);
-    } else {
-      document.body.classList.remove('rtl-layout');
-      cleanEnglishDOM(document.body);
-    }
-  }, 100);
+  observer.observe(document.body, {
+    childList: true, subtree: true, characterData: true,
+    attributes: true, attributeFilter: ATTRS
+  });
+ 
+  const run = () => {
+    if (isAr()) { document.body.classList.add('rtl-layout'); translateDOM(document.body); }
+    else { document.body.classList.remove('rtl-layout'); cleanEnglishDOM(document.body); }
+  };
+  run();
+  setTimeout(run, 300);
+  setTimeout(run, 1500); // safety net for late role/permission rendering
 });
+ 
+// Debug helper: run in console while logged in as owner
+window.findUntranslated = function () {
+  const seen = new Set();
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    const tx = n.nodeValue.trim();
+    if (tx && /[A-Za-z]{3,}/.test(tx) && !HAS_AR.test(tx) && !SKIP.has(n.parentNode.nodeName)) seen.add(tx);
+  }
+  console.table([...seen]);
+  return [...seen];
+};
