@@ -256,7 +256,7 @@ var ERPPermissions = {
   isTargetOwner: function(userId, role) {
     if (userId) {
       if (ERPPermissions.allUsers && ERPPermissions.allUsers.length > 0) {
-        var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
+        var u = ERPPermissions.allUsers.find(function(x){ return String(x.id) === String(userId); });
         if (u) {
           var ur = (u.role || '').trim().toLowerCase();
           return ur === 'owner';
@@ -401,7 +401,7 @@ var ERPPermissions = {
     else if (role) query = query.eq('role', role).is('user_id', null);
 
     // For a user: also load the role-level rows so the grid shows the EFFECTIVE permissions
-    var selUser = userId && ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return x.id === userId; }) : null;
+    var selUser = userId && ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return String(x.id) === String(userId); }) : null;
     var baseRole = selUser && selUser.role ? String(selUser.role).trim().toLowerCase() : '';
     var roleQuery = (userId && baseRole)
       ? sbClient.from('screen_permissions').select('*').eq('role', baseRole).is('user_id', null)
@@ -421,7 +421,7 @@ var ERPPermissions = {
       var roleStr = (role || '').toLowerCase();
       var dep = '';
       if (userId && ERPPermissions.allUsers) {
-        var u = ERPPermissions.allUsers.find(function(x){ return x.id === userId; });
+        var u = ERPPermissions.allUsers.find(function(x){ return String(x.id) === String(userId); });
         if (u) {
           dep = u.department || '';
           roleStr = (u.role || '').toLowerCase();
@@ -680,7 +680,7 @@ var ERPPermissions = {
 
     if (!userId && !role) return;
 
-    var targetUserObj = ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return x.id === userId; }) : null;
+    var targetUserObj = ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return String(x.id) === String(userId); }) : null;
     var targetName = targetUserObj ? targetUserObj.full_name : ('دور ' + role);
 
     var confirmMsg = 'هل أنت متأكد من حذف وإلغاء جميع صلاحيات شاشة "' + label + '" لـ ' + targetName + ' من قاعدة البيانات؟';
@@ -768,7 +768,7 @@ var ERPPermissions = {
       return;
     }
 
-    var targetUserObj = ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return x.id === userId; }) : null;
+    var targetUserObj = ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return String(x.id) === String(userId); }) : null;
     var targetName = targetUserObj ? targetUserObj.full_name : ('دور ' + role);
 
     var statusEl = document.getElementById('save-status');
