@@ -189,14 +189,17 @@ window.SecurityHelpers = {
         });
         SecurityHelpers._cachedPermissions = resolved;
 
+        // Re-check the buttons of the current screen with the freshly loaded permissions
+        if (SecurityHelpers._enforceButtons) SecurityHelpers._enforceButtons();
+
         // Re-render sidebar now that we have the permissions!
         if (typeof App !== 'undefined' && App.renderSidebar) {
             App.renderSidebar();
         }
         
         // Ensure realtime subscription only happens once
-        if (!SecurityHelpers._permObserver) {
-            SecurityHelpers._permObserver = sbClient.channel('public:screen_permissions')
+        if (!SecurityHelpers._permChannel) {
+            SecurityHelpers._permChannel = sbClient.channel('public:screen_permissions')
               .on('postgres_changes', { event: '*', schema: 'public', table: 'screen_permissions' }, function (payload) {
                  var record = payload.new || payload.old;
                  if (record && (record.user_id === userId || record.role === roleStr)) {
@@ -215,60 +218,82 @@ window.SecurityHelpers = {
     });
   },
 
-  _permObserver: null,
+  _permChannel: null,
 
-  // Apply permission restrictions to the current screen's buttons automatically
-  applyPermissionsUI: function(currentModule) {
-    if (!App.user || App.user.role === 'owner') return; // Owner has full access
-    // Never restrict external customer/supplier self-service portal
-    if (App.user.role === 'supplier_external' || App.user.role === 'customer' || App.user.role === 'client' || currentModule === 'supplier-portal' || currentModule === 'customer-portal') return;
-    
-    var enforceButtons = function() {
-      document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item)').forEach(function(btn) {
-        if(btn.hasAttribute('data-perm-checked') || btn.hasAttribute('data-perm-bypass') || btn.classList.contains('btn-customer-req') || btn.classList.contains('btn-bypass-perm')) return;
-        
-        var action = 'view';
-        var text = btn.innerText.toLowerCase();
-        
-        if (text.includes('إضافة') || text.includes('create') || text.includes('add') || text.includes('جديد')) action = 'create';
-        else if (text.includes('تعديل') || text.includes('edit') || text.includes('update')) action = 'edit';
-        else if (text.includes('حذف') || text.includes('delete') || text.includes('remove') || text.includes('مسح') || text.includes('🗑️')) action = 'delete';
-        else if (text.includes('حفظ') || text.includes('save')) action = 'edit';
-        else if (text.includes('اعتماد') || text.includes('approve')) action = 'approve';
-        else if (text.includes('رفض') || text.includes('reject')) action = 'reject';
-        else if (text.includes('تصدير') || text.includes('export')) action = 'export';
-        else if (text.includes('طباعة') || text.includes('print')) action = 'print';
+  // Apply permission restrictions to the current screen's buttons automatically.
+  // Re-evaluated on every pass (so permissions that load late or change are honoured).
+  _currentModule: null,
+  _domObserver: null,
 
-        if (action !== 'view') {
-          if (!SecurityHelpers.hasPermission(currentModule, action)) {
-            btn.disabled = true;
-            btn.style.opacity = '0.35';
-            btn.style.cursor = 'not-allowed';
-            btn.title = 'ليس لديك صلاحية لهذا الإجراء';
-            btn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
-            // Optional: for strong enforcement
-            btn.addEventListener('click', function(e){ e.stopImmediatePropagation(); e.preventDefault(); return false; }, true);
-          }
+  _actionForButton: function(btn) {
+    var text = (btn.innerText || btn.textContent || '').toLowerCase();
+    if (/إضافة|اضافة|جديد|\bcreate\b|\badd\b|\bnew\b/.test(text)) return 'create';
+    if (/تعديل|\bedit\b|\bupdate\b/.test(text)) return 'edit';
+    if (/حذف|مسح|\bdelete\b|\bremove\b|🗑/.test(text)) return 'delete';
+    if (/حفظ|\bsave\b/.test(text)) return 'edit';
+    if (/اعتماد|\bapprove\b/.test(text)) return 'approve';
+    if (/رفض|\breject\b/.test(text)) return 'reject';
+    if (/تصدير|\bexport\b/.test(text)) return 'export';
+    if (/طباعة|\bprint\b/.test(text)) return 'print';
+    return 'view';
+  },
+
+  _enforceButtons: function() {
+    var currentModule = SecurityHelpers._currentModule;
+    if (!App.user || !currentModule) return;
+    var role = (App.user.role || '').trim().toLowerCase();
+    if (role === 'owner') return;
+    if (role === 'supplier_external' || role === 'customer' || role === 'client' || currentModule === 'supplier-portal' || currentModule === 'customer-portal') return;
+
+    document.querySelectorAll('button:not(.nav-link):not(.sidebar-btn):not(.sidebar-item)').forEach(function(btn) {
+      if (btn.hasAttribute('data-perm-bypass') || btn.classList.contains('btn-customer-req') || btn.classList.contains('btn-bypass-perm')) return;
+      var action = SecurityHelpers._actionForButton(btn);
+      var allowed = action === 'view' || SecurityHelpers.hasPermission(currentModule, action);
+      if (!allowed) {
+        if (!btn.hasAttribute('data-perm-denied')) {
+          btn.setAttribute('data-perm-denied', '1');
+          btn.setAttribute('data-perm-prev-disabled', btn.disabled ? '1' : '0');
+          btn.disabled = true;
+          btn.style.opacity = '0.35';
+          btn.style.cursor = 'not-allowed';
+          btn.title = 'ليس لديك صلاحية لهذا الإجراء';
         }
-        btn.setAttribute('data-perm-checked', 'true');
-      });
-    };
-
-    // Run immediately
-    enforceButtons();
-    setTimeout(enforceButtons, 500);
-
-    // Watch for dynamic DOM changes (like tables loading async)
-    if (SecurityHelpers._permObserver) SecurityHelpers._permObserver.disconnect();
-    
-    var contentEl = document.getElementById('page-content') || document.body;
-    SecurityHelpers._permObserver = new MutationObserver(function(mutations) {
-      var needsCheck = false;
-      mutations.forEach(function(m) { if(m.addedNodes.length > 0) needsCheck = true; });
-      if(needsCheck) enforceButtons();
+      } else if (btn.hasAttribute('data-perm-denied')) {
+        // Permission was granted after we locked this button: restore it
+        btn.removeAttribute('data-perm-denied');
+        btn.disabled = btn.getAttribute('data-perm-prev-disabled') === '1';
+        btn.removeAttribute('data-perm-prev-disabled');
+        btn.style.opacity = '';
+        btn.style.cursor = '';
+        btn.title = '';
+      }
     });
-    
-    SecurityHelpers._permObserver.observe(contentEl, { childList: true, subtree: true });
+  },
+
+  applyPermissionsUI: function(currentModule) {
+    if (!App.user) return;
+    SecurityHelpers._currentModule = currentModule;
+
+    // One delegated click guard for every denied button (no onclick overwriting)
+    if (!SecurityHelpers._clickGuard) {
+      SecurityHelpers._clickGuard = true;
+      document.addEventListener('click', function(e) {
+        var b = e.target && e.target.closest ? e.target.closest('button[data-perm-denied]') : null;
+        if (b) { e.preventDefault(); e.stopImmediatePropagation(); }
+      }, true);
+    }
+
+    SecurityHelpers._enforceButtons();
+    setTimeout(SecurityHelpers._enforceButtons, 500);
+
+    // Watch for dynamic DOM changes (tables loading async) - separate from the realtime channel
+    if (SecurityHelpers._domObserver) SecurityHelpers._domObserver.disconnect();
+    var contentEl = document.getElementById('page-content') || document.body;
+    SecurityHelpers._domObserver = new MutationObserver(function(mutations) {
+      var needsCheck = mutations.some(function(m) { return m.addedNodes.length > 0; });
+      if (needsCheck) SecurityHelpers._enforceButtons();
+    });
+    SecurityHelpers._domObserver.observe(contentEl, { childList: true, subtree: true });
   },
 
   // Input sanitization
