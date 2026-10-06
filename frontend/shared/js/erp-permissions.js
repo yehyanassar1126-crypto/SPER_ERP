@@ -288,8 +288,8 @@ var ERPPermissions = {
 
     // Filter controls row
     html += '<div class="form-row" style="margin-bottom:16px;gap:12px;background:var(--bg-card);padding:16px;border-radius:12px;border:1px solid var(--border-color)">';
-    html += '<div class="form-group" style="flex:1.2"><label style="font-weight:700">1. اختر المستخدم (User Override)</label><select class="form-input" id="perm-user" onchange="ERPPermissions.loadPerms()"><option value="">— اختر مستخدم —</option></select></div>';
-    html += '<div class="form-group" style="flex:1"><label style="font-weight:700">أو 2. اختر الدور (Role Default)</label><select class="form-input" id="perm-role" onchange="ERPPermissions.loadPerms()"><option value="">— اختر دور —</option></select></div>';
+    html += '<div class="form-group" style="flex:1.2"><label style="font-weight:700">1. اختر المستخدم (User Override)</label><select class="form-input" id="perm-user" onchange="ERPPermissions.onUserChange()"><option value="">— اختر مستخدم —</option></select></div>';
+    html += '<div class="form-group" style="flex:1"><label style="font-weight:700">أو 2. اختر الدور (Role Default)</label><select class="form-input" id="perm-role" onchange="ERPPermissions.onRoleChange()"><option value="">— اختر دور —</option></select></div>';
     html += '<div class="form-group" style="flex:1"><label style="font-weight:700">3. تصفية حسب الإدارة</label><select class="form-input" id="perm-module-filter" onchange="ERPPermissions.filterByModule()"><option value="all">— كل الإدارات والموديولات —</option>';
     
     Object.keys(ERPPermissions.moduleGroups).forEach(function(mg) {
@@ -317,7 +317,8 @@ var ERPPermissions = {
     document.getElementById('page-content').innerHTML = html;
 
     // Load users & distinct roles
-    sbClient.from('users').select('id,full_name,username,role,department').order('full_name').then(function(r) {
+    sbClient.from('users').select('id,full_name,username,role,department,status').order('full_name').range(0, 4999).then(function(r) {
+      if (r && r.error) console.error('[Permissions] users load failed:', r.error);
       var userSel = document.getElementById('perm-user');
       var roleSel = document.getElementById('perm-role');
       ERPPermissions.allUsers = r.data || [];
@@ -328,7 +329,7 @@ var ERPPermissions = {
           var opt = document.createElement('option');
           opt.value = u.id;
           opt.setAttribute('data-role', u.role || '');
-          opt.textContent = (u.full_name || u.username) + ' — (' + (u.role || 'no-role') + ' / ' + (u.department || 'General') + ')';
+          opt.textContent = (u.full_name || u.username || ('#' + u.id)) + (u.status && u.status !== 'active' ? ' [' + u.status + ']' : '') + ' — (' + (u.role || 'no-role') + ' / ' + (u.department || 'General') + ')';
           userSel.appendChild(opt);
         });
       }
@@ -366,6 +367,18 @@ var ERPPermissions = {
         });
       }
     });
+  },
+
+  onUserChange: function() {
+    var u = document.getElementById('perm-user'), r = document.getElementById('perm-role');
+    if (u && u.value && r) r.value = '';
+    ERPPermissions.loadPerms();
+  },
+
+  onRoleChange: function() {
+    var u = document.getElementById('perm-user'), r = document.getElementById('perm-role');
+    if (r && r.value && u) u.value = '';
+    ERPPermissions.loadPerms();
   },
 
   loadPerms: function() {
@@ -502,6 +515,7 @@ var ERPPermissions = {
       html += '<th style="min-width:220px">الشاشة (Screen)</th>';
       html += '<th style="min-width:120px">الإدارة</th>';
       
+      var _permLang = (typeof I18nEngine !== 'undefined' && I18nEngine.currentLang) || localStorage.getItem('lang') || 'ar';
       var actionLabels = _permLang === 'ar' ? {
         'view': '👁️ عرض',
         'create': '➕ إضافة',
@@ -543,6 +557,9 @@ var ERPPermissions = {
       html += '</div>';
 
       el.innerHTML = html;
+    }).catch(function(err) {
+      console.error('[Permissions] loadPerms failed:', err);
+      el.innerHTML = '<div class="empty-state" style="padding:40px;text-align:center;color:#ef4444">تعذر تحميل الصلاحيات: ' + (err && err.message ? err.message : err) + '</div>';
     });
   },
 
