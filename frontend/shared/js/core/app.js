@@ -5,16 +5,20 @@ var App = {
   notifications: [],
 
   init: function () {
-    // Restore the saved session so a reload (e.g. language switch) does not log the user out
+    // A fresh visit ALWAYS requires login. The session is restored only when an
+    // intentional reload set this one-shot flag (it is cleared immediately).
     App.user = null;
-    try {
-      var saved = localStorage.getItem('hr_portal_user');
-      if (saved) App.user = JSON.parse(saved);
-    } catch (e) { App.user = null; localStorage.removeItem('hr_portal_user'); }
-    if (App.user) {
-      if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.loadPermissions) { try { SecurityHelpers.loadPermissions(); } catch (e) {} }
-      if (typeof I18nEngine !== 'undefined') { try { I18nEngine.init(); } catch (e) {} }
+    var keep = null;
+    try { keep = sessionStorage.getItem('sper_keep_session'); sessionStorage.removeItem('sper_keep_session'); } catch (e) {}
+    if (keep === '1') {
+      try { var saved = localStorage.getItem('hr_portal_user'); if (saved) App.user = JSON.parse(saved); } catch (e) { App.user = null; }
+    } else {
+      localStorage.removeItem('hr_portal_user');
     }
+    if (App.user && typeof SecurityHelpers !== 'undefined' && SecurityHelpers.loadPermissions) {
+      try { SecurityHelpers.loadPermissions(); } catch (e) {}
+    }
+    if (App.user && typeof I18nEngine !== 'undefined' && I18nEngine.init) { try { I18nEngine.init(); } catch (e) {} }
 
     // One-time migration for leaves from 1/6/2026
     if (!localStorage.getItem('migrated_leaves_1_6_2026_v2')) {
@@ -127,7 +131,44 @@ var App = {
     App.activePage = null;
     localStorage.removeItem('hr_portal_user');
     App.notifications = [];
+    ['employee-chatbot-container','ai-chat-container'].forEach(function (id) { var e = document.getElementById(id); if (e) e.remove(); });
     App.renderLogin();
+  },
+
+  switchLanguage: function (next) {
+    next = next === 'en' ? 'en' : 'ar';
+    // keep the session safe
+    if (App.user) {
+      var sess = JSON.stringify(App.user);
+      localStorage.setItem('hr_portal_user', sess);
+    }
+    var rerender = function () {
+      if (App.user) { App.renderSidebar(); App.renderHeader(); App.renderPage(); }
+      else { App.renderLogin(); }
+      if (typeof translateDOM === 'function' && next === 'ar') translateDOM(document.body);
+      if (typeof cleanEnglishDOM === 'function' && next === 'en') cleanEnglishDOM(document.body);
+    };
+    var apply = function () {
+      localStorage.setItem('lang', next);
+      if (App.user) {
+        App.user.preferred_language = next;   // so a reload keeps the chosen language
+        var s2 = JSON.stringify(App.user);
+        localStorage.setItem('hr_portal_user', s2);
+      }
+      if (window.I18n && I18n.setLanguage) I18n.setLanguage(next, rerender); else rerender();
+    };
+    if (typeof I18nEngine !== 'undefined' && I18nEngine.switchLanguage) {
+      I18nEngine.switchLanguage(next, apply);   // saves preferred_language in DB, callback => no page reload
+    } else { apply(); }
+  },
+
+  // never show a raw i18n key (sidebar_xxx) in the UI
+  fixLabel: function (s) {
+    if (typeof s !== 'string' || !/^sidebar_[a-z0-9_]+$/.test(s.trim())) return s;
+    var v = window.I18n && I18n.t ? I18n.t(s.trim()) : s;
+    if (v && v !== s.trim()) return v;
+    var h = s.trim().replace(/^sidebar_/, '').replace(/_/g, ' ');
+    return h.charAt(0).toUpperCase() + h.slice(1);
   },
 
   toggleSidebar: function () {
@@ -223,6 +264,7 @@ var App = {
 
   // ========== RENDERING ==========
   renderLogin: function () {
+    ['employee-chatbot-container','ai-chat-container'].forEach(function (id) { var e = document.getElementById(id); if (e) e.remove(); });
     var lang = (typeof I18nEngine !== 'undefined' && I18nEngine.currentLang) || localStorage.getItem('lang') || 'ar';
     var isAr = (lang === 'ar');
     var uLabel = isAr ? 'اسم المستخدم' : 'Username';
@@ -319,13 +361,11 @@ var App = {
     var langToggle = document.getElementById('login-lang-toggle');
     if (langToggle) {
       langToggle.addEventListener('click', function() {
-        var curr = localStorage.getItem('lang') || 'ar';
-        var next = (curr === 'ar') ? 'en' : 'ar';
-        localStorage.setItem('lang', next);
+        var next = (localStorage.getItem('lang') || 'ar') === 'ar' ? 'en' : 'ar';
         if (typeof I18nEngine !== 'undefined') I18nEngine.currentLang = next;
-        if (next === 'ar') document.body.classList.add('rtl-layout');
-        else document.body.classList.remove('rtl-layout');
-        App.renderLogin();
+        document.body.classList.toggle('rtl-layout', next === 'ar');
+        localStorage.setItem('lang', next);
+        if (window.I18n && I18n.setLanguage) I18n.setLanguage(next, function () { App.renderLogin(); }); else App.renderLogin();
       });
     }
 
@@ -1000,7 +1040,7 @@ var App = {
         var sectionTitle = typeof formatModuleLabel === 'function' ? formatModuleLabel(section.section) : section.section;
         html += '<div class="sidebar-section"><div class="sidebar-section-title">' + sectionTitle + '</div>';
         visibleItems.forEach(function (item) {
-          var itemLabel = typeof formatScreenLabel === 'function' ? formatScreenLabel(item.label) : item.label;
+          var itemLabel = App.fixLabel(typeof formatScreenLabel === 'function' ? formatScreenLabel(item.label) : item.label);
           html += '<button class="sidebar-item' + (App.activePage === item.id ? ' active' : '') + '" data-page="' + item.id + '" id="nav-' + item.id + '">' +
             '<span class="sidebar-item-icon">' + icon(item.icon) + '</span><span>' + itemLabel + '</span></button>';
         });
@@ -1132,7 +1172,7 @@ var App = {
 
     document.getElementById('menu-toggle').addEventListener('click', App.toggleSidebar);
     document.getElementById('notif-toggle').addEventListener('click', function () { App.showNotifPanel(); });
-    document.getElementById('lang-toggle-btn').addEventListener('click', function () { var curr = localStorage.getItem('lang'); if (curr === 'ar') { localStorage.setItem('lang', 'en'); document.body.classList.remove('rtl-layout'); } else { localStorage.setItem('lang', 'ar'); document.body.classList.add('rtl-layout'); } window.location.reload(); });
+    document.getElementById('lang-toggle-btn').addEventListener('click', function () { App.switchLanguage((localStorage.getItem('lang') || 'ar') === 'ar' ? 'en' : 'ar'); });
   },
 
   // ========== NOTIFICATION PANEL ==========
@@ -1177,6 +1217,13 @@ var App = {
       App.activePage = App.activePage || 'logistics';
     } else {
       App.activePage = App.activePage || 'dashboard';
+    }
+
+    // PermissionGuard: check screen access before rendering (also defines pageId used below)
+    var pageId = App.activePage;
+    if (typeof PermissionGuard !== 'undefined' && pageId !== 'dashboard' && !PermissionGuard.canView(pageId)) {
+      PermissionGuard.renderAccessDenied(el);
+      return;
     }
 
     switch (App.activePage) {
