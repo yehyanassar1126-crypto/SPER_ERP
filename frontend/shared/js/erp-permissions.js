@@ -385,10 +385,21 @@ var ERPPermissions = {
 
     var query = sbClient.from('screen_permissions').select('*');
     if (userId) query = query.eq('user_id', userId);
-    else if (role) query = query.eq('role', role);
+    else if (role) query = query.eq('role', role).is('user_id', null);
 
-    query.then(function(r) {
+    // For a user: also load the role-level rows so the grid shows the EFFECTIVE permissions
+    var selUser = userId && ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return x.id === userId; }) : null;
+    var baseRole = selUser && selUser.role ? String(selUser.role).trim().toLowerCase() : '';
+    var roleQuery = (userId && baseRole)
+      ? sbClient.from('screen_permissions').select('*').eq('role', baseRole).is('user_id', null)
+      : Promise.resolve({ data: [] });
+
+    Promise.all([query, roleQuery]).then(function(both) {
+      var r = both[0];
       var existing = {};
+      ((both[1] && both[1].data) || []).forEach(function(p) {
+        if (p.screen_id !== 'SYSTEM_CONFIG') existing[p.screen_id + '_' + p.action] = p;
+      });
       (r.data || []).forEach(function(p) {
         existing[p.screen_id + '_' + p.action] = p;
       });
@@ -661,7 +672,7 @@ var ERPPermissions = {
     // Delete from DB directly
     var q = sbClient.from('screen_permissions').delete().eq('screen_id', id);
     if (userId) q = q.eq('user_id', userId);
-    else q = q.eq('role', role);
+    else q = q.eq('role', role).is('user_id', null);
 
     q.then(function(res) {
       if (res && res.error) {
@@ -761,7 +772,7 @@ var ERPPermissions = {
 
         var rec = {
           user_id: userId || null,
-          role: role || null,
+          role: userId ? null : (role || null),
           screen_id: screenId,
           action: act,
           granted: isGranted,
@@ -774,7 +785,7 @@ var ERPPermissions = {
     // Marker for custom config
     recordsToUpsert.push({
       user_id: userId || null,
-      role: role || null,
+      role: userId ? null : (role || null),
       screen_id: 'SYSTEM_CONFIG',
       action: 'custom',
       granted: true,
@@ -784,7 +795,7 @@ var ERPPermissions = {
     // Fetch existing records for this user/role to perform accurate cleanups and audit
     var query = sbClient.from('screen_permissions').select('id,screen_id,action,granted');
     if (userId) query = query.eq('user_id', userId);
-    else query = query.eq('role', role);
+    else query = query.eq('role', role).is('user_id', null);
 
     query.then(function(res) {
       var existingMap = {};
@@ -813,9 +824,10 @@ var ERPPermissions = {
           if (upsertRes && upsertRes.error) {
             console.error('[ERPPermissions] Upsert error:', upsertRes.error);
             // Fallback: delete existing and insert fresh
-            var deleteQuery = sbClient.from('screen_permissions').delete();
+            var scopeIds = Object.keys(visibleScreens).concat(['SYSTEM_CONFIG']);
+            var deleteQuery = sbClient.from('screen_permissions').delete().in('screen_id', scopeIds);
             if (userId) deleteQuery = deleteQuery.eq('user_id', userId);
-            else deleteQuery = deleteQuery.eq('role', role);
+            else deleteQuery = deleteQuery.eq('role', role).is('user_id', null);
 
             deleteQuery.then(function() {
               sbClient.from('screen_permissions').insert(finalUpsert).then(function(insRes) {
@@ -981,7 +993,7 @@ var ERPPermissions = {
       var perms = res.data.map(function(t) {
         return {
           user_id: userId,
-          role: role.toLowerCase(),
+          role: null,
           screen_id: t.screen_id,
           action: t.action,
           granted: true,
@@ -991,7 +1003,7 @@ var ERPPermissions = {
 
       perms.push({
         user_id: userId,
-        role: role.toLowerCase(),
+        role: null,
         screen_id: 'SYSTEM_CONFIG',
         action: 'custom',
         granted: true,
