@@ -132,7 +132,7 @@ const ARABIC_DICT = {
   "Edit Employee": "تعديل بيانات الموظف",
   "Add New Employee": "تسجيل موظف جديد",
   "(Check if paperwork is fully submitted)": "(ضع علامة إذا كانت أوراق التعيين مكتملة)",
-  
+
   // Badges & Buttons
   "Complete": "مكتمل",
   "⚠️ Missing": "⚠️ غير مكتمل",
@@ -192,9 +192,6 @@ const ARABIC_DICT = {
   "Select a month": "اختر شهر",
   "⏳ Calculating...": "⏳ جاري الحساب...",
 
-  // Engineering Department
-  "Engineering": "الهندسة",
-
   // Payroll Modal
   "Process Salary": "إصدار راتب",
   "Employee *": "الموظف *",
@@ -246,12 +243,10 @@ const ARABIC_DICT = {
   "Nursing Manager": "مدير تمريض",
   "Nurse": "ممرض / ممرضة",
   "Logistics Manager": "مدير حركة / نقل",
-  "Driver": "سائق",
   "Safety & Security Officer": "أمن وسلامة",
   "Secretary": "سكرتارية",
   "Lawyer": "محامي",
-  "Employee": "موظف عادي",
-  
+
   // Various text nodes
   "Loading Dashboard...": "جاري تحميل لوحة التحكم...",
   "Loading Your Dashboard...": "جاري تحميل بياناتك...",
@@ -266,13 +261,12 @@ const ARABIC_DICT = {
   "employees found": "موظفين",
   "requests": "طلبات",
   "records": "سجلات",
-  
+
   // Specific words
   "All Status": "جميع الحالات",
   "Request Leave": "طلب إجازة",
   "Submit Request": "تقديم الطلب",
   "Log Overtime Hours": "تسجيل ساعات إضافية",
-  "Submit for Approval": "تقديم للاعتماد",
   "Rate Multiplier": "معامل الزيادة",
   "Hours": "عدد الساعات",
 
@@ -441,7 +435,7 @@ const ARABIC_DICT = {
   "Inspections": "الفحوصات",
   "Total Inspections": "إجمالي الفحوصات",
   "Passed": "مطابق",
-  "Failed": "مرفوض",
+  "Failed": "فاشل",
   "Inspect Finished Goods": "فحص منتجات تامة",
 
   "Inventory (المخازن)": "المخازن",
@@ -455,7 +449,6 @@ const ARABIC_DICT = {
   "Quantity": "الكمية",
   "Warehouse Type": "نوع المخزن",
 
-  "Procurement": "المشتريات",
   "Purchase Requests": "طلبات الشراء",
   "Raw Material Receipt": "استلام مواد خام",
   "Pending QC": "بانتظار فحص الجودة",
@@ -475,7 +468,6 @@ const ARABIC_DICT = {
   "Shift System *": "نظام الورديات *",
 
   // Spare Parts Inspector
-  "Spare Parts Inspector": "مراقب قطع غيار",
   "Spare Parts Inspector (مراقب قطع غيار)": "مراقب قطع غيار",
   "spare parts inspector": "مراقب قطع غيار",
   "Spare Parts Lifecycle (دورة قطع الغيار)": "دورة قطع الغيار",
@@ -501,7 +493,6 @@ const ARABIC_DICT = {
   "Deposit": "إيداع",
   "Transfer": "تحويل",
   "Issue Petty Cash": "صرف عهدة",
-  "Purchase Settlements": "تسويات الشراء",
   "Deduct from Advance": "خصم من العهدة",
   "Independent Cash": "صرف كاش مستقل",
   "Employee Advance Balance": "رصيد عهدة الموظف",
@@ -622,6 +613,7 @@ const ARABIC_DICT = {
   // Task Management
   "Task Management": "إدارة المهام",
   "📝 Tasks": "📝 المهام",
+  "Tasks": "المهام",
   "Manage and track tasks": "إدارة وتتبع المهام",
   "New Task": "مهمة جديدة",
   "Assign Task": "تعيين مهمة",
@@ -655,7 +647,6 @@ const ARABIC_DICT = {
   "IP Address": "عنوان IP",
   "Browser": "المتصفح",
   "Success": "ناجح",
-  "Failed": "فاشل",
 
   // Financial Reports
   "Financial Reports": "التقارير المالية",
@@ -688,8 +679,7 @@ const ARABIC_DICT = {
   "Enabled": "مفعل",
   "Disabled": "معطل",
 
-  // Document Management
-  "Document Management": "إدارة المستندات",
+  // Document Management (UI)
   "📁 Document Management": "📁 إدارة المستندات",
   "📁 Documents": "📁 المستندات",
   "Upload and manage documents": "رفع وإدارة المستندات",
@@ -705,7 +695,6 @@ const ARABIC_DICT = {
   "✅ Approvals": "✅ الموافقات",
   "Manage approval requests": "إدارة طلبات الموافقات",
   "All Approval Requests": "جميع طلبات الموافقات",
-  "Requested By": "مقدم من",
   "Total": "الإجمالي",
 
   // Performance Reviews
@@ -766,7 +755,7 @@ const ARABIC_DICT = {
   "damaged": "تالف",
   "lost": "مفقود",
   "Laptop": "لابتوب",
-  "Phone": "موبايل",
+  "Mobile": "موبايل",
   "Tablet": "تابلت",
   "Vehicle": "سيارة",
   "Key": "مفتاح",
@@ -795,7 +784,6 @@ const ARABIC_DICT = {
 
   // Collaboration Section
   "Collaboration": "التعاون",
-  "Administration": "الإدارة",
   "Workplace": "بيئة العمل",
 
   // Common Enterprise
@@ -815,7 +803,6 @@ const ARABIC_DICT = {
   "No data": "لا توجد بيانات",
   "No records found": "لا توجد سجلات",
   "general": "عام",
-  "hr": "موارد بشرية",
   "finance": "المالية",
   "sales": "المبيعات",
   "production": "الإنتاج",
@@ -905,88 +892,367 @@ function t(text) {
   return text; // return original if no translation or english
 }
 
-// Automatic DOM Walker
-function translateDOM(container) {
-  if (localStorage.getItem('lang') !== 'ar') return;
-  
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-  const nodesToUpdate = [];
-  
-  let node;
-  while (node = walker.nextNode()) {
-    let rawText = node.nodeValue.trim();
-    if (rawText && ARABIC_DICT[rawText]) {
-      nodesToUpdate.push({n: node, val: ARABIC_DICT[rawText]});
-    } else {
-      // Handle cases where English string is embedded with prefix/suffix
-      // A quick check for exact substring matching:
-      Object.keys(ARABIC_DICT).forEach(key => {
-         if (rawText.includes(key) && key.length > 3) {
-            nodesToUpdate.push({n: node, val: node.nodeValue.replace(key, ARABIC_DICT[key])});
-         }
-      });
-    }
+// ===== Key-based strings (ar.json embedded, so raw keys never show) =====
+const AR_KEYS = {
+  "lang_en": "English", "lang_ar": "العربية",
+  "sidebar_dashboard": "لوحة التحكم",
+  "sidebar_attendance": "الحضور والانصراف",
+  "sidebar_delays_log": "سجل التأخير",
+  "sidebar_missions": "المأموريات",
+  "sidebar_permission_requests": "طلبات الأذونات",
+  "sidebar_leave_requests": "طلبات الإجازات",
+  "sidebar_shift_management": "إدارة الورديات",
+  "sidebar_overtime": "الوقت الإضافي",
+  "sidebar_payroll": "الرواتب",
+  "sidebar_payroll_funding": "صرف المرتبات",
+  "sidebar_salary_adjustments": "تعديلات الرواتب",
+  "sidebar_recruitment": "التوظيف",
+  "sidebar_hr_ats": "الذكاء الاصطناعي للتوظيف",
+  "sidebar_documents": "المستندات",
+  "sidebar_performance": "تقييم الأداء",
+  "sidebar_uniforms": "الزي الرسمي",
+  "sidebar_medical_requests": "الطلبات الطبية",
+  "sidebar_medical_approvals": "الموافقات الطبية",
+  "sidebar_loans": "السلفيات والقروض",
+  "sidebar_expenses": "المصروفات",
+  "sidebar_disciplinary": "الجزاءات والشكاوى",
+  "sidebar_friday_work": "عمل الجمعة",
+  "sidebar_calendar": "التقويم",
+  "sidebar_financial_reports": "التقارير المالية",
+  "sidebar_chart_of_accounts": "دليل الحسابات",
+  "sidebar_system_settings": "إعدادات النظام",
+  "sidebar_sales_dashboard": "لوحة المبيعات",
+  "sidebar_purchase_workflow": "إدارة المشتريات",
+  "sidebar_warehouse_inventory": "المخازن",
+  "sidebar_production_planning": "الإنتاج والتخطيط",
+  "sidebar_maintenance_fleet": "الصيانة وحركة السيارات",
+  "sidebar_legal_affairs": "الشؤون القانونية",
+  "sidebar_quality_control": "مراقبة الجودة",
+  "btn_logout": "تسجيل الخروج",
+  "loading": "جاري التحميل...",
+  "access_denied": "مرفوض الوصول",
+  "sidebar_all_delays": "سجل التأخيرات",
+  "sidebar_all_missions": "سجل المأموريات",
+  "sidebar_absence_leave": "طلبات الأذونات",
+  "sidebar_leaves": "طلبات الإجازات",
+  "sidebar_shifts": "إدارة الورديات",
+  "sidebar_hr_adjustments": "تعديلات الرواتب",
+  "sidebar_nursing_page": "عيادة المصنع والتمريض",
+  "sidebar_nursing_medical_approvals": "موافقات التمريض",
+  "sidebar_complaints": "الشكاوى والجزاءات",
+  "sidebar_finance_kpi": "المؤشرات المالية (KPIs)",
+  "sidebar_bank_management": "إدارة البنوك",
+  "sidebar_journal_engine": "محرك القيود اليومية",
+  "sidebar_checks": "دورة حياة الشيكات",
+  "sidebar_loans_taxes": "القروض والضرائب",
+  "sidebar_budgets": "الميزانيات وتقييم المخزون",
+  "sidebar_fixed_assets": "الأصول الثابتة",
+  "sidebar_ai_cfo": "المدير المالي الذكي",
+  "sidebar_closing_wizard": "الإغلاق والمراجعة",
+  "sidebar_finance_reports_ent": "التقارير الاحترافية",
+  "sidebar_driver_payments": "حسابات السائقين",
+  "sidebar_ai_reports": "تقارير الذكاء الاصطناعي",
+  "sidebar_owner_dashboard": "لوحة المالك",
+  "sidebar_ceo_dashboard": "لوحة المدير",
+  "sidebar_ai_ceo_dashboard": "لوحة الذكاء الاصطناعي",
+  "sidebar_cost_centers": "تكلفة الإدارات",
+  "sidebar_activity_timeline": "سجل العمليات",
+  "access_denied_title": "غير مصرح بالدخول",
+  "access_denied_msg": "ليس لديك صلاحية للوصول إلى هذه الصفحة.",
+  "back_to_dashboard": "العودة للرئيسية",
+  "no_permission_action": "ليس لديك صلاحية لهذا الإجراء",
+  "permissions_title": "إدارة الصلاحيات",
+  "select_user": "اختر المستخدم", "select_role": "اختر الدور",
+  "grant_all": "منح الكل", "revoke_all": "إلغاء الكل",
+  "save_permissions": "حفظ الصلاحيات",
+  "permissions_saved": "تم حفظ الصلاحيات بنجاح",
+  "action_view": "عرض", "action_create": "إنشاء", "action_edit": "تعديل",
+  "action_delete": "حذف", "action_approve": "اعتماد", "action_reject": "رفض",
+  "action_export": "تصدير", "action_print": "طباعة",
+  "ai_no_permission": "عذراً، ليس لديك صلاحية للوصول إلى بيانات هذا القسم.",
+  "ai_restricted": "هذه المعلومات متاحة فقط للمستخدمين المصرح لهم.",
+  "ai_reports_title": "تقارير الذكاء الاصطناعي",
+  "monthly_report": "تقرير شهري", "semiannual_report": "تقرير نصف سنوي",
+  "annual_report": "تقرير سنوي", "custom_report": "تقرير مخصص",
+  "generate_report": "إنشاء تقرير", "report_generated": "تم إنشاء التقرير بنجاح",
+  "generating_report": "جاري إنشاء التقرير...", "report_history": "سجل التقارير",
+  "no_reports": "لا توجد تقارير بعد", "select_period": "اختر الفترة",
+  "from_date": "من تاريخ", "to_date": "إلى تاريخ",
+  "total_employees": "إجمالي الموظفين", "active_employees": "الموظفين النشطين",
+  "new_employees": "الموظفين الجدد", "employees_left": "الموظفين المغادرين",
+  "turnover_rate": "معدل الدوران", "attendance_rate": "معدل الحضور",
+  "late_rate": "معدل التأخير", "absence_rate": "معدل الغياب",
+  "overtime_hours": "ساعات العمل الإضافي", "total_salary_cost": "إجمالي تكلفة الرواتب",
+  "avg_salary": "متوسط الراتب", "active_loans": "السلف النشطة",
+  "dept_analysis": "تحليل الأقسام", "user_activity": "نشاط المستخدمين",
+  "login_count": "عدد تسجيلات الدخول", "most_active_users": "أكثر المستخدمين نشاطاً",
+  "most_used_screens": "أكثر الشاشات استخداماً", "recommendations": "التوصيات",
+  "anomalies": "الملاحظات غير العادية", "executive_summary": "الملخص التنفيذي",
+  "period_comparison": "مقارنة بالفترة السابقة",
+  "language_changed": "تم تغيير اللغة", "switch_language": "تغيير اللغة"
+};
+
+// ===== English key strings (en.json embedded) =====
+const EN_KEYS = {
+  "lang_en": "English", "lang_ar": "العربية",
+  "sidebar_dashboard": "Dashboard", "sidebar_attendance": "Attendance",
+  "sidebar_delays_log": "Delays Log", "sidebar_missions": "Missions",
+  "sidebar_permission_requests": "Permission Requests", "sidebar_leave_requests": "Leave Requests",
+  "sidebar_shift_management": "Shift Management", "sidebar_overtime": "Overtime",
+  "sidebar_payroll": "Payroll", "sidebar_payroll_funding": "Payroll Funding",
+  "sidebar_salary_adjustments": "Salary Adjustments", "sidebar_recruitment": "Recruitment",
+  "sidebar_hr_ats": "AI ATS", "sidebar_documents": "Documents",
+  "sidebar_performance": "Performance", "sidebar_uniforms": "Uniforms",
+  "sidebar_medical_requests": "Medical Requests", "sidebar_medical_approvals": "Medical Approvals",
+  "sidebar_loans": "Loans & Advances", "sidebar_expenses": "Expenses",
+  "sidebar_disciplinary": "Disciplinary & Grievances", "sidebar_friday_work": "Friday Work",
+  "sidebar_calendar": "Calendar", "sidebar_financial_reports": "Financial Reports",
+  "sidebar_chart_of_accounts": "Chart of Accounts", "sidebar_system_settings": "System Settings",
+  "sidebar_sales_dashboard": "Sales Dashboard", "sidebar_purchase_workflow": "Purchase Workflow",
+  "sidebar_warehouse_inventory": "Warehouse / Inventory", "sidebar_production_planning": "Production & Planning",
+  "sidebar_maintenance_fleet": "Maintenance & Fleet", "sidebar_legal_affairs": "Legal Affairs",
+  "sidebar_quality_control": "Quality Control", "btn_logout": "Logout",
+  "loading": "Loading...", "access_denied": "Access Denied",
+  "sidebar_all_delays": "Delays Log", "sidebar_all_missions": "Missions Log",
+  "sidebar_absence_leave": "Permission Requests", "sidebar_leaves": "Leave Requests",
+  "sidebar_shifts": "Shift Management", "sidebar_hr_adjustments": "Salary Adjustments",
+  "sidebar_nursing_page": "Factory Clinic & Nursing", "sidebar_nursing_medical_approvals": "Nursing Approvals",
+  "sidebar_complaints": "Complaints", "sidebar_finance_kpi": "Financial KPIs",
+  "sidebar_bank_management": "Bank Management", "sidebar_journal_engine": "Journal Engine",
+  "sidebar_checks": "Checks Lifecycle", "sidebar_loans_taxes": "Loans & Taxes",
+  "sidebar_budgets": "Budgets & Valuation", "sidebar_fixed_assets": "Fixed Assets",
+  "sidebar_ai_cfo": "AI CFO & Simulation", "sidebar_closing_wizard": "Closing & Audit",
+  "sidebar_finance_reports_ent": "Professional Reports", "sidebar_driver_payments": "Driver Payments",
+  "sidebar_ai_reports": "AI Intelligence Reports", "sidebar_owner_dashboard": "Owner Dashboard",
+  "sidebar_ceo_dashboard": "CEO Dashboard", "sidebar_ai_ceo_dashboard": "AI CEO Dashboard",
+  "sidebar_cost_centers": "Cost Centers", "sidebar_activity_timeline": "Activity Timeline",
+  "access_denied_title": "Access Denied",
+  "access_denied_msg": "You do not have permission to access this page.",
+  "back_to_dashboard": "Back to Dashboard",
+  "no_permission_action": "You do not have permission for this action",
+  "permissions_title": "Permission Management", "select_user": "Select User", "select_role": "Select Role",
+  "grant_all": "Grant All", "revoke_all": "Revoke All", "save_permissions": "Save Permissions",
+  "permissions_saved": "Permissions saved successfully",
+  "action_view": "View", "action_create": "Create", "action_edit": "Edit", "action_delete": "Delete",
+  "action_approve": "Approve", "action_reject": "Reject", "action_export": "Export", "action_print": "Print",
+  "ai_no_permission": "Sorry, you do not have permission to access this department's data.",
+  "ai_restricted": "This information is available only to authorized users.",
+  "ai_reports_title": "AI Intelligence Reports", "monthly_report": "Monthly Report",
+  "semiannual_report": "Semiannual Report", "annual_report": "Annual Report", "custom_report": "Custom Report",
+  "generate_report": "Generate Report", "report_generated": "Report generated successfully",
+  "generating_report": "Generating report...", "report_history": "Report History",
+  "no_reports": "No reports yet", "select_period": "Select Period", "from_date": "From Date", "to_date": "To Date",
+  "total_employees": "Total Employees", "active_employees": "Active Employees", "new_employees": "New Employees",
+  "employees_left": "Employees Left", "turnover_rate": "Turnover Rate", "attendance_rate": "Attendance Rate",
+  "late_rate": "Late Rate", "absence_rate": "Absence Rate", "overtime_hours": "Overtime Hours",
+  "total_salary_cost": "Total Salary Cost", "avg_salary": "Average Salary", "active_loans": "Active Loans",
+  "dept_analysis": "Department Analysis", "user_activity": "User Activity", "login_count": "Login Count",
+  "most_active_users": "Most Active Users", "most_used_screens": "Most Used Screens",
+  "recommendations": "Recommendations", "anomalies": "Anomalies", "executive_summary": "Executive Summary",
+  "period_comparison": "Period Comparison", "language_changed": "Language Changed",
+  "switch_language": "Switch Language"
+};
+
+// ===== Normalized lookup (fallback when exact match fails) =====
+const EMOJI_RE = /[\p{Extended_Pictographic}\uFE0F\u200D]/gu;
+const AR_PAREN_RE = /\s*\([\u0600-\u06FF][^)]*\)/g;
+const HAS_AR = /[\u0600-\u06FF]/;
+const HAS_EN = /[A-Za-z]{2,}/;
+
+function norm(s) {
+  return s.replace(EMOJI_RE, '').replace(AR_PAREN_RE, '')
+          .replace(/_/g, ' ').replace(/\s*:\s*$/, '')
+          .replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+const NORM_DICT = new Map();
+Object.entries(ARABIC_DICT).forEach(([k, v]) => {
+  const n = norm(k);
+  const val = v.replace(EMOJI_RE, '').replace(/\s+/g, ' ').trim();
+  if (n && !NORM_DICT.has(n)) NORM_DICT.set(n, val);
+});
+
+// One-pass, longest-first, whole-word phrase replacement (for mixed strings)
+const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const PHRASE_ALLOW_LOWER = new Set(['requests', 'records']);
+const PHRASE_KEYS = Object.keys(ARABIC_DICT)
+  .filter(k => k.length > 3 && !HAS_AR.test(k) && /^[A-Za-z]/.test(k) &&
+    (/^[A-Z]/.test(k) || k.includes(' ') || PHRASE_ALLOW_LOWER.has(k)))
+  .sort((a, b) => b.length - a.length);
+const PHRASE_RE = new RegExp(
+  '(?<![A-Za-z])(' + PHRASE_KEYS.map(escapeRe).join('|') + ')(?![A-Za-z])', 'g'
+);
+
+const KEY_RE = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/;
+
+function translateText(raw) {
+  if (!raw || !HAS_EN.test(raw)) return null;
+  const core = raw.trim();
+  if (!core) return null;
+  const lead = raw.match(/^\s*/)[0], trail = raw.match(/\s*$/)[0];
+
+  // 1) exact
+  if (ARABIC_DICT[core]) return lead + ARABIC_DICT[core] + trail;
+
+  // 1.2) bilingual label "English Name (عربي)" -> keep only the Arabic part (+ leading emoji)
+  const bi = core.match(/^([\p{Extended_Pictographic}\uFE0F\s]*)[A-Za-z][^()\u0600-\u06FF]*?\s*\(([\u0600-\u06FF][^)]*)\)\s*$/u);
+  if (bi) {
+    const em = bi[1].trim();
+    return lead + (em ? em + ' ' : '') + bi[2].trim() + trail;
   }
 
-  // Update text nodes
-  nodesToUpdate.forEach(item => {
-    item.n.nodeValue = item.val;
-  });
+  // 1.5) raw i18n keys (sidebar_xxx, btn_xxx ...) -> ar.json, else humanized dictionary lookup
+  if (KEY_RE.test(core)) {
+    if (AR_KEYS[core]) return lead + AR_KEYS[core] + trail;
+    const base = core.replace(/^(sidebar|btn|action|menu|nav|label)_/, '').replace(/_/g, ' ');
+    const kh = NORM_DICT.get(base);
+    if (kh) return lead + kh + trail;
+  }
 
-  // Translate placeholders and tooltips
-  container.querySelectorAll('[placeholder]').forEach(el => {
-    if (ARABIC_DICT[el.getAttribute('placeholder')]) {
-      el.setAttribute('placeholder', ARABIC_DICT[el.getAttribute('placeholder')]);
-    }
+  // 2) normalized (ignores emoji / case / underscores / (arabic) suffix / trailing colon)
+  const hit = NORM_DICT.get(norm(core));
+  if (hit) {
+    const emojiPrefix = (core.match(/^(?:[\p{Extended_Pictographic}\uFE0F\s])+/u) || [''])[0].trim();
+    const colon = /:\s*$/.test(core) ? ':' : '';
+    return lead + (emojiPrefix ? emojiPrefix + ' ' : '') + hit + colon + trail;
+  }
+
+  // 3) phrases inside longer text
+  const out = raw.replace(PHRASE_RE, m => ARABIC_DICT[m]);
+  return out !== raw ? out : null;
+}
+
+const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'CODE']);
+const ATTRS = ['placeholder', 'title', 'aria-label', 'value'];
+
+function translateTextNode(n) {
+  if (!n.parentNode || SKIP.has(n.parentNode.nodeName)) return;
+  const res = translateText(n.nodeValue);
+  if (res !== null && res !== n.nodeValue) n.nodeValue = res;
+}
+
+function translateAttrs(el) {
+  ATTRS.forEach(a => {
+    if (!el.hasAttribute || !el.hasAttribute(a)) return;
+    if (a === 'value' && !(el.tagName === 'INPUT' && ['button', 'submit'].includes(el.type))) return;
+    const res = translateText(el.getAttribute(a));
+    if (res !== null && res !== el.getAttribute(a)) el.setAttribute(a, res);
   });
-  container.querySelectorAll('[title]').forEach(el => {
-    if (ARABIC_DICT[el.getAttribute('title')]) {
-      el.setAttribute('title', ARABIC_DICT[el.getAttribute('title')]);
-    }
-  });
+}
+
+// Automatic DOM Walker
+function translateDOM(container) {
+  if (localStorage.getItem('lang') !== 'ar' || !container) return;
+  if (container.nodeType === 3) return translateTextNode(container);
+  if (container.nodeType !== 1) return;
+  translateAttrs(container);
+  container.querySelectorAll('*').forEach(translateAttrs);
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let n;
+  while ((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(translateTextNode);
 }
 
 // Clean English DOM by removing parenthesized Arabic
 function cleanEnglishDOM(container) {
-  if (localStorage.getItem('lang') === 'ar') return;
-  var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-  var nodesToUpdate = [];
-  var node;
-  var arabicParenRegex = /\s*\(([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF][^)]*)\)/g;
-  while (node = walker.nextNode()) {
-    var rawText = node.nodeValue;
-    if (rawText && arabicParenRegex.test(rawText)) {
-      nodesToUpdate.push({ n: node, val: rawText.replace(arabicParenRegex, '') });
-    }
-  }
-  nodesToUpdate.forEach(function(item) {
-    item.n.nodeValue = item.val;
+  if (localStorage.getItem('lang') === 'ar' || !container) return;
+  const re = /\s*\(([\u0600-\u06FF][^)]*)\)/g;
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let n;
+  while ((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(x => {
+    const v = x.nodeValue.replace(re, '');
+    if (v !== x.nodeValue) x.nodeValue = v;
   });
 }
 
-// Auto Translation Observer
+// Observer: elements + bare text nodes + text edits + attribute changes
 window.addEventListener('DOMContentLoaded', () => {
-  const observer = new MutationObserver((mutations) => {
-    var isAr = localStorage.getItem('lang') === 'ar';
+  const isAr = () => localStorage.getItem('lang') === 'ar';
+  const observer = new MutationObserver(mutations => {
     mutations.forEach(m => {
-      if (m.type === 'childList' && m.addedNodes.length > 0) {
+      if (m.type === 'childList') {
         m.addedNodes.forEach(node => {
-           if (node.nodeType === 1) {
-             if (isAr) translateDOM(node);
-             else cleanEnglishDOM(node);
-           }
+          if (isAr()) translateDOM(node);
+          else if (node.nodeType === 1) cleanEnglishDOM(node);
         });
+      } else if (m.type === 'characterData' && isAr()) {
+        translateTextNode(m.target);
+      } else if (m.type === 'attributes' && isAr()) {
+        translateAttrs(m.target);
       }
     });
   });
-  observer.observe(document.body, { childList: true, subtree: true });
-  setTimeout(() => {
-    if (localStorage.getItem('lang') === 'ar') {
-      document.body.classList.add('rtl-layout');
-      translateDOM(document.body);
-    } else {
-      document.body.classList.remove('rtl-layout');
-      cleanEnglishDOM(document.body);
-    }
-  }, 100);
+  observer.observe(document.body, {
+    childList: true, subtree: true, characterData: true,
+    attributes: true, attributeFilter: ATTRS
+  });
+
+  const run = () => {
+    if (isAr()) { document.body.classList.add('rtl-layout'); translateDOM(document.body); }
+    else { document.body.classList.remove('rtl-layout'); cleanEnglishDOM(document.body); }
+  };
+  run();
+  setTimeout(run, 300);
+  setTimeout(run, 1500); // safety net for late role/permission rendering
+});
+
+// Debug helper: run in console while logged in as owner
+window.findUntranslated = function () {
+  const seen = new Set();
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    const tx = n.nodeValue.trim();
+    if (tx && /[A-Za-z]{3,}/.test(tx) && !HAS_AR.test(tx) && !SKIP.has(n.parentNode.nodeName)) seen.add(tx);
+  }
+  console.table([...seen]);
+  return [...seen];
+};
+
+// ===== Make I18n.t() never return raw keys (sidebar_xxx) and follow localStorage 'lang' =====
+function patchI18n() {
+  var I = window.I18n;
+  if (!I || typeof I.t !== 'function' || I.t === I._ourT) return;
+  var orig = I.t;
+  I._ourT = function (k) {
+    var dict = (localStorage.getItem('lang') || 'ar') === 'ar' ? AR_KEYS : EN_KEYS;
+    if (typeof k === 'string' && dict[k]) return dict[k];
+    return orig.apply(this, arguments);
+  };
+  I.t = I._ourT;
+}
+
+// ===== Switch language in place: no reload, no logout =====
+function switchLangInPlace() {
+  var next = (localStorage.getItem('lang') || 'ar') === 'ar' ? 'en' : 'ar';
+  localStorage.setItem('lang', next);
+  try { if (typeof I18nEngine !== 'undefined') I18nEngine.currentLang = next; } catch (e) {}
+  try { if (window.I18n) { window.I18n.currentLang = next; window.I18n.lang = next; } } catch (e) {}
+  document.body.classList.toggle('rtl-layout', next === 'ar');
+  patchI18n();
+  if (typeof App !== 'undefined' && App.user) {
+    App.renderSidebar();
+    App.renderHeader();
+    App.renderPage();
+  }
+  if (next === 'ar') translateDOM(document.body); else cleanEnglishDOM(document.body);
+}
+
+// Capture phase: runs before the app's own handler, so the page never reloads
+document.addEventListener('click', function (e) {
+  var btn = e.target && e.target.closest ? e.target.closest('#lang-toggle-btn') : null;
+  if (!btn || typeof App === 'undefined' || !App.user) return;
+  e.stopImmediatePropagation();
+  e.preventDefault();
+  switchLangInPlace();
+}, true);
+
+window.addEventListener('DOMContentLoaded', function () {
+  patchI18n();
+  setTimeout(patchI18n, 0);
+  setTimeout(patchI18n, 300);
+  setTimeout(patchI18n, 1500);
 });
