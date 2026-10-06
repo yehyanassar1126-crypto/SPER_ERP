@@ -5,8 +5,16 @@ var App = {
   notifications: [],
 
   init: function () {
+    // Restore the saved session so a reload (e.g. language switch) does not log the user out
     App.user = null;
-    localStorage.removeItem('hr_portal_user');
+    try {
+      var saved = localStorage.getItem('hr_portal_user');
+      if (saved) App.user = JSON.parse(saved);
+    } catch (e) { App.user = null; localStorage.removeItem('hr_portal_user'); }
+    if (App.user) {
+      if (typeof SecurityHelpers !== 'undefined' && SecurityHelpers.loadPermissions) { try { SecurityHelpers.loadPermissions(); } catch (e) {} }
+      if (typeof I18nEngine !== 'undefined') { try { I18nEngine.init(); } catch (e) {} }
+    }
 
     // One-time migration for leaves from 1/6/2026
     if (!localStorage.getItem('migrated_leaves_1_6_2026_v2')) {
@@ -5388,5 +5396,3 @@ document.addEventListener('DOMContentLoaded', function () {
     App.init(); 
   }
 });
-
-
