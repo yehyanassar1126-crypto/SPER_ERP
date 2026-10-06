@@ -18,7 +18,7 @@ window.SecurityHelpers = {
           }
           return true;
       }
-      return this._cachedPermissions.some(function(p) { return p.module === moduleId && p.granted; });
+      return this._cachedPermissions.some(function(p) { return p.module === moduleId && p.action === 'view' && p.granted; });
   },
 
   // Simple hash function for client-side (use bcrypt on server for production)
@@ -117,25 +117,44 @@ window.SecurityHelpers = {
     });
   },
 
-  // Permission checking
+  // Permission checking (User override > Role default > legacy fallback)
   hasPermission: function(module, action) {
-    // Owner has all permissions
-    if (App.user && App.user.role === 'owner') return true;
-    // HR Manager has most permissions
-    if (App.user && App.user.role === 'hr manager') {
+    if (!App.user) return false;
+    var roleClean = (App.user.role || '').trim().toLowerCase();
+    if (roleClean === 'owner') return true;
+    action = (action || 'view').toLowerCase();
+
+    var ownerOnly = ['system-settings', 'owner-dashboard', 'ceo-dashboard', 'ai-ceo-dashboard', 'screen-permissions'];
+    if (ownerOnly.indexOf(module) !== -1) return false;
+
+    if (roleClean === 'supplier_external' || roleClean === 'customer' || roleClean === 'client') {
+      if (module === 'supplier-portal' || module === 'customer-portal') return true;
+    }
+
+    // Everyone must be able to open their own dashboard (avoid lock-out)
+    if (module === 'dashboard' && action === 'view') return true;
+
+    // Explicit DB record wins (user-level first, then role-level), so DENY really denies
+    var find = function(list) {
+      return (list || []).find(function(p) {
+        return p.screen_id === module && p.action && p.action.toLowerCase() === action;
+      });
+    };
+    var explicit = find(SecurityHelpers._userPerms) || find(SecurityHelpers._rolePerms);
+    if (explicit !== undefined) {
+      return explicit.granted === true;
+    }
+
+    // No explicit record: legacy fallback
+    if (roleClean === 'hr manager') {
       if (module === 'settings' && action === 'manage') return false;
       return true;
     }
-    // External suppliers and customers have full access to their self-service portal
-    if (App.user && (App.user.role === 'supplier_external' || App.user.role === 'customer' || App.user.role === 'client')) {
-      if (module === 'supplier-portal' || module === 'customer-portal') return true;
-    }
-    // Check cached permissions
-    var perms = SecurityHelpers._cachedPermissions || [];
-    return perms.some(function(p) {
-      return p.module === module && p.action === action && p.granted;
-    });
+    return false;
   },
+
+  _userPerms: [],
+  _rolePerms: [],
 
   _cachedPermissions: [],
 
@@ -148,24 +167,28 @@ window.SecurityHelpers = {
     // Fetch specifically for this user and this role to avoid the 1000-row API limit!
     Promise.all([
       sbClient.from('screen_permissions').select('*').eq('user_id', userId),
-      roleStr ? sbClient.from('screen_permissions').select('*').eq('role', roleStr) : Promise.resolve({ data: [] })
+      roleStr ? sbClient.from('screen_permissions').select('*').eq('role', String(roleStr).trim().toLowerCase()).is('user_id', null) : Promise.resolve({ data: [] })
     ]).then(function(results) {
         var userPerms = results[0].data || [];
         var rolePerms = results[1].data || [];
         
-        // Merge them and remove duplicates just in case
-        var myPerms = userPerms.concat(rolePerms);
-        
-        SecurityHelpers._hasCustomConfig = myPerms.length > 0;
-        
-        SecurityHelpers._cachedPermissions = myPerms.map(function(rp) {
-          return {
-            module: rp.screen_id,
-            action: rp.action,
-            granted: rp.granted
-          };
+        SecurityHelpers._userPerms = userPerms;
+        SecurityHelpers._rolePerms = rolePerms;
+        SecurityHelpers._hasCustomConfig = (userPerms.length + rolePerms.length) > 0;
+
+        // Resolved list: role first, user rows override
+        var resolved = [];
+        rolePerms.forEach(function(rp) {
+          if (rp.screen_id !== 'SYSTEM_CONFIG') resolved.push({ module: rp.screen_id, action: rp.action, granted: rp.granted });
         });
-        
+        userPerms.forEach(function(up) {
+          if (up.screen_id === 'SYSTEM_CONFIG') return;
+          var i = resolved.findIndex(function(x){ return x.module === up.screen_id && x.action === up.action; });
+          if (i !== -1) resolved[i].granted = up.granted;
+          else resolved.push({ module: up.screen_id, action: up.action, granted: up.granted });
+        });
+        SecurityHelpers._cachedPermissions = resolved;
+
         // Re-render sidebar now that we have the permissions!
         if (typeof App !== 'undefined' && App.renderSidebar) {
             App.renderSidebar();
