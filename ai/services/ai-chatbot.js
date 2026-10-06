@@ -5,7 +5,11 @@ var AIChatbot = {
   data: null,
 
   init: function() {
-    if(document.getElementById('ai-chat-container')) return;
+    // Live INSIDE the app layout; never on the login screen
+    var host = document.querySelector('.app-layout');
+    var existing = document.getElementById('ai-chat-container');
+    if (!App.user || !host) { if (existing) existing.remove(); return; }
+    if (existing) { if (existing.parentNode !== host) host.appendChild(existing); return; }
     var wrap = document.createElement('div');
     wrap.id = 'ai-chat-container';
     wrap.className = 'ai-chat-container';
@@ -26,7 +30,7 @@ var AIChatbot = {
           '<button class="ai-chat-send" id="ai-chat-send">➤</button>' +
         '</div>' +
       '</div>';
-    document.body.appendChild(wrap);
+    host.appendChild(wrap);
 
     document.getElementById('ai-chat-toggle').addEventListener('click', function(){ AIChatbot.toggle(); });
     document.getElementById('ai-chat-close-btn').addEventListener('click', function(){ AIChatbot.toggle(); });
