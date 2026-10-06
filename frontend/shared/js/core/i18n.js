@@ -14,7 +14,7 @@ window.I18n = {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
     
-    fetch('lang/' + lang + '.json')
+    fetch('../../shared/lang/' + lang + '.json')
       .then(response => response.json())
       .then(data => {
         this.translations = data;
