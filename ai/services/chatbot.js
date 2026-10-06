@@ -6,18 +6,21 @@ var EmployeeChatbot = {
   messages: [],
   
   init: function() {
-    if (!App.user) return; // Only for logged in users
-    
-    // Inject Chatbot UI into DOM if it doesn't exist
-    if (!document.getElementById('employee-chatbot-container')) {
+    var old = document.getElementById('employee-chatbot-container');
+    if (!App.user) { if (old) old.remove(); return; }   // only for logged in users
+
+    // Mount INSIDE the app layout (not on <body>) so it lives with the app view
+    var host = document.querySelector('.app-layout');
+    if (!host) { if (old) old.remove(); return; }       // login screen: no chatbot
+    if (old && old.parentNode !== host) { old.remove(); old = null; }
+    if (!old) {
       var container = document.createElement('div');
       container.id = 'employee-chatbot-container';
-      document.body.appendChild(container);
+      host.appendChild(container);
     }
-    
     this.render();
   },
-  
+
   render: function() {
     var container = document.getElementById('employee-chatbot-container');
     if (!container) return;
