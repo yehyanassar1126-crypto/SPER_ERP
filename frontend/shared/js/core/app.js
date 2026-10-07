@@ -1,3 +1,28 @@
+// ===== SHARED VALIDATION HELPERS =====
+function validateStrongPassword(password) {
+  var errors = [];
+  if (!password || password.length < 8) errors.push('Password must be at least 8 characters (كلمة المرور لازم 8 حروف على الأقل)');
+  if (!/[A-Z]/.test(password)) errors.push('Must contain an uppercase letter (لازم حرف كبير)');
+  if (!/[a-z]/.test(password)) errors.push('Must contain a lowercase letter (لازم حرف صغير)');
+  if (!/[0-9]/.test(password)) errors.push('Must contain a number (لازم رقم)');
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) errors.push('Must contain a special character like !@#$%^& (لازم رمز)');
+  return errors;
+}
+function validateRealName(name) {
+  if (!name || name.trim().length < 3) return 'Name must be at least 3 characters (الاسم لازم 3 حروف على الأقل)';
+  if (/[0-9]/.test(name)) return 'Name cannot contain numbers (الاسم مينفعش يبقى فيه أرقام)';
+  if (/[!@#$%^&*()_+=\[\]{};':"\\|,.<>\/?~`]/.test(name)) return 'Name cannot contain special characters (الاسم مينفعش يبقى فيه رموز)';
+  var parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return 'Please enter full name (first and last) (لازم الاسم الأول والأخير)';
+  return null;
+}
+function validateRealEmail(email) {
+  if (!email || !email.trim()) return 'Email is required (الإيميل مطلوب)';
+  var emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email.trim())) return 'Please enter a valid email address (لازم إيميل حقيقي)';
+  return null;
+}
+
 // ===== MAIN APP CONTROLLER =====
 var App = {
   user: null,
@@ -127,6 +152,10 @@ var App = {
   },
 
   logout: function () {
+    // Clean up all Supabase Realtime channels to prevent stale connections
+    try {
+      sbClient.removeAllChannels();
+    } catch (e) {}
     App.user = null;
     App.activePage = null;
     localStorage.removeItem('hr_portal_user');
@@ -435,6 +464,9 @@ var App = {
     App.navigate(App.activePage);
     App.checkUrlActions();
 
+    // ===== GLOBAL REALTIME: Auto-refresh pages when data changes =====
+    App.initGlobalRealtime();
+
     // Initialize Chatbot for employees
     if (typeof EmployeeChatbot !== 'undefined') {
       setTimeout(function () {
@@ -467,6 +499,105 @@ var App = {
     }
     
     setTimeout(function() { App._isNavigating = false; }, 100);
+  },
+
+  // ===== GLOBAL REALTIME: Subscribe to all key tables =====
+  _realtimeDebounce: null,
+  initGlobalRealtime: function () {
+    if (!App.user || typeof sbClient === 'undefined') return;
+
+    // Map: table -> array of page IDs that should refresh
+    var tablePageMap = {
+      'sales_workflow_orders':   ['erp-sales', 'dashboard', 'owner-dashboard', 'ceo-dashboard'],
+      'purchase_orders':         ['purchase-requests', 'dept-purchase-approvals', 'dashboard'],
+      'supplier_orders':         ['erp-suppliers', 'supplier-portal'],
+      'supplier_transactions':   ['erp-suppliers', 'supplier-portal'],
+      'suppliers':               ['erp-suppliers', 'supplier-portal'],
+      'leave_requests':          ['leaves', 'my-leaves', 'absence-leave', 'dashboard', 'hr-admin'],
+      'attendance':              ['attendance', 'my-attendance', 'all-delays', 'my-delays', 'dashboard'],
+      'users':                   ['employees', 'org-directory', 'hr-admin'],
+      'chat_messages':           ['internal-chat'],
+      'chat_channels':           ['internal-chat'],
+      'notifications':           ['dashboard'],
+      'announcements':           ['announcements', 'dashboard'],
+      'it_tickets':              ['it-tickets', 'dashboard'],
+      'payroll_records':         ['payroll', 'my-salary', 'payroll-funding', 'hr-employee-payment'],
+      'expenses':                ['expenses', 'my-expenses', 'petty-cash'],
+      'petty_cash':              ['petty-cash'],
+      'loans':                   ['loans', 'my-loans'],
+      'overtime_requests':       ['overtime', 'my-overtime'],
+      'missions':                ['my-missions', 'all-missions'],
+      'salary_adjustments':      ['team-adjustments', 'hr-adjustments'],
+      'complaints':              ['complaints'],
+      'documents':               ['documents', 'document-management'],
+      'performance_reviews':     ['performance', 'performance-reviews'],
+      'production_orders':       ['erp-production', 'erp-planning', 'dashboard'],
+      'quality_reports':         ['erp-quality'],
+      'engineering_tasks':       ['engineering'],
+      'maintenance_requests':    ['erp-maintenance'],
+      'inventory':               ['inventory'],
+      'spare_parts':             ['spare-parts', 'erp-spare-parts'],
+      'logistics_drivers':       ['logistics'],
+      'logistics_deliveries':    ['logistics'],
+      'fleet_vehicles':          ['erp-fleet'],
+      'medical_requests':        ['medical-requests', 'my-medical', 'nursing-page', 'nursing-medical-approvals'],
+      'recruitment_applications':['recruitment', 'hr-ats'],
+      'legal_cases':             ['legal-affairs'],
+      'shift_swap_requests':     ['shift-swap'],
+      'training_programs':       ['training'],
+      'friday_work_requests':    ['friday-work'],
+      'uniforms':                ['uniforms'],
+      'employee_warnings':       ['employee-warnings'],
+      'cost_centers':            ['cost-centers'],
+      'offboarding_requests':    ['offboarding'],
+      'audit_log':               ['audit-log', 'activity-log-page'],
+      'driver_payments':         ['driver-payments'],
+      'finance_journal_entries': ['journal-engine', 'chart-of-accounts', 'financial-reports', 'finance-reports-ent'],
+      'task_management':         ['task-management'],
+      'approval_workflows':      ['approval-workflows']
+    };
+
+    var tables = Object.keys(tablePageMap);
+
+    // Subscribe to all tables in one channel for efficiency
+    var channel = sbClient.channel('global-realtime');
+    tables.forEach(function (table) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: table }, function (payload) {
+        var changedTable = payload.table || table;
+        var relatedPages = tablePageMap[changedTable];
+        if (!relatedPages) return;
+
+        // Only refresh if user is on a related page
+        var currentPage = App.activePage;
+        var shouldRefresh = relatedPages.indexOf(currentPage) !== -1;
+        if (!shouldRefresh) return;
+
+        // Skip if a modal is open (user might be filling a form)
+        var modal = document.querySelector('.modal-backdrop, .modal-overlay');
+        if (modal) return;
+
+        // Debounce: avoid rapid re-renders
+        clearTimeout(App._realtimeDebounce);
+        App._realtimeDebounce = setTimeout(function () {
+          // Save scroll position
+          var pc = document.getElementById('page-content');
+          var scrollY = pc ? pc.scrollTop : 0;
+          App._lastScrollY = scrollY;
+          App._isNavigating = false;
+          App.renderPage();
+          // Restore scroll
+          setTimeout(function () {
+            var pc2 = document.getElementById('page-content');
+            if (pc2) pc2.scrollTop = scrollY;
+          }, 200);
+          // Show subtle toast
+          if (typeof showToast === 'function') {
+            showToast('🔄 تم تحديث البيانات تلقائياً', 'info');
+          }
+        }, 1500);
+      });
+    });
+    channel.subscribe();
   },
 
   // ========== SIDEBAR ==========
@@ -2528,6 +2659,9 @@ Pages.employees = function (el) {
       }
 
       if (!form.full_name) { alert('Full name is required'); return; }
+      var nameErr = validateRealName(form.full_name);
+      if (nameErr) { alert(nameErr); return; }
+      if (form.email) { var emailErr = validateRealEmail(form.email); if (emailErr) { alert(emailErr); return; } }
       if (!emp && !rawSalary) { alert('الراتب مطلوب - يجب كتابة الراتب الأساسي قبل إضافة الموظف'); return; }
       if (!form.username) { alert('Username is required'); return; }
       if (emp) {
@@ -2540,9 +2674,11 @@ Pages.employees = function (el) {
            }
         });
       } else {
-        var passInputValue = document.getElementById('ef-password') ? document.getElementById('ef-password').value : 'emp123';
+        var passInputValue = document.getElementById('ef-password') ? document.getElementById('ef-password').value : '';
         if (!form.username) { alert('Username is required'); return; }
         if (!passInputValue) { alert('Password is required'); return; }
+        var passErrors = validateStrongPassword(passInputValue);
+        if (passErrors.length > 0) { alert('⚠️ Weak Password:\n' + passErrors.join('\n')); return; }
 
         sbClient.from('users').select('employee_id').then(function (res) {
           var allIds = res.data || [];

@@ -205,6 +205,7 @@ window.ERPLogistics = {
           let formHtml = '<div class="form-group"><label class="form-label">Driver Name (اسم السائق)</label><input type="text" class="form-input" id="driver-name" required></div>';
           formHtml += '<div class="form-group"><label class="form-label">Phone Number (رقم الهاتف) - Use as Login</label><input type="text" class="form-input" id="driver-phone" placeholder="e.g. 01012345678" required></div>';
           formHtml += '<div class="form-group"><label class="form-label">Vehicle Number (رقم العربية)</label><input type="text" class="form-input" id="car-number" required></div>';
+          formHtml += '<div class="form-group"><label class="form-label">Password (كلمة المرور) *</label><input type="password" class="form-input" id="driver-password" required placeholder="Aa1!xxxx"></div>';
           
           let footerHtml = '<button class="btn btn-outline" id="cancel-driver">Cancel</button><button class="btn btn-primary" id="save-driver">Save & Create Account</button>';
           App.showModal('Register New Driver', formHtml, footerHtml);
@@ -214,7 +215,12 @@ window.ERPLogistics = {
             let dName = document.getElementById('driver-name').value.trim();
             let dPhone = document.getElementById('driver-phone').value.trim();
             let cNum = document.getElementById('car-number').value.trim();
-            if (!dName || !cNum || !dPhone) { alert('Please enter Name, Phone, and Car number.'); return; }
+            let dPass = document.getElementById('driver-password').value.trim();
+            if (!dName || !cNum || !dPhone || !dPass) { alert('Please fill all fields including password.'); return; }
+            var nameErr = validateRealName(dName);
+            if (nameErr) { alert(nameErr); return; }
+            var passErrors = validateStrongPassword(dPass);
+            if (passErrors.length > 0) { alert('⚠️ Weak Password:\n' + passErrors.join('\n')); return; }
             
             let btn = this;
             btn.disabled = true;
@@ -226,7 +232,7 @@ window.ERPLogistics = {
               email: dPhone + '@erp.com',
               username: dPhone,
               full_name: dName,
-              password_hash: '123456', // Default password
+              password_hash: dPass,
               role: 'driver',
               department: 'Logistics',
               status: 'active'
