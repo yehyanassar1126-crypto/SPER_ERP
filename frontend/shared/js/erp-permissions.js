@@ -278,106 +278,263 @@ var ERPPermissions = {
     return false;
   },
 
-  render: function() {
-    var _permLang = (typeof I18nEngine !== 'undefined' && I18nEngine.currentLang) || localStorage.getItem('lang') || 'ar';
-    var _permTitle = _permLang === 'ar' ? '🔐 نظام الصلاحيات المركزي' : '🔐 Screen Permissions';
-    var _permSub = _permLang === 'ar' ? 'التحكم الدقيق في صلاحيات العرض، الإضافة، التعديل، الحذف، الاعتماد، الرفض، التصدير، والطباعة على مستوى كل شاشة ودور ومستخدم.' : 'Granular control over View, Create, Edit, Delete, Approve, Reject, Export, and Print permissions per screen, role, and user.';
-    var html = '<div class="page-header"><div style="display:flex;align-items:center;gap:12px"><h2>' + _permTitle + '</h2>' +
-      '<span class="badge badge-info" style="font-size:0.75rem;padding:4px 10px">Single Source of Truth</span></div>' +
-      '<p class="text-muted" style="margin-top:4px">' + _permSub + '</p></div>';
+  // ---------- UI helpers (searchable combo, styles) ----------
+  _combos: {},
 
-    // Filter controls row
-    html += '<div class="form-row" style="margin-bottom:16px;gap:12px;background:var(--bg-card);padding:16px;border-radius:12px;border:1px solid var(--border-color)">';
-    html += '<div class="form-group" style="flex:1.2"><label style="font-weight:700">1. اختر المستخدم (User Override)</label><select class="form-input" id="perm-user" onchange="ERPPermissions.onUserChange()"><option value="">— اختر مستخدم —</option></select></div>';
-    html += '<div class="form-group" style="flex:1"><label style="font-weight:700">أو 2. اختر الدور (Role Default)</label><select class="form-input" id="perm-role" onchange="ERPPermissions.onRoleChange()"><option value="">— اختر دور —</option></select></div>';
-    html += '<div class="form-group" style="flex:1"><label style="font-weight:700">3. تصفية حسب الإدارة</label><select class="form-input" id="perm-module-filter" onchange="ERPPermissions.filterByModule()"><option value="all">— كل الإدارات والموديولات —</option>';
-    
-    Object.keys(ERPPermissions.moduleGroups).forEach(function(mg) {
-      var dmg = typeof formatModuleLabel === 'function' ? formatModuleLabel(mg) : mg;
-      html += '<option value="' + mg + '">' + dmg + '</option>';
+  _esc: function(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
-    html += '</select></div>';
-    html += '<button class="btn btn-primary" style="align-self:flex-end;height:42px" onclick="ERPPermissions.loadPerms()">🔄 تحميل الصلاحيات</button></div>';
+  },
 
-    // Bulk Actions Bar
-    html += '<div id="bulk-actions-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:12px 16px;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-color);align-items:center">';
-    html += '<span style="font-weight:700;margin-right:8px">⚡ إجراءات سريعة:</span>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'HR (الموارد البشرية)\')">👥 منح كل الـ HR</button>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'Warehouse & Supply Chain (المخازن والمستودعات)\')">📦 منح المخازن</button>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'Production & Manufacturing (الإنتاج والتصنيع)\')">🏭 منح الإنتاج</button>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'Finance & Accounting (المالية والحسابات)\')">💰 منح المالية</button>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" onclick="ERPPermissions.grantModule(\'Sales & Customers (المبيعات والعملاء)\')">📈 منح المبيعات</button>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" style="background:#2563eb;color:#fff;border-color:#2563eb" onclick="ERPPermissions.selectAll(true)">☑️ تحديد كل الظاهر</button>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" style="color:var(--accent-danger);border-color:var(--accent-danger)" onclick="ERPPermissions.selectAll(false)">❌ إلغاء كل الظاهر</button>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" style="color:var(--accent-info);border-color:var(--accent-info)" onclick="ERPPermissions.copyFromTemplate()">📋 نسخ من قالب الدور</button>';
-    html += '<button class="btn btn-xs btn-outline bulk-btn" style="color:#8b5cf6;border-color:#8b5cf6" onclick="ERPPermissions.saveAsTemplate()">💾 حفظ كقالب معتمد</button>';
-    html += '</div>';
+  _norm: function(s) {
+    return String(s == null ? '' : s).toLowerCase()
+      .replace(/[ً-ٰٟـ]/g, '')
+      .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
+  },
 
-    html += '<div id="perm-grid"><div class="empty-state" style="padding:40px;text-align:center;color:var(--text-muted)">👆 يرجى اختيار مستخدم أو دور أعلاه لتحميل شبكة الصلاحيات وإدارتها.</div></div>';
+  _hue: function(str) {
+    var h = 0; str = String(str || '');
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 360;
+    return h;
+  },
+
+  _injectStyles: function() {
+    if (document.getElementById('pm-styles')) return;
+    var st = document.createElement('style');
+    st.id = 'pm-styles';
+    st.textContent = '.pm-wrap{--pm-card:var(--bg-card,#101827);--pm-card2:rgba(148,163,184,.07);--pm-bd:var(--border-color,rgba(148,163,184,.2));--pm-tx:var(--text-primary,#e8edf5);--pm-mu:var(--text-muted,#8b97ab);--pm-ac:#4f8cff;--pm-ac2:#8b5cf6;--pm-pop:#0c1322;display:flex;flex-direction:column;gap:18px;color:var(--pm-tx);padding-bottom:90px}[data-theme="light"] .pm-wrap{--pm-card:#fff;--pm-card2:#f1f5f9;--pm-bd:#e2e8f0;--pm-tx:#0f172a;--pm-mu:#64748b;--pm-pop:#fff}.pm-hero{position:relative;overflow:hidden;border-radius:22px;padding:26px 28px;border:1px solid var(--pm-bd);background:radial-gradient(900px 260px at 100% 0%,rgba(79,140,255,.28),transparent 60%),radial-gradient(700px 240px at 0% 100%,rgba(139,92,246,.24),transparent 60%),var(--pm-card)}.pm-hero h2{margin:0;font-size:1.65rem;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.pm-hero p{margin:8px 0 0;color:var(--pm-mu);max-width:880px;line-height:1.7}.pm-pill{font-size:.72rem;font-weight:700;padding:5px 12px;border-radius:999px;color:#9cc2ff;background:rgba(79,140,255,.14);border:1px solid rgba(79,140,255,.35)}.pm-stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}.pm-stat{min-width:130px;padding:12px 16px;border-radius:14px;background:var(--pm-card2);border:1px solid var(--pm-bd)}.pm-stat b{display:block;font-size:1.5rem;font-weight:800;line-height:1.1}.pm-stat span{font-size:.78rem;color:var(--pm-mu)}.pm-card{background:var(--pm-card);border:1px solid var(--pm-bd);border-radius:18px;padding:18px 20px;box-shadow:0 10px 30px -18px rgba(0,0,0,.55)}.pm-targets{display:grid;grid-template-columns:1.25fr auto 1fr .8fr;gap:16px;align-items:end}@media(max-width:1000px){.pm-targets{grid-template-columns:1fr}.pm-or{display:none}}.pm-lab{display:block;font-size:.78rem;font-weight:700;color:var(--pm-mu);margin-bottom:8px;letter-spacing:.02em}.pm-or{align-self:end;padding-bottom:14px;color:var(--pm-mu);font-weight:700;font-size:.8rem}.pm-combo{position:relative}.pm-field{display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border-radius:13px;border:1.5px solid var(--pm-bd);background:var(--pm-card2);transition:.15s}.pm-field:focus-within{border-color:var(--pm-ac);box-shadow:0 0 0 4px rgba(79,140,255,.18)}.pm-input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--pm-tx);font:inherit;font-size:.95rem}.pm-input::placeholder{color:var(--pm-mu)}.pm-field-ic{opacity:.75}.pm-caret{color:var(--pm-mu);font-size:.8rem}.pm-clear{border:0;background:rgba(148,163,184,.2);color:var(--pm-tx);width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:.7rem;line-height:1}.pm-clear[hidden]{display:none}.pm-list{position:absolute;z-index:80;inset-inline:0;top:calc(100% + 8px);max-height:360px;overflow:auto;background:var(--pm-pop);border:1px solid var(--pm-bd);border-radius:14px;box-shadow:0 24px 60px -12px rgba(0,0,0,.65);padding:6px}.pm-list[hidden]{display:none}.pm-item{display:flex;align-items:center;gap:12px;padding:9px 11px;border-radius:10px;cursor:pointer}.pm-item.is-active{background:rgba(79,140,255,.16)}.pm-item.is-sel{outline:1.5px solid rgba(79,140,255,.55)}.pm-item.is-off{opacity:.45;cursor:not-allowed}.pm-av{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-weight:800;font-size:.9rem;color:#fff;background:linear-gradient(135deg,var(--c1,#4f8cff),var(--c2,#8b5cf6))}.pm-it-t{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pm-it-s{font-size:.76rem;color:var(--pm-mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pm-it-b{margin-inline-start:auto;font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(148,163,184,.18);color:var(--pm-mu);white-space:nowrap}.pm-it-b.warn{background:rgba(245,158,11,.18);color:#f5b53b}.pm-list mark{background:rgba(250,204,21,.35);color:inherit;border-radius:3px;padding:0 1px}.pm-empty{padding:22px;text-align:center;color:var(--pm-mu)}.pm-foot{position:sticky;bottom:-6px;text-align:center;font-size:.72rem;color:var(--pm-mu);padding:6px;background:var(--pm-pop)}.pm-select{width:100%;height:48px;border-radius:13px;border:1.5px solid var(--pm-bd);background:var(--pm-card2);color:var(--pm-tx);padding:0 12px;font:inherit}.pm-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.pm-chips .pm-lab{margin:0 6px 0 0}.pm-btn{border:1.5px solid var(--pm-bd);background:var(--pm-card2);color:var(--pm-tx);padding:9px 15px;border-radius:11px;font:inherit;font-weight:700;font-size:.82rem;cursor:pointer;transition:.15s}.pm-btn:hover{transform:translateY(-1px);border-color:var(--pm-ac)}.pm-btn[disabled]{opacity:.4;cursor:not-allowed;transform:none}.pm-btn-primary{background:linear-gradient(135deg,#3b82f6,#6366f1);border-color:transparent;color:#fff;box-shadow:0 8px 22px -8px rgba(59,130,246,.7)}.pm-btn-success{background:linear-gradient(135deg,#10b981,#059669);border-color:transparent;color:#fff;box-shadow:0 8px 22px -8px rgba(16,185,129,.7);padding:11px 24px;font-size:.9rem}.pm-btn-danger{color:#f87171;border-color:rgba(248,113,113,.5)}.pm-btn-ghost{background:transparent}.pm-target{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.pm-target .pm-av{width:52px;height:52px;border-radius:16px;font-size:1.3rem}.pm-target h3{margin:0;font-size:1.15rem;font-weight:800}.pm-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}.pm-tag{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(79,140,255,.14);color:#9cc2ff}.pm-count{margin-inline-start:auto;text-align:center;padding:8px 18px;border-radius:14px;background:var(--pm-card2);border:1px solid var(--pm-bd)}.pm-count b{display:block;font-size:1.5rem;line-height:1.1;color:#4f8cff}.pm-count span{font-size:.75rem;color:var(--pm-mu)}.pm-addbar{display:grid;grid-template-columns:1fr auto minmax(220px,.5fr);gap:12px;align-items:center}@media(max-width:900px){.pm-addbar{grid-template-columns:1fr}}.pm-rowsearch{height:48px;border-radius:13px;border:1.5px solid var(--pm-bd);background:var(--pm-card2);color:var(--pm-tx);padding:0 14px;font:inherit;width:100%}.pm-rowsearch:focus,.pm-select:focus{outline:0;border-color:var(--pm-ac);box-shadow:0 0 0 4px rgba(79,140,255,.18)}.pm-alert{padding:12px 16px;border-radius:12px;font-weight:700;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);color:#f87171}.pm-tablewrap{overflow:auto;max-height:64vh;border-radius:16px;border:1px solid var(--pm-bd);background:var(--pm-card)}.pm-table{width:100%;border-collapse:separate;border-spacing:0;min-width:980px}.pm-table th{position:sticky;top:0;z-index:5;background:var(--pm-card2);backdrop-filter:blur(8px);padding:13px 10px;font-size:.78rem;font-weight:800;color:var(--pm-mu);text-align:center;white-space:nowrap;border-bottom:1px solid var(--pm-bd)}.pm-table th:first-child{text-align:start;padding-inline-start:18px;background:var(--pm-pop)}.pm-table td{padding:11px 10px;border-bottom:1px solid var(--pm-bd);text-align:center}.pm-table tr.perm-row:hover td{background:rgba(79,140,255,.06)}.pm-td-screen{text-align:start!important;padding-inline-start:18px!important}.pm-screen{display:flex;align-items:center;gap:12px}.pm-screen-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--pm-card2);border:1px solid var(--pm-bd)}.pm-screen-name{font-weight:700;font-size:.9rem}.pm-screen code{font-size:.72rem;color:var(--pm-mu)}.pm-mod{display:inline-block;font-size:.7rem;font-weight:700;padding:4px 11px;border-radius:999px;color:hsl(var(--h,215) 85% 72%);background:hsl(var(--h,215) 70% 50% / .14);border:1px solid hsl(var(--h,215) 70% 55% / .35);white-space:nowrap}.pm-table input.perm-cb,.pm-table input.perm-all{appearance:none;-webkit-appearance:none;width:24px;height:24px;border-radius:8px;border:2px solid rgba(148,163,184,.4);background:transparent;cursor:pointer;position:relative;transition:.15s;margin:0;--k:#4f8cff}.pm-table input[data-action=view]{--k:#3b82f6}.pm-table input[data-action=create]{--k:#10b981}.pm-table input[data-action=edit]{--k:#f59e0b}.pm-table input[data-action=delete]{--k:#ef4444}.pm-table input[data-action=approve]{--k:#14b8a6}.pm-table input[data-action=reject]{--k:#f43f5e}.pm-table input[data-action=export]{--k:#8b5cf6}.pm-table input[data-action=print]{--k:#64748b}.pm-table input.perm-all{--k:#22c55e;border-radius:50%}.pm-table input.perm-cb:checked,.pm-table input.perm-all:checked{background:var(--k);border-color:var(--k);box-shadow:0 4px 12px -3px var(--k)}.pm-table input:checked::after{content:"";position:absolute;left:7px;top:2px;width:6px;height:12px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}.pm-table input:disabled{opacity:.4;cursor:not-allowed}.pm-table input:not(:disabled):hover{transform:scale(1.12)}.pm-del{border:1px solid rgba(248,113,113,.45);background:transparent;color:#f87171;border-radius:10px;padding:5px 9px;cursor:pointer}.pm-del:hover{background:rgba(248,113,113,.14)}.pm-savebar{position:sticky;bottom:12px;z-index:30;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-radius:16px;border:1px solid var(--pm-bd);background:color-mix(in srgb,var(--pm-card) 88%,transparent);backdrop-filter:blur(14px);box-shadow:0 18px 40px -16px rgba(0,0,0,.7)}.pm-save-status{margin-inline-end:auto;font-weight:700;font-size:.88rem}.pm-hint{padding:56px 20px;text-align:center;color:var(--pm-mu)}.pm-hint .pm-big{font-size:2.6rem;margin-bottom:8px}';
+    document.head.appendChild(st);
+  },
+
+  /**
+   * Searchable dropdown. Keeps a hidden <input id=cfg.id> so existing code can keep reading .value
+   * cfg: { host, id, icon, placeholder, items:[{value,label,sub,badge,badgeWarn,avatar,icon,search,disabled}], onSelect }
+   */
+  _combo: function(cfg) {
+    var P = ERPPermissions;
+    var host = cfg.host;
+    if (!host) return null;
+    var st = { items: cfg.items || [], value: '', active: -1, shown: [], open: false };
+    host.innerHTML =
+      '<div class="pm-combo"><input type="hidden" id="' + cfg.id + '" value="">' +
+      '<div class="pm-field"><span class="pm-field-ic">' + (cfg.icon || '🔎') + '</span>' +
+      '<input type="text" class="pm-input" autocomplete="off" spellcheck="false" placeholder="' + P._esc(cfg.placeholder || '') + '">' +
+      '<button type="button" class="pm-clear" hidden title="مسح">✕</button><span class="pm-caret">▾</span></div>' +
+      '<div class="pm-list" hidden></div></div>';
+    var root = host.firstChild;
+    var hidden = root.querySelector('input[type=hidden]');
+    var input = root.querySelector('.pm-input');
+    var clearBtn = root.querySelector('.pm-clear');
+    var list = root.querySelector('.pm-list');
+
+    function byValue(v) { for (var i = 0; i < st.items.length; i++) if (String(st.items[i].value) === String(v)) return st.items[i]; return null; }
+    function hl(text, toks) {
+      var out = P._esc(text);
+      toks.forEach(function(t) {
+        if (!t) return;
+        var re = new RegExp('(' + P._esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+        out = out.replace(re, '<mark>$1</mark>');
+      });
+      return out;
+    }
+    function filter(q) {
+      var toks = P._norm(q).split(/\s+/).filter(Boolean);
+      st.shown = st.items.filter(function(it) {
+        if (!toks.length) return true;
+        var hay = P._norm([it.label, it.sub, it.search, it.value].join(' '));
+        return toks.every(function(t) { return hay.indexOf(t) !== -1; });
+      });
+      return q ? q.trim().split(/\s+/) : [];
+    }
+    function paint(q) {
+      var toks = filter(q || '');
+      if (!st.shown.length) {
+        list.innerHTML = '<div class="pm-empty">لا توجد نتائج مطابقة' + (q ? ' لـ "' + P._esc(q) + '"' : '') + '</div>';
+        return;
+      }
+      var h = '';
+      st.shown.forEach(function(it, i) {
+        var cls = 'pm-item' + (i === st.active ? ' is-active' : '') + (String(it.value) === String(st.value) ? ' is-sel' : '') + (it.disabled ? ' is-off' : '');
+        var hue = P._hue(it.label);
+        var av = it.avatar
+          ? '<span class="pm-av" style="--c1:hsl(' + hue + ' 75% 55%);--c2:hsl(' + ((hue + 50) % 360) + ' 75% 50%)">' + P._esc(String(it.label || '?').trim().charAt(0).toUpperCase()) + '</span>'
+          : '<span class="pm-av" style="--c1:hsl(' + hue + ' 70% 52%);--c2:hsl(' + ((hue + 40) % 360) + ' 70% 46%)">' + (it.icon || '🖥️') + '</span>';
+        h += '<div class="' + cls + '" data-i="' + i + '">' + av +
+          '<div style="min-width:0"><div class="pm-it-t">' + hl(it.label, toks) + '</div>' +
+          (it.sub ? '<div class="pm-it-s">' + hl(it.sub, toks) + '</div>' : '') + '</div>' +
+          (it.disabled ? '<span class="pm-it-b">مضافة ✓</span>' : (it.badge ? '<span class="pm-it-b' + (it.badgeWarn ? ' warn' : '') + '">' + P._esc(it.badge) + '</span>' : '')) + '</div>';
+      });
+      h += '<div class="pm-foot">' + st.shown.length + ' من ' + st.items.length + '</div>';
+      list.innerHTML = h;
+    }
+    function openList() {
+      if (st.open) return;
+      st.open = true; list.hidden = false;
+      var cur = byValue(st.value);
+      paint(cur && input.value === cur.label ? '' : input.value);
+      var sel = list.querySelector('.is-sel'); if (sel) sel.scrollIntoView({ block: 'nearest' });
+      setTimeout(function() { document.addEventListener('mousedown', outside, true); }, 0);
+    }
+    function closeList() {
+      st.open = false; list.hidden = true; st.active = -1;
+      document.removeEventListener('mousedown', outside, true);
+      var cur = byValue(st.value);
+      input.value = cur ? cur.label : '';
+    }
+    function outside(e) { if (!root.contains(e.target)) closeList(); }
+    function choose(i) {
+      var it = st.shown[i];
+      if (!it || it.disabled) return;
+      api.setValue(it.value);
+      closeList();
+      input.blur();
+    }
+    function move(d) {
+      if (!st.shown.length) return;
+      var n = st.active + d;
+      if (n < 0) n = st.shown.length - 1;
+      if (n >= st.shown.length) n = 0;
+      st.active = n;
+      paint(input.value === (byValue(st.value) || {}).label ? '' : input.value);
+      var a = list.querySelector('.is-active'); if (a) a.scrollIntoView({ block: 'nearest' });
+    }
+
+    input.addEventListener('focus', function() { openList(); input.select(); });
+    input.addEventListener('click', openList);
+    input.addEventListener('input', function() { st.open = true; list.hidden = false; st.active = 0; paint(input.value); });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); openList(); move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); openList(); move(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (st.active >= 0) choose(st.active); else if (st.shown.length === 1) choose(0); }
+      else if (e.key === 'Escape') { closeList(); input.blur(); }
+    });
+    list.addEventListener('mousedown', function(e) {
+      var el = e.target.closest ? e.target.closest('.pm-item') : null;
+      if (!el) return;
+      e.preventDefault();
+      choose(parseInt(el.getAttribute('data-i'), 10));
+    });
+    list.addEventListener('mousemove', function(e) {
+      var el = e.target.closest ? e.target.closest('.pm-item') : null;
+      if (!el) return;
+      var i = parseInt(el.getAttribute('data-i'), 10);
+      if (i !== st.active) { var old = list.querySelector('.is-active'); if (old) old.classList.remove('is-active'); el.classList.add('is-active'); st.active = i; }
+    });
+    clearBtn.addEventListener('click', function(e) { e.preventDefault(); api.clear(); });
+
+    var api = {
+      setItems: function(items) { st.items = items || []; if (st.open) paint(input.value); },
+      setValue: function(v, silent) {
+        var it = byValue(v);
+        if (!it) return;
+        st.value = String(it.value); hidden.value = st.value; input.value = it.label; clearBtn.hidden = false;
+        if (!silent && cfg.onSelect) cfg.onSelect(st.value);
+      },
+      clear: function(silent) {
+        st.value = ''; hidden.value = ''; input.value = ''; clearBtn.hidden = true;
+        if (st.open) paint('');
+        if (!silent && cfg.onSelect) cfg.onSelect('');
+      },
+      setDisabled: function(v, flag) { var it = byValue(v); if (it) { it.disabled = !!flag; if (st.open) paint(input.value); } },
+      getValue: function() { return st.value; }
+    };
+    ERPPermissions._combos[cfg.id] = api;
+    return api;
+  },
+
+  render: function() {
+    var P = ERPPermissions;
+    P._injectStyles();
+    var modOpts = '';
+    Object.keys(P.moduleGroups).forEach(function(mg) {
+      var dmg = typeof formatModuleLabel === 'function' ? formatModuleLabel(mg) : mg;
+      modOpts += '<option value="' + P._esc(mg) + '">' + P._esc(dmg) + '</option>';
+    });
+    var html = '<div class="pm-wrap">' +
+      '<div class="pm-hero"><h2>🔐 نظام الصلاحيات المركزي <span class="pm-pill">Single Source of Truth</span></h2>' +
+      '<p>تحكّم دقيق في صلاحيات العرض والإضافة والتعديل والحذف والاعتماد والرفض والتصدير والطباعة على مستوى كل شاشة ودور ومستخدم.</p>' +
+      '<div class="pm-stats"><div class="pm-stat"><b id="pm-stat-users">…</b><span>مستخدم</span></div>' +
+      '<div class="pm-stat"><b id="pm-stat-roles">…</b><span>دور وظيفي</span></div>' +
+      '<div class="pm-stat"><b>' + P.allScreens.length + '</b><span>شاشة</span></div>' +
+      '<div class="pm-stat"><b>' + Object.keys(P.moduleGroups).length + '</b><span>إدارة / موديول</span></div></div></div>' +
+
+      '<div class="pm-card"><div class="pm-targets">' +
+      '<div><label class="pm-lab">1 · اختر المستخدم (User Override)</label><div id="pm-user-host"></div></div>' +
+      '<div class="pm-or">أو</div>' +
+      '<div><label class="pm-lab">2 · اختر الدور (Role Default)</label><div id="pm-role-host"></div></div>' +
+      '<div><label class="pm-lab">3 · تصفية حسب الإدارة</label><select class="pm-select" id="perm-module-filter" onchange="ERPPermissions.filterByModule()"><option value="all">كل الإدارات والموديولات</option>' + modOpts + '</select></div>' +
+      '</div></div>' +
+
+      '<div class="pm-card" id="bulk-actions-bar"><div class="pm-chips"><span class="pm-lab">⚡ إجراءات سريعة</span>' +
+      '<button class="pm-btn" onclick="ERPPermissions.grantModule(\'HR (الموارد البشرية)\')">👥 منح كل الـ HR</button>' +
+      '<button class="pm-btn" onclick="ERPPermissions.grantModule(\'Warehouse & Supply Chain (المخازن والمستودعات)\')">📦 منح المخازن</button>' +
+      '<button class="pm-btn" onclick="ERPPermissions.grantModule(\'Production & Manufacturing (الإنتاج والتصنيع)\')">🏭 منح الإنتاج</button>' +
+      '<button class="pm-btn" onclick="ERPPermissions.grantModule(\'Finance & Accounting (المالية والحسابات)\')">💰 منح المالية</button>' +
+      '<button class="pm-btn" onclick="ERPPermissions.grantModule(\'Sales & Customers (المبيعات والعملاء)\')">📈 منح المبيعات</button>' +
+      '<span style="flex:1"></span>' +
+      '<button class="pm-btn" onclick="ERPPermissions.copyFromTemplate()">📋 نسخ من قالب الدور</button>' +
+      '<button class="pm-btn" onclick="ERPPermissions.saveAsTemplate()">💾 حفظ كقالب معتمد</button>' +
+      '</div></div>' +
+
+      '<div id="perm-grid"><div class="pm-card pm-hint"><div class="pm-big">👆</div>اختر مستخدماً أو دوراً من الأعلى وستظهر شبكة الصلاحيات هنا تلقائياً.</div></div></div>';
     document.getElementById('page-content').innerHTML = html;
+
+    P._combos = {};
+    P._combo({ host: document.getElementById('pm-user-host'), id: 'perm-user', icon: '👤', placeholder: 'ابحث بالاسم أو اسم المستخدم أو الدور…', items: [], onSelect: function() { P.onUserChange(); } });
+    P._combo({ host: document.getElementById('pm-role-host'), id: 'perm-role', icon: '🛡️', placeholder: 'ابحث عن دور…', items: [], onSelect: function() { P.onRoleChange(); } });
 
     // Load users & distinct roles
     sbClient.from('users').select('id,full_name,username,role,department,status').order('full_name').range(0, 4999).then(function(r) {
       if (r && r.error) console.error('[Permissions] users load failed:', r.error);
-      var userSel = document.getElementById('perm-user');
-      var roleSel = document.getElementById('perm-role');
-      ERPPermissions.allUsers = r.data || [];
-      
-      // Populate users
-      if (userSel) {
-        ERPPermissions.allUsers.forEach(function(u) {
-          var opt = document.createElement('option');
-          opt.value = u.id;
-          opt.setAttribute('data-role', u.role || '');
-          opt.textContent = (u.full_name || u.username || ('#' + u.id)) + (u.status && u.status !== 'active' ? ' [' + u.status + ']' : '') + ' — (' + (u.role || 'no-role') + ' / ' + (u.department || 'General') + ')';
-          userSel.appendChild(opt);
-        });
-      }
+      ERPPermissions.allUsers = (r && r.data) || [];
 
-      // Collect all distinct roles
       var standardRoles = [
         'owner', 'hr manager', 'hr', 'manager', 'department head', 'hall manager',
-        'procurement manager', 'procurement specialist', 'warehouse manager',
         'planning manager', 'quality manager', 'qc inspector', 'maintenance manager',
         'technician', 'spare parts inspector', 'engineer', 'engineering manager',
         'sales coordinator', 'sales manager', 'logistics manager', 'driver',
         'nursing management', 'nurse', 'doctor', 'lawyer', 'employee'
       ];
-      
-      var dynamicRoles = [];
+      var dynamicRoles = [], roleCount = {};
       ERPPermissions.allUsers.forEach(function(u) {
         if (u.role) {
           var rClean = u.role.trim().toLowerCase();
-          if (rClean && standardRoles.indexOf(rClean) === -1 && dynamicRoles.indexOf(rClean) === -1) {
-            dynamicRoles.push(rClean);
-          }
+          roleCount[rClean] = (roleCount[rClean] || 0) + 1;
+          if (rClean && standardRoles.indexOf(rClean) === -1 && dynamicRoles.indexOf(rClean) === -1) dynamicRoles.push(rClean);
         }
       });
-
       var combinedRoles = standardRoles.concat(dynamicRoles);
       ERPPermissions.allRoles = combinedRoles;
 
-      if (roleSel) {
-        roleSel.innerHTML = '<option value="">— اختر دور —</option>';
-        combinedRoles.forEach(function(roleName) {
-          var rOpt = document.createElement('option');
-          rOpt.value = roleName;
-          rOpt.textContent = roleName;
-          roleSel.appendChild(rOpt);
-        });
-      }
-    });
+      var uc = ERPPermissions._combos['perm-user'], rc = ERPPermissions._combos['perm-role'];
+      if (uc) uc.setItems(ERPPermissions.allUsers.map(function(u) {
+        var inactive = u.status && u.status !== 'active';
+        return {
+          value: u.id, avatar: true,
+          label: u.full_name || u.username || ('#' + u.id),
+          sub: [u.username, u.role, u.department].filter(Boolean).join(' · '),
+          badge: inactive ? u.status : (u.role || ''), badgeWarn: !!inactive,
+          search: [u.username, u.role, u.department, u.status].join(' ')
+        };
+      }));
+      if (rc) rc.setItems(combinedRoles.map(function(rn) {
+        return { value: rn, icon: '🛡️', label: rn, sub: (roleCount[rn] || 0) + ' مستخدم', search: rn };
+      }));
+      var su = document.getElementById('pm-stat-users'); if (su) su.textContent = ERPPermissions.allUsers.length;
+      var sr = document.getElementById('pm-stat-roles'); if (sr) sr.textContent = combinedRoles.length;
+    }).catch(function(err) { console.error('[Permissions] init failed:', err); });
   },
 
   onUserChange: function() {
-    var u = document.getElementById('perm-user'), r = document.getElementById('perm-role');
-    if (u && u.value && r) r.value = '';
+    var u = document.getElementById('perm-user');
+    if (u && u.value && ERPPermissions._combos['perm-role']) ERPPermissions._combos['perm-role'].clear(true);
     ERPPermissions.loadPerms();
   },
 
   onRoleChange: function() {
-    var u = document.getElementById('perm-user'), r = document.getElementById('perm-role');
-    if (r && r.value && u) u.value = '';
+    var r = document.getElementById('perm-role');
+    if (r && r.value && ERPPermissions._combos['perm-user']) ERPPermissions._combos['perm-user'].clear(true);
     ERPPermissions.loadPerms();
   },
 
@@ -488,75 +645,60 @@ var ERPPermissions = {
       }
 
       var html = '';
+      var _permLang = (typeof I18nEngine !== 'undefined' && I18nEngine.currentLang) || localStorage.getItem('lang') || 'ar';
 
       if (isRestricted) {
-        html += '<div style="margin-bottom:16px;background:rgba(239,68,68,0.15);border:1px solid #ef4444;color:#ef4444;padding:12px 16px;border-radius:10px;font-weight:bold;direction:rtl;text-align:right;display:flex;align-items:center;gap:10px;">';
-        html += '<span style="font-size:20px;">🔒</span> <span>تنبيه أمني: لا يمكن تعديل أو سحب صلاحيات المالك (Owner) إلا من قبل المالك نفسه.</span>';
-        html += '</div>';
+        html += '<div class="pm-alert" style="margin-bottom:14px">🔒 تنبيه أمني: لا يمكن تعديل أو سحب صلاحيات المالك (Owner) إلا من قبل المالك نفسه.</div>';
       }
 
-      // Add Screen Toolbar
-      html += '<div style="margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg-card);padding:14px;border-radius:10px;border:1px solid var(--border-color);">';
-      html += '<div style="flex:1;min-width:280px"><select id="add-screen-select" class="form-input" style="width:100%"><option value="">➕ اختر شاشة لإضافتها لهذا الحساب...</option>';
-      availableScreens.forEach(function(s) {
-        var dl = typeof formatScreenLabel === 'function' ? formatScreenLabel(s.label) : s.label;
-        html += '<option value="'+s.id+'">'+dl+' ('+s.id+')</option>';
-      });
-      html += '</select></div>';
-      html += '<button type="button" class="btn btn-primary" onclick="ERPPermissions.addScreenRow()" style="background:#2563eb;color:#ffffff;font-weight:bold;cursor:pointer;padding:9px 20px;border-radius:8px;border:none;box-shadow:0 2px 8px rgba(37,99,235,0.4);" '+(isRestricted ? 'disabled' : '')+'>➕ إضافة الشاشة</button>';
-      html += '<div style="margin-right:auto;font-size:0.85rem;color:var(--text-muted);display:flex;align-items:center;gap:6px">' +
-        '<span>الشاشات المخصصة حالياً:</span> <strong id="screen-count" style="color:var(--accent-primary)">' + userScreens.length + '</strong>' +
-        '</div>';
-      html += '</div>';
+      // Target banner
+      var _tu = userId && ERPPermissions.allUsers ? ERPPermissions.allUsers.find(function(x){ return String(x.id) === String(userId); }) : null;
+      var _tName = _tu ? (_tu.full_name || _tu.username || ('#' + _tu.id)) : ('دور: ' + role);
+      var _tHue = ERPPermissions._hue(_tName);
+      html += '<div class="pm-card pm-target" style="margin-bottom:14px">' +
+        '<span class="pm-av" style="--c1:hsl(' + _tHue + ' 75% 55%);--c2:hsl(' + ((_tHue + 50) % 360) + ' 75% 50%)">' + (_tu ? ERPPermissions._esc(String(_tName).trim().charAt(0).toUpperCase()) : '🛡️') + '</span>' +
+        '<div><h3>' + ERPPermissions._esc(_tName) + '</h3><div class="pm-tags">' +
+        (_tu ? ['role','department','username'].map(function(k){ return _tu[k] ? '<span class="pm-tag">' + ERPPermissions._esc(_tu[k]) + '</span>' : ''; }).join('') : '<span class="pm-tag">صلاحيات افتراضية للدور</span>') +
+        '</div></div>' +
+        '<div class="pm-count"><b id="screen-count">' + userScreens.length + '</b><span>شاشة مخصصة</span></div></div>';
 
-      // Permissions Grid Table
-      html += '<div style="overflow-x:auto;background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 10px rgba(0,0,0,0.02)">';
-      html += '<table class="data-table" style="margin:0"><thead><tr style="background:var(--bg-tertiary)">';
-      html += '<th style="min-width:220px">الشاشة (Screen)</th>';
-      html += '<th style="min-width:120px">الإدارة</th>';
-      
-      var _permLang = (typeof I18nEngine !== 'undefined' && I18nEngine.currentLang) || localStorage.getItem('lang') || 'ar';
+      // Add-screen toolbar
+      html += '<div class="pm-card" style="margin-bottom:14px"><div class="pm-addbar">' +
+        '<div id="pm-add-host"></div>' +
+        '<button type="button" class="pm-btn pm-btn-primary" onclick="ERPPermissions.addScreenRow()" ' + (isRestricted ? 'disabled' : '') + '>＋ إضافة الشاشة</button>' +
+        '<input type="search" id="pm-row-search" class="pm-rowsearch" placeholder="🔎 بحث داخل الشاشات المضافة…" oninput="ERPPermissions.filterByModule()">' +
+        '</div></div>';
+
+      // Permissions grid
       var actionLabels = _permLang === 'ar' ? {
-        'view': '👁️ عرض',
-        'create': '➕ إضافة',
-        'edit': '✏️ تعديل',
-        'delete': '🗑️ حذف',
-        'approve': '✅ اعتماد',
-        'reject': '❌ رفض',
-        'export': '📤 تصدير',
-        'print': '🖨️ طباعة'
+        'view': '👁️ عرض', 'create': '➕ إضافة', 'edit': '✏️ تعديل', 'delete': '🗑️ حذف',
+        'approve': '✅ اعتماد', 'reject': '❌ رفض', 'export': '📤 تصدير', 'print': '🖨️ طباعة'
       } : {
-        'view': '👁️ View',
-        'create': '➕ Create',
-        'edit': '✏️ Edit',
-        'delete': '🗑️ Delete',
-        'approve': '✅ Approve',
-        'reject': '❌ Reject',
-        'export': '📤 Export',
-        'print': '🖨️ Print'
+        'view': '👁️ View', 'create': '➕ Create', 'edit': '✏️ Edit', 'delete': '🗑️ Delete',
+        'approve': '✅ Approve', 'reject': '❌ Reject', 'export': '📤 Export', 'print': '🖨️ Print'
       };
-
+      html += '<div class="pm-tablewrap"><table class="pm-table"><thead><tr>';
+      html += '<th>الشاشة</th><th>الإدارة</th>';
       ERPPermissions.actions.forEach(function(a) {
-        html += '<th style="text-align:center;font-size:0.8rem">' + (actionLabels[a] || a) + '</th>';
+        html += '<th>' + (actionLabels[a] || a) + '</th>';
       });
-      html += '<th style="text-align:center">تحديد الكل</th>';
-      html += '<th style="text-align:center">حذف</th>';
-      html += '</tr></thead><tbody id="perms-tbody">';
-
+      html += '<th>الكل</th><th>حذف</th></tr></thead><tbody id="perms-tbody">';
       userScreens.forEach(function(s) {
         html += ERPPermissions._renderRow(s, existing, isRestricted);
       });
       html += '</tbody></table></div>';
 
-      // Save Actions Footer
-      html += '<div style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg-card);padding:16px;border-radius:12px;border:1px solid var(--border-color);">';
-      html += '<button type="button" class="btn btn-primary" onclick="ERPPermissions.saveAll()" style="background:#10b981 !important;color:#ffffff !important;font-weight:bold !important;cursor:pointer !important;padding:12px 28px !important;border-radius:8px !important;border:none !important;box-shadow:0 4px 12px rgba(16,185,129,0.3) !important;" '+(isRestricted ? 'disabled' : '')+'>💾 حفظ الصلاحيات (Save Permissions)</button>';
-      html += '<button type="button" class="btn btn-outline" onclick="ERPPermissions.selectAll(true)" style="padding:10px 18px !important;border-radius:8px !important;" '+(isRestricted ? 'disabled' : '')+'>تحديد كل الصلاحيات</button>';
-      html += '<button type="button" class="btn btn-outline" onclick="ERPPermissions.selectAll(false)" style="color:var(--accent-danger);border-color:var(--accent-danger);padding:10px 18px !important;border-radius:8px !important;" '+(isRestricted ? 'disabled' : '')+'>إلغاء كل الصلاحيات</button>';
-      html += '<div id="save-status" style="margin-right:auto;font-weight:600;font-size:0.9rem"></div>';
-      html += '</div>';
+      // Sticky save bar
+      html += '<div class="pm-savebar">' +
+        '<div id="save-status" class="pm-save-status"></div>' +
+        '<button type="button" class="pm-btn" onclick="ERPPermissions.selectAll(true)" ' + (isRestricted ? 'disabled' : '') + '>☑️ تحديد الكل</button>' +
+        '<button type="button" class="pm-btn pm-btn-danger" onclick="ERPPermissions.selectAll(false)" ' + (isRestricted ? 'disabled' : '') + '>✖ إلغاء الكل</button>' +
+        '<button type="button" class="pm-btn pm-btn-success" onclick="ERPPermissions.saveAll()" ' + (isRestricted ? 'disabled' : '') + '>💾 حفظ الصلاحيات</button>' +
+        '</div>';
 
       el.innerHTML = html;
+      ERPPermissions._initAddCombo(userScreens);
+      ERPPermissions.filterByModule();
     }).catch(function(err) {
       console.error('[Permissions] loadPerms failed:', err);
       el.innerHTML = '<div class="empty-state" style="padding:40px;text-align:center;color:#ef4444">تعذر تحميل الصلاحيات: ' + (err && err.message ? err.message : err) + '</div>';
@@ -572,36 +714,78 @@ var ERPPermissions = {
     return 'Other (أخرى)';
   },
 
+  _screenIcon: function(id) {
+    var mod = ERPPermissions._getModuleForScreen(id);
+    var m = String(mod).toLowerCase();
+    if (m.indexOf('hr') !== -1 || m.indexOf('self') !== -1) return '👥';
+    if (m.indexOf('financ') !== -1) return '💰';
+    if (m.indexOf('sales') !== -1) return '📈';
+    if (m.indexOf('warehouse') !== -1 || m.indexOf('supply') !== -1) return '📦';
+    if (m.indexOf('production') !== -1 || m.indexOf('manufact') !== -1) return '🏭';
+    if (m.indexOf('maint') !== -1 || m.indexOf('equip') !== -1) return '🛠️';
+    if (m.indexOf('ai') !== -1) return '🤖';
+    if (m.indexOf('clinic') !== -1 || m.indexOf('medical') !== -1) return '🩺';
+    return '🖥️';
+  },
+
   _renderRow: function(s, existing, isRestricted) {
-    var mod = ERPPermissions._getModuleForScreen(s.id);
+    var P = ERPPermissions;
+    var mod = P._getModuleForScreen(s.id);
     var displayLabel = typeof formatScreenLabel === 'function' ? formatScreenLabel(s.label) : s.label;
     var displayMod = typeof formatModuleLabel === 'function' ? formatModuleLabel(mod) : mod.split('(')[0].trim();
-    var html = '<tr id="row-'+s.id+'" data-module="'+mod+'" class="perm-row"><td><strong>'+displayLabel+'</strong><br><code class="text-muted" style="font-size:0.75rem">'+s.id+'</code></td>';
-    html += '<td><span class="badge badge-neutral" style="font-size:0.7rem">'+displayMod+'</span></td>';
-
-    ERPPermissions.actions.forEach(function(a) {
+    var dis = isRestricted ? 'disabled' : '';
+    var html = '<tr id="row-' + s.id + '" data-module="' + P._esc(mod) + '" data-search="' + P._esc(P._norm(displayLabel + ' ' + s.label + ' ' + s.id + ' ' + displayMod)) + '" class="perm-row">' +
+      '<td class="pm-td-screen"><div class="pm-screen"><span class="pm-screen-ic">' + P._screenIcon(s.id) + '</span><div><div class="pm-screen-name">' + P._esc(displayLabel) + '</div><code>' + P._esc(s.id) + '</code></div></div></td>' +
+      '<td><span class="pm-mod" style="--h:' + P._hue(mod) + '">' + P._esc(displayMod) + '</span></td>';
+    var allOn = true;
+    P.actions.forEach(function(a) {
       var item = existing && existing[s.id + '_' + a];
-      var isChecked = item && item.granted;
-      var checkedAttr = isChecked ? 'checked' : '';
-      var disabledAttr = isRestricted ? 'disabled' : '';
-      html += '<td style="text-align:center"><input type="checkbox" class="perm-cb" data-screen="'+s.id+'" data-action="'+a+'" '+checkedAttr+' '+disabledAttr+' style="width:18px;height:18px;accent-color:#2563eb;cursor:pointer"></td>';
+      var on = !!(item && item.granted);
+      if (!on) allOn = false;
+      html += '<td><input type="checkbox" class="perm-cb" data-screen="' + s.id + '" data-action="' + a + '" ' + (on ? 'checked' : '') + ' ' + dis + ' onchange="ERPPermissions.syncRow(this)"></td>';
     });
-
-    html += '<td style="text-align:center"><input type="checkbox" class="perm-all" data-screen="'+s.id+'" onchange="ERPPermissions.toggleRow(this)" style="width:18px;height:18px;accent-color:#10b981;cursor:pointer" '+(isRestricted ? 'disabled' : '')+'></td>';
-    html += '<td style="text-align:center"><button class="btn btn-xs btn-outline" style="color:var(--accent-danger);border-color:var(--accent-danger);cursor:pointer;padding:4px 8px" onclick="ERPPermissions.removeScreenRow(\''+s.id+'\', \''+s.label.replace(/'/g, "\\'")+'\')" '+(isRestricted ? 'disabled' : '')+' title="حذف صلاحية هذه الشاشة">🗑️</button></td></tr>';
+    html += '<td><input type="checkbox" class="perm-all" data-screen="' + s.id + '" ' + (allOn ? 'checked' : '') + ' onchange="ERPPermissions.toggleRow(this)" ' + dis + '></td>';
+    html += '<td><button type="button" class="pm-del" onclick="ERPPermissions.removeScreenRow(\'' + s.id + '\', \'' + String(s.label).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\')" ' + dis + ' title="حذف صلاحية هذه الشاشة">🗑️</button></td></tr>';
     return html;
+  },
+
+  syncRow: function(cb) {
+    var screen = cb.getAttribute('data-screen');
+    var all = document.querySelector('.perm-all[data-screen="' + screen + '"]');
+    if (!all) return;
+    var cbs = document.querySelectorAll('.perm-cb[data-screen="' + screen + '"]');
+    var on = 0; cbs.forEach(function(c) { if (c.checked) on++; });
+    all.checked = on === cbs.length;
+  },
+
+  _initAddCombo: function(userScreens) {
+    var host = document.getElementById('pm-add-host');
+    if (!host) return;
+    var P = ERPPermissions;
+    var assigned = {};
+    (userScreens || []).forEach(function(s) { assigned[s.id] = true; });
+    P._combo({
+      host: host, id: 'add-screen-select', icon: '🖥️',
+      placeholder: 'ابحث في كل الشاشات (' + P.allScreens.length + ') بالاسم عربي أو إنجليزي أو الـ ID…',
+      items: P.allScreens.map(function(s) {
+        var lab = typeof formatScreenLabel === 'function' ? formatScreenLabel(s.label) : s.label;
+        var mod = P._getModuleForScreen(s.id);
+        var dm = typeof formatModuleLabel === 'function' ? formatModuleLabel(mod) : mod;
+        return { value: s.id, icon: P._screenIcon(s.id), label: lab, sub: s.id + ' · ' + dm, search: s.label + ' ' + mod, disabled: !!assigned[s.id] };
+      })
+    });
   },
 
   filterByModule: function() {
     var sel = document.getElementById('perm-module-filter');
     var filter = sel ? sel.value : 'all';
-    var rows = document.querySelectorAll('.perm-row');
-    rows.forEach(function(r) {
-      if (filter === 'all' || r.getAttribute('data-module') === filter) {
-        r.style.display = '';
-      } else {
-        r.style.display = 'none';
-      }
+    var qEl = document.getElementById('pm-row-search');
+    var toks = qEl ? ERPPermissions._norm(qEl.value).split(/\s+/).filter(Boolean) : [];
+    document.querySelectorAll('.perm-row').forEach(function(r) {
+      var okMod = filter === 'all' || r.getAttribute('data-module') === filter;
+      var hay = r.getAttribute('data-search') || '';
+      var okTxt = toks.every(function(t) { return hay.indexOf(t) !== -1; });
+      r.style.display = (okMod && okTxt) ? '' : 'none';
     });
   },
 
@@ -658,10 +842,11 @@ var ERPPermissions = {
       setTimeout(function(){ newTr.style.background = ''; }, 2500);
     }
 
-    // Remove from select dropdown
-    var option = select.querySelector('option[value="'+screenId+'"]');
-    if (option) option.remove();
-    select.value = "";
+    // Mark as added in the searchable picker and clear the field
+    var _c = ERPPermissions._combos['add-screen-select'];
+    if (_c) { _c.setDisabled(screenId, true); _c.clear(true); }
+    var _filterEl = document.getElementById('pm-row-search'); if (_filterEl) _filterEl.value = '';
+    ERPPermissions.filterByModule();
 
     // Update counter
     var countEl = document.getElementById('screen-count');
@@ -710,14 +895,9 @@ var ERPPermissions = {
       var row = document.getElementById('row-' + id);
       if (row) row.remove();
 
-      // Return option to add-screen dropdown
-      var select = document.getElementById('add-screen-select');
-      if (select) {
-        var opt = document.createElement('option');
-        opt.value = id;
-        opt.textContent = label + ' (' + id + ')';
-        select.appendChild(opt);
-      }
+      // Make the screen selectable again in the picker
+      var _c2 = ERPPermissions._combos['add-screen-select'];
+      if (_c2) _c2.setDisabled(id, false);
 
       // Update counter
       var countEl = document.getElementById('screen-count');
