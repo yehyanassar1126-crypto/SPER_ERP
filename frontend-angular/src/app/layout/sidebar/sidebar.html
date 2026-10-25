@@ -1,0 +1,33 @@
+<aside class="sidebar">
+  <a class="brand" routerLink="/dashboard">
+    <span class="brand-logo">S</span>
+    <span class="brand-text">
+      <strong>SPER ERP</strong>
+      <small>Enterprise Platform</small>
+    </span>
+  </a>
+
+  <div class="workspace-label">WORKSPACE</div>
+
+  <nav class="menu">
+    @for (item of menuItems; track item.route) {
+      <a
+        class="menu-item"
+        [routerLink]="item.route"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <span class="menu-icon">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="status-dot"></div>
+    <div>
+      <strong>System Status</strong>
+      <small>Interface preview</small>
+    </div>
+  </div>
+</aside>

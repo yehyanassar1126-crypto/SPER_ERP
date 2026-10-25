@@ -1,0 +1,92 @@
+<section class="dashboard">
+  <div class="welcome">
+    <div>
+      <p class="eyebrow">ENTERPRISE OVERVIEW</p>
+      <h1>Dashboard</h1>
+      <p class="subtitle">
+        Welcome to SPER ERP. Your business overview starts here.
+      </p>
+    </div>
+
+    <span class="environment-tag">UI Preview</span>
+  </div>
+
+  <div class="stats-grid">
+    @for (stat of stats; track stat.label) {
+      <article class="stat-card">
+        <div class="stat-top">
+          <span class="stat-label">{{ stat.label }}</span>
+          <span class="stat-icon">{{ stat.icon }}</span>
+        </div>
+
+        <div class="stat-value">{{ stat.value }}</div>
+        <p class="stat-note">{{ stat.note }}</p>
+      </article>
+    }
+  </div>
+
+  <div class="content-grid">
+    <article class="panel overview-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>Business Overview</h2>
+          <p>Key operational areas</p>
+        </div>
+        <span class="preview-label">Preview</span>
+      </div>
+
+      <div class="overview-item">
+        <span class="overview-symbol">HR</span>
+        <div>
+          <strong>Human Resources</strong>
+          <p>Employees, attendance and leave management</p>
+        </div>
+      </div>
+
+      <div class="overview-item">
+        <span class="overview-symbol">FN</span>
+        <div>
+          <strong>Finance</strong>
+          <p>Payroll and financial operations</p>
+        </div>
+      </div>
+
+      <div class="overview-item">
+        <span class="overview-symbol">OP</span>
+        <div>
+          <strong>Operations</strong>
+          <p>Inventory, manufacturing and maintenance</p>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel system-panel">
+      <div class="panel-heading">
+        <div>
+          <h2>System Integration</h2>
+          <p>Current development status</p>
+        </div>
+      </div>
+
+      <div class="integration-row">
+        <span>Angular Frontend</span>
+        <span class="status-pill">Ready for UI work</span>
+      </div>
+
+      <div class="integration-row">
+        <span>Supabase</span>
+        <span class="status-pill pending">Not connected yet</span>
+      </div>
+
+      <div class="integration-row">
+        <span>IoT Attendance</span>
+        <span class="status-pill pending">Planned</span>
+      </div>
+
+      <div class="integration-row">
+        <span>AI Services</span>
+        <span class="status-pill pending">Planned</span>
+      </div>
+    </article>
+  </div>
+</section>

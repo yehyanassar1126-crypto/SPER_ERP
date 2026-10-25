@@ -1,0 +1,125 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.sidebar {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  height: 100%;
+  padding: 24px 16px;
+  background: #111827;
+  color: #cbd5e1;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 32px;
+  color: white;
+  text-decoration: none;
+}
+
+.brand-logo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #6366f1;
+  color: white;
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: 17px;
+  }
+
+  small {
+    color: #94a3b8;
+    font-size: 11px;
+  }
+}
+
+.workspace-label {
+  padding: 0 12px 12px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 9px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 13px;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: #1f2937;
+    color: white;
+  }
+
+  &.active {
+    background: #312e81;
+    color: white;
+  }
+}
+
+.menu-icon {
+  width: 22px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding: 14px 10px;
+  border-top: 1px solid #273244;
+
+  strong,
+  small {
+    display: block;
+  }
+
+  strong {
+    color: white;
+    font-size: 12px;
+  }
+
+  small {
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 10px;
+  }
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
