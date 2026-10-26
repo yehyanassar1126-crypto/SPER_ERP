@@ -59,6 +59,9 @@ export class AttendanceComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly qrCurrentDate = signal<string>('');
   readonly currentQrPayload = signal<string>('');
   readonly qrMatrix = signal<boolean[][]>([]);
+  readonly hasRealQrRendered = signal<boolean>(false);
+  readonly manualQrInput = signal<string>('');
+  readonly showManualTester = signal<boolean>(false);
 
   // Mobile QR Scanner & Geo-Location Verification State
   readonly scannerEmployeeName = signal<string>('بدر صلاح');
@@ -159,6 +162,9 @@ export class AttendanceComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.loadHtml5QrcodeScript();
+    setTimeout(() => {
+      this.renderRealQrCanvas(this.currentQrPayload());
+    }, 300);
   }
 
   ngOnDestroy(): void {
@@ -169,7 +175,11 @@ export class AttendanceComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setTab(tab: TabType): void {
     this.activeTab.set(tab);
-    if (tab !== 'qr_station') {
+    if (tab === 'qr_station') {
+      setTimeout(() => {
+        this.renderRealQrCanvas(this.currentQrPayload());
+      }, 100);
+    } else {
       this.stopCameraScanner();
     }
   }
@@ -193,6 +203,47 @@ export class AttendanceComponent implements OnInit, OnDestroy, AfterViewInit {
     const raw = JSON.stringify(payload);
     this.currentQrPayload.set(raw);
     this.qrMatrix.set(this.generatePseudoQrMatrix(raw));
+    this.renderRealQrCanvas(raw);
+  }
+
+  renderRealQrCanvas(raw: string): void {
+    if (typeof window === 'undefined') return;
+    const QRCodeClass = (window as any).QRCode;
+    const container = document.getElementById('real-station-qr');
+    if (QRCodeClass && container) {
+      container.innerHTML = '';
+      try {
+        new QRCodeClass(container, {
+          text: raw,
+          width: 200,
+          height: 200,
+          colorDark: '#0f172a',
+          colorLight: '#ffffff',
+          correctLevel: QRCodeClass.CorrectLevel.H
+        });
+        this.hasRealQrRendered.set(true);
+      } catch {
+        this.hasRealQrRendered.set(false);
+      }
+    }
+  }
+
+  testExpiredQrCode(): void {
+    const expiredPayload = JSON.stringify({
+      hr_id: 'c9885105-cafb-4c0c-8de9-0b5e2d85b3bb',
+      timestamp: Date.now() - 55000, // 55 seconds old (exceeds 40s max age)
+      type: 'hr_qr'
+    });
+    this.processDecodedQr(expiredPayload);
+  }
+
+  submitManualQr(): void {
+    const text = this.manualQrInput().trim();
+    if (!text) {
+      this.showToast('Please enter QR code JSON payload', 'error');
+      return;
+    }
+    this.processDecodedQr(text);
   }
 
   private generatePseudoQrMatrix(seed: string): boolean[][] {

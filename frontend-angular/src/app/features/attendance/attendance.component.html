@@ -431,7 +431,8 @@
 
         <!-- Rendered Real Dynamic QR Code Matrix -->
         <div class="qr-code-frame">
-          <svg class="qr-matrix-svg" viewBox="0 0 210 210">
+          <div id="real-station-qr" class="real-qr-box" [style.display]="hasRealQrRendered() ? 'block' : 'none'"></div>
+          <svg class="qr-matrix-svg" viewBox="0 0 210 210" [style.display]="hasRealQrRendered() ? 'none' : 'block'">
             <rect width="210" height="210" fill="#ffffff" rx="10" />
             @for (row of qrMatrix(); track $index; let y = $index) {
               @for (cell of row; track $index; let x = $index) {
@@ -575,6 +576,24 @@
               </button>
             }
           </div>
+
+          <!-- Automated Verification Tests Bar (Test 3, Test 4, Test 7) -->
+          <div class="test-controls-bar">
+            <button type="button" class="btn-test-action" (click)="testExpiredQrCode()" title="Test 4: Verify rejection of QR older than 40s">
+              ⏱ Test 4: Expired QR (&gt;40s Rejection)
+            </button>
+            <button type="button" class="btn-test-action secondary" (click)="showManualTester.set(!showManualTester())">
+              🧪 Test Custom QR Payload
+            </button>
+          </div>
+
+          @if (showManualTester()) {
+            <div class="manual-tester-box">
+              <label>Enter Custom QR JSON Payload (لتجربة أي كود يدوي أو منتهي):</label>
+              <textarea [ngModel]="manualQrInput()" (ngModelChange)="manualQrInput.set($event)" placeholder='{"hr_id":"...","timestamp":1793000000000,"type":"hr_qr"}' rows="2"></textarea>
+              <button type="button" class="btn btn-sm btn-secondary" (click)="submitManualQr()">Verify Custom QR Payload</button>
+            </div>
+          }
 
           <!-- Feedback Status Banner -->
           @if (scannerResult()) {
