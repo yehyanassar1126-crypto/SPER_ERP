@@ -510,7 +510,11 @@ export class AttendanceService {
     const nowIso = new Date().toISOString();
 
     const records = [...this.attendanceList()];
-    const index = records.findIndex(r => r.employee_name === employeeName && r.date === today);
+    // Find active check-in record without check-out first, or today's record
+    let index = records.findIndex(r => r.employee_name === employeeName && r.check_in && !r.check_out);
+    if (index === -1) {
+      index = records.findIndex(r => r.employee_name === employeeName && r.date === today);
+    }
 
     if (index === -1 || !records[index].check_in) {
       return { success: false, message: `❌ لم يتم العثور على تسجيل حضور فعال للموظف ${employeeName} اليوم.` };

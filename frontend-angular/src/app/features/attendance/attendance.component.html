@@ -468,11 +468,15 @@
           <div class="form-row">
             <div class="form-field">
               <label>Employee <span class="tag-hint">الموظف</span></label>
-              <select [ngModel]="scannerEmployeeName()" (ngModelChange)="scannerEmployeeName.set($event)">
+              <select [ngModel]="scannerEmployeeName()" (ngModelChange)="setEmployeeAndAutoAction($event)">
                 @for (emp of service.usersList(); track emp.id) {
                   <option [value]="emp.full_name">{{ emp.full_name }} ({{ emp.department }} - {{ emp.employee_id }})</option>
                 }
               </select>
+              <div class="employee-live-badge" [ngClass]="selectedEmployeeStatus().status">
+                <span class="badge-dot"></span>
+                <span>{{ selectedEmployeeStatus().label }}</span>
+              </div>
             </div>
 
             <div class="form-field">

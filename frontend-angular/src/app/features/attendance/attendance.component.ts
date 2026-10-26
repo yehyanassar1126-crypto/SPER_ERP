@@ -74,6 +74,44 @@ export class AttendanceComponent implements OnInit, OnDestroy, AfterViewInit {
   private qrInterval: any;
   private html5Scanner: any = null;
 
+  // Real-time status for the employee selected in scanner
+  readonly selectedEmployeeStatus = computed(() => {
+    const name = this.scannerEmployeeName();
+    const list = this.service.attendanceList();
+    const active = list.find(r => r.employee_name === name && r.check_in && !r.check_out);
+    if (active) {
+      return {
+        status: 'checked_in',
+        checkInTime: active.check_in,
+        label: `مسجل حضور الساعة ${this.formatTime(active.check_in)} — جاهز لتسجيل الانصراف (Check-Out)`
+      };
+    }
+    const completed = list.find(r => r.employee_name === name && r.check_in && r.check_out);
+    if (completed) {
+      return {
+        status: 'present',
+        checkInTime: completed.check_in,
+        checkOutTime: completed.check_out,
+        label: `أكمل اليوم (انصراف: ${this.formatTime(completed.check_out)})`
+      };
+    }
+    return {
+      status: 'not_checked_in',
+      label: 'لم يسجل حضور اليوم بعد — جاهز لتسجيل الحضور (Check-In)'
+    };
+  });
+
+  setEmployeeAndAutoAction(empName: string): void {
+    this.scannerEmployeeName.set(empName);
+    const list = this.service.attendanceList();
+    const active = list.find(r => r.employee_name === empName && r.check_in && !r.check_out);
+    if (active) {
+      this.scanAction.set('checkout');
+    } else {
+      this.scanAction.set('checkin');
+    }
+  }
+
   // Filtered attendance records
   readonly filteredRecords = computed(() => {
     const list = this.service.attendanceList();
