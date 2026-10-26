@@ -10,9 +10,10 @@ import {
   LocationVerificationResult,
   EmployeeUser
 } from '../models/attendance.models';
+import { environment } from '../../../../environments/environment';
 
-const SUPABASE_URL = 'https://ygquwwjbdorofqdnwdrr.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_bH1jFjG9uoy2i0i5c2jMbw_cFasQnyr';
+const SUPABASE_URL = environment.supabaseUrl;
+const SUPABASE_KEY = environment.supabasePublishableKey;
 
 export function isValidUuid(id?: string | null): boolean {
   if (!id) return false;
