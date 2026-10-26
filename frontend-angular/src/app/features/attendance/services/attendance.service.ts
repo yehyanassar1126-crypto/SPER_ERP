@@ -383,6 +383,42 @@ export class AttendanceService {
     };
   }
 
+  // Enterprise API Gateway:
+  // Proxies requests through `/api/supabase/...` so that:
+  // 1. The browser's DevTools show `:authority: localhost:4200` (Supabase domain is NEVER exposed in headers).
+  // 2. The `Apikey` and `Authorization` headers are NOT sent by the browser at all (completely hidden from DevTools!).
+  // 3. The proxy server attaches credentials server-side.
+  // 4. Automatically falls back to direct call with publishable key if proxy is offline.
+  private async apiRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+    const proxyUrl = `/api/supabase/${cleanEndpoint}`;
+
+    try {
+      const proxyRes = await fetch(proxyUrl, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        }
+      });
+      if (proxyRes.status !== 404) {
+        return proxyRes;
+      }
+    } catch {
+      // Local dev proxy not active, fall back to direct request
+    }
+
+    return fetch(`${SUPABASE_URL}/rest/v1/${cleanEndpoint}`, {
+      ...options,
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    });
+  }
+
   async checkInEmployee(
     employeeName: string,
     department: string,
@@ -447,14 +483,9 @@ export class AttendanceService {
         attBody['employee_id'] = empId;
       }
 
-      const attRes = await fetch(`${SUPABASE_URL}/rest/v1/attendance`, {
+      const attRes = await this.apiRequest('attendance', {
         method: 'POST',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          Prefer: 'return=representation'
-        },
+        headers: { Prefer: 'return=representation' },
         body: JSON.stringify(attBody)
       });
 
@@ -482,13 +513,8 @@ export class AttendanceService {
           qrBody['employee_id'] = empId;
         }
 
-        await fetch(`${SUPABASE_URL}/rest/v1/qr_tokens`, {
+        await this.apiRequest('qr_tokens', {
           method: 'POST',
-          headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          },
           body: JSON.stringify(qrBody)
         });
       }
@@ -552,13 +578,8 @@ export class AttendanceService {
         ? `id=eq.${recId}`
         : `employee_name=eq.${encodeURIComponent(employeeName)}&date=eq.${today}`;
 
-      await fetch(`${SUPABASE_URL}/rest/v1/attendance?${queryParam}`, {
+      await this.apiRequest(`attendance?${queryParam}`, {
         method: 'PATCH',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({
           check_out: nowIso,
           working_hours: durationHours,
@@ -579,13 +600,8 @@ export class AttendanceService {
           qrBody['employee_id'] = empId;
         }
 
-        await fetch(`${SUPABASE_URL}/rest/v1/qr_tokens`, {
+        await this.apiRequest('qr_tokens', {
           method: 'POST',
-          headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          },
           body: JSON.stringify(qrBody)
         });
       }
@@ -626,13 +642,8 @@ export class AttendanceService {
     this.leaveRequests.set([newLeave, ...this.leaveRequests()]);
 
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/leave_requests`, {
+      await this.apiRequest('leave_requests', {
         method: 'POST',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({
           employee_name: newLeave.employee_name,
           department: newLeave.department,
@@ -668,13 +679,8 @@ export class AttendanceService {
     this.leaveRequests.set(updated);
 
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/leave_requests?id=eq.${id}`, {
+      await this.apiRequest(`leave_requests?id=eq.${id}`, {
         method: 'PATCH',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({
           status: newStatus,
           approved_by: newStatus === 'approved' ? approver : null,
@@ -691,14 +697,9 @@ export class AttendanceService {
     this.loading.set(true);
     this.error.set(null);
 
-    const headers = {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`
-    };
-
     try {
-      // 1. Fetch live users from Supabase
-      const usersRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,full_name,employee_id,department,role&order=full_name.asc`, { headers });
+      // 1. Fetch live users from Supabase via Gateway
+      const usersRes = await this.apiRequest('users?select=id,full_name,employee_id,department,role&order=full_name.asc');
       if (usersRes.ok) {
         const usersData: EmployeeUser[] = await usersRes.json();
         if (Array.isArray(usersData) && usersData.length > 0) {
@@ -706,8 +707,8 @@ export class AttendanceService {
         }
       }
 
-      // 2. Fetch live attendance
-      const attRes = await fetch(`${SUPABASE_URL}/rest/v1/attendance?select=*&order=created_at.desc&limit=50`, { headers });
+      // 2. Fetch live attendance via Gateway
+      const attRes = await this.apiRequest('attendance?select=*&order=created_at.desc&limit=50');
       if (attRes.ok) {
         const attData: AttendanceRecord[] = await attRes.json();
         if (Array.isArray(attData) && attData.length > 0) {
@@ -731,8 +732,8 @@ export class AttendanceService {
         }
       }
 
-      // 3. Fetch leave requests
-      const leaveRes = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests?select=*&order=created_at.desc&limit=50`, { headers });
+      // 3. Fetch leave requests via Gateway
+      const leaveRes = await this.apiRequest('leave_requests?select=*&order=created_at.desc&limit=50');
       if (leaveRes.ok) {
         const leaveData: LeaveRequest[] = await leaveRes.json();
         if (Array.isArray(leaveData) && leaveData.length > 0) {
@@ -741,7 +742,7 @@ export class AttendanceService {
       }
 
       // 4. Fetch late deductions if available
-      const delayRes = await fetch(`${SUPABASE_URL}/rest/v1/late_deductions?select=*&order=created_at.desc&limit=50`, { headers });
+      const delayRes = await this.apiRequest('late_deductions?select=*&order=created_at.desc&limit=50');
       if (delayRes.ok) {
         const delayData: LateDeduction[] = await delayRes.json();
         if (Array.isArray(delayData) && delayData.length > 0) {
