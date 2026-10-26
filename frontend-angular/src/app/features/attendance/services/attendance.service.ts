@@ -7,11 +7,17 @@ import {
   AttendanceStats,
   QrStationToken,
   GeoFenceConfig,
-  LocationVerificationResult
+  LocationVerificationResult,
+  EmployeeUser
 } from '../models/attendance.models';
 
 const SUPABASE_URL = 'https://ygquwwjbdorofqdnwdrr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_bH1jFjG9uoy2i0i5c2jMbw_cFasQnyr';
+
+export function isValidUuid(id?: string | null): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
 
 @Injectable({
   providedIn: 'root'
@@ -24,6 +30,19 @@ export class AttendanceService {
   readonly delayRecords = signal<LateDeduction[]>([]);
   readonly loading = signal<boolean>(false);
   readonly error = signal<string | null>(null);
+
+  // Real factory employees synced with Supabase users table
+  readonly usersList = signal<EmployeeUser[]>([
+    { id: '43765f87-1c61-42aa-b7c8-f41accec54cd', full_name: 'بدر صلاح', employee_id: 'EMP-003', department: 'Production', role: 'employee' },
+    { id: 'b7841cf5-66e0-46c8-acd8-0aeb09ea516f', full_name: 'محمد عبد الغني محمد الخواجة', employee_id: 'EMP-002', department: 'Warehouse', role: 'employee' },
+    { id: '290c5ef7-5fba-4a25-b3a9-ec1efd19fff7', full_name: 'Hana', employee_id: 'EMP-014', department: 'Procurement', role: 'procurement specialist' },
+    { id: '799f9735-7d81-43c6-8af8-c136116f4d3d', full_name: 'Hassan', employee_id: 'EMP-019', department: 'Maintenance', role: 'manager' },
+    { id: 'c9885105-cafb-4c0c-8de9-0b5e2d85b3bb', full_name: 'Admin HR', employee_id: 'HR-001', department: 'Administration', role: 'hr' },
+    { id: '62b08c36-15eb-4346-897c-0667dc052fc7', full_name: 'نصار نصار', employee_id: 'EMP-012', department: 'Finance', role: 'manager' },
+    { id: '557d1b7b-8fad-436f-9b48-2bb605581cec', full_name: 'yehya Nassar', employee_id: 'EMP-013', department: 'IT', role: 'employee' },
+    { id: '52c15cad-7d1b-4982-8b97-40c1c443709d', full_name: 'yousif', employee_id: 'EMP-015', department: 'Quality', role: 'employee' },
+    { id: '861a9240-31eb-4e22-93fd-2e6488fa7b3f', full_name: 'hasan sha3lan', employee_id: 'EMP-009', department: 'Engineering', role: 'employee' }
+  ]);
 
   // Geo-Fencing configuration (matches GitHub legacy config)
   readonly geoConfig = signal<GeoFenceConfig>({
@@ -346,9 +365,18 @@ export class AttendanceService {
     }
   }
 
+  findUserByName(name: string): EmployeeUser | undefined {
+    if (!name) return undefined;
+    const lower = name.toLowerCase().trim();
+    return this.usersList().find(u => {
+      const uName = u.full_name.toLowerCase().trim();
+      return uName === lower || uName.includes(lower) || lower.includes(uName);
+    });
+  }
+
   generateQrPayload(): QrStationToken {
     return {
-      hr_id: 'qr-station-factory-1',
+      hr_id: 'c9885105-cafb-4c0c-8de9-0b5e2d85b3bb', // Official Admin HR UUID from Supabase users
       timestamp: Date.now(),
       type: 'hr_qr'
     };
@@ -376,10 +404,14 @@ export class AttendanceService {
       this.usedTokens.add(`${qrToken.timestamp}_${qrToken.hr_id}`);
     }
 
+    const matchedUser = this.findUserByName(employeeName);
+    const empId = matchedUser?.id;
+
     const newRecord: AttendanceRecord = {
       id: 'att-' + Date.now(),
+      employee_id: empId,
       employee_name: employeeName,
-      department: department || 'General Operations',
+      department: matchedUser?.department || department || 'General Operations',
       date: today,
       shift: 'Morning (08:00 - 16:30)',
       check_in: nowIso,
@@ -400,26 +432,55 @@ export class AttendanceService {
 
     // Try posting to Supabase attendance & qr_tokens
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/attendance`, {
+      const attBody: Record<string, any> = {
+        employee_name: newRecord.employee_name,
+        department: newRecord.department,
+        date: newRecord.date,
+        shift: newRecord.shift,
+        check_in: newRecord.check_in,
+        status: 'checked_in',
+        delay_minutes: Math.round(newRecord.delay_minutes || 0),
+        check_in_location: location
+      };
+      if (isValidUuid(empId)) {
+        attBody['employee_id'] = empId;
+      }
+
+      const attRes = await fetch(`${SUPABASE_URL}/rest/v1/attendance`, {
         method: 'POST',
         headers: {
           apikey: SUPABASE_KEY,
           Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
         },
-        body: JSON.stringify({
-          employee_name: newRecord.employee_name,
-          department: newRecord.department,
-          date: newRecord.date,
-          shift: newRecord.shift,
-          check_in: newRecord.check_in,
-          status: 'checked_in',
-          delay_minutes: newRecord.delay_minutes,
-          check_in_location: location
-        })
+        body: JSON.stringify(attBody)
       });
 
+      if (attRes.ok) {
+        const createdAtt = await attRes.json();
+        if (Array.isArray(createdAtt) && createdAtt.length > 0 && createdAtt[0].id) {
+          const list = [...this.attendanceList()];
+          const idx = list.findIndex(r => r.employee_name === employeeName && r.date === today);
+          if (idx >= 0) {
+            list[idx].id = createdAtt[0].id;
+            this.attendanceList.set(list);
+          }
+        }
+      }
+
       if (qrToken) {
+        const qrBody: Record<string, any> = {
+          token: `${qrToken.timestamp}_${qrToken.hr_id}`,
+          action_type: 'checkin'
+        };
+        if (isValidUuid(qrToken.hr_id)) {
+          qrBody['hr_id'] = qrToken.hr_id;
+        }
+        if (isValidUuid(empId)) {
+          qrBody['employee_id'] = empId;
+        }
+
         await fetch(`${SUPABASE_URL}/rest/v1/qr_tokens`, {
           method: 'POST',
           headers: {
@@ -427,11 +488,7 @@ export class AttendanceService {
             Authorization: `Bearer ${SUPABASE_KEY}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            token: `${qrToken.timestamp}_${qrToken.hr_id}`,
-            hr_id: qrToken.hr_id,
-            action_type: 'checkin'
-          })
+          body: JSON.stringify(qrBody)
         });
       }
     } catch {
@@ -467,6 +524,9 @@ export class AttendanceService {
       this.usedTokens.add(`${qrToken.timestamp}_${qrToken.hr_id}`);
     }
 
+    const matchedUser = this.findUserByName(employeeName);
+    const empId = matchedUser?.id;
+
     const checkInTime = new Date(records[index].check_in!).getTime();
     const durationHours = Math.round(((Date.now() - checkInTime) / 3600000) * 10) / 10;
 
@@ -482,7 +542,12 @@ export class AttendanceService {
 
     // Try updating Supabase
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/attendance?id=eq.${records[index].id}`, {
+      const recId = records[index].id;
+      const queryParam = isValidUuid(recId)
+        ? `id=eq.${recId}`
+        : `employee_name=eq.${encodeURIComponent(employeeName)}&date=eq.${today}`;
+
+      await fetch(`${SUPABASE_URL}/rest/v1/attendance?${queryParam}`, {
         method: 'PATCH',
         headers: {
           apikey: SUPABASE_KEY,
@@ -498,6 +563,17 @@ export class AttendanceService {
       });
 
       if (qrToken) {
+        const qrBody: Record<string, any> = {
+          token: `${qrToken.timestamp}_${qrToken.hr_id}`,
+          action_type: 'checkout'
+        };
+        if (isValidUuid(qrToken.hr_id)) {
+          qrBody['hr_id'] = qrToken.hr_id;
+        }
+        if (isValidUuid(empId)) {
+          qrBody['employee_id'] = empId;
+        }
+
         await fetch(`${SUPABASE_URL}/rest/v1/qr_tokens`, {
           method: 'POST',
           headers: {
@@ -505,11 +581,7 @@ export class AttendanceService {
             Authorization: `Bearer ${SUPABASE_KEY}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            token: `${qrToken.timestamp}_${qrToken.hr_id}`,
-            hr_id: qrToken.hr_id,
-            action_type: 'checkout'
-          })
+          body: JSON.stringify(qrBody)
         });
       }
     } catch {
@@ -620,14 +692,41 @@ export class AttendanceService {
     };
 
     try {
+      // 1. Fetch live users from Supabase
+      const usersRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,full_name,employee_id,department,role&order=full_name.asc`, { headers });
+      if (usersRes.ok) {
+        const usersData: EmployeeUser[] = await usersRes.json();
+        if (Array.isArray(usersData) && usersData.length > 0) {
+          this.usersList.set(usersData);
+        }
+      }
+
+      // 2. Fetch live attendance
       const attRes = await fetch(`${SUPABASE_URL}/rest/v1/attendance?select=*&order=created_at.desc&limit=50`, { headers });
       if (attRes.ok) {
         const attData: AttendanceRecord[] = await attRes.json();
         if (Array.isArray(attData) && attData.length > 0) {
           this.attendanceList.set(attData);
+
+          // Populate live delays directly from attendance (matches legacy app.js)
+          const liveDelays: LateDeduction[] = attData
+            .filter(r => (r.delay_minutes || 0) > 0)
+            .map(r => ({
+              id: 'del-' + r.id,
+              employee_name: r.employee_name,
+              date: r.date,
+              delay_minutes: r.delay_minutes,
+              deduction_type: r.delay_minutes > 30 ? 'Half-day deduction (>30m)' : 'Quarter-day deduction (15-30m)',
+              amount: Math.round(r.delay_minutes * 3.5),
+              created_at: r.created_at || r.date
+            }));
+          if (liveDelays.length > 0) {
+            this.delayRecords.set(liveDelays);
+          }
         }
       }
 
+      // 3. Fetch leave requests
       const leaveRes = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests?select=*&order=created_at.desc&limit=50`, { headers });
       if (leaveRes.ok) {
         const leaveData: LeaveRequest[] = await leaveRes.json();
@@ -636,6 +735,7 @@ export class AttendanceService {
         }
       }
 
+      // 4. Fetch late deductions if available
       const delayRes = await fetch(`${SUPABASE_URL}/rest/v1/late_deductions?select=*&order=created_at.desc&limit=50`, { headers });
       if (delayRes.ok) {
         const delayData: LateDeduction[] = await delayRes.json();

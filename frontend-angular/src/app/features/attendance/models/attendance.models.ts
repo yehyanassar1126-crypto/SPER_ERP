@@ -1,3 +1,11 @@
+export interface EmployeeUser {
+  id: string;
+  full_name: string;
+  employee_id: string;
+  department: string;
+  role: string;
+}
+
 export interface AttendanceRecord {
   id: string;
   employee_id?: string;

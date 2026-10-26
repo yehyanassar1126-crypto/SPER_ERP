@@ -469,10 +469,9 @@
             <div class="form-field">
               <label>Employee <span class="tag-hint">الموظف</span></label>
               <select [ngModel]="scannerEmployeeName()" (ngModelChange)="scannerEmployeeName.set($event)">
-                @for (row of service.attendanceList(); track row.id) {
-                  <option [value]="row.employee_name">{{ row.employee_name }} ({{ row.department }})</option>
+                @for (emp of service.usersList(); track emp.id) {
+                  <option [value]="emp.full_name">{{ emp.full_name }} ({{ emp.department }} - {{ emp.employee_id }})</option>
                 }
-                <option value="Tariq Ezzat">Tariq Ezzat (Production)</option>
               </select>
             </div>
 

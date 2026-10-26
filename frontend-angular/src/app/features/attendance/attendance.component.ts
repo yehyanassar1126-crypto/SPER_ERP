@@ -61,7 +61,7 @@ export class AttendanceComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly qrMatrix = signal<boolean[][]>([]);
 
   // Mobile QR Scanner & Geo-Location Verification State
-  readonly scannerEmployeeName = signal<string>('Mahmoud Hassan');
+  readonly scannerEmployeeName = signal<string>('بدر صلاح');
   readonly scanAction = signal<ScanActionType>('checkin');
   readonly isCameraActive = signal<boolean>(false);
   readonly cameraError = signal<string | null>(null);
