@@ -1,0 +1,900 @@
+<section class="attendance-module">
+  <!-- Feedback Toast Notification -->
+  @if (toast()) {
+    <aside class="toast-banner" [ngClass]="toast()!.type">
+      <span class="toast-icon">
+        @if (toast()!.type === 'success') { ✓ }
+        @else if (toast()!.type === 'error') { ✕ }
+        @else { ℹ }
+      </span>
+      <span class="toast-message">{{ toast()!.message }}</span>
+      <button class="toast-close" (click)="toast.set(null)">×</button>
+    </aside>
+  }
+
+  <!-- Header & Actions -->
+  <header class="header-container">
+    <div>
+      <p class="eyebrow">HUMAN RESOURCES & OPERATIONS</p>
+      <h1>Attendance & Leave Management</h1>
+      <p class="subtitle">
+        Real-time factory clock-in tracking, QR code verification, GPS Geo-Fencing location validation, and leave workflow.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <span class="schema-badge">
+        <span class="status-dot"></span>
+        QR & Geo-Fencing Active
+      </span>
+      <button class="btn btn-secondary" (click)="openCheckinModal()">
+        <span class="btn-icon">⏱</span> Manual Check-In
+      </button>
+      <button class="btn btn-primary" (click)="openLeaveModal()">
+        <span class="btn-icon">+</span> New Leave Request
+      </button>
+    </div>
+  </header>
+
+  <!-- Live KPI Metrics Grid -->
+  <div class="kpi-grid">
+    <article class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Present Today</span>
+        <span class="kpi-icon green">✓</span>
+      </div>
+      <div class="kpi-value">{{ service.stats().presentCount }}</div>
+      <p class="kpi-note">Employees completed full shift</p>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Currently Checked-In</span>
+        <span class="kpi-icon blue">◷</span>
+      </div>
+      <div class="kpi-value">{{ service.stats().checkedInCount }}</div>
+      <p class="kpi-note">Active on factory floor</p>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Delays & Lateness</span>
+        <span class="kpi-icon amber">⚠</span>
+      </div>
+      <div class="kpi-value">{{ service.stats().delayedCount }} <small>({{ service.stats().totalDelayMinutes }}m)</small></div>
+      <p class="kpi-note">Subject to delay deduction</p>
+    </article>
+
+    <article class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-label">Pending Leave Requests</span>
+        <span class="kpi-icon purple">▤</span>
+      </div>
+      <div class="kpi-value">{{ service.stats().pendingLeavesCount }}</div>
+      <p class="kpi-note">Awaiting manager/HR approval</p>
+    </article>
+  </div>
+
+  <!-- Navigation Tab Bar -->
+  <nav class="tab-nav">
+    <button class="tab-btn" [class.active]="activeTab() === 'records'" (click)="setTab('records')">
+      <span>◫</span> Attendance Logs
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'delays_absence'" (click)="setTab('delays_absence')">
+      <span>⚠</span> Delays & Absence
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'leaves'" (click)="setTab('leaves')">
+      <span>▤</span> Leave Requests & Approvals
+      @if (service.stats().pendingLeavesCount > 0) {
+        <span class="badge-count">{{ service.stats().pendingLeavesCount }}</span>
+      }
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'qr_station'" (click)="setTab('qr_station')">
+      <span>⛶</span> QR Code & GPS Location Scanner
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'iot_docs'" (click)="setTab('iot_docs')">
+      <span>✧</span> IoT & QR Architecture
+    </button>
+  </nav>
+
+  <!-- ===================================================== -->
+  <!-- TAB 1: ATTENDANCE LOGS                                 -->
+  <!-- ===================================================== -->
+  @if (activeTab() === 'records') {
+    <section class="tab-content">
+      <div class="toolbar-card">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            placeholder="Search by employee name or department..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label>Department:</label>
+          <select [ngModel]="selectedDepartment()" (ngModelChange)="selectedDepartment.set($event)">
+            @for (dept of departments(); track dept) {
+              <option [value]="dept">{{ dept }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Status:</label>
+          <select [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)">
+            <option value="All">All Statuses</option>
+            <option value="present">Present (Done)</option>
+            <option value="checked_in">Checked In (Active)</option>
+            <option value="absent">Absent</option>
+          </select>
+        </div>
+
+        <button class="btn btn-secondary btn-sm" (click)="service.fetchFromSupabase()">
+          ↻ Sync Supabase
+        </button>
+      </div>
+
+      @if (service.loading()) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Syncing attendance records with Supabase database...</p>
+        </div>
+      }
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Shift</th>
+              <th>Check-In</th>
+              <th>Check-Out</th>
+              <th>Work Hours</th>
+              <th>Delay</th>
+              <th>Status</th>
+              <th>Verified GPS Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredRecords(); track row.id) {
+              <tr>
+                <td>
+                  <div class="employee-cell">
+                    <span class="avatar-circle">{{ row.employee_name.charAt(0) }}</span>
+                    <strong>{{ row.employee_name }}</strong>
+                  </div>
+                </td>
+                <td>{{ row.department }}</td>
+                <td><span class="shift-pill">{{ row.shift }}</span></td>
+                <td><strong>{{ formatTime(row.check_in) }}</strong></td>
+                <td><strong>{{ formatTime(row.check_out) }}</strong></td>
+                <td>{{ row.working_hours ? row.working_hours + ' hrs' : '—' }}</td>
+                <td>
+                  @if (row.delay_minutes > 0) {
+                    <span class="delay-tag">+{{ row.delay_minutes }}m</span>
+                  } @else {
+                    <span class="on-time-tag">On Time</span>
+                  }
+                </td>
+                <td>
+                  <span class="status-pill" [ngClass]="row.status">
+                    {{ row.status === 'present' ? 'Present' : (row.status === 'checked_in' ? 'Clocked In' : 'Absent') }}
+                  </span>
+                </td>
+                <td>
+                  <small class="location-text">📍 {{ row.check_in_location || '—' }}</small>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="9" class="empty-cell">
+                  <div class="empty-state">
+                    <span class="empty-icon">◷</span>
+                    <p>No attendance records found matching current criteria.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ===================================================== -->
+  <!-- TAB 2: DELAYS & ABSENCE                                -->
+  <!-- ===================================================== -->
+  @if (activeTab() === 'delays_absence') {
+    <section class="tab-content">
+      <aside class="policy-card">
+        <div class="policy-header">
+          <span class="policy-icon">⚖</span>
+          <div>
+            <h3>Factory Policy & Egyptian Labor Law Sanctions (قواعد الغياب والجزاءات)</h3>
+            <p>
+              Automated delay deduction tiers: &lt;15 mins = Grace / 15–30 mins = 0.25 day / &gt;30 mins = 0.5 day.
+              Unauthorized absence triggers automatic 2-day salary deduction per Article 69.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      <div class="dual-panel-grid">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Late Delay Deductions (خصومات التأخير)</h3>
+              <p>Linked to table <code>late_deductions</code></p>
+            </div>
+            <span class="badge-info">{{ service.delayRecords().length }} entries</span>
+          </div>
+
+          <div class="table-container minimal">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Date</th>
+                  <th>Delay</th>
+                  <th>Penalty Rule</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (d of service.delayRecords(); track d.id) {
+                  <tr>
+                    <td><strong>{{ d.employee_name }}</strong></td>
+                    <td>{{ d.date }}</td>
+                    <td><span class="delay-tag">+{{ d.delay_minutes }} mins</span></td>
+                    <td>{{ d.deduction_type }}</td>
+                    <td><strong class="penalty-amount">{{ d.amount }} EGP</strong></td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="empty-cell">No late deductions recorded today.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Unauthorized Absence Records (سجلات الغياب غير المبرر)</h3>
+              <p>Linked to table <code>hr_absence_records</code></p>
+            </div>
+            <span class="badge-alert">{{ service.absenceRecords().length }} absent</span>
+          </div>
+
+          <div class="table-container minimal">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Penalty Days</th>
+                  <th>HR Decision</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of service.absenceRecords(); track a.id) {
+                  <tr>
+                    <td><strong>{{ a.employee_name }}</strong></td>
+                    <td>{{ a.date }}</td>
+                    <td><span class="status-pill absent">{{ a.type }}</span></td>
+                    <td><span class="penalty-tag">-{{ a.penalty_days }} Days</span></td>
+                    <td><code class="code-badge">{{ a.hr_decision }}</code></td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="empty-cell">No unauthorized absences reported.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+  }
+
+  <!-- ===================================================== -->
+  <!-- TAB 3: LEAVE REQUESTS & APPROVALS                      -->
+  <!-- ===================================================== -->
+  @if (activeTab() === 'leaves') {
+    <section class="tab-content">
+      <div class="leaves-toolbar">
+        <div class="filter-pills">
+          <button class="pill" [class.active]="leaveStatusFilter() === 'All'" (click)="leaveStatusFilter.set('All')">
+            All ({{ service.leaveRequests().length }})
+          </button>
+          <button class="pill" [class.active]="leaveStatusFilter() === 'pending_manager'" (click)="leaveStatusFilter.set('pending_manager')">
+            Pending Manager
+          </button>
+          <button class="pill" [class.active]="leaveStatusFilter() === 'pending_hr'" (click)="leaveStatusFilter.set('pending_hr')">
+            Pending HR
+          </button>
+          <button class="pill" [class.active]="leaveStatusFilter() === 'approved'" (click)="leaveStatusFilter.set('approved')">
+            Approved
+          </button>
+          <button class="pill" [class.active]="leaveStatusFilter() === 'rejected'" (click)="leaveStatusFilter.set('rejected')">
+            Rejected
+          </button>
+        </div>
+
+        <button class="btn btn-primary" (click)="openLeaveModal()">
+          + Submit New Leave
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Leave Type</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Days</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Actions (HR Review)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (leave of filteredLeaves(); track leave.id) {
+              <tr>
+                <td>
+                  <div class="employee-cell">
+                    <span class="avatar-circle purple">{{ leave.employee_name.charAt(0) }}</span>
+                    <div>
+                      <strong>{{ leave.employee_name }}</strong>
+                      @if (leave.emergency_flag) {
+                        <span class="emergency-badge">Emergency</span>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <td>{{ leave.department }}</td>
+                <td><span class="leave-type-pill" [ngClass]="leave.type.toLowerCase()">{{ leave.type }}</span></td>
+                <td>{{ leave.start_date }}</td>
+                <td>{{ leave.end_date }}</td>
+                <td><strong>{{ leave.days }} day(s)</strong></td>
+                <td><span class="reason-preview" [title]="leave.reason">{{ leave.reason }}</span></td>
+                <td>
+                  <span class="status-pill" [ngClass]="leave.status">
+                    {{ leave.status.replace('_', ' ') | titlecase }}
+                  </span>
+                  @if (leave.approved_by) {
+                    <small class="approver-text">by {{ leave.approved_by }}</small>
+                  }
+                  @if (leave.rejection_reason) {
+                    <small class="rejection-text">Note: {{ leave.rejection_reason }}</small>
+                  }
+                </td>
+                <td>
+                  @if (leave.status === 'pending' || leave.status === 'pending_manager' || leave.status === 'pending_hr') {
+                    <div class="action-btn-group">
+                      <button class="btn-action approve" title="Approve Leave" (click)="approveLeave(leave)">
+                        ✓ Approve
+                      </button>
+                      <button class="btn-action reject" title="Reject Leave" (click)="openRejectModal(leave)">
+                        ✕ Reject
+                      </button>
+                    </div>
+                  } @else {
+                    <span class="closed-label">Completed</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="9" class="empty-cell">
+                  <div class="empty-state">
+                    <span class="empty-icon">▤</span>
+                    <p>No leave requests in this category.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ===================================================== -->
+  <!-- TAB 4: QR CODE & GPS LOCATION SCANNER                  -->
+  <!-- ===================================================== -->
+  @if (activeTab() === 'qr_station') {
+    <section class="tab-content qr-split-view">
+      <!-- 1. The Factory Dynamic QR Station Display (Kiosk) -->
+      <article class="qr-kiosk-panel">
+        <div class="kiosk-header">
+          <span class="kiosk-logo">🏭</span>
+          <h2>SPER Factory QR Terminal</h2>
+          <p>Scan with SPER ERP mobile camera to verify attendance & GPS</p>
+        </div>
+
+        <div class="live-clock-card">
+          <div class="clock-digits">{{ qrCurrentTime() }}</div>
+          <div class="clock-date">{{ qrCurrentDate() }}</div>
+        </div>
+
+        <!-- Rendered Real Dynamic QR Code Matrix -->
+        <div class="qr-code-frame">
+          <div id="real-station-qr" class="real-qr-box" [style.display]="hasRealQrRendered() ? 'block' : 'none'"></div>
+          <svg class="qr-matrix-svg" viewBox="0 0 210 210" [style.display]="hasRealQrRendered() ? 'none' : 'block'">
+            <rect width="210" height="210" fill="#ffffff" rx="10" />
+            @for (row of qrMatrix(); track $index; let y = $index) {
+              @for (cell of row; track $index; let x = $index) {
+                @if (cell) {
+                  <rect [attr.x]="x * 10" [attr.y]="y * 10" width="10" height="10" fill="#0f172a" />
+                }
+              }
+            }
+          </svg>
+
+          <div class="qr-station-pulse">
+            <span class="pulse-dot"></span>
+            Dynamic QR active — refreshes in <strong>{{ qrCountdown() }}s</strong>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="(qrCountdown() / 5) * 100"></div>
+          </div>
+        </div>
+
+        <div class="qr-token-info">
+          <code>{{ currentQrPayload() }}</code>
+        </div>
+      </article>
+
+      <!-- 2. Mobile Scanner with Geo-Fencing GPS Verification -->
+      <article class="scanner-sim-panel">
+        <div class="sim-header">
+          <h3>📱 QR Code Scanner & GPS Geo-Fencing</h3>
+          <p>Scans the dynamic terminal QR code and validates employee factory GPS location.</p>
+        </div>
+
+        <div class="sim-form">
+          <!-- Select Employee & Action -->
+          <div class="form-row">
+            <div class="form-field">
+              <label>Employee <span class="tag-hint">الموظف</span></label>
+              <select [ngModel]="scannerEmployeeName()" (ngModelChange)="setEmployeeAndAutoAction($event)">
+                @for (emp of service.usersList(); track emp.id) {
+                  <option [value]="emp.full_name">{{ emp.full_name }} ({{ emp.department }} - {{ emp.employee_id }})</option>
+                }
+              </select>
+              <div class="employee-live-badge" [ngClass]="selectedEmployeeStatus().status">
+                <span class="badge-dot"></span>
+                <span>{{ selectedEmployeeStatus().label }}</span>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label>Punch Action <span class="tag-hint">نوع العملية</span></label>
+              <select [ngModel]="scanAction()" (ngModelChange)="scanAction.set($event)">
+                <option value="checkin">Check-In — تسجيل حضور</option>
+                <option value="checkout">Check-Out — تسجيل انصراف</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- GPS Geo-Fencing Validation Mode Selector -->
+          <div class="geofence-box">
+            <div class="geofence-header">
+              <span class="geo-icon">📍</span>
+              <div>
+                <strong>Geo-Fencing GPS Verification <span class="tag-hint">فحص النطاق الجغرافي</span></strong>
+                <p>Factory Coordinates: <code>30.0444, 31.2357</code> (Max Radius: 500m)</p>
+              </div>
+            </div>
+
+            <div class="geo-options">
+              <label class="geo-radio">
+                <input
+                  type="radio"
+                  name="geoMode"
+                  value="simulate_in_factory"
+                  [ngModel]="geoSimulationMode()"
+                  (ngModelChange)="geoSimulationMode.set($event)"
+                />
+                <span>Inside Factory Perimeter <span class="tag-hint">معتمد داخل المصنع (15m)</span></span>
+              </label>
+
+              <label class="geo-radio">
+                <input
+                  type="radio"
+                  name="geoMode"
+                  value="simulate_outside"
+                  [ngModel]="geoSimulationMode()"
+                  (ngModelChange)="geoSimulationMode.set($event)"
+                />
+                <span>Outside Factory Boundary <span class="tag-hint">مرفوض: خارج النطاق</span></span>
+              </label>
+
+              <label class="geo-radio">
+                <input
+                  type="radio"
+                  name="geoMode"
+                  value="real_gps"
+                  [ngModel]="geoSimulationMode()"
+                  (ngModelChange)="geoSimulationMode.set($event)"
+                />
+                <span>Live Device GPS <span class="tag-hint">قراءة الـ GPS الفعلية من المتصفح</span></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Camera Live Scanner Viewport -->
+          <div class="camera-wrapper">
+            @if (!isCameraActive()) {
+              <div class="camera-placeholder">
+                <button class="btn btn-secondary" (click)="startCameraScanner()">
+                  📷 Open Live Camera Scanner (تشغيل كاميرا المسح المباشر)
+                </button>
+                @if (cameraError()) {
+                  <p class="camera-error-text">{{ cameraError() }}</p>
+                }
+              </div>
+            } @else {
+              <div class="camera-active-box">
+                <div id="camera-reader-box"></div>
+                <button class="btn btn-danger btn-sm" (click)="stopCameraScanner()">
+                  ⏹ Stop Camera
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Instant Scan & Location Verification Button -->
+          <div class="sim-actions">
+            @if (scanAction() === 'checkin') {
+              <button class="btn btn-checkin" [disabled]="isVerifyingLocation()" (click)="executeAttendanceWithLocationCheck()">
+                @if (isVerifyingLocation()) {
+                  ⏳ Verifying GPS Location...
+                } @else {
+                  📷 Scan Station QR & Verify Location (حضور + فحص الموقع)
+                }
+              </button>
+            } @else {
+              <button class="btn btn-checkout" [disabled]="isVerifyingLocation()" (click)="executeAttendanceWithLocationCheck()">
+                @if (isVerifyingLocation()) {
+                  ⏳ Verifying GPS Location...
+                } @else {
+                  🚪 Scan Station QR & Verify Location (انصراف + فحص الموقع)
+                }
+              </button>
+            }
+          </div>
+
+          <!-- Automated Verification Tests Bar (Test 3, Test 4, Test 7) -->
+          <div class="test-controls-bar">
+            <button type="button" class="btn-test-action" (click)="testExpiredQrCode()" title="Test 4: Verify rejection of QR older than 40s">
+              ⏱ Test 4: Expired QR (&gt;40s Rejection)
+            </button>
+            <button type="button" class="btn-test-action secondary" (click)="showManualTester.set(!showManualTester())">
+              🧪 Test Custom QR Payload
+            </button>
+          </div>
+
+          @if (showManualTester()) {
+            <div class="manual-tester-box">
+              <label>Enter Custom QR JSON Payload (لتجربة أي كود يدوي أو منتهي):</label>
+              <textarea [ngModel]="manualQrInput()" (ngModelChange)="manualQrInput.set($event)" placeholder='{"hr_id":"...","timestamp":1793000000000,"type":"hr_qr"}' rows="2"></textarea>
+              <button type="button" class="btn btn-sm btn-secondary" (click)="submitManualQr()">Verify Custom QR Payload</button>
+            </div>
+          }
+
+          <!-- Feedback Status Banner -->
+          @if (scannerResult()) {
+            <div class="scanner-feedback" [class.success]="scannerResult()!.success" [class.error]="!scannerResult()!.success">
+              <span class="result-icon">{{ scannerResult()!.success ? '✓' : '⚠' }}</span>
+              <div class="feedback-content">
+                <strong>{{ scannerResult()!.success ? 'Verification Passed — تسجيل معتمد' : 'Attendance Verification Failed — تم الرفض' }}</strong>
+                <div class="feedback-meta">
+                  <div class="meta-item">
+                    <span class="meta-label">Employee:</span>
+                    <span class="meta-value">{{ scannerEmployeeName() }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <span class="meta-label">Status:</span>
+                    <span class="meta-value">{{ scannerResult()!.message }}</span>
+                  </div>
+                  @if (locationStatus()) {
+                    <div class="meta-item">
+                      <span class="meta-label">GPS Location:</span>
+                      <code class="meta-coords">📍 {{ locationStatus()!.locationString }}</code>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+
+        </div>
+      </article>
+    </section>
+  }
+
+  <!-- ===================================================== -->
+  <!-- TAB 5: IOT & QR ARCHITECTURE DOCUMENTATION             -->
+  <!-- ===================================================== -->
+  @if (activeTab() === 'iot_docs') {
+    <section class="tab-content architecture-section">
+      <article class="doc-card">
+        <h2>Architecture Analysis: Attendance System & Future IoT Integration</h2>
+        <p class="lead">
+          Technical report covering existing QR implementation review, GPS Geo-fencing anti-spoofing measures, and hardware-agnostic IoT integration points.
+        </p>
+
+        <div class="doc-block">
+          <h3>1. Review of Current QR Code & GPS Location Mechanism</h3>
+          <p>
+            The legacy and current system uses a <strong>Time-Based Rotating Dynamic QR Code + Browser GPS Geo-Fencing</strong>:
+          </p>
+          <ul>
+            <li><strong>Payload:</strong> Compact JSON with <code>hr_id</code>, Unix epoch <code>timestamp</code>, and action identifier <code>type: "hr_qr"</code>.</li>
+            <li><strong>Rotation Interval:</strong> Refreshes every 5,000ms (5 seconds) to ensure codes cannot be photographed and shared.</li>
+            <li><strong>Expiration Validation:</strong> Validates <code>Math.abs(Date.now() - token.timestamp) &lt; 40 seconds</code>.</li>
+            <li><strong>Geo-Fencing Verification:</strong> Calculates distance using the Haversine formula from company coordinates (Lat: 30.0444, Lng: 31.2357). Enforces a 500-meter radius boundary.</li>
+            <li><strong>Database Storage:</strong> Each successful punch logs to the <code>attendance</code> table, recording <code>check_in</code>, <code>check_out</code>, <code>check_in_location</code> with GPS coordinates, and single-use token in <code>qr_tokens</code>.</li>
+          </ul>
+        </div>
+
+        <div class="doc-block">
+          <h3>2. Future IoT Integration Blueprint (Hardware-Agnostic)</h3>
+          <p>
+            Without assuming proprietary hardware or locking the company to a specific vendor before board approval, the architecture prepares the following integration interfaces:
+          </p>
+          <div class="spec-grid">
+            <div class="spec-card">
+              <h4>A. Device Types Supported</h4>
+              <p>Biometric Fingerprint scanners (e.g. ZKTeco, Anviz), RFID/NFC Turnstiles, or ESP32-based industrial relays.</p>
+            </div>
+            <div class="spec-card">
+              <h4>B. Ingestion Protocol</h4>
+              <p>Industrial Edge Broker using MQTT or HTTPS Webhooks with mutual TLS / API bearer tokens.</p>
+            </div>
+            <div class="spec-card">
+              <h4>C. Offline Buffer Resilience</h4>
+              <p>Local SQLite edge cache buffering timestamps during factory WAN outages, syncing automatically upon restoration.</p>
+            </div>
+          </div>
+
+          <div class="code-block-wrapper">
+            <h4>Standard REST Endpoint Contract for Future IoT Devices:</h4>
+            <pre><code>POST /api/attendance/iot-checkin
+Headers:
+  X-Device-Id: "GATE-TURNSTILE-01"
+  X-Device-Signature: "sha256-hmac-auth"
+  Content-Type: "application/json"
+
+Payload:
+&#123;
+  "employee_rfid": "RFID-884920",
+  "biometric_hash": "optional-verified",
+  "direction": "in",
+  "timestamp": "2026-10-26T08:00:15Z",
+  "gate_id": "Gate-A-Turnstile-1"
+&#125;</code></pre>
+          </div>
+        </div>
+
+        <div class="doc-block">
+          <h3>3. Database Schema Alignment</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Existing Table</th>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Attendance Module Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>attendance</code></td>
+                <td><code>employee_id, date, check_in, check_out</code></td>
+                <td>UUID, DATE, TIMESTAMPTZ</td>
+                <td>Primary punch-in / punch-out event records</td>
+              </tr>
+              <tr>
+                <td><code>attendance</code></td>
+                <td><code>check_in_location, check_out_location</code></td>
+                <td>TEXT</td>
+                <td>Stores GPS coordinates & Geo-Fencing verification result</td>
+              </tr>
+              <tr>
+                <td><code>qr_tokens</code></td>
+                <td><code>token, hr_id, action_type</code></td>
+                <td>TEXT, UUID, TEXT</td>
+                <td>Single-use token log preventing replay attacks</td>
+              </tr>
+              <tr>
+                <td><code>leave_requests</code></td>
+                <td><code>type, start_date, end_date, days, status</code></td>
+                <td>TEXT, DATE, NUMERIC</td>
+                <td>Leave workflow and manager/HR approval pipeline</td>
+              </tr>
+              <tr>
+                <td><code>late_deductions</code></td>
+                <td><code>delay_minutes, deduction_type, amount</code></td>
+                <td>INTEGER, TEXT, NUMERIC</td>
+                <td>Automated payroll deduction penalties</td>
+              </tr>
+              <tr>
+                <td><code>hr_absence_records</code></td>
+                <td><code>penalty_days, hr_decision, status</code></td>
+                <td>DECIMAL, VARCHAR</td>
+                <td>Unexcused absence sanctions & warning tracking</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  }
+
+  <!-- ===================================================== -->
+  <!-- MODAL: NEW LEAVE REQUEST                               -->
+  <!-- ===================================================== -->
+  @if (showLeaveModal()) {
+    <div class="modal-backdrop" (click)="showLeaveModal.set(false)">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Submit Leave Request (تقديم طلب إجازة)</h3>
+          <button class="close-btn" (click)="showLeaveModal.set(false)">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-field">
+            <label>Employee Name *</label>
+            <input type="text" [(ngModel)]="leaveForm.employee_name" placeholder="Full Employee Name" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Department</label>
+              <select [(ngModel)]="leaveForm.department">
+                <option value="Production">Production</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Quality Assurance">Quality Assurance</option>
+                <option value="Supply Chain">Supply Chain</option>
+                <option value="Human Resources">Human Resources</option>
+                <option value="Engineering">Engineering</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label>Leave Type *</label>
+              <select [(ngModel)]="leaveForm.type">
+                <option value="Annual">Annual (سنوية)</option>
+                <option value="Sick">Sick (مرضية)</option>
+                <option value="Emergency">Emergency (طارئة)</option>
+                <option value="Casual">Casual (عارضة)</option>
+                <option value="Unpaid">Unpaid (بدون راتب)</option>
+                <option value="Maternity/Paternity">Maternity/Paternity</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Start Date *</label>
+              <input type="date" [(ngModel)]="leaveForm.start_date" (change)="updateLeaveDays()" />
+            </div>
+
+            <div class="form-field">
+              <label>End Date *</label>
+              <input type="date" [(ngModel)]="leaveForm.end_date" (change)="updateLeaveDays()" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label>Calculated Days</label>
+            <input type="number" readonly [value]="leaveForm.days" />
+          </div>
+
+          <div class="form-field">
+            <label>Reason & Justification *</label>
+            <textarea [(ngModel)]="leaveForm.reason" rows="3" placeholder="Provide reason for absence..."></textarea>
+          </div>
+
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="leaveForm.emergency_flag" />
+            <span>Mark as urgent emergency request (إشعار طارئ)</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="showLeaveModal.set(false)">Cancel</button>
+          <button class="btn btn-primary" (click)="submitLeaveForm()">Submit Request</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ===================================================== -->
+  <!-- MODAL: MANUAL CHECK-IN OVERRIDE                        -->
+  <!-- ===================================================== -->
+  @if (showCheckinModal()) {
+    <div class="modal-backdrop" (click)="showCheckinModal.set(false)">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Manual Check-In Override (تسجيل يدوي)</h3>
+          <button class="close-btn" (click)="showCheckinModal.set(false)">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-field">
+            <label>Employee Name *</label>
+            <input type="text" [(ngModel)]="checkinForm.employee_name" placeholder="Enter employee name..." />
+          </div>
+
+          <div class="form-field">
+            <label>Department</label>
+            <select [(ngModel)]="checkinForm.department">
+              <option value="Production">Production</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Quality Assurance">Quality Assurance</option>
+              <option value="Supply Chain">Supply Chain</option>
+              <option value="Engineering">Engineering</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Station / Override Reason</label>
+            <input type="text" [(ngModel)]="checkinForm.station" placeholder="e.g. HR Admin manual clock-in" />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="showCheckinModal.set(false)">Cancel</button>
+          <button class="btn btn-primary" (click)="submitManualCheckin()">Confirm Check-In</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ===================================================== -->
+  <!-- MODAL: REJECT LEAVE REASON                             -->
+  <!-- ===================================================== -->
+  @if (rejectingLeaveId()) {
+    <div class="modal-backdrop" (click)="closeRejectModal()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Decline Leave Request</h3>
+          <button class="close-btn" (click)="closeRejectModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p>Please enter the reason for rejecting this leave request:</p>
+          <div class="form-field">
+            <textarea
+              [ngModel]="rejectReasonInput()"
+              (ngModelChange)="rejectReasonInput.set($event)"
+              rows="3"
+              placeholder="e.g., Factory production target clash or insufficient leave balance"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeRejectModal()">Cancel</button>
+          <button class="btn btn-danger" (click)="confirmRejectLeave()">Confirm Rejection</button>
+        </div>
+      </div>
+    </div>
+  }
+</section>
