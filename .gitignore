@@ -14,3 +14,8 @@ coverage/
 Thumbs.db
 *.log
 .vscode/
+# Angular frontend generated files
+web/.angular/
+web/node_modules/
+web/dist/
+web/test-results/
