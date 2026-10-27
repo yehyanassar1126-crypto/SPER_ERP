@@ -1,10 +1,11 @@
-
 import { Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -37,9 +38,7 @@ export class Dashboard implements OnInit {
       usersResult,
       attendanceResult,
       leavesResult
-    ] = await Promise.all(
-        
-      [
+    ] = await Promise.all([
       supabase
         .from('users')
         .select('id', { count: 'exact', head: true }),

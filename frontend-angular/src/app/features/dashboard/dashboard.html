@@ -7,21 +7,26 @@
         Welcome to SPER ERP. Your business overview starts here.
       </p>
     </div>
-  
-@if (loading) {
-  <p>Loading dashboard...</p>
-}
 
-@if (errorMessage) {
-  <p style="color: red;">Error: {{ errorMessage }}</p>
-}
+    @if (loading) {
+      <div class="dashboard-status-loading">Loading live Supabase data...</div>
+    }
 
-    <span class="environment-tag">UI Preview</span>
+    @if (errorMessage) {
+      <div class="dashboard-status-error">Supabase Error: {{ errorMessage }}</div>
+    }
+
+    <span class="environment-tag">Live Supabase Connected</span>
   </div>
 
   <div class="stats-grid">
     @for (stat of stats; track stat.label) {
-      <article class="stat-card">
+      <article
+        class="stat-card"
+        [routerLink]="stat.label === 'Attendance Today' ? '/attendance' : null"
+        [style.cursor]="stat.label === 'Attendance Today' ? 'pointer' : 'default'"
+        [title]="stat.label === 'Attendance Today' ? 'Click to open Attendance Module' : ''"
+      >
         <div class="stat-top">
           <span class="stat-label">{{ stat.label }}</span>
           <span class="stat-icon">{{ stat.icon }}</span>
@@ -40,14 +45,14 @@
           <h2>Business Overview</h2>
           <p>Key operational areas</p>
         </div>
-        <span class="preview-label">Preview</span>
+        <span class="preview-label">Live</span>
       </div>
 
-      <div class="overview-item">
+      <div class="overview-item" routerLink="/attendance" style="cursor: pointer;" title="Open Attendance Module">
         <span class="overview-symbol">HR</span>
         <div>
-          <strong>Human Resources</strong>
-          <p>Employees, attendance and leave management</p>
+          <strong>Human Resources & Attendance</strong>
+          <p>Live QR Station, Scanner, Geofencing & Leave Management &rarr;</p>
         </div>
       </div>
 
@@ -78,17 +83,19 @@
 
       <div class="integration-row">
         <span>Angular Frontend</span>
-        <span class="status-pill">Ready for UI work</span>
+        <span class="status-pill">Ready</span>
       </div>
 
       <div class="integration-row">
         <span>Supabase</span>
-        <span class="status-pill pending">Not connected yet</span>
+        <span class="status-pill" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">Connected</span>
       </div>
 
       <div class="integration-row">
-        <span>IoT Attendance</span>
-        <span class="status-pill pending">Planned</span>
+        <span>IoT Attendance & QR</span>
+        <a routerLink="/attendance" class="status-pill" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; text-decoration: none; cursor: pointer;">
+          Active &rarr;
+        </a>
       </div>
 
       <div class="integration-row">
