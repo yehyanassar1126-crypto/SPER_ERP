@@ -4,23 +4,42 @@
       <p class="eyebrow">ENTERPRISE OVERVIEW</p>
       <h1>Dashboard</h1>
       <p class="subtitle">
-        Welcome to SPER ERP. Your business overview starts here.
+        Welcome to SPER ERP. Live business insights directly connected to Supabase.
       </p>
     </div>
 
-    @if (loading) {
-      <div class="dashboard-status-loading">Loading live Supabase data...</div>
-    }
-
-    @if (errorMessage) {
-      <div class="dashboard-status-error">Supabase Error: {{ errorMessage }}</div>
-    }
-
-    <span class="environment-tag">Live Supabase Connected</span>
+    <div class="header-actions">
+      @if (lastUpdated()) {
+        <span class="last-sync">Updated: {{ lastUpdated() }}</span>
+      }
+      <button
+        type="button"
+        class="refresh-btn"
+        (click)="loadDashboardData()"
+        [disabled]="loading()"
+        title="Refresh live Supabase statistics"
+      >
+        <span class="refresh-icon" [class.spinning]="loading()">↻</span>
+        <span>Refresh</span>
+      </button>
+      <span class="environment-tag">Live Supabase</span>
+    </div>
   </div>
 
+  @if (loading()) {
+    <div class="dashboard-banner loading-banner">
+      <span class="spinner"></span> Loading real-time statistics from Supabase...
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="dashboard-banner error-banner">
+      ⚠️ Supabase Error: {{ errorMessage() }}
+    </div>
+  }
+
   <div class="stats-grid">
-    @for (stat of stats; track stat.label) {
+    @for (stat of stats(); track stat.label) {
       <article
         class="stat-card"
         [routerLink]="stat.label === 'Attendance Today' ? '/attendance' : null"
@@ -88,7 +107,7 @@
 
       <div class="integration-row">
         <span>Supabase</span>
-        <span class="status-pill" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">Connected</span>
+        <span class="status-pill" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">Connected (Live)</span>
       </div>
 
       <div class="integration-row">
@@ -99,8 +118,8 @@
       </div>
 
       <div class="integration-row">
-        <span>AI Services</span>
-        <span class="status-pill pending">Planned</span>
+        <span>Realtime Sync</span>
+        <span class="status-pill" style="background: rgba(16, 185, 129, 0.15); color: #059669;">Subscribed</span>
       </div>
     </article>
   </div>
