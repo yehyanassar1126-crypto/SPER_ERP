@@ -7,6 +7,14 @@
         Welcome to SPER ERP. Your business overview starts here.
       </p>
     </div>
+  
+@if (loading) {
+  <p>Loading dashboard...</p>
+}
+
+@if (errorMessage) {
+  <p style="color: red;">Error: {{ errorMessage }}</p>
+}
 
     <span class="environment-tag">UI Preview</span>
   </div>
