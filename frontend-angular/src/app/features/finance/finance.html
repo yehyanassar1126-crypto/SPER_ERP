@@ -1,0 +1,42 @@
+<section class="finance-hub">
+  <div class="finance-header">
+    <div>
+      <p class="eyebrow">ENTERPRISE FINANCE</p>
+      <h1>Finance Operations</h1>
+      <p class="subtitle">Disbursement pipelines, operational claims, and verified financial reporting.</p>
+    </div>
+  </div>
+
+  <nav class="finance-nav">
+    <a
+      routerLink="/finance/payroll"
+      routerLinkActive="active"
+      class="nav-tab"
+    >
+      <span class="tab-icon">💰</span>
+      <span>Payroll & Salaries</span>
+    </a>
+
+    <a
+      routerLink="/finance/expenses"
+      routerLinkActive="active"
+      class="nav-tab"
+    >
+      <span class="tab-icon">🧾</span>
+      <span>Expenses & Claims</span>
+    </a>
+
+    <a
+      routerLink="/finance/reports"
+      routerLinkActive="active"
+      class="nav-tab"
+    >
+      <span class="tab-icon">📊</span>
+      <span>Financial Reports</span>
+    </a>
+  </nav>
+
+  <div class="finance-content">
+    <router-outlet></router-outlet>
+  </div>
+</section>

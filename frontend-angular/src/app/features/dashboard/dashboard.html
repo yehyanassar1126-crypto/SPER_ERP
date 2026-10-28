@@ -4,23 +4,61 @@
       <p class="eyebrow">ENTERPRISE OVERVIEW</p>
       <h1>Dashboard</h1>
       <p class="subtitle">
-        Welcome to SPER ERP. Your business overview starts here.
+        Real-time business performance indicators & system telemetry.
       </p>
     </div>
 
-    <span class="environment-tag">UI Preview</span>
+    <div class="welcome-actions">
+      <button
+        class="refresh-btn"
+        (click)="loadMetrics()"
+        [disabled]="isLoading()"
+        title="Refresh data from database"
+      >
+        <span class="refresh-icon" [class.spinning]="isLoading()">↻</span>
+        <span>{{ isLoading() ? 'Syncing...' : 'Refresh' }}</span>
+      </button>
+
+      <span
+        class="environment-tag"
+        [class.connected]="isSupabaseConnected()"
+        [class.disconnected]="!isSupabaseConnected()"
+      >
+        {{ isSupabaseConnected() ? 'Supabase Connected' : 'Config Required' }}
+      </span>
+    </div>
   </div>
 
+  @if (errorMessage()) {
+    <div class="alert-box error">
+      <span class="alert-icon">⚠</span>
+      <div>
+        <strong>Connection Notice:</strong>
+        <p>{{ errorMessage() }}</p>
+      </div>
+      <button class="retry-link" (click)="loadMetrics()">Retry</button>
+    </div>
+  }
+
+  <!-- Stats Grid -->
   <div class="stats-grid">
-    @for (stat of stats; track stat.label) {
-      <article class="stat-card">
+    @for (stat of stats(); track stat.label) {
+      <article class="stat-card" [class.is-loading]="isLoading()">
         <div class="stat-top">
           <span class="stat-label">{{ stat.label }}</span>
           <span class="stat-icon">{{ stat.icon }}</span>
         </div>
 
-        <div class="stat-value">{{ stat.value }}</div>
-        <p class="stat-note">{{ stat.note }}</p>
+        <div class="stat-value" [class.not-connected]="stat.status === 'not_connected'">
+          {{ isLoading() ? '...' : stat.value }}
+        </div>
+
+        <div class="stat-footer">
+          <p class="stat-note">{{ stat.note }}</p>
+          <span class="stat-status-badge {{ stat.status }}">
+            {{ stat.status === 'connected' ? 'Live' : stat.status === 'empty' ? 'Empty' : stat.status === 'error' ? 'Error' : 'Pending' }}
+          </span>
+        </div>
       </article>
     }
   </div>
@@ -29,33 +67,33 @@
     <article class="panel overview-panel">
       <div class="panel-heading">
         <div>
-          <h2>Business Overview</h2>
-          <p>Key operational areas</p>
+          <h2>Business Architecture</h2>
+          <p>Key operational domain status</p>
         </div>
-        <span class="preview-label">Preview</span>
+        <span class="preview-label">Live Scope</span>
       </div>
 
       <div class="overview-item">
         <span class="overview-symbol">HR</span>
         <div>
           <strong>Human Resources</strong>
-          <p>Employees, attendance and leave management</p>
+          <p>Employees registry, biometric attendance, and leave management</p>
         </div>
       </div>
 
       <div class="overview-item">
         <span class="overview-symbol">FN</span>
         <div>
-          <strong>Finance</strong>
-          <p>Payroll and financial operations</p>
+          <strong>Finance & Treasury</strong>
+          <p>Multi-stage payroll disbursement, operational expense claims, and cash safes</p>
         </div>
       </div>
 
       <div class="overview-item">
         <span class="overview-symbol">OP</span>
         <div>
-          <strong>Operations</strong>
-          <p>Inventory, manufacturing and maintenance</p>
+          <strong>Operations & Inventory</strong>
+          <p>Warehouse materials, inventory threshold alerts, and procurement requests</p>
         </div>
       </div>
     </article>
@@ -63,29 +101,35 @@
     <article class="panel system-panel">
       <div class="panel-heading">
         <div>
-          <h2>System Integration</h2>
-          <p>Current development status</p>
+          <h2>System Telemetry</h2>
+          <p>Last checked: {{ lastUpdatedText() }}</p>
         </div>
       </div>
 
       <div class="integration-row">
-        <span>Angular Frontend</span>
-        <span class="status-pill">Ready for UI work</span>
+        <span>Angular 22 Client</span>
+        <span class="status-pill">Operational</span>
       </div>
 
       <div class="integration-row">
-        <span>Supabase</span>
-        <span class="status-pill pending">Not connected yet</span>
+        <span>Supabase Integration</span>
+        <span
+          class="status-pill"
+          [class.connected]="isSupabaseConnected()"
+          [class.pending]="!isSupabaseConnected()"
+        >
+          {{ isSupabaseConnected() ? 'Connected' : 'Credentials Needed' }}
+        </span>
       </div>
 
       <div class="integration-row">
-        <span>IoT Attendance</span>
-        <span class="status-pill pending">Planned</span>
+        <span>Biometric IoT Stream</span>
+        <span class="status-pill pending">Planned (Hardware feed)</span>
       </div>
 
       <div class="integration-row">
-        <span>AI Services</span>
-        <span class="status-pill pending">Planned</span>
+        <span>AI Analytics Engine</span>
+        <span class="status-pill pending">Planned (API service)</span>
       </div>
     </article>
   </div>
