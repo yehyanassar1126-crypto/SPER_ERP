@@ -79,6 +79,91 @@
   font-size: 13px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.last-sync {
+  font-size: 11px;
+  color: #6b7280;
+  font-family: monospace;
+}
+
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    color: #111827;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.refresh-icon {
+  font-size: 14px;
+  line-height: 1;
+
+  &.spinning {
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.dashboard-banner {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 18px;
+
+  &.loading-banner {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &.error-banner {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+  }
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #93c5fd;
+  border-top-color: #1d4ed8;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
 .environment-tag,
 .preview-label {
   padding: 5px 8px;
@@ -138,8 +223,13 @@
 .panel {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 4%);
+  background: white;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 3%);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgb(15 23 42 / 6%);
+  }
 }
 
 .stat-card {
@@ -266,6 +356,11 @@
   gap: 12px;
   padding: 14px 0;
   border-top: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #fafafa;
+  }
 
   strong {
     color: #1f2937;
@@ -330,5 +425,9 @@
   }
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+  .stat-card,
+  .panel {
+    padding: 16px;
   }
 }

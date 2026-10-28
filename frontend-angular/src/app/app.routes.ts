@@ -12,6 +12,11 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard').then(m => m.Dashboard)
       },
       {
+        path: 'attendance',
+        loadChildren: () =>
+          import('./features/attendance/attendance.routes').then(m => m.ATTENDANCE_ROUTES)
+      },
+      {
         path: 'finance',
         loadComponent: () =>
           import('./features/finance/finance').then(m => m.Finance),

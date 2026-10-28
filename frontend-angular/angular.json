@@ -3,7 +3,7 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "analytics": "28113bce-0be3-4c2d-b086-82e96217c365"
+    "analytics": "c91cd511-09fc-4384-95e8-94a7ad485015"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -74,7 +74,10 @@
               "buildTarget": "frontend-angular:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          }
         },
         "test": {
           "builder": "@angular/build:unit-test"

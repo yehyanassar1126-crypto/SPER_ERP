@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "node run-ng.js",
-    "start": "node run-ng.js serve",
+    "start": "node run-ng.js serve --proxy-config proxy.conf.json",
     "build": "node run-ng.js build",
     "watch": "node run-ng.js build --watch --configuration development",
     "test": "ng test"
