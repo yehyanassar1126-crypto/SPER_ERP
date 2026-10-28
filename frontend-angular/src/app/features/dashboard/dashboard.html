@@ -9,24 +9,31 @@
     </div>
 
     <div class="header-actions">
-      @if (lastUpdated()) {
-        <span class="last-sync">Updated: {{ lastUpdated() }}</span>
+      @if (lastUpdatedText()) {
+        <span class="last-sync">Updated: {{ lastUpdatedText() }}</span>
       }
       <button
         type="button"
         class="refresh-btn"
-        (click)="loadDashboardData()"
-        [disabled]="loading()"
+        (click)="loadMetrics()"
+        [disabled]="isLoading()"
         title="Refresh live Supabase statistics"
       >
-        <span class="refresh-icon" [class.spinning]="loading()">↻</span>
-        <span>Refresh</span>
+        <span class="refresh-icon" [class.spinning]="isLoading()">↻</span>
+        <span>{{ isLoading() ? 'Syncing...' : 'Refresh' }}</span>
       </button>
-      <span class="environment-tag">Live Supabase</span>
+
+      <span
+        class="environment-tag"
+        [class.connected]="isSupabaseConnected()"
+        [class.disconnected]="!isSupabaseConnected()"
+      >
+        {{ isSupabaseConnected() ? 'Live Supabase' : 'Config Required' }}
+      </span>
     </div>
   </div>
 
-  @if (loading()) {
+  @if (isLoading()) {
     <div class="dashboard-banner loading-banner">
       <span class="spinner"></span> Loading real-time statistics from Supabase...
     </div>
@@ -34,25 +41,37 @@
 
   @if (errorMessage()) {
     <div class="dashboard-banner error-banner">
-      ⚠️ Supabase Error: {{ errorMessage() }}
+      ⚠️ Connection Notice: {{ errorMessage() }}
     </div>
   }
 
+  <!-- Stats Grid -->
   <div class="stats-grid">
     @for (stat of stats(); track stat.label) {
       <article
         class="stat-card"
-        [routerLink]="stat.label === 'Attendance Today' ? '/attendance' : null"
-        [style.cursor]="stat.label === 'Attendance Today' ? 'pointer' : 'default'"
-        [title]="stat.label === 'Attendance Today' ? 'Click to open Attendance Module' : ''"
+        [class.is-loading]="isLoading()"
+        [routerLink]="stat.link || null"
+        [style.cursor]="stat.link ? 'pointer' : 'default'"
+        [title]="stat.link ? 'Click to open details' : ''"
       >
         <div class="stat-top">
           <span class="stat-label">{{ stat.label }}</span>
           <span class="stat-icon">{{ stat.icon }}</span>
         </div>
 
-        <div class="stat-value">{{ stat.value }}</div>
-        <p class="stat-note">{{ stat.note }}</p>
+        <div class="stat-value" [class.not-connected]="stat.status === 'not_connected'">
+          {{ isLoading() ? '...' : stat.value }}
+        </div>
+
+        <div class="stat-footer">
+          <p class="stat-note">{{ stat.note }}</p>
+          @if (stat.status) {
+            <span class="stat-status-badge {{ stat.status }}">
+              {{ stat.status === 'connected' ? 'Live' : stat.status === 'empty' ? 'Empty' : stat.status === 'error' ? 'Error' : 'Pending' }}
+            </span>
+          }
+        </div>
       </article>
     }
   </div>
@@ -61,8 +80,8 @@
     <article class="panel overview-panel">
       <div class="panel-heading">
         <div>
-          <h2>Business Overview</h2>
-          <p>Key operational areas</p>
+          <h2>Business Architecture</h2>
+          <p>Key operational domain status</p>
         </div>
         <span class="preview-label">Live</span>
       </div>
@@ -75,19 +94,19 @@
         </div>
       </div>
 
-      <div class="overview-item">
+      <div class="overview-item" routerLink="/finance" style="cursor: pointer;" title="Open Finance Module">
         <span class="overview-symbol">FN</span>
         <div>
-          <strong>Finance</strong>
-          <p>Payroll and financial operations</p>
+          <strong>Finance & Treasury</strong>
+          <p>Multi-stage payroll disbursement, operational expense claims, and cash safes &rarr;</p>
         </div>
       </div>
 
       <div class="overview-item">
         <span class="overview-symbol">OP</span>
         <div>
-          <strong>Operations</strong>
-          <p>Inventory, manufacturing and maintenance</p>
+          <strong>Operations & Inventory</strong>
+          <p>Warehouse materials, inventory threshold alerts, and procurement requests</p>
         </div>
       </div>
     </article>
@@ -95,19 +114,25 @@
     <article class="panel system-panel">
       <div class="panel-heading">
         <div>
-          <h2>System Integration</h2>
-          <p>Current development status</p>
+          <h2>System Telemetry</h2>
+          <p>Last checked: {{ lastUpdatedText() }}</p>
         </div>
       </div>
 
       <div class="integration-row">
-        <span>Angular Frontend</span>
+        <span>Angular 22 Client</span>
         <span class="status-pill">Ready</span>
       </div>
 
       <div class="integration-row">
-        <span>Supabase</span>
-        <span class="status-pill" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">Connected (Live)</span>
+        <span>Supabase Integration</span>
+        <span
+          class="status-pill"
+          [style.background]="isSupabaseConnected() ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'"
+          [style.color]="isSupabaseConnected() ? '#22c55e' : '#ef4444'"
+        >
+          {{ isSupabaseConnected() ? 'Connected (Live)' : 'Credentials Needed' }}
+        </span>
       </div>
 
       <div class="integration-row">

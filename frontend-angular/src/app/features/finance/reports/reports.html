@@ -1,0 +1,144 @@
+<div class="reports-view">
+  <div class="header-row">
+    <div>
+      <h2>Financial Statements & Intelligence</h2>
+      <p class="subtitle">Strictly computed from verified ledger and claims records. Unverified data is clearly flagged.</p>
+    </div>
+    <button class="btn btn-secondary" (click)="loadReports()" [disabled]="isLoading()">
+      Sync Ledger
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert-box error">
+      <span>⚠</span>
+      <p>{{ errorMessage() }}</p>
+    </div>
+  }
+
+  <!-- Data Notes & Warnings -->
+  @if (summary()?.notes?.length) {
+    <div class="notice-card">
+      <div class="notice-title">Database Verification Notice:</div>
+      <ul>
+        @for (note of summary()!.notes; track note) {
+          <li>{{ note }}</li>
+        }
+      </ul>
+    </div>
+  }
+
+  <!-- Financial KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Verified Revenue</span>
+      @if (summary()?.revenueStatus === 'connected') {
+        <strong class="kpi-value text-green">EGP {{ summary()!.totalRevenue.toLocaleString() }}</strong>
+        <small class="kpi-sub">Sales invoices</small>
+      } @else {
+        <strong class="kpi-value text-muted">Unverified</strong>
+        <small class="kpi-sub">Invoices table not connected</small>
+      }
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-label">Approved Expenses</span>
+      @if (summary()?.expensesStatus === 'connected' || summary()?.expensesStatus === 'empty') {
+        <strong class="kpi-value text-red">EGP {{ summary()!.totalExpenses.toLocaleString() }}</strong>
+        <small class="kpi-sub">Approved operational claims</small>
+      } @else {
+        <strong class="kpi-value text-muted">Unavailable</strong>
+        <small class="kpi-sub">Expenses table offline</small>
+      }
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-label">Payroll Commitment</span>
+      @if (summary()?.payrollStatus === 'connected' || summary()?.payrollStatus === 'empty') {
+        <strong class="kpi-value text-amber">EGP {{ summary()!.totalPayroll.toLocaleString() }}</strong>
+        <small class="kpi-sub">Total recorded net salaries</small>
+      } @else {
+        <strong class="kpi-value text-muted">Unavailable</strong>
+        <small class="kpi-sub">Payroll table offline</small>
+      }
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-label">Cash & Treasury</span>
+      @if (summary()?.treasuryStatus === 'connected') {
+        <strong class="kpi-value text-blue">EGP {{ summary()!.totalLiquidity.toLocaleString() }}</strong>
+        <small class="kpi-sub">Safes & bank balances</small>
+      } @else {
+        <strong class="kpi-value text-muted">Awaiting Schema</strong>
+        <small class="kpi-sub">Safes schema pending migration</small>
+      }
+    </div>
+  </div>
+
+  <!-- Operational Outlay Breakdown -->
+  <div class="breakdown-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <h3>Operational Expenses by Category</h3>
+        <p>Distribution of approved expense reimbursements</p>
+      </div>
+
+      @if (expenseBreakdown().length === 0) {
+        <div class="empty-panel">
+          <p>No approved expenses recorded to compute category distribution.</p>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Claims Count</th>
+              <th>Total Outlay</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of expenseBreakdown(); track item.category) {
+              <tr>
+                <td><strong>{{ item.category }}</strong></td>
+                <td>{{ item.count }}</td>
+                <td>EGP {{ item.totalAmount.toLocaleString() }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3>Executive Operating Summary</h3>
+        <p>Formula: Verified Revenue - (Approved Expenses + Net Payroll)</p>
+      </div>
+
+      <div class="pnl-summary-box">
+        <div class="pnl-row">
+          <span>Gross Revenue</span>
+          <strong>EGP {{ summary()?.totalRevenue?.toLocaleString() || '0' }}</strong>
+        </div>
+        <div class="pnl-row text-red">
+          <span>Less: Operational Claims</span>
+          <span>- EGP {{ summary()?.totalExpenses?.toLocaleString() || '0' }}</span>
+        </div>
+        <div class="pnl-row text-red">
+          <span>Less: Payroll Outflow</span>
+          <span>- EGP {{ summary()?.totalPayroll?.toLocaleString() || '0' }}</span>
+        </div>
+        <hr />
+        <div class="pnl-row net-row">
+          <span>Net Operating Result</span>
+          <strong [class.text-green]="(summary()?.netOperatingResult || 0) >= 0" [class.text-red]="(summary()?.netOperatingResult || 0) < 0">
+            EGP {{ summary()?.netOperatingResult?.toLocaleString() || '0' }}
+          </strong>
+        </div>
+      </div>
+      <p class="panel-disclaimer">
+        * Note: Depreciation, asset amortization, and tax liabilities require verified accounting table deployment before inclusion in formal P&L statements.
+      </p>
+    </div>
+  </div>
+</div>
