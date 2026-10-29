@@ -1,0 +1,147 @@
+
+<section class="inventory-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">WAREHOUSE MANAGEMENT</p>
+      <h1>Inventory</h1>
+      <p class="subtitle">
+        Monitor stock levels and inventory items.
+      </p>
+    </div>
+
+    <button
+      class="refresh-button"
+      (click)="loadItems()"
+      [disabled]="loading"
+    >
+      {{ loading ? 'Loading...' : 'Refresh Data' }}
+    </button>
+  </header>
+
+  @if (errorMessage) {
+    <div class="error-message" role="alert">
+      <strong>Unable to load inventory</strong>
+      <p>{{ errorMessage }}</p>
+      <p>Check the Supabase connection and database permissions.</p>
+    </div>
+  }
+
+  <div class="stats-grid">
+    <article class="stat-card">
+      <span>Total Items</span>
+      <strong>{{ items.length }}</strong>
+    </article>
+
+    <article class="stat-card">
+      <span>Total Units</span>
+      <strong>{{ totalQuantity }}</strong>
+    </article>
+
+    <article class="stat-card warning-card">
+      <span>Low Stock Items</span>
+      <strong>{{ lowStockCount }}</strong>
+    </article>
+  </div>
+
+  <section class="table-card">
+    <div class="table-header">
+      <div>
+        <h2>Inventory Items</h2>
+        <p>Current quantities and minimum stock levels</p>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <div class="search-field">
+        <label for="inventory-search">Search items</label>
+        <input
+  id="inventory-search"
+  type="search"
+  placeholder="Search by item or supplier..."
+  [value]="searchTerm"
+  (input)="onSearch($event)"
+/>
+      </div>
+
+      <div class="filter-field">
+        <label for="category-filter">Category</label>
+        <select
+          id="category-filter"
+          [value]="selectedCategory"
+          (change)="selectedCategory = $any($event.target).value"
+        >
+          @for (category of categories; track category) {
+            <option [value]="category">{{ category }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="status-filter">Stock Status</label>
+        <select
+          id="status-filter"
+          [value]="selectedStatus"
+          (change)="selectedStatus = $any($event.target).value"
+        >
+          @for (status of statuses; track status) {
+            <option [value]="status">{{ status }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (loading) {
+      <div class="empty-state">Loading inventory data...</div>
+    } @else if (errorMessage) {
+      <div class="empty-state">
+        Inventory data could not be loaded.
+      </div>
+    } @else if (filteredItems.length === 0) {
+      <div class="empty-state">
+        No matching inventory items found.
+      </div>
+    } @else {
+      <div class="results-count">
+        Showing {{ filteredItems.length }} of {{ items.length }} items
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Item Name</th>
+              <th>Category</th>
+              <th>Quantity</th>
+              <th>Minimum</th>
+              <th>Last Purchase Price</th>
+              <th>Supplier</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (item of filteredItems; track item.id) {
+              <tr>
+                <td class="item-name">{{ item.name }}</td>
+                <td>{{ item.category }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.min_quantity }}</td>
+                <td>
+                  {{ item.last_purchase_price | currency:'EGP':'symbol':'1.2-2' }}
+                </td>
+                <td>{{ item.supplier_name || '—' }}</td>
+                <td>
+                  @if (isLowStock(item)) {
+                    <span class="status low">Low Stock</span>
+                  } @else {
+                    <span class="status healthy">In Stock</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</section>
