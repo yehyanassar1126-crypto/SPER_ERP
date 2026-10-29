@@ -4,31 +4,74 @@
       <p class="eyebrow">ENTERPRISE OVERVIEW</p>
       <h1>Dashboard</h1>
       <p class="subtitle">
-        Welcome to SPER ERP. Your business overview starts here.
+        Welcome to SPER ERP. Live business insights directly connected to Supabase.
       </p>
     </div>
-  
-@if (loading) {
-  <p>Loading dashboard...</p>
-}
 
-@if (errorMessage) {
-  <p style="color: red;">Error: {{ errorMessage }}</p>
-}
+    <div class="header-actions">
+      @if (lastUpdatedText()) {
+        <span class="last-sync">Updated: {{ lastUpdatedText() }}</span>
+      }
+      <button
+        type="button"
+        class="refresh-btn"
+        (click)="loadMetrics()"
+        [disabled]="isLoading()"
+        title="Refresh live Supabase statistics"
+      >
+        <span class="refresh-icon" [class.spinning]="isLoading()">↻</span>
+        <span>{{ isLoading() ? 'Syncing...' : 'Refresh' }}</span>
+      </button>
 
-    <span class="environment-tag">UI Preview</span>
+      <span
+        class="environment-tag"
+        [class.connected]="isSupabaseConnected()"
+        [class.disconnected]="!isSupabaseConnected()"
+      >
+        {{ isSupabaseConnected() ? 'Live Supabase' : 'Config Required' }}
+      </span>
+    </div>
   </div>
 
+  @if (isLoading()) {
+    <div class="dashboard-banner loading-banner">
+      <span class="spinner"></span> Loading real-time statistics from Supabase...
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="dashboard-banner error-banner">
+      ⚠️ Connection Notice: {{ errorMessage() }}
+    </div>
+  }
+
+  <!-- Stats Grid -->
   <div class="stats-grid">
-    @for (stat of stats; track stat.label) {
-      <article class="stat-card">
+    @for (stat of stats(); track stat.label) {
+      <article
+        class="stat-card"
+        [class.is-loading]="isLoading()"
+        [routerLink]="stat.link || null"
+        [style.cursor]="stat.link ? 'pointer' : 'default'"
+        [title]="stat.link ? 'Click to open details' : ''"
+      >
         <div class="stat-top">
           <span class="stat-label">{{ stat.label }}</span>
           <span class="stat-icon">{{ stat.icon }}</span>
         </div>
 
-        <div class="stat-value">{{ stat.value }}</div>
-        <p class="stat-note">{{ stat.note }}</p>
+        <div class="stat-value" [class.not-connected]="stat.status === 'not_connected'">
+          {{ isLoading() ? '...' : stat.value }}
+        </div>
+
+        <div class="stat-footer">
+          <p class="stat-note">{{ stat.note }}</p>
+          @if (stat.status) {
+            <span class="stat-status-badge {{ stat.status }}">
+              {{ stat.status === 'connected' ? 'Live' : stat.status === 'empty' ? 'Empty' : stat.status === 'error' ? 'Error' : 'Pending' }}
+            </span>
+          }
+        </div>
       </article>
     }
   </div>
@@ -37,33 +80,33 @@
     <article class="panel overview-panel">
       <div class="panel-heading">
         <div>
-          <h2>Business Overview</h2>
-          <p>Key operational areas</p>
+          <h2>Business Architecture</h2>
+          <p>Key operational domain status</p>
         </div>
-        <span class="preview-label">Preview</span>
+        <span class="preview-label">Live</span>
       </div>
 
-      <div class="overview-item">
+      <div class="overview-item" routerLink="/attendance" style="cursor: pointer;" title="Open Attendance Module">
         <span class="overview-symbol">HR</span>
         <div>
-          <strong>Human Resources</strong>
-          <p>Employees, attendance and leave management</p>
+          <strong>Human Resources & Attendance</strong>
+          <p>Live QR Station, Scanner, Geofencing & Leave Management &rarr;</p>
         </div>
       </div>
 
-      <div class="overview-item">
+      <div class="overview-item" routerLink="/finance" style="cursor: pointer;" title="Open Finance Module">
         <span class="overview-symbol">FN</span>
         <div>
-          <strong>Finance</strong>
-          <p>Payroll and financial operations</p>
+          <strong>Finance & Treasury</strong>
+          <p>Multi-stage payroll disbursement, operational expense claims, and cash safes &rarr;</p>
         </div>
       </div>
 
       <div class="overview-item">
         <span class="overview-symbol">OP</span>
         <div>
-          <strong>Operations</strong>
-          <p>Inventory, manufacturing and maintenance</p>
+          <strong>Operations & Inventory</strong>
+          <p>Warehouse materials, inventory threshold alerts, and procurement requests</p>
         </div>
       </div>
     </article>
@@ -71,29 +114,37 @@
     <article class="panel system-panel">
       <div class="panel-heading">
         <div>
-          <h2>System Integration</h2>
-          <p>Current development status</p>
+          <h2>System Telemetry</h2>
+          <p>Last checked: {{ lastUpdatedText() }}</p>
         </div>
       </div>
 
       <div class="integration-row">
-        <span>Angular Frontend</span>
-        <span class="status-pill">Ready for UI work</span>
+        <span>Angular 22 Client</span>
+        <span class="status-pill">Ready</span>
       </div>
 
       <div class="integration-row">
-        <span>Supabase</span>
-        <span class="status-pill pending">Not connected yet</span>
+        <span>Supabase Integration</span>
+        <span
+          class="status-pill"
+          [style.background]="isSupabaseConnected() ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'"
+          [style.color]="isSupabaseConnected() ? '#22c55e' : '#ef4444'"
+        >
+          {{ isSupabaseConnected() ? 'Connected (Live)' : 'Credentials Needed' }}
+        </span>
       </div>
 
       <div class="integration-row">
-        <span>IoT Attendance</span>
-        <span class="status-pill pending">Planned</span>
+        <span>IoT Attendance & QR</span>
+        <a routerLink="/attendance" class="status-pill" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; text-decoration: none; cursor: pointer;">
+          Active &rarr;
+        </a>
       </div>
 
       <div class="integration-row">
-        <span>AI Services</span>
-        <span class="status-pill pending">Planned</span>
+        <span>Realtime Sync</span>
+        <span class="status-pill" style="background: rgba(16, 185, 129, 0.15); color: #059669;">Subscribed</span>
       </div>
     </article>
   </div>

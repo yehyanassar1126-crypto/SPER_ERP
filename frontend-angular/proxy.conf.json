@@ -1,0 +1,14 @@
+{
+  "/api/supabase": {
+    "target": "https://ygquwwjbdorofqdnwdrr.supabase.co",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api/supabase": "/rest/v1"
+    },
+    "headers": {
+      "apikey": "sb_publishable_bH1jFjG9uoy2i0i5c2jMbw_cFasQnyr",
+      "Authorization": "Bearer sb_publishable_bH1jFjG9uoy2i0i5c2jMbw_cFasQnyr"
+    }
+  }
+}

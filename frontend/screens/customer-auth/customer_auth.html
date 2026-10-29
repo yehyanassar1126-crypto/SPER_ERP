@@ -187,7 +187,7 @@
         </div>
         <div class="form-group">
           <label class="form-label"><i class="fa-solid fa-lock"></i> كلمة المرور *</label>
-          <div class="input-wrapper"><i class="fa-solid fa-key input-icon"></i><input type="password" id="reg-password" class="form-input" placeholder="أنشئ كلمة مرور" required minlength="4"></div>
+          <div class="input-wrapper"><i class="fa-solid fa-key input-icon"></i><input type="password" id="reg-password" class="form-input" placeholder="Aa1!xxxx - كلمة مرور قوية" required minlength="8"></div>
         </div>
         <button type="submit" class="btn btn-primary" id="btn-register"><i class="fa-solid fa-user-plus"></i> إنشاء الحساب والدخول</button>
       </form>
@@ -263,6 +263,18 @@
       var username = document.getElementById('reg-username').value.trim();
       var password = document.getElementById('reg-password').value.trim();
       if (!company||!contact||!phone||!username||!password) { Swal.fire({icon:'warning',title:'حقول ناقصة',text:'ادخل جميع الحقول',confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
+      // Name validation
+      if (contact.length < 3 || /[0-9!@#$%^&*()_+=\[\]{};':"\\|,.<>\/?~`]/.test(contact) || contact.trim().split(/\s+/).length < 2) { Swal.fire({icon:'warning',title:'اسم غير صالح',text:'يرجى إدخال الاسم الحقيقي الكامل (الاسم الأول والأخير) بدون أرقام أو رموز',confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
+      // Email validation
+      if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(username)) { Swal.fire({icon:'warning',title:'إيميل غير صالح',text:'يرجى إدخال بريد إلكتروني حقيقي',confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
+      // Strong password validation
+      var pwdErrors = [];
+      if (password.length < 8) pwdErrors.push('٨ حروف على الأقل');
+      if (!/[A-Z]/.test(password)) pwdErrors.push('حرف كبير');
+      if (!/[a-z]/.test(password)) pwdErrors.push('حرف صغير');
+      if (!/[0-9]/.test(password)) pwdErrors.push('رقم');
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) pwdErrors.push('رمز خاص مثل !@#$%');
+      if (pwdErrors.length > 0) { Swal.fire({icon:'warning',title:'كلمة المرور ضعيفة',html:'كلمة المرور لازم تحتوي على:<br>' + pwdErrors.join('<br>'),confirmButtonColor:'#00f2fe',background:'#111827',color:'#fff'}); return; }
       if (!window.sbClient) { Swal.fire({icon:'error',title:'خطأ',text:'أعد تحميل الصفحة',confirmButtonColor:'#ef4444',background:'#111827',color:'#fff'}); return; }
 
       var btn = document.getElementById('btn-register');
