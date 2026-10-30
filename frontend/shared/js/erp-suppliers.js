@@ -231,6 +231,8 @@ window.ERPSuppliers = {
         var contact = document.getElementById('sup-contact').value.trim();
 
         if (!comp || !email || !pass) return alert('يرجى ملء البيانات المطلوبة: اسم الشركة، اسم المستخدم، وكلمة المرور');
+        var passErrors = validateStrongPassword(pass);
+        if (passErrors.length > 0) return alert('⚠️ كلمة المرور ضعيفة:\n' + passErrors.join('\n'));
 
         var btn = this;
         var oldTxt = btn.innerHTML;

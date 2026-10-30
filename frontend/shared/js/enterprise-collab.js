@@ -268,6 +268,36 @@ Pages.internalChat = function(el) {
   };
 
   loadChannels();
+
+  // ===== REALTIME: auto-receive new messages =====
+  var chatRealtimeSub = sbClient.channel('chat-messages-realtime')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, function(payload) {
+      var newMsg = payload.new;
+      // Only update if we're viewing the channel this message belongs to
+      if (newMsg && newMsg.channel_id === activeChannel) {
+        // Avoid duplicates
+        var exists = messages.some(function(m) { return m.id === newMsg.id; });
+        if (!exists) {
+          messages.push(newMsg);
+          var msgBox = document.getElementById('chat-messages');
+          if (msgBox) {
+            var isMine = newMsg.sender_id === userId;
+            var msgHtml = '<div style="display:flex;justify-content:' + (isMine ? 'flex-end' : 'flex-start') + '">';
+            msgHtml += '<div style="max-width:70%;padding:10px 14px;border-radius:12px;background:' + (isMine ? 'var(--accent-primary)' : 'var(--bg-tertiary)') + ';color:' + (isMine ? '#fff' : 'var(--text-primary)') + '">';
+            if (!isMine) msgHtml += '<div style="font-size:0.7rem;font-weight:700;margin-bottom:4px;opacity:0.7">' + (newMsg.sender_name || 'User') + '</div>';
+            msgHtml += '<div style="font-size:0.9rem">' + newMsg.message + '</div>';
+            msgHtml += '<div style="font-size:0.65rem;margin-top:4px;opacity:0.6;text-align:right">' + new Date(newMsg.created_at).toLocaleTimeString('en', {hour:'2-digit',minute:'2-digit'}) + '</div>';
+            msgHtml += '</div></div>';
+            // Remove 'no messages' placeholder if present
+            var noMsg = msgBox.querySelector('[style*="text-align:center"][style*="padding:40px"]');
+            if (noMsg) noMsg.remove();
+            msgBox.insertAdjacentHTML('beforeend', msgHtml);
+            msgBox.scrollTop = msgBox.scrollHeight;
+          }
+        }
+      }
+    })
+    .subscribe();
 };
 
 // ==========================================
