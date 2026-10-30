@@ -1,0 +1,152 @@
+<div class="payroll-view">
+  <!-- Top KPI Bar -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <span class="kpi-label">Total Outlay</span>
+      <strong class="kpi-value">EGP {{ stats().totalNet.toLocaleString() }}</strong>
+      <small class="kpi-sub">{{ stats().count }} payroll slip(s)</small>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Processing</span>
+      <strong class="kpi-value text-amber">{{ stats().processingCount }}</strong>
+      <small class="kpi-sub">Awaiting release</small>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Funds Released</span>
+      <strong class="kpi-value text-blue">{{ stats().releasedCount }}</strong>
+      <small class="kpi-sub">Transferred to HR</small>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Disbursed</span>
+      <strong class="kpi-value text-green">{{ stats().paidCount }}</strong>
+      <small class="kpi-sub">Paid to employees</small>
+    </div>
+  </div>
+
+  <!-- Action & Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-controls">
+      <input
+        type="text"
+        class="form-input search-input"
+        placeholder="Search employee or department..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+      />
+
+      <select
+        class="form-select"
+        [ngModel]="selectedMonth()"
+        (ngModelChange)="selectedMonth.set($event)"
+      >
+        <option value="all">All Pay Periods</option>
+        @for (m of availableMonths(); track m) {
+          <option [value]="m">{{ m }}</option>
+        }
+      </select>
+
+      <select
+        class="form-select"
+        [ngModel]="selectedStatus()"
+        (ngModelChange)="selectedStatus.set($event)"
+      >
+        <option value="all">All Statuses</option>
+        <option value="processing">Processing</option>
+        <option value="funds_released">Funds Released</option>
+        <option value="paid">Paid</option>
+      </select>
+    </div>
+
+    <div class="action-buttons">
+      @if (stats().processingCount > 0 && selectedMonth() !== 'all') {
+        <button class="btn btn-warning" (click)="bulkRelease()">
+          Release Month Funds ({{ stats().processingCount }})
+        </button>
+      }
+      <button class="btn btn-secondary" (click)="loadPayroll()" [disabled]="isLoading()">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert-box success">
+      <span>✓</span>
+      <p>{{ successMessage() }}</p>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert-box error">
+      <span>⚠</span>
+      <p>{{ errorMessage() }}</p>
+    </div>
+  }
+
+  <!-- Data Table -->
+  <div class="table-container">
+    @if (isLoading()) {
+      <div class="loading-state">
+        <span class="spinner"></span>
+        <p>Loading payroll records...</p>
+      </div>
+    } @else if (filteredRecords().length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">💰</span>
+        <h3>No payroll records found</h3>
+        <p>No records match your filters or no payroll slips have been generated yet.</p>
+      </div>
+    } @else {
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Month</th>
+            <th>Base Salary</th>
+            <th>Additions</th>
+            <th>Deductions</th>
+            <th>Net Salary</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of filteredRecords(); track row.id) {
+            <tr>
+              <td>
+                <strong>{{ row.employee_name }}</strong>
+              </td>
+              <td>{{ row.department }}</td>
+              <td><span class="month-pill">{{ row.month }}</span></td>
+              <td>EGP {{ row.base_salary.toLocaleString() }}</td>
+              <td class="text-green">+EGP {{ (row.overtime_pay + row.bonuses).toLocaleString() }}</td>
+              <td class="text-red">-EGP {{ (row.penalties + row.late_deductions + row.absence_deductions).toLocaleString() }}</td>
+              <td>
+                <strong>EGP {{ row.net_salary.toLocaleString() }}</strong>
+              </td>
+              <td>
+                <span class="status-badge {{ row.status }}">
+                  {{ row.status === 'funds_released' ? 'Released' : row.status }}
+                </span>
+              </td>
+              <td>
+                @if (row.status === 'processing') {
+                  <button class="btn btn-xs btn-outline-warning" (click)="releaseFunds(row.id)">
+                    Release
+                  </button>
+                } @else if (row.status === 'funds_released') {
+                  <button class="btn btn-xs btn-success" (click)="markPaid(row.id)">
+                    Disburse
+                  </button>
+                } @else {
+                  <span class="paid-check">✓ Paid</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>
