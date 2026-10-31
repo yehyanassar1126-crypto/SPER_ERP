@@ -1,41 +1,102 @@
 :host {
-  display: block;
-  min-height: 100vh;
+display: block;
+min-height: 100vh;
 }
 
 .app-shell {
-  display: flex;
-  min-height: 100vh;
-  background: #f8fafc;
+display: flex;
+min-height: 100vh;
+background: #f8fafc;
 }
 
 app-sidebar {
-  position: sticky;
-  top: 0;
-  flex: 0 0 250px;
-  height: 100vh;
+position: sticky;
+top: 0;
+flex: 0 0 250px;
+width: 250px;
+height: 100vh;
+z-index: 1000;
 }
 
 .main-column {
-  flex: 1;
-  min-width: 0;
+flex: 1;
+min-width: 0;
+}
+
+.mobile-header {
+display: contents;
 }
 
 .page-content {
-  padding: 32px;
+padding: 32px;
+}
+
+.mobile-menu-button,
+.sidebar-overlay {
+display: none;
 }
 
 @media (max-width: 700px) {
-  .app-shell {
-    display: block;
-  }
+.app-shell {
+display: block;
+}
 
-  app-sidebar {
-    position: static;
-    height: auto;
-  }
+app-sidebar {
+position: fixed;
+top: 0;
+left: 0;
+width: 250px;
+height: 100dvh;
+transform: translateX(-100%);
+transition: transform 0.25s ease;
+z-index: 1001;
+}
 
-  .page-content {
-    padding: 18px;
-  }
+app-sidebar.sidebar-open {
+transform: translateX(0);
+}
+
+.mobile-header {
+display: flex;
+align-items: center;
+gap: 8px;
+min-height: 64px;
+background: white;
+border-bottom: 1px solid #e5e7eb;
+}
+
+.mobile-menu-button {
+display: inline-flex;
+flex-shrink: 0;
+align-items: center;
+justify-content: center;
+width: 42px;
+height: 42px;
+margin-left: 12px;
+border: 1px solid #e5e7eb;
+border-radius: 9px;
+background: white;
+font-size: 20px;
+cursor: pointer;
+}
+
+.mobile-header app-navbar {
+flex: 1;
+min-width: 0;
+}
+
+.sidebar-overlay {
+display: block;
+position: fixed;
+inset: 0;
+width: 100%;
+height: 100%;
+border: 0;
+background: rgba(15, 23, 42, 0.5);
+z-index: 1000;
+}
+
+.page-content {
+padding: 18px 14px;
+}
 }
