@@ -7,7 +7,7 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: 250px;
+  width: var(--layout-sidebar-width);
   height: 100%;
   padding: 24px 16px;
   background: var(--layout-sidebar-bg);
@@ -108,3 +108,4 @@
   border-radius: 50%;
   background: #f59e0b;
 }
+
