@@ -1,4 +1,4 @@
-<aside class="sidebar">
+﻿<aside class="sidebar">
   <a class="brand" routerLink="/dashboard">
     <span class="brand-logo">S</span>
     <span class="brand-text">
@@ -15,7 +15,7 @@
         class="menu-item"
         [routerLink]="item.route"
         routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }"
+        [routerLinkActiveOptions]="{ exact: false }"
       >
         <span class="menu-icon">{{ item.icon }}</span>
         <span>{{ item.label }}</span>
