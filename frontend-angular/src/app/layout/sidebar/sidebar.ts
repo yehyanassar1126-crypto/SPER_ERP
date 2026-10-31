@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
@@ -10,13 +10,13 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 })
 export class Sidebar {
   readonly menuItems = [
-    { label: 'Dashboard', icon: '◫', route: '/dashboard' },
-    { label: 'Employees', icon: '♙', route: '/employees' },
-    { label: 'Attendance', icon: '◷', route: '/attendance' },
-    { label: 'Finance', icon: '＄', route: '/finance' },
-    { label: 'Inventory', icon: '▤', route: '/inventory' },
-    { label: 'Manufacturing', icon: '⚙', route: '/manufacturing' },
+    { label: 'Dashboard', icon: '📊', route: '/dashboard' },
+    { label: 'Employees', icon: '👥', route: '/employees' },
+    { label: 'Attendance', icon: '🕒', route: '/attendance' },
+    { label: 'Finance', icon: '💰', route: '/finance' },
+    { label: 'Inventory', icon: '📦', route: '/inventory' },
+    { label: 'Manufacturing', icon: '⚙️', route: '/manufacturing' },
     { label: 'Maintenance', icon: '🔧', route: '/maintenance' },
-    { label: 'AI Insights', icon: '✧', route: '/ai' }
+    { label: 'AI Insights', icon: '✨', route: '/ai' }
   ];
 }
