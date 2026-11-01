@@ -1,0 +1,64 @@
+<div class="login-wrapper">
+  <div class="login-card">
+
+    <!-- Avatar Icon Circle Overlay -->
+    <div class="avatar-circle">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+      </svg>
+    </div>
+
+    <!-- Login Form -->
+    <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+
+      <!-- Username Input -->
+      <div class="custom-input-group">
+        <div class="input-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        </div>
+        <input
+          type="text"
+          [(ngModel)]="username"
+          name="username"
+          placeholder="Username"
+          required>
+      </div>
+
+      <!-- Password Input -->
+      <div class="custom-input-group">
+        <div class="input-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+          </svg>
+        </div>
+        <input
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="••••••••••••"
+          required>
+      </div>
+
+      <!-- Remember Me & Forgot Password -->
+      <div class="form-options">
+        <label class="remember-me">
+          <input type="checkbox">
+          <span>Remember me</span>
+        </label>
+        <a href="javascript:void(0)" class="forgot-pass">Forgot Password?</a>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn-login" [disabled]="loading || !loginForm.form.valid">
+        {{ loading ? 'LOGGING IN...' : 'LOGIN' }}
+      </button>
+
+      <!-- Error Message -->
+      <div *ngIf="errorMessage" class="error-msg">
+        {{ errorMessage }}
+      </div>
+    </form>
+  </div>
+</div>

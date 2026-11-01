@@ -11,7 +11,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 export class Sidebar {
   readonly menuItems = [
     { label: 'Dashboard', icon: '◫', route: '/dashboard' },
-    { label: 'Employees', icon: '♙', route: '/employees' },
+   { label: 'Employees', icon: '👤', route: '/employees' },
     { label: 'Attendance', icon: '◷', route: '/attendance' },
     { label: 'Finance', icon: '＄', route: '/finance' },
     { label: 'Inventory', icon: '▤', route: '/inventory' },
