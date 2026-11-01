@@ -1,14 +1,12 @@
 export interface Employee {
   id?: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
+  name?: string;
+  full_name?: string;
+  email?: string;
   department?: string;
   position?: string;
+  role?: string;
   salary?: number;
-  hire_date?: string;
-  created_at?: string;
+  status?: string;
+  [key: string]: any;
 }
-
-
