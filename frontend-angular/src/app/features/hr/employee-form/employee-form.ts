@@ -1,81 +1,77 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { Observable } from 'rxjs';
+import { FormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { EmployeeService } from '../../../core/services/employee';
+import { Employee } from '../../../core/models/employee.model';
 
 @Component({
   selector: 'app-employee-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './employee-form.html',
-  styleUrl: './employee-form.scss'
+  styleUrls: ['./employee-form.scss']
 })
 export class EmployeeFormComponent implements OnInit {
-  employeeForm!: FormGroup;
   isEditMode = false;
   employeeId: string | null = null;
-  loading$!: Observable<boolean>;
-  error$!: Observable<string | null>;
+  loading = false;
+  errorMessage = '';
+
+  employee: Partial<Employee> = {
+    name: '',
+    email: '',
+    department: '',
+    position: '',
+    phone: ''
+  };
 
   constructor(
-    private fb: FormBuilder,
     private employeeService: EmployeeService,
     private router: Router,
     private route: ActivatedRoute
-  ) {
-    this.loading$ = this.employeeService.loading$;
-    this.error$ = this.employeeService.error$;
-  }
+  ) {}
 
-  ngOnInit(): void {
-    this.initForm();
+  async ngOnInit(): Promise<void> {
     this.employeeId = this.route.snapshot.paramMap.get('id');
     if (this.employeeId) {
       this.isEditMode = true;
-      this.loadEmployeeData(this.employeeId);
+      await this.loadEmployeeData(this.employeeId);
     }
-  }
-
-  private initForm(): void {
-    this.employeeForm = this.fb.group({
-      first_name: ['', [Validators.required]],
-      last_name: ['', [Validators.required]],
-      email: ['', [Validators.required, Validators.email]],
-      phone: [''],
-      department: [''],
-      position: [''],
-      salary: [null],
-      hire_date: ['']
-    });
   }
 
   async loadEmployeeData(id: string): Promise<void> {
-    const employee = await this.employeeService.getEmployeeById(id);
-    if (employee) {
-      this.employeeForm.patchValue(employee);
+    this.loading = true;
+    const data = await this.employeeService.getEmployeeById(id);
+    if (data) {
+      this.employee = { ...data };
+    } else {
+      this.errorMessage = 'Failed to load employee details.';
     }
+    this.loading = false;
   }
 
   async onSubmit(): Promise<void> {
-    if (this.employeeForm.invalid) {
-      this.employeeForm.markAllAsTouched();
-      return;
-    }
+    this.loading = true;
+    this.errorMessage = '';
 
-    const formData = this.employeeForm.value;
+    try {
+      let success = false;
+      if (this.isEditMode && this.employeeId) {
+        success = await this.employeeService.updateEmployee(this.employeeId, this.employee);
+      } else {
+        success = await this.employeeService.addEmployee(this.employee);
+      }
 
-    if (this.isEditMode && this.employeeId) {
-      const updated = await this.employeeService.updateEmployee(this.employeeId, formData);
-      if (updated) {
-        this.router.navigate(['/hr/employees']);
+      if (success) {
+        await this.router.navigate(['/employees']);
+      } else {
+        this.errorMessage = 'Failed to save employee. Please check console logs for table schema errors.';
       }
-    } else {
-      const created = await this.employeeService.addEmployee(formData);
-      if (created) {
-        this.router.navigate(['/hr/employees']);
-      }
+    } catch (err: any) {
+      this.errorMessage = err.message || 'An unexpected error occurred.';
+    } finally {
+      this.loading = false; // يعيد الزر لحالته الأصلية وينهي تعليق Saving...
     }
   }
 }

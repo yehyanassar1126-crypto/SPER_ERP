@@ -65,62 +65,84 @@ export class EmployeeService {
       return null;
     }
   }
-
-  // 3. إضافة موظف جديد
-  async addEmployee(employee: Employee): Promise<boolean> {
-    this.loadingSubject.next(true);
+  // دالة الإضافة (Add)
+  async addEmployee(employeeData: Partial<Employee>): Promise<boolean> {
     try {
-      const { error } = await this.supabase
-        .from(this.tableName)
-        .insert([employee]);
+      const generatedEmpId = 'EMP-' + Math.floor(1000 + Math.random() * 9000);
+      const generatedUsername = employeeData.email
+        ? employeeData.email.split('@')[0]
+        : 'user_' + Math.floor(1000 + Math.random() * 9000);
 
-      if (error) throw error;
-      this.loadingSubject.next(false);
+      // الـ Payload الكامل شاملاً الحقول الإجبارية في الجدول
+      const payload: any = {
+        employee_id: generatedEmpId,
+        username: generatedUsername,
+        password_hash: '123456', // لتجاوز شرط password_hash الـ NOT NULL
+        full_name: employeeData.name,
+        email: employeeData.email,
+        role: 'employee'
+      };
+
+      if (employeeData.department) payload.department = employeeData.department;
+      if (employeeData.position) payload.position = employeeData.position;
+
+      const { data, error } = await this.supabase
+        .from('users')
+        .insert([payload]);
+
+      if (error) {
+        console.error('Supabase Add Error Details:', error);
+        return false;
+      }
       return true;
-    } catch (err: any) {
-      console.error('Error adding employee:', err);
-      this.errorSubject.next(err.message);
-      this.loadingSubject.next(false);
+    } catch (err) {
+      console.error('Add Catch Error:', err);
       return false;
     }
   }
 
-  // 4. تحديث بيانات موظف
-  async updateEmployee(id: string, employee: Partial<Employee>): Promise<boolean> {
-    this.loadingSubject.next(true);
+  // دالة التعديل (Update)
+  async updateEmployee(id: string, employeeData: Partial<Employee>): Promise<boolean> {
     try {
-      const { error } = await this.supabase
-        .from(this.tableName)
-        .update(employee)
+      const payload: any = {
+        full_name: employeeData.name,
+        email: employeeData.email
+      };
+
+      if (employeeData.department) payload.department = employeeData.department;
+      if (employeeData.position) payload.position = employeeData.position;
+
+      const { data, error } = await this.supabase
+        .from('users')
+        .update(payload)
         .eq('id', id);
 
-      if (error) throw error;
-      this.loadingSubject.next(false);
+      if (error) {
+        console.error('Supabase Update Error Details:', error);
+        return false;
+      }
       return true;
-    } catch (err: any) {
-      console.error('Error updating employee:', err);
-      this.errorSubject.next(err.message);
-      this.loadingSubject.next(false);
+    } catch (err) {
+      console.error('Update Catch Error:', err);
       return false;
     }
   }
-
   // 5. حذف موظف
+// دالة الحذف (Delete)
   async deleteEmployee(id: string): Promise<boolean> {
-    this.loadingSubject.next(true);
     try {
       const { error } = await this.supabase
-        .from(this.tableName)
+        .from('users') // التوجيه لجدول users بدلاً من v_employee_summary
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
-      this.loadingSubject.next(false);
+      if (error) {
+        console.error('Supabase Delete Error:', error);
+        return false;
+      }
       return true;
-    } catch (err: any) {
-      console.error('Error deleting employee:', err);
-      this.errorSubject.next(err.message);
-      this.loadingSubject.next(false);
+    } catch (err) {
+      console.error('Delete Catch Error:', err);
       return false;
     }
   }

@@ -13,13 +13,17 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () => import('./features/dashboard/dashboard').then(m => m.Dashboard)
       },
-      {
+   {
         path: 'employees',
         loadComponent: () => import('./features/hr/employee-list/employee-list').then(m => m.EmployeeListComponent)
       },
       {
-        path: 'inventory',
-        loadComponent: () => import('./features/inventory/inventory').then(m => m.Inventory)
+        path: 'employees/new',
+        loadComponent: () => import('./features/hr/employee-form/employee-form').then(m => m.EmployeeFormComponent)
+      },
+      {
+        path: 'employees/edit/:id',
+        loadComponent: () => import('./features/hr/employee-form/employee-form').then(m => m.EmployeeFormComponent)
       },
       {
         path: 'finance',

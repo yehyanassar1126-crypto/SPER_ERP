@@ -50,12 +50,15 @@ filterEmployees(): void {
       emp.role?.toLowerCase().includes(term)
     );
   }
-  async deleteEmployee(id: string | undefined): Promise<void> {
+async deleteEmployee(id?: string): Promise<void> {
     if (!id) return;
+
     if (confirm('Are you sure you want to delete this employee?')) {
       const success = await this.employeeService.deleteEmployee(id);
       if (success) {
-        this.loadEmployees();
+        await this.loadEmployees();
+      } else {
+        alert('Failed to delete employee. Please try again.');
       }
     }
   }
